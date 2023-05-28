@@ -1,0 +1,14 @@
+struct Vec3 {
+    x: Int
+    y: Int
+    z: Int
+}
+
+fun main(): Unit {
+    let a = Vec3$[x: 1, y: 2, z: 3]
+
+    let b = Vec3$[x: 10, y: 0, z: 0]
+    let c = Vec3$[x: 0, y: 11, z: 0]
+    let d = Vec3$[x: 0, y: 0, z: 12]
+}
+

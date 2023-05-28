@@ -1,0 +1,427 @@
+parser grammar MainParser;
+
+// https://github.com/antlr/antlr4
+
+options { tokenVocab = MainLexer; }
+
+// Root
+file : NL* definition* EOF;
+
+// Identifiers
+nameToken
+    : IDENTIFIER ;
+
+declaredNameToken
+    : nameToken ;
+
+// Definitions
+definition
+    : annotation* definitionChoice NL* ;
+
+annotation
+    : AT nameToken NL* ;
+
+definitionChoice
+    : structDefinition
+    | optionDefinition
+    | functionDefinition
+    | includeDefinition
+    | useDefinition
+    | aliasDefinition
+    | moduleDefinition
+    | constDefinition
+    ;
+
+// E.g. include submodule
+includeDefinition
+    : INCLUDE location ;
+
+// E.g. std:core/Optional
+location
+    : (declaredNameToken COLON)? nameToken (DIV nameToken)* ;
+
+// E.g. alias Int32 = Int
+aliasDefinition
+    : ALIAS declaredNameToken ASSIGN typeUsage;
+
+useDefinition
+    : USE modulePath (useDefinitionConst | useDefinitionType | useDefinitionFunction | useDefinitionExtension) ;
+
+// E.g. use module::var
+useDefinitionConst
+    : declaredNameToken ;
+
+// E.g. use module::<core::Type>
+useDefinitionType
+    : (LTH | LBRACE) NL* modulePath? declaredNameToken NL* (GTH | RBRACE) ;
+
+// E.g. use module::plus()
+useDefinitionFunction
+    : declaredNameToken LPAREN RPAREN ;
+
+// E.g. use module::Int.plus()
+useDefinitionExtension
+    : typeUsage DOT declaredNameToken LPAREN RPAREN ;
+
+// E.g. mod core {}
+moduleDefinition
+    : MODULE modulePath? declaredNameToken NL* LBRACE NL* definition* RBRACE ;
+
+// E.g. let pi: Float = 3.14
+constDefinition
+    : LET declaredNameToken COLON typeUsage ASSIGN NL* expression ;
+
+// E.g. struct List<Int> { }
+structDefinition
+    : STRUCT declaredNameToken typeParamDef? NL* structBody;
+
+// E.g. { a: Int, b: Int }
+structBody
+    : LBRACE NL* structField* RBRACE ;
+
+// E.g. value: Int,
+structField
+    : nameToken COLON typeUsage COMMA? NL* ;
+
+// E.g. type Optional<T> {}
+optionDefinition
+    : OPTION declaredNameToken typeParamDef? NL* LBRACE NL* optionDefinitionItem* RBRACE ;
+
+// E.g. Some { value: T },
+optionDefinitionItem
+    : declaredNameToken structBody? COMMA? NL*;
+
+// E.g. fun Int.sum(other: Int): Int {}
+functionDefinition
+    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL* functionParameter* RPAREN NL* functionReturnType? functionBody ;
+
+// E.g. Int.
+functionReceiver
+    : typeUsage DOT ;
+
+// E.g. : Int
+functionReturnType
+    : COLON typeUsage NL* ;
+
+// E.g. count: Int,
+functionParameter
+    : nameToken NL* COLON NL* typeUsage COMMA? NL* ;
+
+// E.g. {}
+// E.g. = 3.14
+functionBody
+    : (statementBlock NL*)
+    | (ASSIGN NL* expression NL*)
+    ;
+
+// Statements
+// E.g. {}
+// E.g. { ret 0 }
+statementBlock
+    : LBRACE NL* statement (NL+ statement)* NL* RBRACE
+    | LBRACE NL* RBRACE
+    ;
+
+statement
+    : statementChoice ;
+
+statementChoice
+    : letStatement
+    | ifStatement
+    | forStatement
+    | whileStatement
+    | loopStatement
+    | expressionStatement
+    | foreignBlockStatement
+    ;
+
+// E.g. let a: Int = 0
+letStatement
+    : LET nameToken (COLON typeUsage)? (ASSIGN NL* expression)? ;
+
+// E.g. if true {} else {}
+ifStatement
+    : IF NL* expression NL* statementBlock (NL* ELSE NL* statementBlock)? ;
+
+// E.g. for item in list {}
+forStatement
+    : FOR NL* nameToken NL* IN NL* expression NL* statementBlock ;
+
+// E.g. while condition {}
+whileStatement
+    : WHILE NL* expression NL* statementBlock ;
+
+// E.g. loop {}
+loopStatement
+    : LOOP NL* statementBlock ;
+
+foreignBlockStatement
+    : BLOCK_START foreignBlockStatementPart* BLOCK_END ;
+
+foreignBlockStatementPart
+    : BLOCK_BLOB
+    | BLOCK_OTHER
+    ;
+
+// E.g. a = 0
+// E.g. 1 + 2
+expressionStatement
+    : assignableExpression ASSIGN NL* expression
+    | expression
+    ;
+
+// E.g. struct.field = value
+// E.g. list[index] = value
+// E.g. list[] = value
+// E.g. core::var = value
+assignableExpression
+    : expression DOT nameToken
+    | expression collectionIndexingSuffix
+    | expression LBRACKET RBRACKET
+    | modulePath? nameToken
+    ;
+
+// Expressions
+binopShl
+    : LTH LTH;
+binopShr
+    : GTH GTH ;
+binopUshr
+    : GTH GTH GTH;
+binaryOperator
+    : MUL | DIV | MOD | ADD | SUB | RANGE_IN | RANGE_EX | binopShl | binopShr | binopUshr | AND | XOR | OR | LTH | GTH | LEQ | GEQ | COMPARE | EQ | NEQ | ANDAND | OROR | XORXOR ;
+
+expression
+    : expressionComplex ;
+
+// Ej. 1 + 2
+// Ej. if x > 5 { 1 } else { 0 }
+// Ej. ret 5
+// Ej. not true
+expressionComplex
+    : expressionBinaryOp
+    | ifExpr
+    | returnExpr
+    | notExpr
+    ;
+
+// E.g. 1.0 + math::PI * 4.0
+expressionBinaryOp
+    : expressionSimple (binaryOperator expressionSimple)* ;
+
+// E.g. var as Int
+// E.g. var is Int
+// E.g. var !is Int
+// E.g. var in %[1, 2, 3]
+// E.g. var !in %[1, 2, 3]
+expressionSimple
+    : expressionWithSuffix AS typeUsage
+    | expressionWithSuffix IS typeUsage
+    | expressionWithSuffix NOT_IS typeUsage
+    | expressionWithSuffix IN expressionWithSuffix
+    | expressionWithSuffix NOT_IN expressionWithSuffix
+    | expressionWithSuffix
+    ;
+
+// E.g. expr() #[]
+// E.g. expr[index]
+// E.g. expr.field
+// E.g. expr
+// E.g. true()
+// E.g. expr.field()
+// E.g. func()()
+// E.g. break()
+expressionWithSuffix
+    : expressionWithSuffix collectionIndexingSuffix
+    | expressionWithSuffix structFieldAccessSuffix
+    | expressionWithSuffix DOT nameToken functionCallParams functionCallEnd?
+    | expressionWithSuffix DOT nameToken functionCallEnd
+    | expressionOrFunctionCall
+    ;
+
+expressionOrFunctionCall
+    : modulePath? nameToken functionCallEnd
+    | modulePath? nameToken functionCallParams functionCallEnd?
+    | parenthesizedExpression functionCallParams functionCallEnd?
+    | expressionLiteral functionCallParams functionCallEnd?
+    | structInstanceExpr functionCallParams functionCallEnd?
+    | sizeOfExpr functionCallParams functionCallEnd?
+    | THIS functionCallParams functionCallEnd?
+    | THIS functionCallEnd
+    | expressionBase
+    ;
+
+collectionIndexingSuffix
+    : LBRACKET NL* expression NL* RBRACKET ;
+
+structFieldAccessSuffix
+    : DOT nameToken ;
+
+parenthesizedExpression
+    : LPAREN NL* expression NL* RPAREN ;
+
+expressionBase
+    : parenthesizedExpression
+    | unitExpression
+    | expressionLiteral
+    | listExpr
+    | mapExpr
+    | setExpr
+    | lambdaExpr
+    | structInstanceExpr
+    | sizeOfExpr
+    | variableExpr
+    | JSON json_value
+    | THIS
+    | BREAK
+    | CONTINUE
+    ;
+
+unitExpression
+    : LPAREN RPAREN ;
+
+expressionLiteral
+    : INT_NUMBER
+    | FLOAT_NUMBER
+    | STRING
+    | TRUE
+    | FALSE
+    | NULL
+    ;
+
+listExpr
+    : LIST_START NL* listEntry* RBRACKET ;
+
+listEntry
+    : expression COMMA? NL* ;
+
+mapExpr
+    : MAP_START NL* mapEntry* RBRACKET ;
+
+mapEntry
+    : mapKey COLON NL* expression COMMA? NL* ;
+
+mapKey
+    : LPAREN NL* expression NL* RPAREN
+    | nameToken
+    | STRING
+    ;
+
+setExpr
+    : SET_START NL* listEntry* RBRACKET ;
+
+lambdaExpr
+    : LAMBDA_START lambdaDef? NL* statement (NL+ statement)* NL* RBRACE
+    | LAMBDA_START lambdaDef? NL* RBRACE
+    ;
+
+lambdaDef
+    : lambdaReceiver COMMA lambdaParams COMMA lambdaReturn ARROW
+    | lambdaReceiver COMMA lambdaParams                    ARROW
+    | lambdaReceiver                    COMMA lambdaReturn ARROW
+    | lambdaReceiver                                       ARROW
+    |                      lambdaParams COMMA lambdaReturn ARROW
+    |                      lambdaParams                    ARROW
+    |                                         lambdaReturn ARROW
+    ;
+
+lambdaParams
+    : lambdaArgument (COMMA lambdaArgument)* ;
+
+lambdaReceiver
+    : REC typeUsage;
+
+lambdaReturn
+    : RETURN typeUsage;
+
+lambdaArgument
+    : nameToken COLON typeUsage ;
+
+// E.g. ret 1
+returnExpr
+    : RETURN expression ;
+
+// E.g. size_of<Int>
+sizeOfExpr
+    : SIZE_OF LTH NL* typeUsage NL* GTH ;
+
+// E.g. not true
+notExpr
+    : NOT expressionBase ;
+
+ifExpr
+    : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;
+
+structInstanceExpr
+    : modulePath? nameToken typeParamArg? STRUCT_START NL* structInstanceEntry* RBRACKET ;
+
+structInstanceEntry
+    : nameToken (COLON NL* expression)? COMMA? NL* ;
+
+variableExpr
+    : modulePath? nameToken ;
+
+modulePath
+    : (nameToken DOUBLE_COLON)+ ;
+
+// Function call
+
+functionCallParams
+    : typeParamArg? LPAREN NL* functionCallParam* RPAREN ;
+
+functionCallParam
+    : expression COMMA? NL* ;
+
+functionCallEnd
+    : lambdaExpr
+    | listExpr
+    | mapExpr
+    | setExpr
+    ;
+
+// Types
+typeParamDef
+    : LTH NL* typeParameter (COMMA? NL* typeParameter)* NL* GTH ;
+
+typeParamArg
+    : LTH NL* typeUsage (COMMA NL* typeUsage)* NL* GTH ;
+
+// #T, #A, #B, List<#A>
+typeParameter
+    : HASH nameToken ;
+
+refModifier
+    : REF
+    | MUT
+    ;
+
+typeUsage
+    : typeParameter
+    | baseTypeUsage
+    | LTH NL* typeUsage NL* GTH
+    ;
+
+baseTypeUsage
+    : refModifier? modulePath? nameToken typeParamArg? ;
+
+// JSON value
+json_value
+   : STRING
+   | INT_NUMBER
+   | FLOAT_NUMBER
+   | TRUE
+   | FALSE
+   | NULL
+   | json_obj
+   | json_arr
+   | LPAREN NL* expression NL* RPAREN
+   ;
+
+json_obj
+   : LBRACE NL* (json_pair COMMA? NL*)* RBRACE ;
+
+json_pair
+   : STRING NL* COLON NL* json_value ;
+
+json_arr
+   : LBRACKET NL* (json_value COMMA? NL*)* RBRACKET ;
