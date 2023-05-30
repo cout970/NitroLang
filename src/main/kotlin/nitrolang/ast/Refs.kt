@@ -4,18 +4,14 @@ data class Ref(val id: Int) {
     override fun toString(): String = "$$id"
 }
 
-data class VarRef(val id: Int) {
+abstract class VarRef(val id: Int) {
     override fun toString(): String = "#$id"
 }
 
-data class FunRef(val id: Int) {
-    companion object {
-        private var counter = 0
-        fun next(): FunRef = FunRef(counter++)
-    }
-}
+class LocalVarRef(id: Int): VarRef(id)
 
-data class ConstRef(val id: Int) {
+class ConstRef(id: Int): VarRef(id) {
+
     companion object {
         private var counter = 0
         fun next(): ConstRef = ConstRef(counter++)
@@ -26,6 +22,13 @@ data class DeclRef(val id: Int) {
     companion object {
         private var counter = 0
         fun next(): DeclRef = DeclRef(counter++)
+    }
+}
+
+data class FunRef(val id: Int) {
+    companion object {
+        private var counter = 0
+        fun next(): FunRef = FunRef(counter++)
     }
 }
 

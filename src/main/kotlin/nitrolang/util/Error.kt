@@ -35,11 +35,11 @@ class ErrorInfo(
         var lineStart = span.start
         var lineEnd = span.start
 
-        while (lineStart > 1 && span.file.read(lineStart - 1, lineStart - 1) != "\n") {
+        while (lineStart > 1 && span.file.readChar(lineStart - 1) != '\n') {
             lineStart--
         }
 
-        while (lineEnd < span.file.length && span.file.read(lineEnd, lineEnd) != "\n") {
+        while (lineEnd < span.file.length && span.file.readChar(lineEnd) != '\n') {
             lineEnd++
         }
 

@@ -50,6 +50,11 @@ class LstParseStatementTest {
     }
 
     @Test
+    fun letScoping() {
+        parseFile("let_scoping.nl")
+    }
+
+    @Test
     fun foreignBlockStatement() {
         parseFile("foreign_block_statement.nl")
     }

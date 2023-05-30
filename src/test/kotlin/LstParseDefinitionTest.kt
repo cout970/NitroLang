@@ -19,6 +19,16 @@ class LstParseDefinitionTest {
         return program!!
     }
 
+    private fun parseFileAndFail(path: String): ErrorCollector {
+        val errors = ErrorCollector()
+        val file = SourceFile.load("tests/internal/definition/$path")
+        AstParser.parseFile(file, errors)
+
+        println(errors.toString())
+        assertNotEquals("", errors.toString(), "Parsed without the expected errors")
+        return errors
+    }
+
     @Test
     fun function() {
         parseFile("function.nl")
@@ -37,5 +47,10 @@ class LstParseDefinitionTest {
     @Test
     fun const() {
         parseFile("const.nl")
+    }
+
+    @Test
+    fun redeclaration() {
+        parseFileAndFail("redeclaration.nl")
     }
 }

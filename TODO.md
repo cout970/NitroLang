@@ -8,8 +8,9 @@ Intended for the developers
 
 - [x] Grammar
 - [x] Parser
-- [ ] Resolve and check symbols
+- [x] Resolve and check symbols
 - [ ] Resolve and check types
+- [ ] Link types and symbols
 - [ ] Type inference
 - [ ] Compile to WASM
 - [ ] StdLib

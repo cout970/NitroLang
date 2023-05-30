@@ -2,9 +2,6 @@ package nitrolang.ast
 
 import nitrolang.util.Span
 import nitrolang.util.formatItem
-import nitrolang.util.formatList
-
-typealias Path = String
 
 class LstProgram {
     val structs = mutableMapOf<DeclRef, LstStruct>()
@@ -31,6 +28,7 @@ class LstStruct(
     val annotations: List<LstAnnotation>,
     val ref: DeclRef,
 ) {
+    val fullName: Path get() = createPath(path, name)
     override fun toString(): String {
         return "LstStruct {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -69,6 +67,7 @@ class LstOption(
     val annotations: List<LstAnnotation>,
     val ref: DeclRef,
 ) {
+    val fullName: Path get() = createPath(path, name)
     override fun toString(): String {
         return "LstOption {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -90,6 +89,7 @@ class LstConst(
     val annotations: List<LstAnnotation>,
     val ref: ConstRef,
 ) {
+    val fullName: Path get() = createPath(path, name)
     override fun toString(): String {
         return "LstConst {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -147,6 +147,10 @@ data class LstFunctionParam(
 class LstCode {
     val nodes: MutableList<LstNode> = mutableListOf()
 
+    // Block nesting
+    val rootBlock: LstNodeBlock = LstNodeBlock(null)
+    var currentBlock: LstNodeBlock = rootBlock
+
     // Let declarations
     val variables: MutableMap<VarRef, LstVar> = mutableMapOf()
 
@@ -157,8 +161,11 @@ class LstCode {
     // Ref id
     private var counter = 0
 
+    fun currentRef() = Ref(counter)
+
     fun nextRef() = Ref(counter++)
-    fun nextVarRef() = VarRef(counter++)
+
+    fun nextVarRef() = LocalVarRef(counter++)
 
     override fun toString(): String {
         return "LstCode {\n" +
@@ -171,13 +178,16 @@ class LstCode {
 class LstVar(
     val span: Span,
     val name: String,
+    val block: LstNodeBlock,
     val typeUsage: TypeUsage?,
+    val validAfter: Ref,
     val ref: VarRef,
 ) {
     override fun toString(): String {
         return "LstVar {\n" +
                 "  name=${formatItem(name)}\n" +
                 "  typeUsage=${formatItem(typeUsage)}\n" +
+                "  validAfter=${formatItem(validAfter)}\n" +
                 "  ref=${formatItem(ref)}\n" +
                 "}"
     }

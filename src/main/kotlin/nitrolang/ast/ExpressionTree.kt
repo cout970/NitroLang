@@ -26,11 +26,13 @@ sealed class ExpressionTree {
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = Span.internal(),
+                    block = code.currentBlock,
                     expr = e1
                 )
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = Span.internal(),
+                    block = code.currentBlock,
                     expr = e2
                 )
 
@@ -39,12 +41,14 @@ sealed class ExpressionTree {
                         code.nodes += LstFunArg(
                             ref = code.nextRef(),
                             span = Span.internal(),
+                            block = code.currentBlock,
                             expr = list.last()
                         )
                     }
                     val call = LstFunCall(
                         ref = code.nextRef(),
                         span = Span.internal(),
+                        block = code.currentBlock,
                         name = funcName,
                         path = "",
                         argCount = if (index == 0) 2 else 1,

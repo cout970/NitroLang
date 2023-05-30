@@ -17,6 +17,7 @@ import nitrolang.gen.MainParser.FunctionCallEndContext
 import nitrolang.gen.MainParser.FunctionCallParamsContext
 import nitrolang.gen.MainParser.FunctionDefinitionContext
 import nitrolang.gen.MainParser.IfExprContext
+import nitrolang.gen.MainParser.IncludeDefinitionContext
 import nitrolang.gen.MainParser.LambdaExprContext
 import nitrolang.gen.MainParser.ListExprContext
 import nitrolang.gen.MainParser.MapExprContext
@@ -30,6 +31,7 @@ import nitrolang.gen.MainParser.StructDefinitionContext
 import nitrolang.gen.MainParser.StructInstanceExprContext
 import nitrolang.gen.MainParser.TypeParamDefContext
 import nitrolang.gen.MainParser.TypeUsageContext
+import nitrolang.gen.MainParser.UseDefinitionContext
 import nitrolang.gen.MainParser.VariableExprContext
 import nitrolang.gen.MainParserBaseListener
 import nitrolang.util.ErrorCollector
@@ -38,7 +40,6 @@ import nitrolang.util.Span
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 
-private const val MODULE_SEPARATOR = "::"
 private const val SELF_NAME = "this"
 
 class AstParser(
@@ -47,6 +48,7 @@ class AstParser(
 ) : MainParserBaseListener() {
     private val program = LstProgram()
     private val typeParamMap = mutableMapOf<String, TypeParameter>()
+    private val definedNames = mutableMapOf<Path, Span>()
 
     companion object {
         fun parseFile(source: SourceFile, collector: ErrorCollector): LstProgram? {
@@ -89,6 +91,13 @@ class AstParser(
 
             ParseTreeWalker().walk(astParser, fileCtx)
 
+            astParser.program.functions.values.forEach {
+                astParser.processCode(it.body)
+            }
+            astParser.program.consts.values.forEach {
+                astParser.processCode(it.body)
+            }
+
             return astParser.program
         }
     }
@@ -119,12 +128,20 @@ class AstParser(
             ref = DeclRef.next(),
         )
 
+        if (struct.fullName in definedNames) {
+            val prev = definedNames[struct.fullName]
+            collector.report("Redeclaration of ${struct.fullName}, previously defined at $prev", struct.span)
+            return
+        }
+
+        definedNames[struct.fullName] = struct.span
         program.structs[struct.ref] = struct
     }
 
     override fun enterOptionDefinition(ctx: OptionDefinitionContext) {
         startTypeParams(ctx.typeParamDef())
 
+        val mutableTypeParametersList = mutableListOf<TypeParameter>()
         val options = mutableMapOf<DeclRef, LstStruct>()
 
         ctx.optionDefinitionItem().forEach { opt ->
@@ -151,28 +168,42 @@ class AstParser(
                 name = opt.declaredNameToken().text,
                 path = path + ctx.declaredNameToken().text,
                 fields = fields.associateBy { it.ref },
-                typeParameters = emptyList(),
+                typeParameters = mutableTypeParametersList,
                 annotations = emptyList(),
                 ref = DeclRef.next(),
             )
 
-            // TODO check unique path
+            if (struct.fullName in definedNames) {
+                val prev = definedNames[struct.fullName]
+                collector.report("Redeclaration of ${struct.fullName}, previously defined at $prev", struct.span)
+                return
+            }
+
+            definedNames[struct.fullName] = struct.span
             program.structs[struct.ref] = struct
             options[struct.ref] = struct
         }
 
-        val typeParameters = endTypeParams()
+        // Type parameters are shared between the option's items and the option type
+        mutableTypeParametersList.addAll(endTypeParams())
 
         val option = LstOption(
             span = ctx.declaredNameToken().span(),
             name = ctx.declaredNameToken().text,
             path = currentPath(ctx),
             items = options,
-            typeParameters = typeParameters,
+            typeParameters = mutableTypeParametersList,
             annotations = resolveAnnotations(ctx),
             ref = DeclRef.next()
         )
 
+        if (option.fullName in definedNames) {
+            val prev = definedNames[option.fullName]
+            collector.report("Redeclaration of ${option.fullName}, previously defined at $prev", option.span)
+            return
+        }
+
+        definedNames[option.fullName] = option.span
         program.options[option.ref] = option
     }
 
@@ -180,17 +211,30 @@ class AstParser(
         startTypeParams(ctx.typeParamDef())
 
         val params = mutableListOf<LstFunctionParam>()
+        val body = LstCode()
         var hasReceiver = false
         var index = 0
 
         if (ctx.functionReceiver() != null) {
-            params += LstFunctionParam(
+            val param = LstFunctionParam(
                 span = ctx.functionReceiver().typeUsage().span(),
                 name = SELF_NAME,
                 index = index++,
                 typeUsage = resolveTypeUsage(ctx.functionReceiver().typeUsage()),
             )
+            params += param
             hasReceiver = true
+
+            val variable = LstVar(
+                span = param.span,
+                name = param.name,
+                block = body.currentBlock,
+                typeUsage = param.typeUsage,
+                validAfter = body.currentRef(),
+                ref = body.nextVarRef()
+            )
+
+            body.variables[variable.ref] = variable
         }
 
         val returnTypeUsage: TypeUsage = if (ctx.functionReturnType() != null) {
@@ -199,17 +243,29 @@ class AstParser(
             TypeUsage.unit()
         }
 
-        ctx.functionParameter().forEach { param ->
-            params += LstFunctionParam(
-                span = param.nameToken().span(),
-                name = param.nameToken().text,
+        ctx.functionParameter().forEach { rawParam ->
+            val param = LstFunctionParam(
+                span = rawParam.nameToken().span(),
+                name = rawParam.nameToken().text,
                 index = index++,
-                typeUsage = resolveTypeUsage(param.typeUsage()),
+                typeUsage = resolveTypeUsage(rawParam.typeUsage()),
             )
+            params += param
+
+            val variable = LstVar(
+                span = param.span,
+                name = param.name,
+                block = body.currentBlock,
+                typeUsage = param.typeUsage,
+                validAfter = body.currentRef(),
+                ref = body.nextVarRef()
+            )
+
+            body.variables[variable.ref] = variable
         }
+
         val typeParameters = endTypeParams()
 
-        val body = LstCode()
         when {
             ctx.functionBody().statementBlock() != null -> {
                 processStatementBlock(ctx.functionBody().statementBlock(), body)
@@ -254,6 +310,13 @@ class AstParser(
             ref = ConstRef.next(),
         )
 
+        if (const.fullName in definedNames) {
+            val prev = definedNames[const.fullName]
+            collector.report("Redeclaration of ${const.fullName}, previously defined at $prev", const.span)
+            return
+        }
+
+        definedNames[const.fullName] = const.span
         program.consts[const.ref] = const
     }
 
@@ -268,80 +331,65 @@ class AstParser(
         }
     }
 
-//    private fun resolveIncludes(ctx: FileContext): List<Pair<CstLocation, Span>> {
-//        val includes = mutableListOf<Pair<CstLocation, Span>>()
-//
-//        val collect = object : MainParserBaseListener() {
-//            override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {
-//                val location = ctx.location()
-//                val namespace = if (location.declaredNameToken() != null) location.declaredNameToken().text else ""
-//                val path = location.nameToken().joinToString("/") { it.text }
-//
-//                includes += CstLocation(namespace, path) to ctx.span()
-//            }
-//        }
-//
-//        ParseTreeWalker().walk(collect, ctx)
-//
-//        return includes
-//    }
+    override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {
+//        val location = ctx.location()
+//        val namespace = if (location.declaredNameToken() != null) location.declaredNameToken().text else ""
+//        val path = location.nameToken().joinToString("/") { it.text }
 
-//    private fun resolveImports(ctx: FileContext) {
-//        val collect = object : MainParserBaseListener() {
-//            override fun enterUseDefinition(ctx: UseDefinitionContext) {
-//                val path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.IDENTIFIER().text }
+        TODO("Includes")
+    }
+
+    override fun enterUseDefinition(ctx: UseDefinitionContext) {
+        TODO("Use-declarations")
+//        val path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.IDENTIFIER().text }
 //
-//                when {
-//                    ctx.useDefinitionConst() != null -> {
-//                        val def = ctx.useDefinitionConst()
+//        when {
+//            ctx.useDefinitionConst() != null -> {
+//                val def = ctx.useDefinitionConst()
 //
-//                        root.constImports += CstConstImport(
-//                            name = def.declaredNameToken().text,
-//                            path = path,
-//                        )
-//                    }
+//                root.constImports += CstConstImport(
+//                    name = def.declaredNameToken().text,
+//                    path = path,
+//                )
+//            }
 //
-//                    ctx.useDefinitionType() != null -> {
-//                        val def = ctx.useDefinitionType()
+//            ctx.useDefinitionType() != null -> {
+//                val def = ctx.useDefinitionType()
 //
-//                        val name = def.declaredNameToken().text
-//                        val subPath = if (def.modulePath() != null) {
-//                            def.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
-//                        } else {
-//                            ""
-//                        }
-//
-//                        root.typeImports += CstTypeImport(
-//                            name = name,
-//                            path = createPath(path, subPath),
-//                        )
-//                    }
-//
-//                    ctx.useDefinitionFunction() != null -> {
-//                        val def = ctx.useDefinitionFunction()
-//
-//                        root.functionImports += CstFunctionImport(
-//                            name = def.declaredNameToken().text,
-//                            path = path,
-//                            receiver = CstTypeUsage.unit().also { root.typeUsages += it },
-//                        )
-//                    }
-//
-//                    ctx.useDefinitionExtension() != null -> {
-//                        val def = ctx.useDefinitionExtension()
-//
-//                        root.functionImports += CstFunctionImport(
-//                            name = def.declaredNameToken().text,
-//                            path = path,
-//                            receiver = resolveTypeUsage(def.typeUsage()),
-//                        )
-//                    }
+//                val name = def.declaredNameToken().text
+//                val subPath = if (def.modulePath() != null) {
+//                    def.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+//                } else {
+//                    ""
 //                }
+//
+//                root.typeImports += CstTypeImport(
+//                    name = name,
+//                    path = createPath(path, subPath),
+//                )
+//            }
+//
+//            ctx.useDefinitionFunction() != null -> {
+//                val def = ctx.useDefinitionFunction()
+//
+//                root.functionImports += CstFunctionImport(
+//                    name = def.declaredNameToken().text,
+//                    path = path,
+//                    receiver = CstTypeUsage.unit().also { root.typeUsages += it },
+//                )
+//            }
+//
+//            ctx.useDefinitionExtension() != null -> {
+//                val def = ctx.useDefinitionExtension()
+//
+//                root.functionImports += CstFunctionImport(
+//                    name = def.declaredNameToken().text,
+//                    path = path,
+//                    receiver = resolveTypeUsage(def.typeUsage()),
+//                )
 //            }
 //        }
-//
-//        ParseTreeWalker().walk(collect, ctx)
-//    }
+    }
 
     private fun startTypeParams(ctx: TypeParamDefContext?) {
         typeParamMap.clear()
@@ -353,7 +401,14 @@ class AstParser(
                 ref = TypeRef.next()
             )
 
-            // TODO check names are unique
+            if (td.name in typeParamMap) {
+                val prev = typeParamMap[td.name]
+                collector.report(
+                    "Name conflict, type parameter name ${td.name} is already in use at ${prev?.span}",
+                    td.span
+                )
+                return
+            }
             typeParamMap[td.name] = td
         }
     }
@@ -376,6 +431,7 @@ class AstParser(
                 val arg1 = LstFunArg(
                     ref = code.nextRef(),
                     span = complex.span(),
+                    block = code.currentBlock,
                     expr = expr
                 )
                 code.nodes += arg1
@@ -383,6 +439,7 @@ class AstParser(
                 val call = LstFunCall(
                     ref = code.nextRef(),
                     span = complex.notExpr().span(),
+                    block = code.currentBlock,
                     name = "logic_not",
                     path = "core",
                     argCount = 1,
@@ -396,6 +453,7 @@ class AstParser(
                 val node = LstReturn(
                     ref = code.nextRef(),
                     span = complex.returnExpr().span(),
+                    block = code.currentBlock,
                     expr = expr
                 )
                 code.nodes += node
@@ -420,6 +478,7 @@ class AstParser(
                 val node = LstAsType(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     expr = expr,
                     typeUsage = typeUsage,
                 )
@@ -434,6 +493,7 @@ class AstParser(
                 val node = LstIsType(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     expr = expr,
                     typeUsage = typeUsage,
                 )
@@ -448,6 +508,7 @@ class AstParser(
                 val node = LstIsType(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     expr = expr,
                     typeUsage = typeUsage,
                 )
@@ -456,11 +517,13 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     expr = node.ref
                 )
                 val call = LstFunCall(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     name = "logic_not",
                     path = "",
                     argCount = 1
@@ -476,16 +539,19 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.expressionWithSuffix(0).span(),
+                    block = code.currentBlock,
                     expr = value
                 )
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.expressionWithSuffix(1).span(),
+                    block = code.currentBlock,
                     expr = collection
                 )
                 val call = LstFunCall(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     name = "contains",
                     path = "",
                     argCount = 1
@@ -501,16 +567,19 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.expressionWithSuffix(0).span(),
+                    block = code.currentBlock,
                     expr = value
                 )
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.expressionWithSuffix(1).span(),
+                    block = code.currentBlock,
                     expr = collection
                 )
                 val call = LstFunCall(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     name = "contains",
                     path = "",
                     argCount = 1
@@ -521,11 +590,13 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     expr = call.ref
                 )
                 val call2 = LstFunCall(
                     ref = code.nextRef(),
                     span = simple.span(),
+                    block = code.currentBlock,
                     name = "logic_not",
                     path = "",
                     argCount = 1
@@ -549,16 +620,19 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = ctx.expressionWithSuffix().span(),
+                    block = code.currentBlock,
                     expr = prevRef
                 )
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = ctx.collectionIndexingSuffix().span(),
+                    block = code.currentBlock,
                     expr = indexRef
                 )
                 val call = LstFunCall(
                     ref = code.nextRef(),
                     span = ctx.collectionIndexingSuffix().span(),
+                    block = code.currentBlock,
                     name = "get",
                     path = "",
                     argCount = 2
@@ -574,6 +648,7 @@ class AstParser(
                 val node = LstLoadField(
                     ref = code.nextRef(),
                     span = ctx.structFieldAccessSuffix().nameToken().span(),
+                    block = code.currentBlock,
                     expr = prevRef,
                     name = name,
                 )
@@ -636,6 +711,7 @@ class AstParser(
                 val load = LstLoadVar(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     name = SELF_NAME,
                     path = "",
                 )
@@ -697,6 +773,7 @@ class AstParser(
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = span,
+                block = code.currentBlock,
                 expr = it,
             )
         }
@@ -704,6 +781,7 @@ class AstParser(
         val call = LstFunCall(
             ref = code.nextRef(),
             span = span,
+            block = code.currentBlock,
             name = name,
             path = path,
             argCount = args.size,
@@ -719,7 +797,11 @@ class AstParser(
             }
 
             ctx.unitExpression() != null -> {
-                val node = LstUnit(ref = code.nextRef(), span = ctx.unitExpression().span())
+                val node = LstUnit(
+                    ref = code.nextRef(),
+                    span = ctx.unitExpression().span(),
+                    block = code.currentBlock,
+                )
                 code.nodes += node
                 node.ref
             }
@@ -752,6 +834,7 @@ class AstParser(
                 val node = LstLoadVar(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     name = SELF_NAME,
                     path = "",
                 )
@@ -763,6 +846,7 @@ class AstParser(
                 val node = LstJumpTo(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     backwards = false,
                     role = "break",
                 )
@@ -775,6 +859,7 @@ class AstParser(
                 val node = LstJumpTo(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     backwards = true,
                     role = "continue",
                 )
@@ -814,6 +899,7 @@ class AstParser(
                 val node = LstInt(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = intValue
                 )
                 code.nodes += node
@@ -831,6 +917,7 @@ class AstParser(
                 val node = LstFloat(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = floatValue ?: 0f
                 )
                 code.nodes += node
@@ -843,6 +930,7 @@ class AstParser(
                 val node = LstString(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = value
                 )
                 code.nodes += node
@@ -853,6 +941,7 @@ class AstParser(
                 val node = LstBoolean(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = true,
                 )
                 code.nodes += node
@@ -863,6 +952,7 @@ class AstParser(
                 val node = LstBoolean(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = false,
                 )
                 code.nodes += node
@@ -878,6 +968,7 @@ class AstParser(
                 val node = LstUnit(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                 )
                 code.nodes += node
                 node.ref
@@ -929,6 +1020,7 @@ class AstParser(
         val value = LstAlloc(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = TypeUsage.list(TypeUsage.unit())
         )
         code.nodes += value
@@ -939,16 +1031,19 @@ class AstParser(
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 expr = itemRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 name = "add",
                 path = "core::list",
                 argCount = 2
@@ -962,6 +1057,7 @@ class AstParser(
         val value = LstAlloc(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = TypeUsage.list(TypeUsage.unit())
         )
 
@@ -972,6 +1068,7 @@ class AstParser(
                     val node = LstString(
                         ref = code.nextRef(),
                         span = ctx.span(),
+                        block = code.currentBlock,
                         value = keyCtx.nameToken().text
                     )
                     code.nodes += node
@@ -982,6 +1079,7 @@ class AstParser(
                     val node = LstString(
                         ref = code.nextRef(),
                         span = ctx.span(),
+                        block = code.currentBlock,
                         value = unescapeStringLiteral(keyCtx.STRING().text)
                     )
                     code.nodes += node
@@ -1000,21 +1098,25 @@ class AstParser(
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = keyCtx.span(),
+                block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = keyCtx.span(),
+                block = code.currentBlock,
                 expr = keyRef
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = keyCtx.span(),
+                block = code.currentBlock,
                 expr = valueRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
                 span = keyCtx.span(),
+                block = code.currentBlock,
                 name = "set",
                 path = "core::map",
                 argCount = 3
@@ -1028,6 +1130,7 @@ class AstParser(
         val value = LstAlloc(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = TypeUsage.list(TypeUsage.unit())
         )
 
@@ -1037,16 +1140,19 @@ class AstParser(
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 expr = itemRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
                 span = item.expression().span(),
+                block = code.currentBlock,
                 name = "add",
                 path = "core::set",
                 argCount = 2
@@ -1106,6 +1212,7 @@ class AstParser(
         val node = LstAlloc(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = TypeUsage.lambda(lambda)
         )
         code.nodes += node
@@ -1118,6 +1225,7 @@ class AstParser(
         val jump = LstIfJump(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             cond = cond,
             middle = null,
             end = null,
@@ -1130,6 +1238,7 @@ class AstParser(
         val jump2 = LstJumpTo(
             ref = code.nextRef(),
             span = ctx.statementBlock(1).span(),
+            block = code.currentBlock,
             backwards = false,
             role = "if_jump_to_end",
         )
@@ -1138,6 +1247,7 @@ class AstParser(
         val middle = LstMarker(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             role = "if_middle"
         )
         code.nodes += middle
@@ -1149,6 +1259,7 @@ class AstParser(
         val end = LstMarker(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             role = "if_end"
         )
 
@@ -1159,6 +1270,7 @@ class AstParser(
         val choose = LstChoose(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             cond = cond,
             ifTrue = ifTrueRef,
             ifFalse = ifFalseRef,
@@ -1184,6 +1296,7 @@ class AstParser(
         val alloc = LstAlloc(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = TypeUsage(
                 span = ctx.nameToken().span(),
                 name = name,
@@ -1204,6 +1317,7 @@ class AstParser(
                 val node = LstString(
                     ref = code.nextRef(),
                     span = ctx.span(),
+                    block = code.currentBlock,
                     value = entry.nameToken().text
                 )
                 code.nodes += node
@@ -1213,6 +1327,7 @@ class AstParser(
             code.nodes += LstStoreField(
                 ref = code.nextRef(),
                 span = ctx.span(),
+                block = code.currentBlock,
                 name = entry.nameToken().text,
                 instance = alloc.ref,
                 expr = expr,
@@ -1232,6 +1347,7 @@ class AstParser(
         val node = LstLoadVar(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             name = name,
             path = path,
         )
@@ -1243,6 +1359,7 @@ class AstParser(
         val node = LstSizeOf(
             ref = code.nextRef(),
             span = ctx.span(),
+            block = code.currentBlock,
             typeUsage = resolveTypeUsage(ctx.typeUsage()),
         )
         code.nodes += node
@@ -1269,8 +1386,10 @@ class AstParser(
 
                 val variable = LstVar(
                     span = subCtx.nameToken().span(),
+                    block = code.currentBlock,
                     name = subCtx.nameToken().text,
                     typeUsage = subCtx.typeUsage()?.let { resolveTypeUsage(it) },
+                    validAfter = code.currentRef(),
                     ref = code.nextVarRef(),
                 )
 
@@ -1281,12 +1400,12 @@ class AstParser(
                     code.nodes += LstStoreVar(
                         ref = code.nextRef(),
                         span = subCtx.expression().span(),
+                        block = code.currentBlock,
                         name = variable.name,
                         path = "",
                         expr = expr,
-                    ).also {
-                        it.variable = variable.ref
-                    }
+                        variable = variable.ref
+                    )
                 }
             }
 
@@ -1295,9 +1414,13 @@ class AstParser(
 
                 val cond = processExpression(subCtx.expression(), code)
 
+                val prevBlock = code.currentBlock
+                code.currentBlock = LstNodeBlock(prevBlock)
+
                 val jump = LstIfJump(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     cond = cond,
                     middle = null,
                     end = null,
@@ -1309,9 +1432,12 @@ class AstParser(
                 var jump2: LstJumpTo? = null
 
                 if (subCtx.statementBlock(1) != null) {
+                    code.currentBlock = LstNodeBlock(prevBlock)
+
                     jump2 = LstJumpTo(
                         ref = code.nextRef(),
                         span = subCtx.statementBlock(1).span(),
+                        block = code.currentBlock,
                         backwards = false,
                         role = "if_jump_to_end",
                     )
@@ -1321,6 +1447,7 @@ class AstParser(
                 val middle = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "if_middle"
                 )
                 code.nodes += middle
@@ -1331,6 +1458,7 @@ class AstParser(
                     val end = LstMarker(
                         ref = code.nextRef(),
                         span = subCtx.span(),
+                        block = code.currentBlock,
                         role = "if_end"
                     )
 
@@ -1338,6 +1466,9 @@ class AstParser(
                     jump.end = end.ref
                     jump2?.marker = end.ref
                 }
+
+                // Restore prev block
+                code.currentBlock = prevBlock
             }
 
             stm.loopStatement() != null -> {
@@ -1348,9 +1479,13 @@ class AstParser(
                 code.breakNodes = mutableListOf()
                 code.continueNodes = mutableListOf()
 
+                val prevBlock = code.currentBlock
+                code.currentBlock = LstNodeBlock(prevBlock)
+
                 val start = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "loop_start"
                 )
                 code.nodes += start
@@ -1360,6 +1495,7 @@ class AstParser(
                 code.nodes += LstJumpTo(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     backwards = true,
                     marker = start.ref,
                     role = "loop_jump_to_beginning",
@@ -1368,9 +1504,11 @@ class AstParser(
                 val end = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "loop_end"
                 )
                 code.nodes += end
+                code.currentBlock = prevBlock
 
                 // Link jumps
                 code.breakNodes.forEach { it.marker = end.ref }
@@ -1397,9 +1535,13 @@ class AstParser(
                 code.breakNodes = mutableListOf()
                 code.continueNodes = mutableListOf()
 
+                val prevBlock = code.currentBlock
+                code.currentBlock = LstNodeBlock(prevBlock)
+
                 val start = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "while"
                 )
                 code.nodes += start
@@ -1409,6 +1551,7 @@ class AstParser(
                 val jump = LstIfJump(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     cond = cond
                 )
                 code.nodes += jump
@@ -1418,6 +1561,7 @@ class AstParser(
                 code.nodes += LstJumpTo(
                     code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     backwards = true,
                     marker = start.ref,
                     role = "while_jump_to_beginning",
@@ -1426,10 +1570,12 @@ class AstParser(
                 val end = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "while"
                 )
                 code.nodes += end
                 jump.middle = end.ref
+                code.currentBlock = prevBlock
 
                 // Link jumps
                 code.breakNodes.forEach { it.marker = end.ref }
@@ -1448,11 +1594,13 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = subCtx.expression().span(),
+                    block = code.currentBlock,
                     expr = iterable,
                 )
                 val toIterator = LstFunCall(
                     ref = code.nextRef(),
                     span = subCtx.expression().span(),
+                    block = code.currentBlock,
                     name = "to_iterator",
                     path = "",
                     argCount = 1,
@@ -1465,10 +1613,14 @@ class AstParser(
                 code.breakNodes = mutableListOf()
                 code.continueNodes = mutableListOf()
 
+                val prevBlock = code.currentBlock
+                code.currentBlock = LstNodeBlock(prevBlock)
+
                 // loop {}
                 val start = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "for_start"
                 )
                 code.nodes += start
@@ -1477,11 +1629,13 @@ class AstParser(
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = subCtx.expression().span(),
+                    block = code.currentBlock,
                     expr = toIterator.ref,
                 )
                 val iteratorNext = LstFunCall(
                     ref = code.nextRef(),
                     span = subCtx.expression().span(),
+                    block = code.currentBlock,
                     name = "next",
                     path = "",
                     argCount = 1,
@@ -1492,45 +1646,49 @@ class AstParser(
                 val variable = LstVar(
                     span = subCtx.nameToken().span(),
                     name = subCtx.nameToken().text,
+                    block = code.currentBlock,
                     typeUsage = null,
+                    validAfter = code.currentRef(),
                     ref = code.nextVarRef(),
                 )
 
                 code.variables[variable.ref] = variable
 
-
                 // i = aux.next()
                 code.nodes += LstStoreVar(
                     ref = code.nextRef(),
                     span = subCtx.nameToken().span(),
+                    block = code.currentBlock,
                     name = subCtx.nameToken().text,
                     path = "",
                     expr = iteratorNext.ref,
-                ).also {
-                    it.variable = variable.ref
-                }
+                    variable = variable.ref,
+                )
 
                 // i.is_none()
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
                     span = subCtx.nameToken().span(),
+                    block = code.currentBlock,
                     expr = iteratorNext.ref,
                 )
 
                 val isNoneCall = LstFunCall(
                     ref = code.nextRef(),
                     span = subCtx.nameToken().span(),
+                    block = code.currentBlock,
                     name = "is_some",
                     path = "",
                     argCount = 1,
                 )
                 code.nodes += isNoneCall
 
-                // if(i.is_some()) {
+                // if (i.is_some()) {
 
                 val jump = LstIfJump(
                     ref = code.nextRef(),
                     span = subCtx.nameToken().span(),
+                    block = code.currentBlock,
                     cond = isNoneCall.ref,
                 )
                 code.nodes += jump
@@ -1541,6 +1699,7 @@ class AstParser(
                 code.nodes += LstJumpTo(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     backwards = true,
                     marker = start.ref,
                     role = "for_jump_to_beginning",
@@ -1550,10 +1709,12 @@ class AstParser(
                 val end = LstMarker(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     role = "for_end"
                 )
                 code.nodes += end
                 jump.middle = end.ref
+                code.currentBlock = prevBlock
 
                 // Link jumps
                 code.breakNodes.forEach { it.marker = end.ref }
@@ -1577,6 +1738,7 @@ class AstParser(
                             code.nodes += LstStoreField(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 name = subSubCtx.nameToken().text,
                                 instance = receiver,
                                 expr = value,
@@ -1591,21 +1753,25 @@ class AstParser(
                             code.nodes += LstFunArg(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 expr = receiver,
                             )
                             code.nodes += LstFunArg(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 expr = index,
                             )
                             code.nodes += LstFunArg(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 expr = value,
                             )
                             code.nodes += LstFunCall(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 name = "set",
                                 path = "",
                                 argCount = 3,
@@ -1619,16 +1785,19 @@ class AstParser(
                             code.nodes += LstFunArg(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 expr = receiver,
                             )
                             code.nodes += LstFunArg(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 expr = value,
                             )
                             code.nodes += LstFunCall(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 name = "add",
                                 path = "",
                                 argCount = 2,
@@ -1647,6 +1816,7 @@ class AstParser(
                             code.nodes += LstStoreVar(
                                 ref = code.nextRef(),
                                 span = subSubCtx.nameToken().span(),
+                                block = code.currentBlock,
                                 name = name,
                                 path = path,
                                 expr = value,
@@ -1693,6 +1863,7 @@ class AstParser(
                 code.nodes += LstComment(
                     ref = code.nextRef(),
                     span = subCtx.span(),
+                    block = code.currentBlock,
                     comment = "```${name}\n${contents}\n```"
                 )
             }
@@ -1756,6 +1927,47 @@ class AstParser(
             typeParameterRef = null,
             currentPath = currentPath(ctx)
         )
+    }
+
+    private fun processCode(code: LstCode) {
+        fun <T> linkVariable(node: T) where T : LstNode, T : HasVarRef {
+            var found: LstVar? = null
+            var block: LstNodeBlock? = node.block
+
+            while (block != null && found == null) {
+                found = code.variables.values
+                    .filter { it.block == block }
+                    .sortedByDescending { it.validAfter.id }
+                    .filter { it.validAfter.id <= node.ref.id }
+                    .find { it.name == node.name }
+
+                block = block.parent
+            }
+
+            if (found != null) {
+                node.variable = found.ref
+                return
+            }
+
+            val found2 = program.consts.values.find { it.name == node.name }
+
+            if (found2 != null) {
+                node.variable = found2.ref
+                return
+            }
+
+            collector.report("Variable not found: ${node.name}", node.span)
+        }
+
+        code.nodes.forEach { node ->
+            when (node) {
+                is HasVarRef -> {
+                    if (node.variable == null) {
+                        linkVariable(node)
+                    }
+                }
+            }
+        }
     }
 
     private fun currentPath(ctx: ParserRuleContext): String {

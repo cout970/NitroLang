@@ -42,6 +42,7 @@ data class Span(
 
 data class SourceFile(val path: String, val length: Int, val contents: String) {
     fun read(from: Int, to: Int): String = contents.substring(from, to)
+    fun readChar(index: Int): Char = contents[index]
 
     companion object {
 
