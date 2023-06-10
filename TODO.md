@@ -9,9 +9,9 @@ Intended for the developers
 - [x] Grammar
 - [x] Parser
 - [x] Resolve and check symbols
-- [ ] Resolve and check types
-- [ ] Link types and symbols
-- [ ] Type inference
+- [x] Resolve and check types
+- [x] Link types and symbols
+- [x] Type inference
 - [ ] Compile to WASM
 - [ ] StdLib
 - [ ] Intellij Language Plugin

@@ -1,13 +1,25 @@
 package nitrolang.ast
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import nitrolang.util.Dumpable
 import nitrolang.util.Span
+import nitrolang.util.dump
 import nitrolang.util.formatItem
 
-class LstProgram {
-    val structs = mutableMapOf<DeclRef, LstStruct>()
-    val options = mutableMapOf<DeclRef, LstOption>()
+class LstProgram : Dumpable {
+    val structs = mutableMapOf<StructRef, LstStruct>()
+    val options = mutableMapOf<OptionRef, LstOption>()
     val consts = mutableMapOf<ConstRef, LstConst>()
     val functions = mutableMapOf<FunRef, LstFunction>()
+    private var lastStruct = 0
+    private var lastOption = 0
+    private var lastConst = 0
+    private var lastFunction = 0
+    private var lastTypeParam = 0
+    private var lastUnresolvedType = 0
+    private var lastField = 0
 
     override fun toString(): String {
         return "LstProgram {\n" +
@@ -16,6 +28,31 @@ class LstProgram {
                 "  const=${formatItem(consts.values)}\n" +
                 "  functions=${formatItem(functions.values)}\n" +
                 "}"
+    }
+
+    override fun dump(): JsonObject = JsonObject().apply {
+        add("structs", structs.values.filter { !it.isBuiltin }.dump())
+        add("options", options.values.filter { !it.isBuiltin }.dump())
+        add("consts", consts.values.filter { !it.isBuiltin }.dump())
+        add("functions", functions.values.filter { !it.isBuiltin }.dump())
+    }
+
+    fun nextStructRef(): StructRef = StructRef(lastStruct++)
+    fun nextOptionRef(): OptionRef = OptionRef(lastOption++)
+    fun nextFieldRef(): FieldRef = FieldRef(lastField++)
+    fun nextConstRef(): ConstRef = ConstRef(lastConst++)
+    fun nextFunctionRef(): FunRef = FunRef(lastFunction++)
+    fun nextTypeParamRef(): TypeParamRef = TypeParamRef(lastTypeParam++)
+    fun nextUnresolvedTypeRef(): UnresolvedTypeRef = UnresolvedTypeRef(lastUnresolvedType++)
+
+    companion object {
+        private val GSON = GsonBuilder()
+            .setPrettyPrinting()
+            .disableHtmlEscaping()
+            .serializeNulls()
+            .create()
+
+        fun LstProgram.toJson(): String = GSON.toJson(this.dump())
     }
 }
 
@@ -26,9 +63,16 @@ class LstStruct(
     val fields: Map<FieldRef, LstStructureField>,
     val typeParameters: List<TypeParameter>,
     val annotations: List<LstAnnotation>,
-    val ref: DeclRef,
-) {
+    val isBuiltin: Boolean,
+    val ref: StructRef,
+) : Dumpable {
     val fullName: Path get() = createPath(path, name)
+
+    val templateType: TypeTree get() = TypeTree(
+        base = StructType(this),
+        params = typeParameters.map { it.toTypeTree() }
+    )
+
     override fun toString(): String {
         return "LstStruct {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -39,6 +83,13 @@ class LstStruct(
                 "  ref=${formatItem(ref)}\n" +
                 "}"
     }
+
+    override fun dump(): JsonObject = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", fullName.dump())
+        it.add("fields", fields.dump())
+        it.add("type_params", typeParameters.map { p -> p.toTypeTree() }.dump())
+    }
 }
 
 class LstStructureField(
@@ -47,7 +98,8 @@ class LstStructureField(
     val index: Int,
     val typeUsage: TypeUsage,
     val ref: FieldRef,
-) {
+) : Dumpable {
+    var type: TypeTree? = null
     override fun toString(): String {
         return "LstStructureField {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -56,27 +108,43 @@ class LstStructureField(
                 "  ref=${formatItem(ref)}\n" +
                 "}"
     }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", name.dump())
+        it.add("index", index.dump())
+        it.add("type", type?.dump())
+    }
 }
 
 class LstOption(
     val span: Span,
     val name: String,
     val path: Path,
-    val items: Map<DeclRef, LstStruct>,
+    val items: Set<StructRef>,
     val typeParameters: List<TypeParameter>,
     val annotations: List<LstAnnotation>,
-    val ref: DeclRef,
-) {
+    val isBuiltin: Boolean,
+    val ref: OptionRef,
+) : Dumpable {
     val fullName: Path get() = createPath(path, name)
+
     override fun toString(): String {
         return "LstOption {\n" +
                 "  name=${formatItem(name)}\n" +
                 "  path=${formatItem(path)}\n" +
-                "  items=${formatItem(items.map { it.key to it.value.name })}\n" +
+                "  items=${formatItem(items)}\n" +
                 "  typeParameters=${formatItem(typeParameters)}\n" +
                 "  annotations=${formatItem(annotations)}\n" +
                 "  ref=${formatItem(ref)}\n" +
                 "}"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", fullName.dump())
+        it.add("items", items.dump())
+        it.add("type_params", typeParameters.map { p -> p.toTypeTree() }.dump())
     }
 }
 
@@ -87,9 +155,13 @@ class LstConst(
     val typeUsage: TypeUsage,
     val body: LstCode,
     val annotations: List<LstAnnotation>,
+    val isBuiltin: Boolean,
     val ref: ConstRef,
-) {
+) : Dumpable {
+    var type: TypeTree? = null
+    val referencedBy = mutableListOf<LstExpression>()
     val fullName: Path get() = createPath(path, name)
+
     override fun toString(): String {
         return "LstConst {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -99,6 +171,13 @@ class LstConst(
                 "  annotations=${formatItem(annotations)}\n" +
                 "  ref=${formatItem(ref)}\n" +
                 "}"
+    }
+
+    override fun dump(): JsonObject = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", fullName.dump())
+        it.add("type", type?.dump())
+        it.add("body", body.dump())
     }
 }
 
@@ -112,20 +191,35 @@ class LstFunction(
     val typeParameters: List<TypeParameter>,
     val body: LstCode,
     val annotations: List<LstAnnotation>,
+    val isBuiltin: Boolean,
     val ref: FunRef
-) {
+) : Dumpable {
+    var returnType: TypeTree? = null
+    val fullName: Path get() = createPath(path, name)
+
     override fun toString(): String {
         return "LstFunction {\n" +
+                "  span=${formatItem(span)}\n" +
                 "  name=${formatItem(name)}\n" +
                 "  path=${formatItem(path)}\n" +
                 "  hasReceiver=${formatItem(hasReceiver)}\n" +
                 "  params=${formatItem(params)}\n" +
-                "  returnTypeUsage=${formatItem(returnTypeUsage)}\n" +
+                "  returnType=${formatItem(returnType)} (${formatItem(returnTypeUsage)})\n" +
                 "  typeParameters=${formatItem(typeParameters)}\n" +
                 "  body=${formatItem(body)}\n" +
                 "  annotations=${formatItem(annotations)}\n" +
                 "  ref=${formatItem(ref)}\n" +
                 "}"
+    }
+
+    override fun dump(): JsonObject = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", fullName.dump())
+        it.add("has_receiver", hasReceiver.dump())
+        it.add("type_params", typeParameters.dump())
+        it.add("params", params.dump())
+        it.add("return_type", returnType?.dump())
+        it.add("body", body.dump())
     }
 }
 
@@ -142,13 +236,25 @@ data class LstFunctionParam(
     val name: String,
     val index: Int,
     val typeUsage: TypeUsage,
-)
+) : Dumpable {
+    var type: TypeTree? = null
 
-class LstCode {
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("name", name.dump())
+        it.add("index", index.dump())
+        it.add("type", type?.dump())
+    }
+}
+
+class LstCode : Dumpable {
+    // Ref id
+    private var counter = 0
+    private var lastBlock = 0
+
     val nodes: MutableList<LstNode> = mutableListOf()
 
     // Block nesting
-    val rootBlock: LstNodeBlock = LstNodeBlock(null)
+    val rootBlock: LstNodeBlock = LstNodeBlock(null, lastBlock++)
     var currentBlock: LstNodeBlock = rootBlock
 
     // Let declarations
@@ -158,14 +264,18 @@ class LstCode {
     var breakNodes: MutableList<LstJumpTo> = mutableListOf()
     var continueNodes: MutableList<LstJumpTo> = mutableListOf()
 
-    // Ref id
-    private var counter = 0
+    fun createBlock(): LstNodeBlock = LstNodeBlock(currentBlock, lastBlock++)
 
     fun currentRef() = Ref(counter)
 
     fun nextRef() = Ref(counter++)
 
     fun nextVarRef() = LocalVarRef(counter++)
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("variables", variables.dump())
+        it.add("nodes", nodes.dump())
+    }
 
     override fun toString(): String {
         return "LstCode {\n" +
@@ -182,7 +292,10 @@ class LstVar(
     val typeUsage: TypeUsage?,
     val validAfter: Ref,
     val ref: VarRef,
-) {
+) : Dumpable {
+    var type: TypeTree? = null
+    val referencedBy = mutableListOf<LstExpression>()
+
     override fun toString(): String {
         return "LstVar {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -190,6 +303,14 @@ class LstVar(
                 "  validAfter=${formatItem(validAfter)}\n" +
                 "  ref=${formatItem(ref)}\n" +
                 "}"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("name", name.dump())
+        it.add("type", type?.dump())
+        it.add("block", block.dump())
+        it.add("valid_after", validAfter.dump())
     }
 }
 
@@ -200,11 +321,10 @@ data class TypeUsage(
     val sub: List<TypeUsage>,
     val modifier: Modifier,
     val currentPath: Path,
-    val typeParameterRef: TypeParameter?
-) {
-    var resolved = false
-//    var type: TypeTree = TypeTree(InvalidType)
-//    val fullName: Path get() = createPath(path, name)
+    val typeParameter: TypeParameter?,
+    val unresolvedTypeRef: UnresolvedTypeRef? = null,
+) : Dumpable {
+    val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String {
         val prefix = if (path.isNotEmpty()) "$path::" else ""
@@ -213,24 +333,87 @@ data class TypeUsage(
         return "$mod$prefix$name$children"
     }
 
+    override fun dump(): JsonElement = this.toString().dump()
+
     companion object {
         fun unit() = TypeUsage(
             span = Span.internal(),
             name = "Unit",
-            path = "core",
+            path = "",
             sub = mutableListOf(),
             modifier = Modifier.NONE,
-            typeParameterRef = null,
+            typeParameter = null,
+            currentPath = ""
+        )
+
+        fun int() = TypeUsage(
+            span = Span.internal(),
+            name = "Int",
+            path = "",
+            sub = mutableListOf(),
+            modifier = Modifier.NONE,
+            typeParameter = null,
+            currentPath = ""
+        )
+
+        fun float() = TypeUsage(
+            span = Span.internal(),
+            name = "Float",
+            path = "",
+            sub = mutableListOf(),
+            modifier = Modifier.NONE,
+            typeParameter = null,
+            currentPath = ""
+        )
+
+        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef) = TypeUsage(
+            span = Span.internal(),
+            name = "<unresolved>",
+            path = "",
+            sub = mutableListOf(),
+            modifier = Modifier.NONE,
+            typeParameter = null,
+            currentPath = "",
+            unresolvedTypeRef = unresolvedTypeRef,
+        )
+
+        fun typeParam(param: TypeParameter) = TypeUsage(
+            span = Span.internal(),
+            name = param.name,
+            path = "",
+            sub = mutableListOf(),
+            modifier = Modifier.NONE,
+            typeParameter = param,
             currentPath = ""
         )
 
         fun list(other: TypeUsage) = TypeUsage(
             span = Span.internal(),
             name = "List",
-            path = "core",
+            path = "",
             sub = mutableListOf(other),
             modifier = Modifier.NONE,
-            typeParameterRef = null,
+            typeParameter = null,
+            currentPath = ""
+        )
+
+        fun map(key: TypeUsage, value: TypeUsage) = TypeUsage(
+            span = Span.internal(),
+            name = "Map",
+            path = "",
+            sub = mutableListOf(key, value),
+            modifier = Modifier.NONE,
+            typeParameter = null,
+            currentPath = ""
+        )
+
+        fun set(other: TypeUsage) = TypeUsage(
+            span = Span.internal(),
+            name = "Set",
+            path = "",
+            sub = mutableListOf(other),
+            modifier = Modifier.NONE,
+            typeParameter = null,
             currentPath = ""
         )
 
@@ -246,14 +429,21 @@ data class TypeUsage(
 class TypeParameter(
     val span: Span,
     val name: String,
-    val ref: TypeRef
-) {
+    val ref: TypeParamRef
+) : Dumpable {
+
+    fun toTypeTree(): TypeTree = TypeTree(base = ParamType(this))
+
     override fun toString(): String = "#$name"
+
+    override fun dump(): JsonElement = "$name#${ref.id}".dump()
 }
 
 class LstAnnotation(
     val span: Span,
     val name: String
-) {
+) : Dumpable {
     override fun toString(): String = "@$name"
+
+    override fun dump(): JsonElement = toString().dump()
 }

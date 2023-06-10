@@ -30,7 +30,7 @@ struct World {
 
 
 fun main(): Unit {
-    let world = World $[
+    let world: World = World $[
         player: Player $[
             x: 0
             y: 0

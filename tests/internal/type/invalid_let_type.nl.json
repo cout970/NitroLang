@@ -1,0 +1,65 @@
+{
+  "structs": [
+    {
+      "ref": "struct#7",
+      "name": "A",
+      "fields": [],
+      "type_params": [
+        "param:Param1#4",
+        "param:Param2#5"
+      ]
+    }
+  ],
+  "options": [],
+  "consts": [],
+  "functions": [
+    {
+      "ref": "fun#3",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [
+          {
+            "ref": "var#0",
+            "name": "a",
+            "type": "InvalidType",
+            "block": "block#0/0",
+            "valid_after": "$0"
+          },
+          {
+            "ref": "var#1",
+            "name": "a1",
+            "type": "struct:A#7<struct:Int#1>",
+            "block": "block#0/0",
+            "valid_after": "$1"
+          },
+          {
+            "ref": "var#2",
+            "name": "a2",
+            "type": "struct:A#7<struct:Int#1,struct:Int#1,struct:String#4>",
+            "block": "block#0/0",
+            "valid_after": "$2"
+          },
+          {
+            "ref": "var#3",
+            "name": "a3",
+            "type": "struct:A#7<struct:Int#1,param:P#6>",
+            "block": "block#0/0",
+            "valid_after": "$3"
+          },
+          {
+            "ref": "var#4",
+            "name": "int",
+            "type": null,
+            "block": "block#0/0",
+            "valid_after": "$4"
+          }
+        ],
+        "nodes": []
+      }
+    }
+  ]
+}

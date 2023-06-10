@@ -1,0 +1,37 @@
+{
+  "structs": [
+    {
+      "ref": "struct#7",
+      "name": "Box",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#8",
+      "name": "A::B",
+      "fields": [],
+      "type_params": []
+    }
+  ],
+  "options": [],
+  "consts": [
+    {
+      "ref": "const#0",
+      "name": "pi",
+      "type": "struct:Float#2",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "value": 3.14159
+          }
+        ]
+      }
+    }
+  ],
+  "functions": []
+}

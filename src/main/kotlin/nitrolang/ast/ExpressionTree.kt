@@ -8,7 +8,12 @@ sealed class ExpressionTree {
 
     data class Leaf(val ctx: ExpressionSimpleContext) : ExpressionTree()
 
-    data class Operation(val left: ExpressionTree, val right: ExpressionTree, val operator: Operator) : ExpressionTree()
+    data class Operation(
+        val left: ExpressionTree,
+        val right: ExpressionTree,
+        val operator: Operator,
+        val span: Span,
+    ) : ExpressionTree()
 
     fun collect(list: MutableList<Ref>, code: LstCode, func: (ExpressionSimpleContext) -> Ref) {
         when (this) {
@@ -25,13 +30,13 @@ sealed class ExpressionTree {
 
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
-                    span = Span.internal(),
+                    span = this.span,
                     block = code.currentBlock,
                     expr = e1
                 )
                 code.nodes += LstFunArg(
                     ref = code.nextRef(),
-                    span = Span.internal(),
+                    span = this.span,
                     block = code.currentBlock,
                     expr = e2
                 )
@@ -40,14 +45,14 @@ sealed class ExpressionTree {
                     if (index != 0) {
                         code.nodes += LstFunArg(
                             ref = code.nextRef(),
-                            span = Span.internal(),
+                            span = this.span,
                             block = code.currentBlock,
                             expr = list.last()
                         )
                     }
                     val call = LstFunCall(
                         ref = code.nextRef(),
-                        span = Span.internal(),
+                        span = this.span,
                         block = code.currentBlock,
                         name = funcName,
                         path = "",
@@ -63,7 +68,7 @@ sealed class ExpressionTree {
     companion object {
         fun resolvePrecedence(
             exprs: List<ExpressionSimpleContext>,
-            ops: List<BinaryOperatorContext>,
+            ops: List<Pair<BinaryOperatorContext, Span>>,
             code: LstCode,
             func: (ExpressionSimpleContext) -> Ref
         ): Ref {
@@ -71,7 +76,7 @@ sealed class ExpressionTree {
                 return func(exprs.first())
             }
 
-            val root = resolvePrecedence(exprs.map { Leaf(it) }, ops.map { getBinaryOperator(it) })
+            val root = resolvePrecedence(exprs.map { Leaf(it) }, ops.map { getBinaryOperator(it.first) to it.second })
             val list = mutableListOf<Ref>()
 
             root.collect(list, code, func)
@@ -79,9 +84,9 @@ sealed class ExpressionTree {
             return list.last()
         }
 
-        private fun resolvePrecedence(exprs: List<ExpressionTree>, ops: List<Operator>): ExpressionTree {
+        private fun resolvePrecedence(exprs: List<ExpressionTree>, ops: List<Pair<Operator, Span>>): ExpressionTree {
             val exprStack = ArrayDeque<ExpressionTree>()
-            val opStack = ArrayDeque<Operator>()
+            val opStack = ArrayDeque<Pair<Operator, Span>>()
 
             exprStack.addLast(exprs.first())
 
@@ -94,14 +99,15 @@ sealed class ExpressionTree {
                     Operation(
                         left = e1,
                         right = e0,
-                        operator = op
+                        operator = op.first,
+                        span = op.second,
                     )
                 )
             }
 
             ops.forEachIndexed { index, operator ->
                 // Left fold items with more precedence than the current operator
-                while (opStack.isNotEmpty() && operator.precedence > opStack.last().precedence) {
+                while (opStack.isNotEmpty() && operator.first.precedence > opStack.last().first.precedence) {
                     fold()
                 }
 
@@ -159,9 +165,9 @@ sealed class ExpressionTree {
         SUB("-", 4, "minus"),
         RANGE_INCLUSIVE("..=", 5, "range_in"),
         RANGE_EXCLUSIVE("..<", 5, "range_ex"),
-        SHIFT_LEFT("<<", 6, "bit_shift_left"),
-        SHIFT_RIGHT(">>", 6, "bit_shift_right"),
-        SHIFT_RIGHT_UNSIGNED(">>>", 6, "bit_shift_right_unsigned"),
+        SHIFT_LEFT("<<", 6, "bitwise_shift_left"),
+        SHIFT_RIGHT(">>", 6, "bitwise_shift_right"),
+        SHIFT_RIGHT_UNSIGNED(">>>", 6, "bitwise_shift_right_unsigned"),
         BIT_AND("&", 7, "bitwise_and"),
         BIT_XOR("^", 8, "bitwise_xor"),
         BIT_OR("|", 9, "bitwise_or"),
@@ -173,9 +179,9 @@ sealed class ExpressionTree {
         EQUAL("==", 12, "get_ordering,is_equals"),
         NOT_EQUAL("!=", 12, "get_ordering,is_not_equals"),
         // TODO: short-circuit
-        BOOL_AND("&&", 13, "logic_and"),
-        BOOL_XOR("^^", 14, "logic_xor"),
-        BOOL_OR("||", 15, "logic_or");
+        BOOL_AND("&&", 13, "logical_and"),
+        BOOL_XOR("^^", 14, "logical_xor"),
+        BOOL_OR("||", 15, "logical_or");
 
         override fun toString(): String = text
     }

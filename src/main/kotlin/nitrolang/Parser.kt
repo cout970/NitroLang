@@ -48,7 +48,200 @@ class AstParser(
 ) : MainParserBaseListener() {
     private val program = LstProgram()
     private val typeParamMap = mutableMapOf<String, TypeParameter>()
+    private var allowTypeParamCollection = false
     private val definedNames = mutableMapOf<Path, Span>()
+
+    init {
+        val unit = LstStruct(
+            span = Span.internal(),
+            name = "Unit",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = emptyList(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[unit.ref] = unit
+
+        val int = LstStruct(
+            span = Span.internal(),
+            name = "Int",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = emptyList(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[int.ref] = int
+
+        val float = LstStruct(
+            span = Span.internal(),
+            name = "Float",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = emptyList(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[float.ref] = float
+
+        val boolean = LstStruct(
+            span = Span.internal(),
+            name = "Boolean",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = emptyList(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[boolean.ref] = boolean
+
+        val string = LstStruct(
+            span = Span.internal(),
+            name = "String",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = emptyList(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[string.ref] = string
+
+        val list = LstStruct(
+            span = Span.internal(),
+            name = "List",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = listOf(
+                TypeParameter(
+                    span = Span.internal(),
+                    name = "Item",
+                    ref = program.nextTypeParamRef(),
+                )
+            ),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[list.ref] = list
+
+        val map = LstStruct(
+            span = Span.internal(),
+            name = "Map",
+            path = "",
+            fields = emptyMap(),
+            typeParameters = listOf(
+                TypeParameter(
+                    span = Span.internal(),
+                    name = "Key",
+                    ref = program.nextTypeParamRef(),
+                ),
+                TypeParameter(
+                    span = Span.internal(),
+                    name = "Value",
+                    ref = program.nextTypeParamRef(),
+                )
+            ),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextStructRef(),
+        )
+        program.structs[map.ref] = map
+
+        val listParam = TypeParameter(
+            span = Span.internal(),
+            name = "Item",
+            ref = program.nextTypeParamRef(),
+        )
+        val listAdd = LstFunction(
+            span = Span.internal(),
+            name = "add",
+            path = "list",
+            hasReceiver = true,
+            params = listOf(
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = SELF_NAME,
+                    index = 0,
+                    typeUsage = TypeUsage.list(TypeUsage.typeParam(listParam)),
+                ),
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = "item",
+                    index = 1,
+                    typeUsage = TypeUsage.typeParam(listParam),
+                ),
+            ),
+            returnTypeUsage = TypeUsage.unit(),
+            typeParameters = listOf(listParam),
+            body = LstCode(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextFunctionRef(),
+        )
+        program.functions[listAdd.ref] = listAdd
+
+        val intPlus = LstFunction(
+            span = Span.internal(),
+            name = "plus",
+            path = "",
+            hasReceiver = true,
+            params = listOf(
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = SELF_NAME,
+                    index = 0,
+                    typeUsage = TypeUsage.int(),
+                ),
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = "other",
+                    index = 1,
+                    typeUsage = TypeUsage.int(),
+                ),
+            ),
+            returnTypeUsage = TypeUsage.int(),
+            typeParameters = listOf(),
+            body = LstCode(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextFunctionRef(),
+        )
+        program.functions[intPlus.ref] = intPlus
+
+        val floatPlus = LstFunction(
+            span = Span.internal(),
+            name = "plus",
+            path = "",
+            hasReceiver = true,
+            params = listOf(
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = SELF_NAME,
+                    index = 0,
+                    typeUsage = TypeUsage.float(),
+                ),
+                LstFunctionParam(
+                    span = Span.internal(),
+                    name = "other",
+                    index = 1,
+                    typeUsage = TypeUsage.float(),
+                ),
+            ),
+            returnTypeUsage = TypeUsage.float(),
+            typeParameters = listOf(),
+            body = LstCode(),
+            annotations = emptyList(),
+            isBuiltin = true,
+            ref = program.nextFunctionRef(),
+        )
+        program.functions[floatPlus.ref] = floatPlus
+    }
 
     companion object {
         fun parseFile(source: SourceFile, collector: ErrorCollector): LstProgram? {
@@ -91,11 +284,24 @@ class AstParser(
 
             ParseTreeWalker().walk(astParser, fileCtx)
 
-            astParser.program.functions.values.forEach {
-                astParser.processCode(it.body)
+            astParser.program.consts.values.forEach { const ->
+                const.type = astParser.typeUsageToTypeTree(const.typeUsage)
             }
-            astParser.program.consts.values.forEach {
-                astParser.processCode(it.body)
+            astParser.program.structs.values.forEach { struct ->
+                struct.fields.values.forEach { field ->
+                    field.type = astParser.typeUsageToTypeTree(field.typeUsage)
+                }
+            }
+            astParser.program.functions.values.forEach { func ->
+                func.params.forEach { param -> param.type = astParser.typeUsageToTypeTree(param.typeUsage) }
+                func.returnType = astParser.typeUsageToTypeTree(func.returnTypeUsage)
+            }
+
+            astParser.program.functions.values.forEach { func ->
+                astParser.processCode(func.body)
+            }
+            astParser.program.consts.values.forEach { const ->
+                astParser.processCode(const.body)
             }
 
             return astParser.program
@@ -112,7 +318,7 @@ class AstParser(
                 name = fieldCtx.nameToken().text,
                 index = index++,
                 typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
-                ref = FieldRef.next()
+                ref = program.nextFieldRef()
             )
         }
 
@@ -125,7 +331,8 @@ class AstParser(
             fields = fields.associateBy { it.ref },
             typeParameters = typeParameters,
             annotations = resolveAnnotations(ctx),
-            ref = DeclRef.next(),
+            isBuiltin = false,
+            ref = program.nextStructRef(),
         )
 
         if (struct.fullName in definedNames) {
@@ -142,7 +349,7 @@ class AstParser(
         startTypeParams(ctx.typeParamDef())
 
         val mutableTypeParametersList = mutableListOf<TypeParameter>()
-        val options = mutableMapOf<DeclRef, LstStruct>()
+        val options = mutableSetOf<StructRef>()
 
         ctx.optionDefinitionItem().forEach { opt ->
 
@@ -153,7 +360,7 @@ class AstParser(
                     name = fieldCtx.nameToken().text,
                     index = index++,
                     typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
-                    ref = FieldRef.next()
+                    ref = program.nextFieldRef()
                 )
             } ?: emptyList()
 
@@ -170,7 +377,8 @@ class AstParser(
                 fields = fields.associateBy { it.ref },
                 typeParameters = mutableTypeParametersList,
                 annotations = emptyList(),
-                ref = DeclRef.next(),
+                isBuiltin = false,
+                ref = program.nextStructRef(),
             )
 
             if (struct.fullName in definedNames) {
@@ -181,7 +389,7 @@ class AstParser(
 
             definedNames[struct.fullName] = struct.span
             program.structs[struct.ref] = struct
-            options[struct.ref] = struct
+            options += struct.ref
         }
 
         // Type parameters are shared between the option's items and the option type
@@ -194,7 +402,8 @@ class AstParser(
             items = options,
             typeParameters = mutableTypeParametersList,
             annotations = resolveAnnotations(ctx),
-            ref = DeclRef.next()
+            isBuiltin = false,
+            ref = program.nextOptionRef()
         )
 
         if (option.fullName in definedNames) {
@@ -278,8 +487,6 @@ class AstParser(
             else -> error("Grammar has been expanded and parser is outdated")
         }
 
-        typeParamMap.clear()
-
         val func = LstFunction(
             span = ctx.declaredNameToken().span(),
             name = ctx.declaredNameToken().text,
@@ -290,7 +497,8 @@ class AstParser(
             typeParameters = typeParameters,
             body = body,
             annotations = resolveAnnotations(ctx),
-            ref = FunRef.next()
+            isBuiltin = false,
+            ref = program.nextFunctionRef()
         )
 
         program.functions[func.ref] = func
@@ -307,7 +515,8 @@ class AstParser(
             typeUsage = resolveTypeUsage(ctx.typeUsage()),
             body = body,
             annotations = resolveAnnotations(ctx),
-            ref = ConstRef.next(),
+            isBuiltin = false,
+            ref = program.nextConstRef(),
         )
 
         if (const.fullName in definedNames) {
@@ -393,12 +602,13 @@ class AstParser(
 
     private fun startTypeParams(ctx: TypeParamDefContext?) {
         typeParamMap.clear()
+        allowTypeParamCollection = true
 
         ctx?.typeParameter()?.forEach {
             val td = TypeParameter(
                 span = it.nameToken().span(),
                 name = it.nameToken().text,
-                ref = TypeRef.next()
+                ref = program.nextTypeParamRef()
             )
 
             if (td.name in typeParamMap) {
@@ -414,6 +624,7 @@ class AstParser(
     }
 
     private fun endTypeParams(): List<TypeParameter> {
+        allowTypeParamCollection = false
         return typeParamMap.values.toList()
     }
 
@@ -440,7 +651,7 @@ class AstParser(
                     ref = code.nextRef(),
                     span = complex.notExpr().span(),
                     block = code.currentBlock,
-                    name = "logic_not",
+                    name = "logical_not",
                     path = "core",
                     argCount = 1,
                 )
@@ -524,7 +735,7 @@ class AstParser(
                     ref = code.nextRef(),
                     span = simple.span(),
                     block = code.currentBlock,
-                    name = "logic_not",
+                    name = "logical_not",
                     path = "",
                     argCount = 1
                 )
@@ -597,7 +808,7 @@ class AstParser(
                     ref = code.nextRef(),
                     span = simple.span(),
                     block = code.currentBlock,
-                    name = "logic_not",
+                    name = "logical_not",
                     path = "",
                     argCount = 1
                 )
@@ -649,7 +860,7 @@ class AstParser(
                     ref = code.nextRef(),
                     span = ctx.structFieldAccessSuffix().nameToken().span(),
                     block = code.currentBlock,
-                    expr = prevRef,
+                    instance = prevRef,
                     name = name,
                 )
                 code.nodes += node
@@ -737,13 +948,18 @@ class AstParser(
     ): Ref {
         val span = params?.span() ?: end?.span() ?: error("Either CallParams or CallEnd is required")
         val args = mutableListOf<Ref>()
+        val specifiedTypeParams = mutableListOf<TypeUsage>()
 
         if (receiver != null) {
             args += receiver
         }
 
-        params?.functionCallParam()?.forEach {
-            args += processExpression(it.expression(), code)
+        params?.typeParamArg()?.typeUsage()?.forEach { param ->
+            specifiedTypeParams += resolveTypeUsage(param)
+        }
+
+        params?.functionCallParam()?.forEach { param ->
+            args += processExpression(param.expression(), code)
         }
 
         if (end != null) {
@@ -768,7 +984,6 @@ class AstParser(
             }
         }
 
-
         args.forEach {
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
@@ -785,6 +1000,7 @@ class AstParser(
             name = name,
             path = path,
             argCount = args.size,
+            specifiedTypeParams = specifiedTypeParams,
         )
         code.nodes += call
         return call.ref
@@ -1021,31 +1237,35 @@ class AstParser(
             ref = code.nextRef(),
             span = ctx.span(),
             block = code.currentBlock,
-            typeUsage = TypeUsage.list(TypeUsage.unit())
+            typeUsage = TypeUsage.list(TypeUsage.unresolved(program.nextUnresolvedTypeRef()))
         )
         code.nodes += value
 
-        ctx.listEntry().forEach { item ->
+        ctx.listEntry().map { item ->
             val itemRef = processExpression(item.expression(), code)
+            val span = item.expression().span()
+
+            span to itemRef
+        }.forEach { (spam, itemRef) ->
 
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = itemRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 name = "add",
-                path = "core::list",
+                path = "list",
                 argCount = 2
             )
         }
@@ -1058,10 +1278,13 @@ class AstParser(
             ref = code.nextRef(),
             span = ctx.span(),
             block = code.currentBlock,
-            typeUsage = TypeUsage.list(TypeUsage.unit())
+            typeUsage = TypeUsage.map(
+                TypeUsage.unresolved(program.nextUnresolvedTypeRef()),
+                TypeUsage.unresolved(program.nextUnresolvedTypeRef())
+            )
         )
 
-        ctx.mapEntry().forEach { entry ->
+        ctx.mapEntry().map { entry ->
             val keyCtx = entry.mapKey()
             val keyRef = when {
                 keyCtx.nameToken() != null -> {
@@ -1094,31 +1317,34 @@ class AstParser(
             }
 
             val valueRef = processExpression(entry.expression(), code)
+            val span = keyCtx.span()
 
+            Triple(span, keyRef, valueRef)
+        }.forEach { (spam, keyRef, valueRef) ->
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = keyCtx.span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = keyCtx.span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = keyRef
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = keyCtx.span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = valueRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
-                span = keyCtx.span(),
+                span = spam,
                 block = code.currentBlock,
                 name = "set",
-                path = "core::map",
+                path = "map",
                 argCount = 3
             )
         }
@@ -1131,30 +1357,33 @@ class AstParser(
             ref = code.nextRef(),
             span = ctx.span(),
             block = code.currentBlock,
-            typeUsage = TypeUsage.list(TypeUsage.unit())
+            typeUsage = TypeUsage.set(TypeUsage.unresolved(program.nextUnresolvedTypeRef()))
         )
 
-        ctx.listEntry().forEach { item ->
+        ctx.listEntry().map { item ->
             val itemRef = processExpression(item.expression(), code)
+            val span = item.expression().span()
 
+            span to itemRef
+        }.forEach { (spam, itemRef) ->
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = value.ref
             )
             code.nodes += LstFunArg(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 expr = itemRef
             )
             code.nodes += LstFunCall(
                 ref = code.nextRef(),
-                span = item.expression().span(),
+                span = spam,
                 block = code.currentBlock,
                 name = "add",
-                path = "core::set",
+                path = "set",
                 argCount = 2
             )
         }
@@ -1202,7 +1431,7 @@ class AstParser(
         ctx.statement().forEach { processStatement(it, body) }
 
         val lambda = LstLambdaFunction(
-            ref = FunRef.next(),
+            ref = program.nextFunctionRef(),
             span = ctx.span(),
             params = params,
             returnTypeUsage = returnType,
@@ -1303,7 +1532,7 @@ class AstParser(
                 path = path,
                 sub = typeParamArgs,
                 modifier = TypeUsage.Modifier.NONE,
-                typeParameterRef = null,
+                typeParameter = null,
                 currentPath = currentPath(ctx)
             )
         )
@@ -1368,7 +1597,7 @@ class AstParser(
 
     private fun processExpressionBinOp(bin: ExpressionBinaryOpContext, code: LstCode): Ref {
         val exprs = bin.expressionSimple()
-        val ops = bin.binaryOperator()
+        val ops = bin.binaryOperator().map { it to it.span() }
 
         return ExpressionTree.resolvePrecedence(exprs, ops, code) { processExpressionSimple(it, code) }
     }
@@ -1404,7 +1633,7 @@ class AstParser(
                         name = variable.name,
                         path = "",
                         expr = expr,
-                        variable = variable.ref
+                        varRef = variable.ref
                     )
                 }
             }
@@ -1415,7 +1644,7 @@ class AstParser(
                 val cond = processExpression(subCtx.expression(), code)
 
                 val prevBlock = code.currentBlock
-                code.currentBlock = LstNodeBlock(prevBlock)
+                code.currentBlock = code.createBlock()
 
                 val jump = LstIfJump(
                     ref = code.nextRef(),
@@ -1432,7 +1661,7 @@ class AstParser(
                 var jump2: LstJumpTo? = null
 
                 if (subCtx.statementBlock(1) != null) {
-                    code.currentBlock = LstNodeBlock(prevBlock)
+                    code.currentBlock = code.createBlock()
 
                     jump2 = LstJumpTo(
                         ref = code.nextRef(),
@@ -1480,7 +1709,7 @@ class AstParser(
                 code.continueNodes = mutableListOf()
 
                 val prevBlock = code.currentBlock
-                code.currentBlock = LstNodeBlock(prevBlock)
+                code.currentBlock = code.createBlock()
 
                 val start = LstMarker(
                     ref = code.nextRef(),
@@ -1536,7 +1765,7 @@ class AstParser(
                 code.continueNodes = mutableListOf()
 
                 val prevBlock = code.currentBlock
-                code.currentBlock = LstNodeBlock(prevBlock)
+                code.currentBlock = code.createBlock()
 
                 val start = LstMarker(
                     ref = code.nextRef(),
@@ -1614,7 +1843,7 @@ class AstParser(
                 code.continueNodes = mutableListOf()
 
                 val prevBlock = code.currentBlock
-                code.currentBlock = LstNodeBlock(prevBlock)
+                code.currentBlock = code.createBlock()
 
                 // loop {}
                 val start = LstMarker(
@@ -1662,7 +1891,7 @@ class AstParser(
                     name = subCtx.nameToken().text,
                     path = "",
                     expr = iteratorNext.ref,
-                    variable = variable.ref,
+                    varRef = variable.ref,
                 )
 
                 // i.is_none()
@@ -1877,10 +2106,17 @@ class AstParser(
         if (ctx.typeParameter() != null) {
             val name = ctx.typeParameter().nameToken().text
             val typeParameterRef = typeParamMap.getOrPut(name) {
+                if (!allowTypeParamCollection) {
+                    collector.report(
+                        "Found undefined type parameter '${name}'",
+                        ctx.typeParameter().span()
+                    )
+                }
+
                 TypeParameter(
                     span = ctx.typeParameter().nameToken().span(),
                     name = name,
-                    ref = TypeRef.next()
+                    ref = program.nextTypeParamRef()
                 )
             }
 
@@ -1890,7 +2126,7 @@ class AstParser(
                 path = "",
                 sub = emptyList(),
                 modifier = TypeUsage.Modifier.NONE,
-                typeParameterRef = typeParameterRef,
+                typeParameter = typeParameterRef,
                 currentPath = currentPath(ctx)
             )
         }
@@ -1924,50 +2160,903 @@ class AstParser(
             path = path,
             sub = sub,
             modifier = modifier,
-            typeParameterRef = null,
+            typeParameter = null,
             currentPath = currentPath(ctx)
         )
     }
 
-    private fun processCode(code: LstCode) {
-        fun <T> linkVariable(node: T) where T : LstNode, T : HasVarRef {
-            var found: LstVar? = null
-            var block: LstNodeBlock? = node.block
-
-            while (block != null && found == null) {
-                found = code.variables.values
-                    .filter { it.block == block }
-                    .sortedByDescending { it.validAfter.id }
-                    .filter { it.validAfter.id <= node.ref.id }
-                    .find { it.name == node.name }
-
-                block = block.parent
-            }
-
-            if (found != null) {
-                node.variable = found.ref
-                return
-            }
-
-            val found2 = program.consts.values.find { it.name == node.name }
-
-            if (found2 != null) {
-                node.variable = found2.ref
-                return
-            }
-
-            collector.report("Variable not found: ${node.name}", node.span)
+    private fun <T> List<T?>.allNonNullOrNull(): List<T>? {
+        if (any { it == null }) {
+            return null
         }
 
+        @Suppress("UNCHECKED_CAST")
+        return this as List<T>
+    }
+
+    private fun typeUsageToTypeTree(tu: TypeUsage): TypeTree {
+        val params = tu.sub.map { typeUsageToTypeTree(it) }
+
+        if (tu.unresolvedTypeRef != null) {
+            return TypeTree(
+                base = UnresolvedType(tu.unresolvedTypeRef),
+                params = params,
+            )
+        }
+
+        if (tu.typeParameter != null) {
+            return TypeTree(
+                base = ParamType(tu.typeParameter),
+                params = params,
+            )
+        }
+
+        val segments = createPathSegments(tu.currentPath, tu.fullName)
+
+        for (segment in segments) {
+            val option = program.options.values.find { it.fullName == segment }
+
+            if (option != null) {
+                return TypeTree(
+                    base = OptionType(option),
+                    params = params,
+                )
+            }
+
+            val struct = program.structs.values.find { it.fullName == segment }
+
+            if (struct != null) {
+                return TypeTree(
+                    base = StructType(struct),
+                    params = params,
+                )
+            }
+        }
+
+        collector.report("Type '${tu.fullName}' not found", tu.span)
+        return TypeTree(InvalidType, params)
+    }
+
+    private fun typeOf(name: String): TypeTree {
+        val struct = program.structs.values.find { it.name == name } ?: error("Invalid type: $name")
+        return TypeTree(base = StructType(struct))
+    }
+
+    private fun <T> linkVariable(node: T, code: LstCode) where T : LstExpression, T : HasVarRef {
+        var found: LstVar? = null
+        var block: LstNodeBlock? = node.block
+
+        while (block != null && found == null) {
+            found = code.variables.values
+                .filter { it.block == block }
+                .sortedByDescending { it.validAfter.id }
+                .filter { it.validAfter.id <= node.ref.id }
+                .find { it.name == node.name }
+
+            block = block.parent
+        }
+
+        if (found != null) {
+            node.varRef = found.ref
+            found.referencedBy.add(node)
+            return
+        }
+
+        val found2 = program.consts.values.find { it.name == node.name }
+
+        if (found2 != null) {
+            node.varRef = found2.ref
+            found2.referencedBy.add(node)
+            return
+        }
+
+        collector.report("Variable not found: ${node.name}", node.span)
+    }
+
+    private fun processCode(code: LstCode) {
+        // Resolve specified types in let expressions
+        code.variables.values.forEach { variable ->
+            variable.type = variable.typeUsage?.let { typeUsageToTypeTree(it) }
+        }
+
+        // Link variable usage with the corresponding variable in scope
         code.nodes.forEach { node ->
             when (node) {
-                is HasVarRef -> {
-                    if (node.variable == null) {
-                        linkVariable(node)
+                is LstLoadVar -> {
+                    if (node.varRef == null) {
+                        linkVariable(node, code)
                     }
+                }
+
+                is LstStoreVar -> {
+                    if (node.varRef == null) {
+                        linkVariable(node, code)
+                    }
+                }
+
+                else -> Unit
+            }
+        }
+
+        // Resolve specified types and type of constants
+        code.nodes.forEach { node ->
+            when (node) {
+                is LstUnit -> {
+                    node.type = typeOf("Unit")
+                }
+
+                is LstBoolean -> {
+                    node.type = typeOf("Boolean")
+                }
+
+                is LstInt -> {
+                    node.type = typeOf("Int")
+                }
+
+                is LstFloat -> {
+                    node.type = typeOf("Float")
+                }
+
+                is LstString -> {
+                    node.type = typeOf("String")
+                }
+
+                is LstIsType -> {
+                    node.typeTree = typeUsageToTypeTree(node.typeUsage)
+                    node.hasTypeError = node.typeTree.isInvalid()
+                    node.type = typeOf("Boolean")
+                }
+
+                is LstAsType -> {
+                    node.typeTree = typeUsageToTypeTree(node.typeUsage)
+                    node.hasTypeError = node.typeTree.isInvalid()
+                    node.type = node.typeTree
+                }
+
+                is LstReturn -> {
+                    node.type = typeOf("Unit")
+                }
+
+                is LstSizeOf -> {
+                    node.typeTree = typeUsageToTypeTree(node.typeUsage)
+                    node.hasTypeError = node.typeTree.isInvalid()
+                    node.type = typeOf("Int")
+                }
+
+                is LstAlloc -> {
+                    // Declared type, ej. List<*>, Map<*, *>, Struct<Int>
+                    val type = typeUsageToTypeTree(node.typeUsage)
+
+                    // Only structs can be allocated, options and traits are only for the type system
+                    if (type.base !is StructType) {
+                        collector.report(
+                            "Type '${type}' is not an struct",
+                            node.span
+                        )
+                        node.hasTypeError = true
+                        return
+                    }
+
+                    val struct: LstStruct = type.base.struct
+
+                    // The real type is unknown until we resolve al unresolved types
+                    // and can replace the struct type template with concrete types
+                    val realParams = List(struct.typeParameters.size) {
+                        type.params.getOrNull(it) ?: TypeTree(base = UnresolvedType(program.nextUnresolvedTypeRef()))
+                    }
+
+                    val finalType = TypeTree(base = type.base, params = realParams)
+
+                    node.typeTree = finalType
+                    node.struct = struct
+                    node.hasTypeError = finalType.isInvalid()
+                    node.type = finalType
+                }
+
+                is LstStoreVar -> {
+                    // Delayed for next step
+//                    node.type = typeOf("Unit")
+                }
+
+                is LstStoreField -> {
+                    // Delayed for next step
+//                    node.type = typeOf("Unit")
+                }
+
+                else -> Unit
+            }
+        }
+
+        // Resolve the type of every expression
+        code.nodes.filterIsInstance<LstExpression>()
+            .filter { it.type == null && !it.hasTypeError }
+            .forEach { node -> processNodeExpression(node, code) }
+
+        // Flag errors
+        code.variables.values.forEach { variable ->
+
+            fun reportNumMismatch(typeParameters: List<TypeParameter>, type: TypeTree) {
+                val actual = type.params.size
+                val expected = typeParameters.size
+
+                if (expected > actual) {
+                    val missing = typeParameters
+                        .takeLast(expected - actual)
+                        .joinToString(", ") { it.name }
+
+                    collector.report(
+                        "Variable '${variable.name}' has invalid type: missing type parameters ($missing)",
+                        variable.span
+                    )
+                }
+
+                if (expected < actual) {
+                    collector.report(
+                        "Variable '${variable.name}' has invalid type: too many type parameters, " +
+                                "expecting $expected",
+                        variable.span
+                    )
+                }
+            }
+
+            when (val base = variable.type?.base) {
+                InvalidType -> {
+                    // Already reported in typeUsageToTypeTree()
+                }
+
+                is OptionType -> {
+                    reportNumMismatch(base.option.typeParameters, variable.type!!)
+                }
+
+                is StructType -> {
+                    reportNumMismatch(base.struct.typeParameters, variable.type!!)
+                }
+
+                is ParamType -> Unit
+
+                is UnresolvedType -> {
+                    collector.report("Variable '${variable.name}' has a type that cannot be inferred", variable.span)
+                }
+
+                null -> {
+                    collector.report("Variable '${variable.name}' has no type", variable.span)
                 }
             }
         }
+    }
+
+    private fun processNodeExpression(node: LstExpression, code: LstCode) {
+        when (node) {
+            is LstChoose -> {
+                val ifTrue = code.nodes.find { it.ref == node.ifTrue } ?: error("Ref not found!")
+                val ifFalse = code.nodes.find { it.ref == node.ifFalse } ?: error("Ref not found!")
+
+                if (ifTrue !is LstExpression || ifFalse !is LstExpression) {
+                    collector.report(
+                        "Choice has invalid ref: not an expression ($ifTrue | $ifFalse)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Propagate errors
+                if (ifTrue.hasTypeError || ifFalse.hasTypeError) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                if (ifTrue.type == null || ifFalse.type == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                node.type = ifTrue.type
+
+                if (ifTrue.type != ifFalse.type) {
+                    collector.report(
+                        "Choice has different types for each choice: " +
+                                "${ifTrue.type} vs ${ifFalse.type}",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                }
+            }
+
+            is LstLoadVar -> {
+                if (node.varRef == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                val type = if (node.varRef in program.consts) {
+                    val const = program.consts[node.varRef] ?: error("ConstRef not found!")
+                    const.type
+                } else {
+                    val variable = code.variables[node.varRef] ?: error("VarRef not found!")
+                    variable.type
+                }
+
+                node.type = type
+
+                if (type == null) {
+                    node.hasTypeError = true
+                }
+            }
+
+            is LstStoreVar -> {
+                val value = code.nodes.find { it.ref == node.expr } ?: error("Ref not found!")
+
+                if (value !is LstExpression) {
+                    collector.report(
+                        "StoreVar has invalid ref: not an expression ($value)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Propagate errors
+                if (value.hasTypeError || value.type == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                if (node.varRef == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                when (node.varRef) {
+                    in program.consts -> {
+                        val const = program.consts[node.varRef] ?: error("ConstRef not found!")
+                        node.varType = const.type
+                    }
+
+                    else -> {
+                        val variable = code.variables[node.varRef] ?: error("VarRef not found!")
+
+                        // Variable without defined type, first assigned here
+                        if (variable.type == null) {
+                            variable.type = value.type
+                        }
+
+                        node.varType = variable.type
+                    }
+                }
+
+                if (node.varType == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Attempt to replace unsolved types
+                // For example:
+                // `let a: Optional<Int> = Optional::None $[]`
+                // the value `Optional::None $[]` has type `Optional::None<unresolved#1>`
+                // but, with `a` we can infer that `unresolved#1` is `Int`
+                attemptResolveUnresolvedTypes(
+                    listOf(value.type!!),
+                    listOf(node.varType!!),
+                    code
+                )
+
+                if (!canBeAssignedTo(node.varType!!, value.type!!)) {
+                    collector.report(
+                        "Type mismatch, variable '${node.name}' " +
+                                "expects a value of type '${node.varType}', " +
+                                "but found '${value.type}' ($value)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                node.type = typeOf("Unit")
+            }
+
+            is LstLoadField -> {
+                val instance = code.nodes.find { it.ref == node.instance } ?: error("Ref not found!")
+
+                if (instance !is LstExpression) {
+                    collector.report(
+                        "LstLoadField has invalid ref: not an expression ($instance)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Propagate errors
+                if (instance.hasTypeError) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                val instanceType = instance.type
+
+                if (instanceType == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Find the field
+                val struct: LstStruct
+                val field: LstStructureField
+
+                if (instanceType.base is StructType) {
+                    struct = instanceType.base.struct
+                    val found = struct.fields.values.find { it.name == node.name }
+
+                    if (found == null) {
+                        collector.report(
+                            "Type '${instanceType}' ha no field named '${node.name}'",
+                            node.span
+                        )
+                        node.hasTypeError = true
+                        return
+                    }
+
+                    node.fieldRef = found.ref
+                    node.field = found
+                    field = found
+                } else {
+                    node.hasTypeError = true
+                    collector.report(
+                        "Type '${instanceType}' has no fields",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                val fieldType = field.type
+                if (fieldType == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Replace parametric types with concrete types
+                val replacements = findStructReplacements(struct, instanceType)
+
+                val concreteStructType = replaceTypeParams(struct.templateType, replacements)
+                val concreteFieldType = replaceTypeParams(fieldType, replacements)
+
+                node.concreteStructType = concreteStructType
+                node.concreteFieldType = concreteFieldType
+
+                node.type = node.concreteFieldType
+            }
+
+            is LstStoreField -> {
+                val instance = code.nodes.find { it.ref == node.instance } ?: error("Ref not found!")
+                val value = code.nodes.find { it.ref == node.expr } ?: error("Ref not found!")
+
+                if (instance !is LstExpression || value !is LstExpression) {
+                    collector.report(
+                        "LstLoadField has invalid ref: not an expression ($instance | $value)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Propagate errors
+                if (instance.hasTypeError || value.hasTypeError) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                val instanceType = instance.type
+                val valueType = value.type
+
+                // Process later
+                if (instanceType == null || valueType == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Find the field
+                val struct: LstStruct
+                val field: LstStructureField
+
+                if (instanceType.base is StructType) {
+                    struct = instanceType.base.struct
+                    val found = struct.fields.values.find { it.name == node.name }
+
+                    if (found == null) {
+                        collector.report(
+                            "Type '${instanceType}' ha no field named '${node.name}'",
+                            node.span
+                        )
+                        node.hasTypeError = true
+                        return
+                    }
+
+                    node.fieldRef = found.ref
+                    node.field = found
+                    field = found
+                } else {
+                    collector.report(
+                        "Type '${instanceType}' has no fields",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                val fieldType = field.type
+                if (fieldType == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Replace parametric types with concrete types
+                val replacements = findStructReplacements(struct, instanceType)
+
+                val concreteStructType = replaceTypeParams(struct.templateType, replacements)
+                val concreteFieldType = replaceTypeParams(fieldType, replacements)
+
+                node.concreteStructType = concreteStructType
+                node.concreteFieldType = concreteFieldType
+
+                attemptResolveUnresolvedTypes(
+                    listOf(node.concreteFieldType!!),
+                    listOf(value.type!!),
+                    code
+                )
+
+                // By directional type resolution
+                attemptResolveUnresolvedTypes(
+                    listOf(value.type!!),
+                    listOf(node.concreteFieldType!!),
+                    code
+                )
+
+                if (!canBeAssignedTo(node.concreteFieldType!!, value.type!!)) {
+                    collector.report(
+                        "Type mismatch, field '${field.name}' " +
+                                "expects a value of type '${node.concreteFieldType}', " +
+                                "but found '${value.type!!}' ($value)",
+                        node.span
+                    )
+                }
+
+                node.type = typeOf("Unit")
+            }
+
+            is LstFunArg -> {
+                val value = code.nodes.find { it.ref == node.expr } ?: error("Ref not found!")
+
+                if (value !is LstExpression) {
+                    collector.report(
+                        "LstFunArg has invalid ref: not an expression ($value)",
+                        node.span
+                    )
+                    node.hasTypeError = true
+                    return
+                }
+
+                // Propagate errors
+                if (value.hasTypeError) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                if (value.type == null) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                node.type = value.type
+            }
+
+            is LstFunCall -> {
+                val funCallIndex = code.nodes.indexOf(node)
+                val args = mutableListOf<LstFunArg>()
+
+                repeat(node.argCount) {
+                    val prevNode = code.nodes[funCallIndex - node.argCount + it]
+                    args += prevNode as? LstFunArg ?: error("Invalid node sequence: $prevNode")
+                }
+
+                // Propagate errors
+                if (args.any { it.hasTypeError || it.type == null }) {
+                    node.hasTypeError = true
+                    return
+                }
+
+                val choices = program.functions.values.filter { it.name == node.name }
+
+                if (choices.isEmpty()) {
+                    if (args.isNotEmpty() && args.first().type != null) {
+                        collector.report("Function '${node.name}' not found " +
+                                "for type '${args.first().type}'", node.span)
+                    } else {
+                        collector.report("Function '${node.name}' not found", node.span)
+                    }
+
+                    node.hasTypeError = true
+                    return
+                }
+
+                val tmpArgsTypes = args.map { it.type!! }
+
+                val sortedChoices = choices.sortedByDescending {
+                    val paramsTypes = it.params.map { param -> param.type!! }
+                    functionParamsSimilarity(paramsTypes, tmpArgsTypes)
+                }
+
+                // Best match
+                val function = sortedChoices.first()
+
+                node.funRef = function.ref
+                node.function = function
+//                node.type = function.returnType
+
+                if (function.params.size != args.size) {
+                    collector.report(
+                        "Function '${function.name}' expects ${function.params.size}, " +
+                                "but only ${args.size} arguments where provided",
+                        node.span
+                    )
+                }
+
+                // Replace parametric types with concrete types
+                val replacements = findFuncReplacements(node, function, args)
+
+                val concreteTypeParams = function.params.map { replaceTypeParams(it.type!!, replacements) }
+                node.concreteTypeParams = concreteTypeParams
+
+                // Attempt to solve unresolved types
+                //
+                // $1 = alloc List<Unresolved(1)>   //
+                // $2 = 1 as Int
+                // $3   FunCallArg($1)              // => List<Unresolved(1)>
+                // $3   FunCallArg($2)              // => Int
+                // $3 = FunCallArg("add")           // => List<#Item> -> #Item -> Unit
+                // :
+                // List<Unresolved(1)> vs List<#Item>
+                // Int vs #Item
+                // =>
+                // Unresolved(1) => Int
+
+                val concreteArgTypes = args.map { replaceTypeParams(it.type!!, replacements) }
+
+                // Attempt to infer the types of unresolved type-values, for example:
+                // `let a = #[]` and `a.add(0)` => `a` is List<Int>
+                attemptResolveUnresolvedTypes(concreteArgTypes, concreteTypeParams, code)
+
+                // Replace type params with concrete types
+
+                val paramsTypes = function.params.map { param ->
+                    replaceTypeParams(param.type!!, replacements)
+                }
+
+                val argsTypes = args.map {
+                    replaceTypeParams(it.type!!, replacements)
+                }
+
+                paramsTypes.zip(argsTypes).forEachIndexed { index, (param, arg) ->
+                    if (param != arg) {
+                        collector.report(
+                            "Type mismatch calling function '${function.name}', param $index expects '${param}', " +
+                                    "but '${arg}' was found instead",
+                            node.span
+                        )
+                    }
+                }
+
+                node.type = replaceTypeParams(function.returnType!!, replacements)
+            }
+
+            else -> error("Illegal state: $node")
+        }
+    }
+
+    private fun canBeAssignedTo(defined: TypeTree, used: TypeTree): Boolean {
+        if (defined == used) {
+            return true
+        }
+
+        // Check base
+        if (!baseCanBeAssignedTo(defined.base, used.base)) {
+            return false
+        }
+
+        // Check params
+        if (defined.params.size != used.params.size) {
+            return false
+        }
+
+        repeat(defined.params.size) {
+            if (!canBeAssignedTo(defined.params[it], used.params[it])) {
+                return false
+            }
+        }
+
+        // Everything ok
+        return true
+    }
+
+    private fun baseCanBeAssignedTo(defined: TypeBase, used: TypeBase): Boolean = when {
+        // Common case, same type
+        defined == used -> true
+
+        // Expected Option, found Struct
+        // let a: Optional<Int> = Optional::None $[]
+        defined is OptionType && used is StructType && used.struct.ref in defined.option.items -> true
+
+        // No match
+        else -> false
+    }
+
+    private fun findStructReplacements(struct: LstStruct, instanceType: TypeTree): Map<TypeParamRef, TypeTree> {
+        val replacements = mutableMapOf<TypeParamRef, TypeTree>()
+
+        extractTypeReplacements(
+            struct.typeParameters.map { it.toTypeTree() },
+            instanceType.params,
+            replacements
+        )
+
+        return replacements
+    }
+
+    private fun attemptResolveUnresolvedTypes(
+        concreteArgTypes: List<TypeTree>,
+        concreteTypeParams: List<TypeTree>,
+        code: LstCode
+    ) {
+        val resolvedTypes = mutableMapOf<UnresolvedTypeRef, TypeTree>()
+
+        extractUnresolvedReplacements(concreteArgTypes, concreteTypeParams, resolvedTypes)
+
+        if (resolvedTypes.isNotEmpty()) {
+            replaceAllUnresolved(code, resolvedTypes)
+        }
+    }
+
+    private fun extractUnresolvedReplacements(
+        defined: List<TypeTree>,
+        used: List<TypeTree>,
+        replacements: MutableMap<UnresolvedTypeRef, TypeTree>
+    ) {
+        for ((defParam, usedParam) in defined.zip(used)) {
+            if (defParam.base !is UnresolvedType) {
+                extractUnresolvedReplacements(defParam.params, usedParam.params, replacements)
+                continue
+            }
+
+            val ref = defParam.base.ref
+            val prev = replacements[ref]
+
+            if (prev != null && prev != usedParam) {
+                error("Conflict!")
+            }
+
+            replacements[ref] = usedParam
+        }
+    }
+
+    private fun findFuncReplacements(
+        node: LstFunCall,
+        function: LstFunction,
+        args: List<LstFunArg>
+    ): Map<TypeParamRef, TypeTree> {
+        val replacements = mutableMapOf<TypeParamRef, TypeTree>()
+
+        if (node.specifiedTypeParams.size > function.typeParameters.size) {
+            collector.report(
+                "Function '${function.name}' expects ${function.typeParameters.size} type parameters, " +
+                        "but ${node.specifiedTypeParams.size} where provided",
+                node.span
+            )
+        }
+
+        node.specifiedTypeParams.zip(function.typeParameters).forEach { (usage, funTyParam) ->
+            val type = typeUsageToTypeTree(usage)
+
+            replacements[funTyParam.ref] = type
+        }
+
+        val argsTypes = args.map { it.type!! }
+
+        extractTypeReplacements(
+            function.params.map { it.type!! },
+            argsTypes,
+            replacements
+        )
+
+        return replacements
+    }
+
+    private fun extractTypeReplacements(
+        defined: List<TypeTree>,
+        used: List<TypeTree>,
+        replacements: MutableMap<TypeParamRef, TypeTree>
+    ) {
+//        println("defined=$defined, used=$used")
+
+        for ((defParam, usedParam) in defined.zip(used)) {
+            if (defParam.base !is ParamType) {
+                extractTypeReplacements(defParam.params, usedParam.params, replacements)
+                continue
+            }
+
+            val ref = defParam.base.param.ref
+            val prev = replacements[ref]
+
+            if (prev != null && !prev.hasUnresolved() && !usedParam.hasUnresolved() && prev != usedParam) {
+                error("Conflict! prev=$prev, next=$usedParam")
+            }
+
+            replacements[ref] = usedParam
+        }
+    }
+
+    private fun replaceTypeParams(type: TypeTree, replacements: Map<TypeParamRef, TypeTree>): TypeTree {
+        if (type.base is ParamType) {
+            return replacements[type.base.param.ref] ?: type
+        }
+
+        return TypeTree(
+            base = type.base,
+            params = type.params.map { replaceTypeParams(it, replacements) }
+        )
+    }
+
+    private fun replaceAllUnresolved(code: LstCode, replacements: Map<UnresolvedTypeRef, TypeTree>) {
+        code.variables.values.forEach { variable ->
+            variable.type = variable.type?.let { replaceUnresolved(it, replacements) }
+        }
+
+        code.nodes.filterIsInstance<LstExpression>().forEach { expr ->
+            expr.mapTypes { replaceUnresolved(it, replacements) }
+        }
+    }
+
+    private fun replaceUnresolved(type: TypeTree, replacements: Map<UnresolvedTypeRef, TypeTree>): TypeTree {
+        if (type.base is UnresolvedType) {
+            return replacements[type.base.ref] ?: type
+        }
+
+        return TypeTree(
+            base = type.base,
+            params = type.params.map { replaceUnresolved(it, replacements) }
+        )
+    }
+
+    private fun functionParamsSimilarity(params: List<TypeTree>, args: List<TypeTree>): Float {
+        var total = 1000000f
+
+        if (params.size != args.size) {
+            total -= 100000f
+        }
+
+        for ((param, arg) in params.zip(args)) {
+            total += typeSimilarity(param, arg) - 10000f
+        }
+
+        return total
+    }
+
+    private fun typeSimilarity(param: TypeTree, arg: TypeTree): Float {
+        var total = 10000f
+
+        if (param.base != arg.base) {
+            total -= 10000f
+        }
+
+        if (param.params.size != arg.params.size) {
+            total -= 1000f
+        }
+
+        param.params.zip(arg.params).forEach { (p, a) ->
+            total += (typeSimilarity(p, a) - 10000f) / 100f
+        }
+
+        return total
     }
 
     private fun currentPath(ctx: ParserRuleContext): String {

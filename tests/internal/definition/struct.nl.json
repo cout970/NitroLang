@@ -1,0 +1,565 @@
+{
+  "structs": [
+    {
+      "ref": "struct#7",
+      "name": "Box",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:A#4"
+        }
+      ],
+      "type_params": [
+        "param:A#4"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "List",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "items",
+          "index": 0,
+          "type": "struct:Box#7<param:A#5>"
+        },
+        {
+          "ref": "field#2",
+          "name": "size",
+          "index": 1,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#3",
+          "name": "capacity",
+          "index": 2,
+          "type": "struct:Int#1"
+        }
+      ],
+      "type_params": [
+        "param:A#5"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Player",
+      "fields": [
+        {
+          "ref": "field#4",
+          "name": "x",
+          "index": 0,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#5",
+          "name": "y",
+          "index": 1,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#6",
+          "name": "name",
+          "index": 2,
+          "type": "struct:String#4"
+        },
+        {
+          "ref": "field#7",
+          "name": "health",
+          "index": 3,
+          "type": "struct:Float#2"
+        },
+        {
+          "ref": "field#8",
+          "name": "max_health",
+          "index": 4,
+          "type": "struct:Float#2"
+        }
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "struct#10",
+      "name": "Entity",
+      "fields": [
+        {
+          "ref": "field#9",
+          "name": "x",
+          "index": 0,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#10",
+          "name": "y",
+          "index": 1,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#11",
+          "name": "kind",
+          "index": 2,
+          "type": "struct:String#4"
+        }
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "struct#11",
+      "name": "World",
+      "fields": [
+        {
+          "ref": "field#12",
+          "name": "player",
+          "index": 0,
+          "type": "struct:Player#9"
+        },
+        {
+          "ref": "field#13",
+          "name": "entities",
+          "index": 1,
+          "type": "struct:List#5<struct:Entity#10>"
+        },
+        {
+          "ref": "field#14",
+          "name": "pending_save",
+          "index": 2,
+          "type": "struct:Boolean#3"
+        }
+      ],
+      "type_params": []
+    }
+  ],
+  "options": [],
+  "consts": [],
+  "functions": [
+    {
+      "ref": "fun#3",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [
+          {
+            "ref": "var#0",
+            "name": "world",
+            "type": "struct:World#11",
+            "block": "block#0/0",
+            "valid_after": "$0"
+          }
+        ],
+        "nodes": [
+          {
+            "ref": "$1",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:World#11",
+            "alloc": "struct:World#11"
+          },
+          {
+            "ref": "$2",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Player#9",
+            "alloc": "struct:Player#9"
+          },
+          {
+            "ref": "$3",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 0
+          },
+          {
+            "ref": "$4",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "x",
+            "instance": "$2",
+            "field_ref": "field#4",
+            "expr": "$3"
+          },
+          {
+            "ref": "$5",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 0
+          },
+          {
+            "ref": "$6",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "y",
+            "instance": "$2",
+            "field_ref": "field#5",
+            "expr": "$5"
+          },
+          {
+            "ref": "$7",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "Anonymous"
+          },
+          {
+            "ref": "$8",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "name",
+            "instance": "$2",
+            "field_ref": "field#6",
+            "expr": "$7"
+          },
+          {
+            "ref": "$9",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "value": 100.0
+          },
+          {
+            "ref": "$10",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "health",
+            "instance": "$2",
+            "field_ref": "field#7",
+            "expr": "$9"
+          },
+          {
+            "ref": "$11",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "value": 100.0
+          },
+          {
+            "ref": "$12",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "max_health",
+            "instance": "$2",
+            "field_ref": "field#8",
+            "expr": "$11"
+          },
+          {
+            "ref": "$13",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "player",
+            "instance": "$1",
+            "field_ref": "field#12",
+            "expr": "$2"
+          },
+          {
+            "ref": "$14",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:List#5<struct:Entity#10>",
+            "alloc": "struct:List#5<struct:Entity#10>"
+          },
+          {
+            "ref": "$15",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "alloc": "struct:Entity#10"
+          },
+          {
+            "ref": "$16",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 50
+          },
+          {
+            "ref": "$17",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "x",
+            "instance": "$15",
+            "field_ref": "field#9",
+            "expr": "$16"
+          },
+          {
+            "ref": "$18",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 50
+          },
+          {
+            "ref": "$19",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "y",
+            "instance": "$15",
+            "field_ref": "field#10",
+            "expr": "$18"
+          },
+          {
+            "ref": "$20",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "target"
+          },
+          {
+            "ref": "$21",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "kind",
+            "instance": "$15",
+            "field_ref": "field#11",
+            "expr": "$20"
+          },
+          {
+            "ref": "$22",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "alloc": "struct:Entity#10"
+          },
+          {
+            "ref": "$23",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 25
+          },
+          {
+            "ref": "$24",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "x",
+            "instance": "$22",
+            "field_ref": "field#9",
+            "expr": "$23"
+          },
+          {
+            "ref": "$25",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 50
+          },
+          {
+            "ref": "$26",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "y",
+            "instance": "$22",
+            "field_ref": "field#10",
+            "expr": "$25"
+          },
+          {
+            "ref": "$27",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "enemy"
+          },
+          {
+            "ref": "$28",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "kind",
+            "instance": "$22",
+            "field_ref": "field#11",
+            "expr": "$27"
+          },
+          {
+            "ref": "$29",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "alloc": "struct:Entity#10"
+          },
+          {
+            "ref": "$30",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 50
+          },
+          {
+            "ref": "$31",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "x",
+            "instance": "$29",
+            "field_ref": "field#9",
+            "expr": "$30"
+          },
+          {
+            "ref": "$32",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 25
+          },
+          {
+            "ref": "$33",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "y",
+            "instance": "$29",
+            "field_ref": "field#10",
+            "expr": "$32"
+          },
+          {
+            "ref": "$34",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "enemy"
+          },
+          {
+            "ref": "$35",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "kind",
+            "instance": "$29",
+            "field_ref": "field#11",
+            "expr": "$34"
+          },
+          {
+            "ref": "$36",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:List#5<struct:Entity#10>",
+            "expr": "$14"
+          },
+          {
+            "ref": "$37",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "expr": "$15"
+          },
+          {
+            "ref": "$38",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "list::add",
+            "func_ref": "fun#0",
+            "arg_count": 2,
+            "concrete_type_params": [
+              "struct:List#5<struct:Entity#10>",
+              "struct:Entity#10"
+            ]
+          },
+          {
+            "ref": "$39",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:List#5<struct:Entity#10>",
+            "expr": "$14"
+          },
+          {
+            "ref": "$40",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "expr": "$22"
+          },
+          {
+            "ref": "$41",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "list::add",
+            "func_ref": "fun#0",
+            "arg_count": 2,
+            "concrete_type_params": [
+              "struct:List#5<struct:Entity#10>",
+              "struct:Entity#10"
+            ]
+          },
+          {
+            "ref": "$42",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:List#5<struct:Entity#10>",
+            "expr": "$14"
+          },
+          {
+            "ref": "$43",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:Entity#10",
+            "expr": "$29"
+          },
+          {
+            "ref": "$44",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "list::add",
+            "func_ref": "fun#0",
+            "arg_count": 2,
+            "concrete_type_params": [
+              "struct:List#5<struct:Entity#10>",
+              "struct:Entity#10"
+            ]
+          },
+          {
+            "ref": "$45",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "entities",
+            "instance": "$1",
+            "field_ref": "field#13",
+            "expr": "$14"
+          },
+          {
+            "ref": "$46",
+            "kind": "Boolean",
+            "block": "block#0/0",
+            "type": "struct:Boolean#3",
+            "value": true
+          },
+          {
+            "ref": "$47",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "pending_save",
+            "instance": "$1",
+            "field_ref": "field#14",
+            "expr": "$46"
+          },
+          {
+            "ref": "$48",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "world",
+            "expr": "$1",
+            "var_ref": "var#0"
+          }
+        ]
+      }
+    }
+  ]
+}

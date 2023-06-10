@@ -1,0 +1,577 @@
+{
+  "structs": [
+    {
+      "ref": "struct#7",
+      "name": "Optional::Some",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:T#4"
+        }
+      ],
+      "type_params": [
+        "param:T#4"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "Optional::None",
+      "fields": [],
+      "type_params": [
+        "param:T#4"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Result::Ok",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "value",
+          "index": 0,
+          "type": "param:Success#5"
+        }
+      ],
+      "type_params": [
+        "param:Success#5",
+        "param:Error#6"
+      ]
+    },
+    {
+      "ref": "struct#10",
+      "name": "Result::Err",
+      "fields": [
+        {
+          "ref": "field#2",
+          "name": "value",
+          "index": 0,
+          "type": "param:Error#6"
+        }
+      ],
+      "type_params": [
+        "param:Success#5",
+        "param:Error#6"
+      ]
+    },
+    {
+      "ref": "struct#11",
+      "name": "Boolean::True",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#12",
+      "name": "Boolean::False",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#13",
+      "name": "NodeList::Cons",
+      "fields": [
+        {
+          "ref": "field#3",
+          "name": "value",
+          "index": 0,
+          "type": "param:T#7"
+        },
+        {
+          "ref": "field#4",
+          "name": "next",
+          "index": 1,
+          "type": "option:NodeList#3<param:T#7>"
+        }
+      ],
+      "type_params": [
+        "param:T#7"
+      ]
+    },
+    {
+      "ref": "struct#14",
+      "name": "NodeList::Nil",
+      "fields": [],
+      "type_params": [
+        "param:T#7"
+      ]
+    },
+    {
+      "ref": "struct#15",
+      "name": "Error::InvalidValue",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#16",
+      "name": "Error::MissingInput",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#17",
+      "name": "Error::ReachedEndOfFile",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#18",
+      "name": "Error::OsError",
+      "fields": [
+        {
+          "ref": "field#5",
+          "name": "error",
+          "index": 0,
+          "type": "struct:OsError#19"
+        }
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "struct#19",
+      "name": "OsError",
+      "fields": [
+        {
+          "ref": "field#6",
+          "name": "os_code",
+          "index": 0,
+          "type": "struct:Int#1"
+        },
+        {
+          "ref": "field#7",
+          "name": "message",
+          "index": 1,
+          "type": "struct:String#4"
+        }
+      ],
+      "type_params": []
+    }
+  ],
+  "options": [
+    {
+      "ref": "option#0",
+      "name": "Optional",
+      "items": [
+        "struct#7",
+        "struct#8"
+      ],
+      "type_params": [
+        "param:T#4"
+      ]
+    },
+    {
+      "ref": "option#1",
+      "name": "Result",
+      "items": [
+        "struct#9",
+        "struct#10"
+      ],
+      "type_params": [
+        "param:Success#5",
+        "param:Error#6"
+      ]
+    },
+    {
+      "ref": "option#2",
+      "name": "Boolean",
+      "items": [
+        "struct#11",
+        "struct#12"
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "option#3",
+      "name": "NodeList",
+      "items": [
+        "struct#13",
+        "struct#14"
+      ],
+      "type_params": [
+        "param:T#7"
+      ]
+    },
+    {
+      "ref": "option#4",
+      "name": "Error",
+      "items": [
+        "struct#15",
+        "struct#16",
+        "struct#17",
+        "struct#18"
+      ],
+      "type_params": []
+    }
+  ],
+  "consts": [],
+  "functions": [
+    {
+      "ref": "fun#3",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [
+          {
+            "ref": "var#0",
+            "name": "a",
+            "type": "option:Optional#0<struct:Int#1>",
+            "block": "block#0/0",
+            "valid_after": "$0"
+          },
+          {
+            "ref": "var#5",
+            "name": "b",
+            "type": "option:Optional#0<struct:Int#1>",
+            "block": "block#0/0",
+            "valid_after": "$5"
+          },
+          {
+            "ref": "var#8",
+            "name": "c",
+            "type": "option:Result#1<struct:Int#1,struct:String#4>",
+            "block": "block#0/0",
+            "valid_after": "$8"
+          },
+          {
+            "ref": "var#13",
+            "name": "d",
+            "type": "option:Result#1<struct:Int#1,struct:String#4>",
+            "block": "block#0/0",
+            "valid_after": "$13"
+          },
+          {
+            "ref": "var#18",
+            "name": "e",
+            "type": "option:Boolean#2",
+            "block": "block#0/0",
+            "valid_after": "$18"
+          },
+          {
+            "ref": "var#21",
+            "name": "f",
+            "type": "option:Boolean#2",
+            "block": "block#0/0",
+            "valid_after": "$21"
+          },
+          {
+            "ref": "var#24",
+            "name": "n",
+            "type": "option:NodeList#3<struct:Int#1>",
+            "block": "block#0/0",
+            "valid_after": "$24"
+          },
+          {
+            "ref": "var#35",
+            "name": "err",
+            "type": "struct:Error::OsError#18",
+            "block": "block#0/0",
+            "valid_after": "$35"
+          }
+        ],
+        "nodes": [
+          {
+            "ref": "$1",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Optional::Some#7<struct:Int#1>",
+            "alloc": "struct:Optional::Some#7<struct:Int#1>"
+          },
+          {
+            "ref": "$2",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 42
+          },
+          {
+            "ref": "$3",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "value",
+            "instance": "$1",
+            "field_ref": "field#0",
+            "expr": "$2"
+          },
+          {
+            "ref": "$4",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "a",
+            "expr": "$1",
+            "var_ref": "var#0"
+          },
+          {
+            "ref": "$6",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Optional::None#8<struct:Int#1>",
+            "alloc": "struct:Optional::None#8<struct:Int#1>"
+          },
+          {
+            "ref": "$7",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "b",
+            "expr": "$6",
+            "var_ref": "var#5"
+          },
+          {
+            "ref": "$9",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Result::Ok#9<struct:Int#1,struct:String#4>",
+            "alloc": "struct:Result::Ok#9<struct:Int#1,struct:String#4>"
+          },
+          {
+            "ref": "$10",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 420
+          },
+          {
+            "ref": "$11",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "value",
+            "instance": "$9",
+            "field_ref": "field#1",
+            "expr": "$10"
+          },
+          {
+            "ref": "$12",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "c",
+            "expr": "$9",
+            "var_ref": "var#8"
+          },
+          {
+            "ref": "$14",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Result::Err#10<struct:Int#1,struct:String#4>",
+            "alloc": "struct:Result::Err#10<struct:Int#1,struct:String#4>"
+          },
+          {
+            "ref": "$15",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "Not found"
+          },
+          {
+            "ref": "$16",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "value",
+            "instance": "$14",
+            "field_ref": "field#2",
+            "expr": "$15"
+          },
+          {
+            "ref": "$17",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "d",
+            "expr": "$14",
+            "var_ref": "var#13"
+          },
+          {
+            "ref": "$19",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Boolean::True#11",
+            "alloc": "struct:Boolean::True#11"
+          },
+          {
+            "ref": "$20",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "e",
+            "expr": "$19",
+            "var_ref": "var#18"
+          },
+          {
+            "ref": "$22",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Boolean::False#12",
+            "alloc": "struct:Boolean::False#12"
+          },
+          {
+            "ref": "$23",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "f",
+            "expr": "$22",
+            "var_ref": "var#21"
+          },
+          {
+            "ref": "$25",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:NodeList::Cons#13<struct:Int#1>",
+            "alloc": "struct:NodeList::Cons#13<struct:Int#1>"
+          },
+          {
+            "ref": "$26",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 0
+          },
+          {
+            "ref": "$27",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "value",
+            "instance": "$25",
+            "field_ref": "field#3",
+            "expr": "$26"
+          },
+          {
+            "ref": "$28",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:NodeList::Cons#13<struct:Int#1>",
+            "alloc": "struct:NodeList::Cons#13<struct:Int#1>"
+          },
+          {
+            "ref": "$29",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 1
+          },
+          {
+            "ref": "$30",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "value",
+            "instance": "$28",
+            "field_ref": "field#3",
+            "expr": "$29"
+          },
+          {
+            "ref": "$31",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:NodeList::Nil#14<struct:Int#1>",
+            "alloc": "struct:NodeList::Nil#14<struct:Int#1>"
+          },
+          {
+            "ref": "$32",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "next",
+            "instance": "$28",
+            "field_ref": "field#4",
+            "expr": "$31"
+          },
+          {
+            "ref": "$33",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "next",
+            "instance": "$25",
+            "field_ref": "field#4",
+            "expr": "$28"
+          },
+          {
+            "ref": "$34",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "n",
+            "expr": "$25",
+            "var_ref": "var#24"
+          },
+          {
+            "ref": "$36",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:Error::OsError#18",
+            "alloc": "struct:Error::OsError#18"
+          },
+          {
+            "ref": "$37",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:OsError#19",
+            "alloc": "struct:OsError#19"
+          },
+          {
+            "ref": "$38",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 1000
+          },
+          {
+            "ref": "$39",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "os_code",
+            "instance": "$37",
+            "field_ref": "field#6",
+            "expr": "$38"
+          },
+          {
+            "ref": "$40",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "Error with code 1000"
+          },
+          {
+            "ref": "$41",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "message",
+            "instance": "$37",
+            "field_ref": "field#7",
+            "expr": "$40"
+          },
+          {
+            "ref": "$42",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "error",
+            "instance": "$36",
+            "field_ref": "field#5",
+            "expr": "$37"
+          },
+          {
+            "ref": "$43",
+            "kind": "StoreVar",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "err",
+            "expr": "$36",
+            "var_ref": "var#35"
+          }
+        ]
+      }
+    }
+  ]
+}

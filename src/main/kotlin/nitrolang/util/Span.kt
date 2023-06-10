@@ -32,7 +32,8 @@ data class Span(
     }
 
     override fun toString(): String {
-        return "${file.path}:${line + 1}:${column + 1}"
+        // Make Intellij links clickable
+        return "${file.path}(${file.path.substringAfterLast("/")}:${line + 1})"
     }
 
     companion object {

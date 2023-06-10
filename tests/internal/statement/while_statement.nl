@@ -1,7 +1,7 @@
 fun main(): Unit {
-    while_with_break()
-    while_with_continue()
-    while_with_break_and_continue()
+    loop_with_break()
+    loop_with_continue()
+    loop_with_break_and_continue()
     infinite_loop()
 }
 

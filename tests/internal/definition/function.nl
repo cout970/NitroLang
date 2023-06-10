@@ -2,9 +2,8 @@ fun main(): Unit {
     func1(0)
     func2<Int>(42)
     func2(42)
-    func3<Int, Int>(69)
-    func3<Int, Float>(69)
-    let a: Float = func3(69)
+    let a1: Int = func3<Int, Int>(69)
+    let a2: Float = func3<Int, Float>(69)
 }
 
 fun func1(param1: Int): Int = param1

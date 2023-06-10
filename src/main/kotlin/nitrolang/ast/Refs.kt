@@ -1,47 +1,75 @@
 package nitrolang.ast
 
-data class Ref(val id: Int) {
+import com.google.gson.JsonElement
+import nitrolang.util.Dumpable
+import nitrolang.util.dump
+
+data class Ref(val id: Int) : Dumpable {
     override fun toString(): String = "$$id"
+
+    override fun dump(): JsonElement = toString().dump()
 }
 
-abstract class VarRef(val id: Int) {
-    override fun toString(): String = "#$id"
+abstract class VarRef(val id: Int) : Dumpable {
+
+    override fun dump(): JsonElement = toString().dump()
 }
 
-class LocalVarRef(id: Int): VarRef(id)
-
-class ConstRef(id: Int): VarRef(id) {
-
-    companion object {
-        private var counter = 0
-        fun next(): ConstRef = ConstRef(counter++)
-    }
+class LocalVarRef(id: Int) : VarRef(id) {
+    override fun toString(): String = "var#$id"
 }
 
-data class DeclRef(val id: Int) {
-    companion object {
-        private var counter = 0
-        fun next(): DeclRef = DeclRef(counter++)
-    }
+class ConstRef(id: Int) : VarRef(id) {
+
+    override fun toString(): String = "const#$id"
+
 }
 
-data class FunRef(val id: Int) {
-    companion object {
-        private var counter = 0
-        fun next(): FunRef = FunRef(counter++)
-    }
+data class StructRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "struct#$id"
+
+    override fun dump(): JsonElement = toString().dump()
 }
 
-data class TypeRef(val id: Int) {
-    companion object {
-        private var counter = 0
-        fun next(): TypeRef = TypeRef(counter++)
-    }
+data class OptionRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "option#$id"
+
+    override fun dump(): JsonElement = toString().dump()
 }
 
-data class FieldRef(val id: Int) {
-    companion object {
-        private var counter = 0
-        fun next(): FieldRef = FieldRef(counter++)
-    }
+data class FunRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "fun#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+}
+
+data class TypeRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "type#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+}
+
+data class TypeParamRef(val id: Int) : Dumpable {
+    override fun toString(): String = "type_param#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+}
+
+data class UnresolvedTypeRef(val id: Int) : Dumpable {
+    override fun toString(): String = "unresolved#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+}
+
+
+data class FieldRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "field#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+
 }

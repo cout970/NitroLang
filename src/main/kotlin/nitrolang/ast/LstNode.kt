@@ -1,22 +1,44 @@
 package nitrolang.ast
 
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import nitrolang.util.Dumpable
 import nitrolang.util.HasSpan
 import nitrolang.util.Span
+import nitrolang.util.dump
 
 
 // Linearized Syntax Tree
 
-data class LstNodeBlock(val parent: LstNodeBlock?) {
+data class LstNodeBlock(
+    val parent: LstNodeBlock? = null,
+    val id: Int,
+) : Dumpable {
     val depth: Int get() = if (parent == null) 0 else parent.depth + 1
+
+    override fun toString(): String = "block#$id/$depth"
+
+    override fun dump(): JsonElement = toString().dump()
 }
 
-abstract class LstNode(
+sealed class LstNode(
     open val ref: Ref,
     override val span: Span,
     open val block: LstNodeBlock,
-) : HasSpan
+) : HasSpan, Dumpable
 
-sealed class LstExpression(id: Ref, span: Span, block: LstNodeBlock) : LstNode(id, span, block)
+interface HasTypes {
+    fun mapTypes(func: (TypeTree) -> TypeTree)
+}
+
+sealed class LstExpression(id: Ref, span: Span, block: LstNodeBlock) : LstNode(id, span, block), HasTypes {
+    var type: TypeTree? = null
+    var hasTypeError = false
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        this.type = this.type?.let(func)
+    }
+}
 
 data class LstMarker(
     override val ref: Ref,
@@ -25,6 +47,13 @@ data class LstMarker(
     val role: String
 ) : LstNode(ref, span, block) {
     override fun toString(): String = "$ref marker $role"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "marker".dump())
+        it.add("block", block.dump())
+        it.add("role", role.dump())
+    }
 }
 
 data class LstIfJump(
@@ -41,6 +70,15 @@ data class LstIfJump(
         }
         return "$ref if cond: $cond, end: $end"
     }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "IfJump".dump())
+        it.add("block", block.dump())
+        it.add("cond", cond.dump())
+        it.add("middle", middle?.dump())
+        it.add("end", end?.dump())
+    }
 }
 
 data class LstChoose(
@@ -51,7 +89,17 @@ data class LstChoose(
     val ifTrue: Ref,
     val ifFalse: Ref
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = choose $cond => $ifTrue | $ifFalse"
+    override fun toString(): String = "$ref = choose $cond => $ifTrue | $ifFalse [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Choose".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("cond", cond.dump())
+        it.add("if_true", ifTrue.dump())
+        it.add("if_false", ifFalse.dump())
+    }
 }
 
 sealed class LstConstant(id: Ref, span: Span, block: LstNodeBlock) : LstExpression(id, span, block)
@@ -62,7 +110,15 @@ data class LstBoolean(
     override val block: LstNodeBlock,
     val value: Boolean
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Boolean"
+    override fun toString(): String = "$ref = $value as Boolean [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Boolean".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("value", value.dump())
+    }
 }
 
 data class LstInt(
@@ -71,7 +127,15 @@ data class LstInt(
     override val block: LstNodeBlock,
     val value: Int
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Int"
+    override fun toString(): String = "$ref = $value as Int [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Int".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("value", value.dump())
+    }
 }
 
 data class LstFloat(
@@ -80,7 +144,15 @@ data class LstFloat(
     override val block: LstNodeBlock,
     val value: Float
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Float"
+    override fun toString(): String = "$ref = $value as Float [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Float".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("value", value.dump())
+    }
 }
 
 data class LstString(
@@ -89,7 +161,15 @@ data class LstString(
     override val block: LstNodeBlock,
     val value: String
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = \"$value\" as String"
+    override fun toString(): String = "$ref = \"$value\" as String [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "String".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("value", value.dump())
+    }
 }
 
 data class LstUnit(
@@ -97,7 +177,14 @@ data class LstUnit(
     override val span: Span,
     override val block: LstNodeBlock,
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = Unit"
+    override fun toString(): String = "$ref = Unit [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Unit".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+    }
 }
 
 data class LstIsType(
@@ -105,10 +192,25 @@ data class LstIsType(
     override val span: Span,
     override val block: LstNodeBlock,
     val expr: Ref,
-    val typeUsage: TypeUsage,
-    val ty: TypeRef? = null
+    val typeUsage: TypeUsage
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = $expr is $typeUsage ($ty)"
+    var typeTree: TypeTree? = null
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        this.typeTree = this.typeTree?.let(func)
+    }
+
+    override fun toString(): String = "$ref = $expr is $typeUsage ($typeTree) [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "IsType".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("expr", expr.dump())
+        it.add("is_type", typeTree?.dump())
+    }
 }
 
 data class LstAsType(
@@ -116,10 +218,25 @@ data class LstAsType(
     override val span: Span,
     override val block: LstNodeBlock,
     val expr: Ref,
-    val typeUsage: TypeUsage,
-    var ty: TypeRef? = null
+    val typeUsage: TypeUsage
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = cast $expr as $typeUsage ($ty)"
+    var typeTree: TypeTree? = null
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        this.typeTree = this.typeTree?.let(func)
+    }
+
+    override fun toString(): String = "$ref = cast $expr as $typeUsage ($typeTree) [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "AsType".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("expr", expr.dump())
+        it.add("as_type", typeTree?.dump())
+    }
 }
 
 data class LstReturn(
@@ -128,7 +245,15 @@ data class LstReturn(
     override val block: LstNodeBlock,
     val expr: Ref
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = return $expr"
+    override fun toString(): String = "$ref = return $expr [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Return".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("expr", expr.dump())
+    }
 }
 
 data class LstJumpTo(
@@ -138,15 +263,48 @@ data class LstJumpTo(
     val backwards: Boolean,
     val role: String,
     var marker: Ref? = null
-) : LstExpression(ref, span, block) {
+) : LstNode(ref, span, block) {
     override fun toString(): String = "$ref jump to $marker (backwards: $backwards, role: $role)"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "JumpTo".dump())
+        it.add("block", block.dump())
+        it.add("backwards", backwards.dump())
+        it.add("role", role.dump())
+        it.add("marker", marker?.dump())
+    }
+}
+
+data class LstSizeOf(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val typeUsage: TypeUsage,
+) : LstExpression(ref, span, block) {
+    var typeTree: TypeTree? = null
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        this.typeTree = this.typeTree?.let(func)
+    }
+
+    override fun toString(): String = "$ref = size_of $typeUsage ($typeTree) [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "SizeOf".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("size_of", typeTree?.dump())
+    }
 }
 
 interface HasVarRef {
     val name: String
     val path: Path
     val block: LstNodeBlock
-    var variable: VarRef?
+    var varRef: VarRef?
 }
 
 data class LstLoadVar(
@@ -155,9 +313,21 @@ data class LstLoadVar(
     override val block: LstNodeBlock,
     override val name: String,
     override val path: Path,
-    override var variable: VarRef? = null
+    override var varRef: VarRef? = null
 ) : LstExpression(ref, span, block), HasVarRef {
-    override fun toString(): String = "$ref = load_var $name ($variable)"
+
+    val fullName: Path get() = createPath(path, name)
+
+    override fun toString(): String = "$ref = load_var $name ($varRef) [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "LoadVar".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("name", fullName.dump())
+        it.add("var_ref", varRef?.dump())
+    }
 }
 
 data class LstStoreVar(
@@ -167,44 +337,97 @@ data class LstStoreVar(
     override val name: String,
     override val path: Path,
     val expr: Ref,
-    override var variable: VarRef? = null
+    override var varRef: VarRef? = null
 ) : LstExpression(ref, span, block), HasVarRef {
-    override fun toString(): String = "$ref store_var $name ($variable) = $expr"
+    var varType: TypeTree? = null
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        varType = varType?.let(func)
+    }
+
+    val fullName: Path get() = createPath(path, name)
+    override fun toString(): String = "$ref store_var $name ($varRef) = $expr [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "StoreVar".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("name", fullName.dump())
+        it.add("expr", expr.dump())
+        it.add("var_ref", varRef?.dump())
+    }
 }
 
-data class LstSizeOf(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    val typeUsage: TypeUsage,
-) : LstExpression(ref, span, block) {
-    var typeRef: TypeRef? = null
-
-    override fun toString(): String = "$ref = size_of $typeUsage ($typeRef)"
+interface HasFieldRef {
+    val name: String
+    val instance: Ref
+    var fieldRef: FieldRef?
 }
 
 data class LstLoadField(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
-    val expr: Ref,
-    val name: String
-) : LstExpression(ref, span, block) {
-    var field: VarRef? = null
-    override fun toString(): String = "$ref = load_field $name ($field) $expr"
+    override val instance: Ref,
+    override val name: String
+) : LstExpression(ref, span, block), HasFieldRef {
+    override var fieldRef: FieldRef? = null
+    var field: LstStructureField? = null
+    var concreteStructType: TypeTree? = null
+    var concreteFieldType: TypeTree? = null
+
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        concreteStructType = concreteStructType?.let(func)
+        concreteFieldType = concreteFieldType?.let(func)
+    }
+
+    override fun toString(): String = "$ref = load_field $name ($fieldRef) $instance [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "LoadField".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("name", name.dump())
+        it.add("instance", instance.dump())
+        it.add("field_ref", fieldRef?.dump())
+    }
 }
 
 data class LstStoreField(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
-    val name: String,
-    val instance: Ref,
+    override val name: String,
+    override val instance: Ref,
     val expr: Ref
-) : LstExpression(ref, span, block) {
-    var field: VarRef? = null
+) : LstExpression(ref, span, block), HasFieldRef {
+    override var fieldRef: FieldRef? = null
+    var field: LstStructureField? = null
+    var concreteStructType: TypeTree? = null
+    var concreteFieldType: TypeTree? = null
 
-    override fun toString(): String = "$ref store_field $name ($field) $instance $expr"
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        concreteStructType = concreteStructType?.let(func)
+        concreteFieldType = concreteFieldType?.let(func)
+    }
+
+    override fun toString(): String = "$ref store_field $name ($fieldRef) $instance $expr [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "StoreField".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("name", name.dump())
+        it.add("instance", instance.dump())
+        it.add("field_ref", fieldRef?.dump())
+        it.add("expr", expr.dump())
+    }
 }
 
 data class LstAlloc(
@@ -212,22 +435,24 @@ data class LstAlloc(
     override val span: Span,
     override val block: LstNodeBlock,
     val typeUsage: TypeUsage,
-    val type: TypeRef? = null
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = alloc $typeUsage ($type)"
-}
+    var typeTree: TypeTree? = null
+    var struct: LstStruct? = null
 
-class LstFunCall(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    var name: String,
-    var path: Path,
-    var argCount: Int
-) : LstExpression(ref, span, block) {
-    var funRef: FunRef? = null
+    override fun mapTypes(func: (TypeTree) -> TypeTree) {
+        super.mapTypes(func)
+        this.typeTree = this.typeTree?.let(func)
+    }
 
-    override fun toString(): String = "$ref = call $name ($funRef, args: $argCount)"
+    override fun toString(): String = "$ref = alloc $typeUsage [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Alloc".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("alloc", typeTree?.dump())
+    }
 }
 
 data class LstFunArg(
@@ -236,7 +461,43 @@ data class LstFunArg(
     override val block: LstNodeBlock,
     val expr: Ref
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref arg $expr"
+    override fun toString(): String = "$ref arg $expr [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "FunArg".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("expr", expr.dump())
+    }
+}
+
+class LstFunCall(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val name: String,
+    val path: Path,
+    val argCount: Int,
+    val specifiedTypeParams: List<TypeUsage> = emptyList(),
+) : LstExpression(ref, span, block) {
+    var funRef: FunRef? = null
+    var function: LstFunction? = null
+    var concreteTypeParams: List<TypeTree>? = null
+    val fullName: Path get() = createPath(path, name)
+
+    override fun toString(): String = "$ref = call $name ($funRef, args: $argCount) [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "FunCall".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("name", fullName.dump())
+        it.add("func_ref", funRef?.dump())
+        it.add("arg_count", argCount.dump())
+        it.add("concrete_type_params", concreteTypeParams?.dump())
+    }
 }
 
 data class LstComment(
@@ -245,10 +506,18 @@ data class LstComment(
     override val block: LstNodeBlock,
     val comment: String
 ) : LstNode(ref, span, block) {
+
     override fun toString(): String {
         if (comment.contains("\n")) {
             return "$ref \n/**\n * ${comment.replace("\n", "\n * ")}\n */"
         }
         return "$ref // $comment"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "FunCall".dump())
+        it.add("block", block.dump())
+        it.add("comment", comment.dump())
     }
 }

@@ -1,0 +1,92 @@
+{
+  "structs": [
+    {
+      "ref": "struct#7",
+      "name": "A",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#8",
+      "name": "B::A",
+      "fields": [],
+      "type_params": []
+    }
+  ],
+  "options": [],
+  "consts": [],
+  "functions": [
+    {
+      "ref": "fun#3",
+      "name": "a",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:A#7",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    },
+    {
+      "ref": "fun#4",
+      "name": "B::b",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:B::A#8",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    },
+    {
+      "ref": "fun#5",
+      "name": "B::c",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:B::A#8",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    },
+    {
+      "ref": "fun#6",
+      "name": "d",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:A#7",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    },
+    {
+      "ref": "fun#7",
+      "name": "e",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:B::A#8",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    },
+    {
+      "ref": "fun#8",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    }
+  ]
+}

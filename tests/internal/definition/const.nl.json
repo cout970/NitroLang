@@ -1,0 +1,166 @@
+{
+  "structs": [],
+  "options": [],
+  "consts": [
+    {
+      "ref": "const#0",
+      "name": "pi",
+      "type": "struct:Float#2",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "value": 3.14159
+          }
+        ]
+      }
+    },
+    {
+      "ref": "const#1",
+      "name": "e",
+      "type": "struct:Float#2",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "value": 2.71828
+          }
+        ]
+      }
+    },
+    {
+      "ref": "const#2",
+      "name": "flag",
+      "type": "struct:Boolean#3",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "Boolean",
+            "block": "block#0/0",
+            "type": "struct:Boolean#3",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "ref": "const#3",
+      "name": "max_items",
+      "type": "struct:Int#1",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#1",
+            "value": 999
+          }
+        ]
+      }
+    },
+    {
+      "ref": "const#4",
+      "name": "app_name",
+      "type": "struct:String#4",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "CoolAppName"
+          }
+        ]
+      }
+    },
+    {
+      "ref": "const#5",
+      "name": "app_version",
+      "type": "struct:String#4",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#4",
+            "value": "1.0.0"
+          }
+        ]
+      }
+    }
+  ],
+  "functions": [
+    {
+      "ref": "fun#3",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [],
+        "nodes": [
+          {
+            "ref": "$0",
+            "kind": "LoadVar",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "name": "pi",
+            "var_ref": "const#0"
+          },
+          {
+            "ref": "$1",
+            "kind": "LoadVar",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "name": "e",
+            "var_ref": "const#1"
+          },
+          {
+            "ref": "$2",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "expr": "$0"
+          },
+          {
+            "ref": "$3",
+            "kind": "FunArg",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "expr": "$1"
+          },
+          {
+            "ref": "$4",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Float#2",
+            "name": "plus",
+            "func_ref": "fun#2",
+            "arg_count": 2,
+            "concrete_type_params": [
+              "struct:Float#2",
+              "struct:Float#2"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
