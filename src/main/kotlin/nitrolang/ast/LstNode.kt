@@ -35,6 +35,11 @@ sealed class LstExpression(id: Ref, span: Span, block: LstNodeBlock) : LstNode(i
     var type: TypeTree? = null
     var hasTypeError = false
 
+    fun propagateTypeError() {
+        hasTypeError = true
+        type = InvalidType.toTypeTree()
+    }
+
     override fun mapTypes(func: (TypeTree) -> TypeTree) {
         this.type = this.type?.let(func)
     }

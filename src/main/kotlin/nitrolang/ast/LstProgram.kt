@@ -252,6 +252,7 @@ class LstCode : Dumpable {
     private var lastBlock = 0
 
     val nodes: MutableList<LstNode> = mutableListOf()
+    var returnType: TypeTree? = null
 
     // Block nesting
     val rootBlock: LstNodeBlock = LstNodeBlock(null, lastBlock++)

@@ -10,6 +10,8 @@ data class TypeTree(
     val params: List<TypeTree> = emptyList()
 ) : Dumpable {
 
+    fun isUnit(): Boolean = base is StructType && base.struct.isBuiltin && base.struct.name === "Unit"
+
     fun hasUnresolved(): Boolean = base is UnresolvedType || params.any { it.hasUnresolved() }
 
     override fun toString(): String {
@@ -34,7 +36,7 @@ sealed class TypeBase : Dumpable {
 }
 
 data class StructType(val struct: LstStruct) : TypeBase() {
-    override fun toString(): String = "StructType(${struct.fullName})"
+    override fun toString(): String = struct.fullName
 
     override fun toDebugString(): String = "struct:${struct.fullName}#${struct.ref.id}"
 
@@ -46,7 +48,7 @@ data class StructType(val struct: LstStruct) : TypeBase() {
 }
 
 data class OptionType(val option: LstOption) : TypeBase() {
-    override fun toString(): String = "OptionType(${option.fullName})"
+    override fun toString(): String = option.fullName
 
     override fun toDebugString(): String = "option:${option.fullName}#${option.ref.id}"
 
@@ -58,7 +60,7 @@ data class OptionType(val option: LstOption) : TypeBase() {
 }
 
 data class ParamType(val param: TypeParameter) : TypeBase() {
-    override fun toString(): String = "ParamType(${param.name})"
+    override fun toString(): String = "#${param.name}"
 
     override fun toDebugString(): String = "param:${param.name}#${param.ref.id}"
 
@@ -70,7 +72,7 @@ data class ParamType(val param: TypeParameter) : TypeBase() {
 }
 
 data class UnresolvedType(val ref: UnresolvedTypeRef) : TypeBase() {
-    override fun toString(): String = "UnresolvedType($ref)"
+    override fun toString(): String = "<$ref>"
 
     override fun toDebugString(): String = "unresolved#${ref.id}"
 
@@ -82,7 +84,10 @@ data class UnresolvedType(val ref: UnresolvedTypeRef) : TypeBase() {
 }
 
 object InvalidType : TypeBase() {
-    override fun toDebugString(): String = "InvalidType"
+
+    fun toTypeTree(): TypeTree = TypeTree(base = InvalidType)
+
+    override fun toDebugString(): String = "<InvalidType>"
 
     override fun dump(): JsonElement = toDebugString().dump()
 }

@@ -52,6 +52,11 @@ class ParseExpressionTest {
     }
 
     @Test
+    fun invalidFunction() {
+        assertCompilationError("tests/internal/expression/invalid_function.nl")
+    }
+
+    @Test
     fun operators() {
         assertCompilationSuccess("tests/internal/expression/operators.nl")
     }
