@@ -1,6 +1,4 @@
 
 fun main(): Unit {
-  loop {
-      console::log("Hello")
-  }
+    println(5 + 2 * 3)
 }

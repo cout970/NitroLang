@@ -1,14 +1,5 @@
-option Optional<#T> {
-    Some { value: #T }
-    None {}
-}
 
-option Result<#Success, #Error> {
-    Ok  { value: #Success }
-    Err { value: #Error   }
-}
-
-option Boolean {
+option Bool {
     True  {}
     False {}
 }
@@ -34,8 +25,8 @@ fun main(): Unit {
     let c: Result<Int, String> = Result::Ok  $[value: 420]
     let d: Result<Int, String> = Result::Err $[value: "Not found"]
 
-    let e: Boolean = Boolean::True $[]
-    let f: Boolean = Boolean::False $[]
+    let e: Bool = Bool::True $[]
+    let f: Bool = Bool::False $[]
 
     let n: NodeList<Int> = NodeList::Cons $[
         value: 0

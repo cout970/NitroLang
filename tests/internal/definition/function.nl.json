@@ -1,10 +1,118 @@
 {
-  "structs": [],
-  "options": [],
+  "structs": [
+    {
+      "ref": "struct#4",
+      "name": "Ordering::Less",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#5",
+      "name": "Ordering::Equals",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#6",
+      "name": "Ordering::Greater",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#7",
+      "name": "Optional::Some",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:Value#0"
+        }
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "Optional::None",
+      "fields": [],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Result::Ok",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "value",
+          "index": 0,
+          "type": "param:Ok#5"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10",
+      "name": "Result::Err",
+      "fields": [
+        {
+          "ref": "field#2",
+          "name": "value",
+          "index": 0,
+          "type": "param:Err#6"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    }
+  ],
+  "options": [
+    {
+      "ref": "option#0",
+      "name": "Ordering",
+      "items": [
+        "struct#4",
+        "struct#5",
+        "struct#6"
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "option#1",
+      "name": "Optional",
+      "items": [
+        "struct#7",
+        "struct#8"
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "option#2",
+      "name": "Result",
+      "items": [
+        "struct#9",
+        "struct#10"
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    }
+  ],
   "consts": [],
   "functions": [
     {
-      "ref": "fun#3",
+      "ref": "fun#10000",
       "name": "main",
       "has_receiver": false,
       "type_params": [],
@@ -15,14 +123,14 @@
           {
             "ref": "var#9",
             "name": "a1",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "block": "block#0/0",
             "valid_after": "$9"
           },
           {
             "ref": "var#14",
             "name": "a2",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "block": "block#0/0",
             "valid_after": "$14"
           }
@@ -32,104 +140,104 @@
             "ref": "$0",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 0
           },
           {
             "ref": "$1",
             "kind": "FunArg",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "expr": "$0"
           },
           {
             "ref": "$2",
             "kind": "FunCall",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "func1",
-            "func_ref": "fun#4",
+            "func_ref": "fun#10001",
             "arg_count": 1,
             "concrete_type_params": [
-              "struct:Int#1"
+              "struct:Int#2"
             ]
           },
           {
             "ref": "$3",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 42
           },
           {
             "ref": "$4",
             "kind": "FunArg",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "expr": "$3"
           },
           {
             "ref": "$5",
             "kind": "FunCall",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "func2",
-            "func_ref": "fun#5",
+            "func_ref": "fun#10002",
             "arg_count": 1,
             "concrete_type_params": [
-              "struct:Int#1"
+              "struct:Int#2"
             ]
           },
           {
             "ref": "$6",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 42
           },
           {
             "ref": "$7",
             "kind": "FunArg",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "expr": "$6"
           },
           {
             "ref": "$8",
             "kind": "FunCall",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "func2",
-            "func_ref": "fun#5",
+            "func_ref": "fun#10002",
             "arg_count": 1,
             "concrete_type_params": [
-              "struct:Int#1"
+              "struct:Int#2"
             ]
           },
           {
             "ref": "$10",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 69
           },
           {
             "ref": "$11",
             "kind": "FunArg",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "expr": "$10"
           },
           {
             "ref": "$12",
             "kind": "FunCall",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "func3",
-            "func_ref": "fun#6",
+            "func_ref": "fun#10003",
             "arg_count": 1,
             "concrete_type_params": [
-              "struct:Int#1"
+              "struct:Int#2"
             ]
           },
           {
@@ -145,26 +253,26 @@
             "ref": "$15",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 69
           },
           {
             "ref": "$16",
             "kind": "FunArg",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "expr": "$15"
           },
           {
             "ref": "$17",
             "kind": "FunCall",
             "block": "block#0/0",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "name": "func3",
-            "func_ref": "fun#6",
+            "func_ref": "fun#10003",
             "arg_count": 1,
             "concrete_type_params": [
-              "struct:Int#1"
+              "struct:Int#2"
             ]
           },
           {
@@ -180,7 +288,7 @@
       }
     },
     {
-      "ref": "fun#4",
+      "ref": "fun#10001",
       "name": "func1",
       "has_receiver": false,
       "type_params": [],
@@ -188,16 +296,16 @@
         {
           "name": "param1",
           "index": 0,
-          "type": "struct:Int#1"
+          "type": "struct:Int#2"
         }
       ],
-      "return_type": "struct:Int#1",
+      "return_type": "struct:Int#2",
       "body": {
         "variables": [
           {
             "ref": "var#0",
             "name": "param1",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "block": "block#0/0",
             "valid_after": "$0"
           }
@@ -207,7 +315,7 @@
             "ref": "$1",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "param1",
             "var_ref": "var#0"
           }
@@ -215,26 +323,26 @@
       }
     },
     {
-      "ref": "fun#5",
+      "ref": "fun#10002",
       "name": "func2",
       "has_receiver": false,
       "type_params": [
-        "T#4"
+        "T#10000"
       ],
       "params": [
         {
           "name": "param1",
           "index": 0,
-          "type": "param:T#4"
+          "type": "param:T#10000"
         }
       ],
-      "return_type": "param:T#4",
+      "return_type": "param:T#10000",
       "body": {
         "variables": [
           {
             "ref": "var#0",
             "name": "param1",
-            "type": "param:T#4",
+            "type": "param:T#10000",
             "block": "block#0/0",
             "valid_after": "$0"
           }
@@ -244,7 +352,7 @@
             "ref": "$1",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "param:T#4",
+            "type": "param:T#10000",
             "name": "param1",
             "var_ref": "var#0"
           }
@@ -252,27 +360,27 @@
       }
     },
     {
-      "ref": "fun#6",
+      "ref": "fun#10003",
       "name": "func3",
       "has_receiver": false,
       "type_params": [
-        "A#5",
-        "B#6"
+        "A#10001",
+        "B#10002"
       ],
       "params": [
         {
           "name": "param1",
           "index": 0,
-          "type": "param:A#5"
+          "type": "param:A#10001"
         }
       ],
-      "return_type": "param:B#6",
+      "return_type": "param:B#10002",
       "body": {
         "variables": [
           {
             "ref": "var#0",
             "name": "param1",
-            "type": "param:A#5",
+            "type": "param:A#10001",
             "block": "block#0/0",
             "valid_after": "$0"
           }
@@ -282,7 +390,7 @@
             "ref": "$1",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "param:A#5",
+            "type": "param:A#10001",
             "name": "param1",
             "var_ref": "var#0"
           },
@@ -290,23 +398,11 @@
             "ref": "$2",
             "kind": "AsType",
             "block": "block#0/0",
-            "type": "param:B#6",
+            "type": "param:B#10002",
             "expr": "$1",
-            "as_type": "param:B#6"
+            "as_type": "param:B#10002"
           }
         ]
-      }
-    },
-    {
-      "ref": "fun#7",
-      "name": "func4",
-      "has_receiver": false,
-      "type_params": [],
-      "params": [],
-      "return_type": "struct:Unit#0",
-      "body": {
-        "variables": [],
-        "nodes": []
       }
     }
   ]

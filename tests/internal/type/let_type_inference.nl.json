@@ -1,17 +1,124 @@
 {
   "structs": [
     {
+      "ref": "struct#4",
+      "name": "Ordering::Less",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#5",
+      "name": "Ordering::Equals",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#6",
+      "name": "Ordering::Greater",
+      "fields": [],
+      "type_params": []
+    },
+    {
       "ref": "struct#7",
+      "name": "Optional::Some",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:Value#0"
+        }
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "Optional::None",
+      "fields": [],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Result::Ok",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "value",
+          "index": 0,
+          "type": "param:Ok#5"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10",
+      "name": "Result::Err",
+      "fields": [
+        {
+          "ref": "field#2",
+          "name": "value",
+          "index": 0,
+          "type": "param:Err#6"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10000",
       "name": "Struct",
       "fields": [],
       "type_params": []
     }
   ],
-  "options": [],
+  "options": [
+    {
+      "ref": "option#0",
+      "name": "Ordering",
+      "items": [
+        "struct#4",
+        "struct#5",
+        "struct#6"
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "option#1",
+      "name": "Optional",
+      "items": [
+        "struct#7",
+        "struct#8"
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "option#2",
+      "name": "Result",
+      "items": [
+        "struct#9",
+        "struct#10"
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    }
+  ],
   "consts": [],
   "functions": [
     {
-      "ref": "fun#3",
+      "ref": "fun#10000",
       "name": "main",
       "has_receiver": false,
       "type_params": [],
@@ -22,79 +129,79 @@
           {
             "ref": "var#0",
             "name": "a",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "block": "block#0/0",
             "valid_after": "$0"
           },
           {
             "ref": "var#3",
             "name": "a_check",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "block": "block#0/0",
             "valid_after": "$3"
           },
           {
             "ref": "var#6",
             "name": "b",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "block": "block#0/0",
             "valid_after": "$6"
           },
           {
             "ref": "var#9",
             "name": "b_check",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "block": "block#0/0",
             "valid_after": "$9"
           },
           {
             "ref": "var#12",
             "name": "c",
-            "type": "struct:Boolean#3",
+            "type": "struct:Boolean#1",
             "block": "block#0/0",
             "valid_after": "$12"
           },
           {
             "ref": "var#15",
             "name": "c_check",
-            "type": "struct:Boolean#3",
+            "type": "struct:Boolean#1",
             "block": "block#0/0",
             "valid_after": "$15"
           },
           {
             "ref": "var#18",
             "name": "d",
-            "type": "struct:String#4",
+            "type": "struct:String#11",
             "block": "block#0/0",
             "valid_after": "$18"
           },
           {
             "ref": "var#21",
             "name": "d_check",
-            "type": "struct:String#4",
+            "type": "struct:String#11",
             "block": "block#0/0",
             "valid_after": "$21"
           },
           {
             "ref": "var#24",
             "name": "e",
-            "type": "struct:Struct#7",
+            "type": "struct:Struct#10000",
             "block": "block#0/0",
             "valid_after": "$24"
           },
           {
-            "ref": "var#27",
+            "ref": "var#28",
             "name": "e_check",
-            "type": "struct:Struct#7",
+            "type": "struct:Struct#10000",
             "block": "block#0/0",
-            "valid_after": "$27"
+            "valid_after": "$28"
           },
           {
-            "ref": "var#30",
+            "ref": "var#31",
             "name": "f",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "block": "block#0/0",
-            "valid_after": "$30"
+            "valid_after": "$31"
           }
         ],
         "nodes": [
@@ -102,7 +209,7 @@
             "ref": "$1",
             "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "value": 1
           },
           {
@@ -118,7 +225,7 @@
             "ref": "$4",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Int#1",
+            "type": "struct:Int#2",
             "name": "a",
             "var_ref": "var#0"
           },
@@ -135,7 +242,7 @@
             "ref": "$7",
             "kind": "Float",
             "block": "block#0/0",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "value": 1.5
           },
           {
@@ -151,7 +258,7 @@
             "ref": "$10",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Float#2",
+            "type": "struct:Float#3",
             "name": "b",
             "var_ref": "var#6"
           },
@@ -168,7 +275,7 @@
             "ref": "$13",
             "kind": "Boolean",
             "block": "block#0/0",
-            "type": "struct:Boolean#3",
+            "type": "struct:Boolean#1",
             "value": true
           },
           {
@@ -184,7 +291,7 @@
             "ref": "$16",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Boolean#3",
+            "type": "struct:Boolean#1",
             "name": "c",
             "var_ref": "var#12"
           },
@@ -201,7 +308,7 @@
             "ref": "$19",
             "kind": "String",
             "block": "block#0/0",
-            "type": "struct:String#4",
+            "type": "struct:String#11",
             "value": "Test"
           },
           {
@@ -217,7 +324,7 @@
             "ref": "$22",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:String#4",
+            "type": "struct:String#11",
             "name": "d",
             "var_ref": "var#18"
           },
@@ -234,50 +341,57 @@
             "ref": "$25",
             "kind": "Alloc",
             "block": "block#0/0",
-            "type": "struct:Struct#7",
-            "alloc": "struct:Struct#7"
+            "type": "struct:Struct#10000",
+            "alloc": "struct:Struct#10000"
           },
           {
             "ref": "$26",
+            "kind": "Dup",
+            "block": "block#0/0",
+            "type": "struct:Struct#10000",
+            "expr": "$25"
+          },
+          {
+            "ref": "$27",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "e",
-            "expr": "$25",
-            "var_ref": "var#24"
-          },
-          {
-            "ref": "$28",
-            "kind": "LoadVar",
-            "block": "block#0/0",
-            "type": "struct:Struct#7",
-            "name": "e",
+            "expr": "$26",
             "var_ref": "var#24"
           },
           {
             "ref": "$29",
+            "kind": "LoadVar",
+            "block": "block#0/0",
+            "type": "struct:Struct#10000",
+            "name": "e",
+            "var_ref": "var#24"
+          },
+          {
+            "ref": "$30",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "e_check",
-            "expr": "$28",
-            "var_ref": "var#27"
-          },
-          {
-            "ref": "$31",
-            "kind": "Float",
-            "block": "block#0/0",
-            "type": "struct:Float#2",
-            "value": 1.0
+            "expr": "$29",
+            "var_ref": "var#28"
           },
           {
             "ref": "$32",
+            "kind": "Float",
+            "block": "block#0/0",
+            "type": "struct:Float#3",
+            "value": 1.0
+          },
+          {
+            "ref": "$33",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "f",
-            "expr": "$31",
-            "var_ref": "var#30"
+            "expr": "$32",
+            "var_ref": "var#31"
           }
         ]
       }

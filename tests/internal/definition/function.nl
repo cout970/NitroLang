@@ -12,5 +12,5 @@ fun func2<#T>(param1: #T): #T = param1
 
 fun func3<#A, #B>(param1: #A): #B = param1 as #B
 
-@Extern
+@Extern $[lib: "core", name: "func4"]
 fun func4(): Unit {}

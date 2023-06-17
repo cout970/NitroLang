@@ -1,4 +1,4 @@
-// Generated from java-escape by ANTLR 4.11.1
+// Generated from /Data/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.12.0
 package nitrolang.gen;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -8,15 +8,45 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface MainParserListener extends ParseTreeListener {
 	/**
-	 * Enter a parse tree produced by {@link MainParser#file}.
+	 * Enter a parse tree produced by {@link MainParser#parseFile}.
 	 * @param ctx the parse tree
 	 */
-	void enterFile(MainParser.FileContext ctx);
+	void enterParseFile(MainParser.ParseFileContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MainParser#file}.
+	 * Exit a parse tree produced by {@link MainParser#parseFile}.
 	 * @param ctx the parse tree
 	 */
-	void exitFile(MainParser.FileContext ctx);
+	void exitParseFile(MainParser.ParseFileContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#parseTypeUsage}.
+	 * @param ctx the parse tree
+	 */
+	void enterParseTypeUsage(MainParser.ParseTypeUsageContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#parseTypeUsage}.
+	 * @param ctx the parse tree
+	 */
+	void exitParseTypeUsage(MainParser.ParseTypeUsageContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#parseExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterParseExpression(MainParser.ParseExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#parseExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitParseExpression(MainParser.ParseExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#parseFunctionDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void enterParseFunctionDefinition(MainParser.ParseFunctionDefinitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#parseFunctionDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void exitParseFunctionDefinition(MainParser.ParseFunctionDefinitionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#nameToken}.
 	 * @param ctx the parse tree
@@ -57,6 +87,36 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitAnnotation(MainParser.AnnotationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#annotationArgs}.
+	 * @param ctx the parse tree
+	 */
+	void enterAnnotationArgs(MainParser.AnnotationArgsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#annotationArgs}.
+	 * @param ctx the parse tree
+	 */
+	void exitAnnotationArgs(MainParser.AnnotationArgsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#annotationArgEntry}.
+	 * @param ctx the parse tree
+	 */
+	void enterAnnotationArgEntry(MainParser.AnnotationArgEntryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#annotationArgEntry}.
+	 * @param ctx the parse tree
+	 */
+	void exitAnnotationArgEntry(MainParser.AnnotationArgEntryContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#annotationArgKey}.
+	 * @param ctx the parse tree
+	 */
+	void enterAnnotationArgKey(MainParser.AnnotationArgKeyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#annotationArgKey}.
+	 * @param ctx the parse tree
+	 */
+	void exitAnnotationArgKey(MainParser.AnnotationArgKeyContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#definitionChoice}.
 	 * @param ctx the parse tree
@@ -527,6 +587,26 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitExpressionBase(MainParser.ExpressionBaseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#jsonExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterJsonExpr(MainParser.JsonExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#jsonExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitJsonExpr(MainParser.JsonExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#constExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterConstExpr(MainParser.ConstExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#constExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitConstExpr(MainParser.ConstExprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#unitExpression}.
 	 * @param ctx the parse tree

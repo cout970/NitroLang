@@ -8,6 +8,7 @@ SET_START                       : '%[' ;
 MAP_START                       : '@[' ;
 LIST_START                      : '#[' ;
 STRUCT_START                    : '$[' ;
+STRING_INTERP                   : '${' ;
 DOUBLE_COLON                    : '::' ;
 ARROW                           : '->' ;
 OROR                            : '||' | 'or' ;

@@ -4,6 +4,7 @@ import nitrolang.ast.*
 import nitrolang.gen.MainLexer
 import nitrolang.gen.MainParser
 import nitrolang.gen.MainParser.ConstDefinitionContext
+import nitrolang.gen.MainParser.ConstExprContext
 import nitrolang.gen.MainParser.DefinitionChoiceContext
 import nitrolang.gen.MainParser.DefinitionContext
 import nitrolang.gen.MainParser.ExpressionBaseContext
@@ -23,6 +24,7 @@ import nitrolang.gen.MainParser.ListExprContext
 import nitrolang.gen.MainParser.MapExprContext
 import nitrolang.gen.MainParser.ModuleDefinitionContext
 import nitrolang.gen.MainParser.OptionDefinitionContext
+import nitrolang.gen.MainParser.ParseFunctionDefinitionContext
 import nitrolang.gen.MainParser.SetExprContext
 import nitrolang.gen.MainParser.SizeOfExprContext
 import nitrolang.gen.MainParser.StatementBlockContext
@@ -40,211 +42,125 @@ import nitrolang.util.Span
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 
-private const val SELF_NAME = "this"
+const val SELF_NAME = "this"
+const val EXTERN_NAME = "Extern"
+const val WASM_INLINE_NAME = "WasmInline"
+const val MAIN_FUNCTION_NAME = "main"
 
 class AstParser(
     private val collector: ErrorCollector,
     private val source: SourceFile,
+    private val program: LstProgram,
 ) : MainParserBaseListener() {
-    private val program = LstProgram()
     private val typeParamMap = mutableMapOf<String, TypeParameter>()
     private var allowTypeParamCollection = false
-    private val definedNames = mutableMapOf<Path, Span>()
-
-    init {
-        val unit = LstStruct(
-            span = Span.internal(),
-            name = "Unit",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = emptyList(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[unit.ref] = unit
-
-        val int = LstStruct(
-            span = Span.internal(),
-            name = "Int",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = emptyList(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[int.ref] = int
-
-        val float = LstStruct(
-            span = Span.internal(),
-            name = "Float",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = emptyList(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[float.ref] = float
-
-        val boolean = LstStruct(
-            span = Span.internal(),
-            name = "Boolean",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = emptyList(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[boolean.ref] = boolean
-
-        val string = LstStruct(
-            span = Span.internal(),
-            name = "String",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = emptyList(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[string.ref] = string
-
-        val list = LstStruct(
-            span = Span.internal(),
-            name = "List",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = listOf(
-                TypeParameter(
-                    span = Span.internal(),
-                    name = "Item",
-                    ref = program.nextTypeParamRef(),
-                )
-            ),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[list.ref] = list
-
-        val map = LstStruct(
-            span = Span.internal(),
-            name = "Map",
-            path = "",
-            fields = emptyMap(),
-            typeParameters = listOf(
-                TypeParameter(
-                    span = Span.internal(),
-                    name = "Key",
-                    ref = program.nextTypeParamRef(),
-                ),
-                TypeParameter(
-                    span = Span.internal(),
-                    name = "Value",
-                    ref = program.nextTypeParamRef(),
-                )
-            ),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextStructRef(),
-        )
-        program.structs[map.ref] = map
-
-        val listParam = TypeParameter(
-            span = Span.internal(),
-            name = "Item",
-            ref = program.nextTypeParamRef(),
-        )
-        val listAdd = LstFunction(
-            span = Span.internal(),
-            name = "add",
-            path = "list",
-            hasReceiver = true,
-            params = listOf(
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = SELF_NAME,
-                    index = 0,
-                    typeUsage = TypeUsage.list(TypeUsage.typeParam(listParam)),
-                ),
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = "item",
-                    index = 1,
-                    typeUsage = TypeUsage.typeParam(listParam),
-                ),
-            ),
-            returnTypeUsage = TypeUsage.unit(),
-            typeParameters = listOf(listParam),
-            body = LstCode(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextFunctionRef(),
-        )
-        program.functions[listAdd.ref] = listAdd
-
-        val intPlus = LstFunction(
-            span = Span.internal(),
-            name = "plus",
-            path = "",
-            hasReceiver = true,
-            params = listOf(
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = SELF_NAME,
-                    index = 0,
-                    typeUsage = TypeUsage.int(),
-                ),
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = "other",
-                    index = 1,
-                    typeUsage = TypeUsage.int(),
-                ),
-            ),
-            returnTypeUsage = TypeUsage.int(),
-            typeParameters = listOf(),
-            body = LstCode(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextFunctionRef(),
-        )
-        program.functions[intPlus.ref] = intPlus
-
-        val floatPlus = LstFunction(
-            span = Span.internal(),
-            name = "plus",
-            path = "",
-            hasReceiver = true,
-            params = listOf(
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = SELF_NAME,
-                    index = 0,
-                    typeUsage = TypeUsage.float(),
-                ),
-                LstFunctionParam(
-                    span = Span.internal(),
-                    name = "other",
-                    index = 1,
-                    typeUsage = TypeUsage.float(),
-                ),
-            ),
-            returnTypeUsage = TypeUsage.float(),
-            typeParameters = listOf(),
-            body = LstCode(),
-            annotations = listOf(LstAnnotation(span = Span.internal(), name = "Extern")),
-            isBuiltin = true,
-            ref = program.nextFunctionRef(),
-        )
-        program.functions[floatPlus.ref] = floatPlus
-    }
 
     companion object {
-        fun parseFile(source: SourceFile, collector: ErrorCollector): LstProgram? {
+
+        fun parseFile(source: SourceFile, collector: ErrorCollector, program: LstProgram): Boolean {
+            val parser = createParser(source, collector)
+            val fileCtx = parser.parseFile()
+
+            if (collector.isNotEmpty()) {
+                return false
+            }
+
+            if (fileCtx.exception != null) {
+                collector.report("Parse exception: ${fileCtx.exception}", Span.internal())
+                return false
+            }
+
+            val astParser = AstParser(collector, source, program)
+
+            ParseTreeWalker().walk(astParser, fileCtx)
+
+            astParser.program.consts.values.forEach { const ->
+                const.type = astParser.typeUsageToTypeTree(const.typeUsage)
+                const.body.returnType = const.type
+            }
+            astParser.program.structs.values.forEach { struct ->
+                struct.fields.values.forEach { field ->
+                    field.type = astParser.typeUsageToTypeTree(field.typeUsage)
+                }
+            }
+            astParser.program.functions.values.forEach { func ->
+                func.params.forEach { param -> param.type = astParser.typeUsageToTypeTree(param.typeUsage) }
+                func.returnType = astParser.typeUsageToTypeTree(func.returnTypeUsage)
+                func.body.returnType = func.returnType
+            }
+
+            astParser.program.functions.values.forEach { func ->
+                // Extern functions have empty body
+                if (func.isExternal) {
+                    if (func.body.nodes.isNotEmpty()) {
+                        collector.report("Extern function must have empty body", func.span)
+                    }
+                    return@forEach
+                }
+
+                astParser.processCode(func.body)
+
+                // Check that the function actually returns something
+                val defined = func.body.returnType!!
+                if (!defined.isUnit()) {
+                    when (val last = func.body.nodes.lastOrNull()) {
+                        null -> {
+                            collector.report(
+                                "Function '${func.name}' must return '$defined' but has empty body",
+                                func.span
+                            )
+                        }
+
+                        // Ok, already checked in processCode()
+                        is LstReturn -> Unit
+
+                        is LstExpression -> {
+                            if (!astParser.canBeAssignedTo(defined, last.type!!)) {
+                                collector.report(
+                                    "Type mismatch, attempt to return '${last.type}' on a function that must return '$defined'",
+                                    last.span
+                                )
+                            }
+                        }
+
+                        else -> {
+                            collector.report(
+                                "Function '${func.name}' must return '$defined'",
+                                func.span
+                            )
+                        }
+                    }
+                }
+            }
+            astParser.program.consts.values.forEach { const ->
+                astParser.processCode(const.body)
+            }
+
+            return true
+        }
+
+        fun parseFunctionDefinition(source: SourceFile, collector: ErrorCollector, program: LstProgram): LstFunction? {
+            val parser = createParser(source, collector)
+            val funcCtx = parser.parseFunctionDefinition()
+
+            if (funcCtx.exception != null || collector.isNotEmpty()) {
+                return null
+            }
+
+            val astParser = AstParser(collector, source, program)
+
+            ParseTreeWalker().walk(astParser, funcCtx)
+
+            astParser.program.functions.values.forEach { func ->
+                func.params.forEach { param -> param.type = astParser.typeUsageToTypeTree(param.typeUsage) }
+                func.returnType = astParser.typeUsageToTypeTree(func.returnTypeUsage)
+                func.body.returnType = func.returnType
+            }
+
+            return astParser.program.functions.values.first()
+        }
+
+        private fun createParser(source: SourceFile, collector: ErrorCollector): MainParser {
             // create a CharStream that reads from standard input
             val input = CharStreams.fromString(source.contents, source.path)
             // create a lexer that feeds off of input CharStream
@@ -274,80 +190,7 @@ class AstParser(
                 }
             })
 
-            val fileCtx = parser.file()
-
-            if (fileCtx.exception != null || collector.isNotEmpty()) {
-                return null
-            }
-
-            val astParser = AstParser(collector, source)
-
-            ParseTreeWalker().walk(astParser, fileCtx)
-
-            astParser.program.consts.values.forEach { const ->
-                const.type = astParser.typeUsageToTypeTree(const.typeUsage)
-                const.body.returnType = const.type
-            }
-            astParser.program.structs.values.forEach { struct ->
-                struct.fields.values.forEach { field ->
-                    field.type = astParser.typeUsageToTypeTree(field.typeUsage)
-                }
-            }
-            astParser.program.functions.values.forEach { func ->
-                func.params.forEach { param -> param.type = astParser.typeUsageToTypeTree(param.typeUsage) }
-                func.returnType = astParser.typeUsageToTypeTree(func.returnTypeUsage)
-                func.body.returnType = func.returnType
-            }
-
-            astParser.program.functions.values.forEach { func ->
-                val extern = func.annotations.any { it.name == "Extern" }
-
-                // Extern functions have empty body
-                if (extern) {
-                    if (func.body.nodes.isNotEmpty()) {
-                        collector.report("Extern function must have empty body", func.span)
-                    }
-                    return@forEach
-                }
-
-                astParser.processCode(func.body)
-
-                // Check that the function actually returns something
-                if (!func.body.returnType!!.isUnit()) {
-                    when (val last = func.body.nodes.lastOrNull()) {
-                        null -> {
-                            collector.report(
-                                "Function '${func.name}' must return '${func.body.returnType}' but has empty body",
-                                func.span
-                            )
-                        }
-
-                        // Ok, already checked in processCode()
-                        is LstReturn -> Unit
-
-                        is LstExpression -> {
-                            if (!astParser.canBeAssignedTo(func.body.returnType!!, last.type!!)) {
-                                collector.report(
-                                    "Type mismatch, attempt to return '${last.type}' on a function that must return '${func.body.returnType}'",
-                                    last.span
-                                )
-                            }
-                        }
-
-                        else -> {
-                            collector.report(
-                                "Function '${func.name}' must return '${func.body.returnType}'",
-                                func.span
-                            )
-                        }
-                    }
-                }
-            }
-            astParser.program.consts.values.forEach { const ->
-                astParser.processCode(const.body)
-            }
-
-            return astParser.program
+            return parser
         }
     }
 
@@ -374,17 +217,16 @@ class AstParser(
             fields = fields.associateBy { it.ref },
             typeParameters = typeParameters,
             annotations = resolveAnnotations(ctx),
-            isBuiltin = false,
             ref = program.nextStructRef(),
         )
 
-        if (struct.fullName in definedNames) {
-            val prev = definedNames[struct.fullName]
+        if (struct.fullName in program.definedNames) {
+            val prev = program.definedNames[struct.fullName]
             collector.report("Redeclaration of ${struct.fullName}, previously defined at $prev", struct.span)
             return
         }
 
-        definedNames[struct.fullName] = struct.span
+        program.definedNames[struct.fullName] = struct.span
         program.structs[struct.ref] = struct
     }
 
@@ -420,17 +262,16 @@ class AstParser(
                 fields = fields.associateBy { it.ref },
                 typeParameters = mutableTypeParametersList,
                 annotations = emptyList(),
-                isBuiltin = false,
                 ref = program.nextStructRef(),
             )
 
-            if (struct.fullName in definedNames) {
-                val prev = definedNames[struct.fullName]
+            if (struct.fullName in program.definedNames) {
+                val prev = program.definedNames[struct.fullName]
                 collector.report("Redeclaration of ${struct.fullName}, previously defined at $prev", struct.span)
                 return
             }
 
-            definedNames[struct.fullName] = struct.span
+            program.definedNames[struct.fullName] = struct.span
             program.structs[struct.ref] = struct
             options += struct.ref
         }
@@ -445,17 +286,16 @@ class AstParser(
             items = options,
             typeParameters = mutableTypeParametersList,
             annotations = resolveAnnotations(ctx),
-            isBuiltin = false,
             ref = program.nextOptionRef()
         )
 
-        if (option.fullName in definedNames) {
-            val prev = definedNames[option.fullName]
+        if (option.fullName in program.definedNames) {
+            val prev = program.definedNames[option.fullName]
             collector.report("Redeclaration of ${option.fullName}, previously defined at $prev", option.span)
             return
         }
 
-        definedNames[option.fullName] = option.span
+        program.definedNames[option.fullName] = option.span
         program.options[option.ref] = option
     }
 
@@ -530,6 +370,7 @@ class AstParser(
             else -> error("Grammar has been expanded and parser is outdated")
         }
 
+        val annotations = resolveAnnotations(ctx)
         val func = LstFunction(
             span = ctx.declaredNameToken().span(),
             name = ctx.declaredNameToken().text,
@@ -539,8 +380,7 @@ class AstParser(
             returnTypeUsage = returnTypeUsage,
             typeParameters = typeParameters,
             body = body,
-            annotations = resolveAnnotations(ctx),
-            isBuiltin = false,
+            annotations = annotations,
             ref = program.nextFunctionRef()
         )
 
@@ -558,27 +398,60 @@ class AstParser(
             typeUsage = resolveTypeUsage(ctx.typeUsage()),
             body = body,
             annotations = resolveAnnotations(ctx),
-            isBuiltin = false,
             ref = program.nextConstRef(),
         )
 
-        if (const.fullName in definedNames) {
-            val prev = definedNames[const.fullName]
+        if (const.fullName in program.definedNames) {
+            val prev = program.definedNames[const.fullName]
             collector.report("Redeclaration of ${const.fullName}, previously defined at $prev", const.span)
             return
         }
 
-        definedNames[const.fullName] = const.span
+        program.definedNames[const.fullName] = const.span
         program.consts[const.ref] = const
     }
 
     private fun resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
-        val definitionContext = (ctx.parent as DefinitionChoiceContext).parent as DefinitionContext
 
-        return definitionContext.annotation().map {
+        val annotations = when (ctx.parent) {
+            is ParseFunctionDefinitionContext -> {
+                (ctx.parent as ParseFunctionDefinitionContext).annotation()
+            }
+
+            is DefinitionChoiceContext -> {
+                ((ctx.parent as DefinitionChoiceContext).parent as DefinitionContext).annotation()
+            }
+
+            else -> {
+                error("Unknown context to extract annotations: $ctx, parent: ${ctx.parent}")
+            }
+        }
+
+        return annotations.map { subCtx ->
+            val args = mutableMapOf<String, LstConstValue>()
+
+            if (subCtx.annotationArgs() != null) {
+                subCtx.annotationArgs().annotationArgEntry().forEach { entry ->
+                    val name = when {
+                        entry.annotationArgKey().STRING() != null -> {
+                            unescapeStringLiteral(entry.annotationArgKey().STRING().text)
+                        }
+
+                        entry.annotationArgKey().nameToken() != null -> {
+                            entry.annotationArgKey().nameToken().text
+                        }
+
+                        else -> error("Grammar has been expanded and parser is outdated")
+                    }
+
+                    args[name] = processConstExpr(entry.constExpr())
+                }
+            }
+
             LstAnnotation(
-                span = it.nameToken().span(),
-                name = it.nameToken().text
+                span = subCtx.nameToken().span(),
+                name = subCtx.nameToken().text,
+                args = args,
             )
         }
     }
@@ -1141,7 +1014,7 @@ class AstParser(
                 processExpressionLambdaExpr(ctx.lambdaExpr(), code)
             }
 
-            ctx.json_value() != null -> {
+            ctx.jsonExpr() != null -> {
                 error("Json value not currently implemented")
             }
 
@@ -1193,6 +1066,58 @@ class AstParser(
 
             ctx.sizeOfExpr() != null -> {
                 processExpressionSizeOf(ctx.sizeOfExpr(), code)
+            }
+
+            else -> error("Grammar has been expanded and parser is outdated")
+        }
+    }
+
+    private fun processConstExpr(ctx: ConstExprContext): LstConstValue {
+        if (ctx.unitExpression() != null) {
+            return LstConstUnit
+        }
+
+        if (ctx.expressionLiteral() == null) {
+            error("Grammar has been expanded and parser is outdated")
+        }
+
+        return when {
+            ctx.expressionLiteral().STRING() != null -> {
+                LstConstString(unescapeStringLiteral(ctx.expressionLiteral().STRING().text))
+            }
+
+            ctx.expressionLiteral().FALSE() != null -> LstConstBoolean(false)
+            ctx.expressionLiteral().TRUE() != null -> LstConstBoolean(true)
+            ctx.expressionLiteral().NULL() != null -> {
+                collector.report(
+                    "Null values are not available in this language, use Optional::None instead",
+                    ctx.span()
+                )
+                LstConstUnit
+            }
+
+            ctx.expressionLiteral().INT_NUMBER() != null -> {
+                val text = ctx.expressionLiteral().INT_NUMBER().text
+
+                val intValue = when {
+                    text.startsWith("0x") -> text.substring(2).toUInt(16).toInt()
+                    text.startsWith("0o") -> text.substring(2).toUInt(8).toInt()
+                    text.startsWith("0b") -> text.substring(2).toUInt(2).toInt()
+                    else -> text.toInt()
+                }
+
+                LstConstInt(intValue)
+            }
+
+            ctx.expressionLiteral().FLOAT_NUMBER() != null -> {
+                val text = ctx.expressionLiteral().FLOAT_NUMBER().text
+                val floatValue = text.toFloatOrNull()
+
+                if (floatValue == null) {
+                    collector.report("Invalid float value '${text}'", ctx.span())
+                }
+
+                LstConstFloat(floatValue ?: 0f)
             }
 
             else -> error("Grammar has been expanded and parser is outdated")
@@ -1662,7 +1587,15 @@ class AstParser(
             )
         }
 
-        return alloc.ref
+        val dup = LstDup(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            expr = alloc.ref
+        )
+        code.nodes += dup
+
+        return dup.ref
     }
 
     private fun processExpressionVariableExpr(ctx: VariableExprContext, code: LstCode): Ref {
@@ -2981,6 +2914,32 @@ class AstParser(
                         node.span
                     )
                 }
+            }
+
+            is LstDup -> {
+                val value = code.nodes.find { it.ref == node.expr } ?: error("Ref not found!")
+
+                if (value !is LstExpression) {
+                    collector.report(
+                        "LstReturn has invalid ref: not an expression ($value)",
+                        node.span
+                    )
+                    node.propagateTypeError()
+                    return
+                }
+
+                // Propagate errors
+                if (value.hasTypeError) {
+                    node.propagateTypeError()
+                    return
+                }
+
+                if (value.type == null) {
+                    node.propagateTypeError()
+                    return
+                }
+
+                node.type = value.type
             }
         }
     }

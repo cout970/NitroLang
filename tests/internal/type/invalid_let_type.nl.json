@@ -1,20 +1,127 @@
 {
   "structs": [
     {
+      "ref": "struct#4",
+      "name": "Ordering::Less",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#5",
+      "name": "Ordering::Equals",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#6",
+      "name": "Ordering::Greater",
+      "fields": [],
+      "type_params": []
+    },
+    {
       "ref": "struct#7",
+      "name": "Optional::Some",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:Value#0"
+        }
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "Optional::None",
+      "fields": [],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Result::Ok",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "value",
+          "index": 0,
+          "type": "param:Ok#5"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10",
+      "name": "Result::Err",
+      "fields": [
+        {
+          "ref": "field#2",
+          "name": "value",
+          "index": 0,
+          "type": "param:Err#6"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10000",
       "name": "A",
       "fields": [],
       "type_params": [
-        "param:Param1#4",
-        "param:Param2#5"
+        "param:Param1#10000",
+        "param:Param2#10001"
       ]
     }
   ],
-  "options": [],
+  "options": [
+    {
+      "ref": "option#0",
+      "name": "Ordering",
+      "items": [
+        "struct#4",
+        "struct#5",
+        "struct#6"
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "option#1",
+      "name": "Optional",
+      "items": [
+        "struct#7",
+        "struct#8"
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "option#2",
+      "name": "Result",
+      "items": [
+        "struct#9",
+        "struct#10"
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    }
+  ],
   "consts": [],
   "functions": [
     {
-      "ref": "fun#3",
+      "ref": "fun#10000",
       "name": "main",
       "has_receiver": false,
       "type_params": [],
@@ -32,21 +139,21 @@
           {
             "ref": "var#1",
             "name": "a1",
-            "type": "struct:A#7<struct:Int#1>",
+            "type": "struct:A#10000<struct:Int#2>",
             "block": "block#0/0",
             "valid_after": "$1"
           },
           {
             "ref": "var#2",
             "name": "a2",
-            "type": "struct:A#7<struct:Int#1,struct:Int#1,struct:String#4>",
+            "type": "struct:A#10000<struct:Int#2,struct:Int#2,struct:String#11>",
             "block": "block#0/0",
             "valid_after": "$2"
           },
           {
             "ref": "var#3",
             "name": "a3",
-            "type": "struct:A#7<struct:Int#1,param:P#6>",
+            "type": "struct:A#10000<struct:Int#2,param:P#10002>",
             "block": "block#0/0",
             "valid_after": "$3"
           },

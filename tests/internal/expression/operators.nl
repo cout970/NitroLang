@@ -1,10 +1,3 @@
-// Result of comparisons, a.get_ordering(b) => Ordering
-option Ordering {
-    Less    {}
-    Equals  {}
-    Greater {}
-}
-
 // Range of values 1..<2
 struct Range {
     start_inclusive: Int
@@ -12,30 +5,11 @@ struct Range {
 }
 
 // Operator overloads
-@Extern fun Int.plus(other: Int): Int {}
-@Extern fun Int.minus(other: Int): Int {}
-@Extern fun Int.mul(other: Int): Int {}
-@Extern fun Int.div(other: Int): Int {}
-@Extern fun Int.rem(other: Int): Int {}
-@Extern fun Boolean.logical_not(): Boolean {}
-@Extern fun Boolean.logical_or(other: Boolean): Boolean {}
-@Extern fun Boolean.logical_and(other: Boolean): Boolean {}
-@Extern fun Boolean.logical_xor(other: Boolean): Boolean {}
-@Extern fun Int.bitwise_or(other: Int): Int {}
-@Extern fun Int.bitwise_and(other: Int): Int {}
-@Extern fun Int.bitwise_xor(other: Int): Int {}
-@Extern fun Int.bitwise_shift_left(other: Int): Int {}
-@Extern fun Int.bitwise_shift_right(other: Int): Int {}
-@Extern fun Int.bitwise_shift_right_unsigned(other: Int): Int {}
-@Extern fun Int.get_ordering(other: Int): Ordering {}
-@Extern fun Ordering.is_less(): Boolean {}
-@Extern fun Ordering.is_less_or_equals(): Boolean {}
-@Extern fun Ordering.is_equals(): Boolean {}
-@Extern fun Ordering.is_not_equals(): Boolean {}
-@Extern fun Ordering.is_greater_or_equals(): Boolean {}
-@Extern fun Ordering.is_greater(): Boolean {}
-@Extern fun Int.range_in(other: Int): Range {}
-@Extern fun Int.range_ex(other: Int): Range {}
+@Extern $[lib: "core", name: "range_in"]
+fun Int.range_in(other: Int): Range {}
+
+@Extern $[lib: "core", name: "range_ex"]
+fun Int.range_ex(other: Int): Range {}
 
 fun main(): Unit {
     let a: Int = 1 + 2 // 1.plus(2)

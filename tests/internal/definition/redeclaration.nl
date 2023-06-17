@@ -13,3 +13,5 @@ mod A {
 option A {
     B {}
 }
+
+fun main() {}

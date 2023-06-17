@@ -1,4 +1,5 @@
 import nitrolang.AstParser
+import nitrolang.ast.DeadCodeAnalyzer
 import nitrolang.ast.LstProgram
 import nitrolang.ast.LstProgram.Companion.toJson
 import nitrolang.util.ErrorCollector
@@ -7,39 +8,51 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
+private const val debug = false
+
 fun assertCompilationSuccess(path: String): LstProgram {
     val errors = ErrorCollector()
     val file = SourceFile.load(path)
-    val program = AstParser.parseFile(file, errors)
+    val program = LstProgram()
+    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+    program.resetCounters(10000)
+    AstParser.parseFile(file, errors, program)
 
     assertEquals("", errors.toString(), "Parsing errors")
-    assertNotEquals(null, program, "Program")
     assertCompilerOutput(program, path)
-    return program!!
+    return program
 }
 
 fun assertCompilationError(path: String) {
     val errors = ErrorCollector()
     val file = SourceFile.load(path)
-    val program = AstParser.parseFile(file, errors)
+    val program = LstProgram()
+    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+    program.resetCounters(10000)
+    AstParser.parseFile(file, errors, program)
 
     println(errors.toString())
     assertNotEquals("", errors.toString(), "Parsed without the expected errors")
-
-    if (program != null) {
-        assertCompilerOutput(program, path)
-    }
+    assertCompilerOutput(program, path)
 }
 
 fun assertCompilerOutput(program: LstProgram?, programPath: String) {
+    program ?: return
+
     val expectedOutputFile = File("$programPath.json")
-    val actualOutput = program?.toJson() ?: "{}"
+    if (!expectedOutputFile.exists()) return
 
-    // For debugging purposes
-    File("build/output.json").writeText(actualOutput)
+    DeadCodeAnalyzer.markDeadCode(program)
+    val actualOutput = program.toJson()
+    val expected = expectedOutputFile.readText()
 
-    if (expectedOutputFile.exists()) {
-        val expected = expectedOutputFile.readText()
+    try {
         assertEquals(expected, actualOutput)
+    } catch (e: Throwable) {
+        // Gradle test diffs, are unusable, we override the text and use git to get a better diff
+        if (debug) {
+            expectedOutputFile.writeText(actualOutput)
+        }
+        throw e
     }
 }

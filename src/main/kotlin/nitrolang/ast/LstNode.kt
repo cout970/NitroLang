@@ -107,7 +107,9 @@ data class LstChoose(
     }
 }
 
-sealed class LstConstant(id: Ref, span: Span, block: LstNodeBlock) : LstExpression(id, span, block)
+sealed class LstConstant(id: Ref, span: Span, block: LstNodeBlock) : LstExpression(id, span, block) {
+    abstract fun toRawString(): String
+}
 
 data class LstBoolean(
     override val ref: Ref,
@@ -116,6 +118,8 @@ data class LstBoolean(
     val value: Boolean
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value as Boolean [$type]"
+
+    override fun toRawString(): String = "$value"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -134,6 +138,8 @@ data class LstInt(
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value as Int [$type]"
 
+    override fun toRawString(): String = "$value"
+
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
         it.add("kind", "Int".dump())
@@ -150,6 +156,8 @@ data class LstFloat(
     val value: Float
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value as Float [$type]"
+
+    override fun toRawString(): String = "$value"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -168,6 +176,8 @@ data class LstString(
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = \"$value\" as String [$type]"
 
+    override fun toRawString(): String = value
+
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
         it.add("kind", "String".dump())
@@ -183,6 +193,8 @@ data class LstUnit(
     override val block: LstNodeBlock,
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = Unit [$type]"
+
+    override fun toRawString(): String = "()"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -241,6 +253,24 @@ data class LstAsType(
         it.add("type", type?.dump())
         it.add("expr", expr.dump())
         it.add("as_type", typeTree?.dump())
+    }
+}
+
+data class LstDup(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val expr: Ref,
+) : LstExpression(ref, span, block) {
+
+    override fun toString(): String = "$ref = dup $expr [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Dup".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("expr", expr.dump())
     }
 }
 
@@ -526,3 +556,12 @@ data class LstComment(
         it.add("comment", comment.dump())
     }
 }
+
+sealed class LstConstValue
+
+data class LstConstInt(val value: Int) : LstConstValue()
+data class LstConstFloat(val value: Float) : LstConstValue()
+data class LstConstBoolean(val value: Boolean) : LstConstValue()
+data class LstConstString(val value: String) : LstConstValue()
+object LstConstUnit : LstConstValue()
+

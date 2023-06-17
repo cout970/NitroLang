@@ -1,37 +1,139 @@
 {
   "structs": [
     {
+      "ref": "struct#4",
+      "name": "Ordering::Less",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#5",
+      "name": "Ordering::Equals",
+      "fields": [],
+      "type_params": []
+    },
+    {
+      "ref": "struct#6",
+      "name": "Ordering::Greater",
+      "fields": [],
+      "type_params": []
+    },
+    {
       "ref": "struct#7",
+      "name": "Optional::Some",
+      "fields": [
+        {
+          "ref": "field#0",
+          "name": "value",
+          "index": 0,
+          "type": "param:Value#0"
+        }
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#8",
+      "name": "Optional::None",
+      "fields": [],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "struct#9",
+      "name": "Result::Ok",
+      "fields": [
+        {
+          "ref": "field#1",
+          "name": "value",
+          "index": 0,
+          "type": "param:Ok#5"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10",
+      "name": "Result::Err",
+      "fields": [
+        {
+          "ref": "field#2",
+          "name": "value",
+          "index": 0,
+          "type": "param:Err#6"
+        }
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
+    },
+    {
+      "ref": "struct#10000",
       "name": "Box",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#8",
+      "ref": "struct#10001",
       "name": "A::B",
       "fields": [],
       "type_params": []
     }
   ],
-  "options": [],
-  "consts": [
+  "options": [
     {
-      "ref": "const#0",
-      "name": "pi",
-      "type": "struct:Float#2",
-      "body": {
-        "variables": [],
-        "nodes": [
-          {
-            "ref": "$0",
-            "kind": "Float",
-            "block": "block#0/0",
-            "type": "struct:Float#2",
-            "value": 3.14159
-          }
-        ]
-      }
+      "ref": "option#0",
+      "name": "Ordering",
+      "items": [
+        "struct#4",
+        "struct#5",
+        "struct#6"
+      ],
+      "type_params": []
+    },
+    {
+      "ref": "option#1",
+      "name": "Optional",
+      "items": [
+        "struct#7",
+        "struct#8"
+      ],
+      "type_params": [
+        "param:Value#0"
+      ]
+    },
+    {
+      "ref": "option#2",
+      "name": "Result",
+      "items": [
+        "struct#9",
+        "struct#10"
+      ],
+      "type_params": [
+        "param:Ok#5",
+        "param:Err#6"
+      ]
     }
   ],
-  "functions": []
+  "consts": [],
+  "functions": [
+    {
+      "ref": "fun#10000",
+      "name": "main",
+      "has_receiver": false,
+      "type_params": [],
+      "params": [],
+      "return_type": "struct:Unit#0",
+      "body": {
+        "variables": [],
+        "nodes": []
+      }
+    }
+  ]
 }

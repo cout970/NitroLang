@@ -3,6 +3,7 @@ package nitrolang.ast
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import nitrolang.EXTERN_NAME
 import nitrolang.util.Dumpable
 import nitrolang.util.Span
 import nitrolang.util.dump
@@ -13,6 +14,7 @@ class LstProgram : Dumpable {
     val options = mutableMapOf<OptionRef, LstOption>()
     val consts = mutableMapOf<ConstRef, LstConst>()
     val functions = mutableMapOf<FunRef, LstFunction>()
+    val definedNames = mutableMapOf<Path, Span>()
     private var lastStruct = 0
     private var lastOption = 0
     private var lastConst = 0
@@ -31,10 +33,10 @@ class LstProgram : Dumpable {
     }
 
     override fun dump(): JsonObject = JsonObject().apply {
-        add("structs", structs.values.filter { !it.isBuiltin }.dump())
-        add("options", options.values.filter { !it.isBuiltin }.dump())
-        add("consts", consts.values.filter { !it.isBuiltin }.dump())
-        add("functions", functions.values.filter { !it.isBuiltin }.dump())
+        add("structs", structs.values.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("options", options.values.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("consts", consts.values.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("functions", functions.values.filter { !it.isExternal && !it.isDeadCode }.dump())
     }
 
     fun nextStructRef(): StructRef = StructRef(lastStruct++)
@@ -44,6 +46,16 @@ class LstProgram : Dumpable {
     fun nextFunctionRef(): FunRef = FunRef(lastFunction++)
     fun nextTypeParamRef(): TypeParamRef = TypeParamRef(lastTypeParam++)
     fun nextUnresolvedTypeRef(): UnresolvedTypeRef = UnresolvedTypeRef(lastUnresolvedType++)
+
+    fun resetCounters(offset: Int) {
+        lastStruct = offset
+        lastOption = offset
+        lastConst = offset
+        lastFunction = offset
+        lastTypeParam = offset
+        lastUnresolvedType = offset
+        lastField = offset
+    }
 
     companion object {
         private val GSON = GsonBuilder()
@@ -63,15 +75,17 @@ class LstStruct(
     val fields: Map<FieldRef, LstStructureField>,
     val typeParameters: List<TypeParameter>,
     val annotations: List<LstAnnotation>,
-    val isBuiltin: Boolean,
     val ref: StructRef,
 ) : Dumpable {
+    var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
+    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
 
-    val templateType: TypeTree get() = TypeTree(
-        base = StructType(this),
-        params = typeParameters.map { it.toTypeTree() }
-    )
+    val templateType: TypeTree
+        get() = TypeTree(
+            base = StructType(this),
+            params = typeParameters.map { it.toTypeTree() }
+        )
 
     override fun toString(): String {
         return "LstStruct {\n" +
@@ -124,10 +138,11 @@ class LstOption(
     val items: Set<StructRef>,
     val typeParameters: List<TypeParameter>,
     val annotations: List<LstAnnotation>,
-    val isBuiltin: Boolean,
     val ref: OptionRef,
 ) : Dumpable {
+    var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
+    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
 
     override fun toString(): String {
         return "LstOption {\n" +
@@ -155,12 +170,13 @@ class LstConst(
     val typeUsage: TypeUsage,
     val body: LstCode,
     val annotations: List<LstAnnotation>,
-    val isBuiltin: Boolean,
     val ref: ConstRef,
 ) : Dumpable {
     var type: TypeTree? = null
+    var isDeadCode: Boolean = false
     val referencedBy = mutableListOf<LstExpression>()
     val fullName: Path get() = createPath(path, name)
+    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
 
     override fun toString(): String {
         return "LstConst {\n" +
@@ -191,11 +207,12 @@ class LstFunction(
     val typeParameters: List<TypeParameter>,
     val body: LstCode,
     val annotations: List<LstAnnotation>,
-    val isBuiltin: Boolean,
     val ref: FunRef
 ) : Dumpable {
     var returnType: TypeTree? = null
+    var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
+    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
 
     override fun toString(): String {
         return "LstFunction {\n" +
@@ -442,9 +459,27 @@ class TypeParameter(
 
 class LstAnnotation(
     val span: Span,
-    val name: String
+    val name: String,
+    val args: Map<String, LstConstValue> = emptyMap(),
 ) : Dumpable {
-    override fun toString(): String = "@$name"
+    override fun toString(): String {
+        if (args.isNotEmpty()) return "@$name $[${args.entries.joinToString(", ") { "${it.key}: ${it.value}" }}]"
+        return "@$name"
+    }
 
     override fun dump(): JsonElement = toString().dump()
+
+    companion object {
+        fun extern(lib: String, name: String): LstAnnotation {
+            return of(EXTERN_NAME, "lib" to LstConstString(lib), "name" to LstConstString(name))
+        }
+
+        fun of(name: String, vararg args: Pair<String, LstConstValue>): LstAnnotation {
+            return LstAnnotation(
+                span = Span.internal(),
+                name = name,
+                args = mutableMapOf(*args)
+            )
+        }
+    }
 }

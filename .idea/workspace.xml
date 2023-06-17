@@ -4,15 +4,51 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add type checking and type inference&#10;&#10;Add more tests&#10;Add json compilation output for tests">
-      <change afterPath="$PROJECT_DIR$/tests/internal/expression/invalid_function.nl" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core.nl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/wrapper.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/kotlinc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/kotlin/ParseExpressionTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/kotlin/ParseExpressionTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/function.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Format.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Format.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/const.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/const.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/function.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/function.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/function.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/option.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/option.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/option.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/option.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/redeclaration.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/redeclaration.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/struct.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/struct.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/struct.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/struct.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/expression/operators.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/operators.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/statement/for_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/for_statement.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/field_type_inference.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/field_type_inference.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/invalid_let_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/invalid_let_type.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/let_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/let_type.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/let_type_inference.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/let_type_inference.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/struct_type.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/struct_type.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/struct_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/struct_type.nl.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,6 +115,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectId" id="2QKyo5iyEwV2dJYoKkBnNcSjMpm" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
@@ -87,22 +126,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Downloaded.Files.Path.Enabled": "false",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Data/Dev/Kotlin/NitroLang/tests/internal/expression",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "preferences.pluginManager"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Data/Dev/Kotlin/NitroLang/tests/internal/expression&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/tests/internal/expression" />
@@ -141,7 +180,7 @@
       <ForceTestExec>false</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="ParseExpressionTest.function" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="ParseDefinitionTest.const" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -154,7 +193,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;ParseExpressionTest.function&quot;" />
+            <option value="&quot;ParseDefinitionTest.const&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -165,7 +204,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="ParseExpressionTest.invalidFunction" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="ParseDefinitionTest.option" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -178,7 +217,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;ParseExpressionTest.invalidFunction&quot;" />
+            <option value="&quot;ParseDefinitionTest.option&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -189,7 +228,7 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="ParseExpressionTest.operators" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+    <configuration name="ParseDefinitionTest.struct" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
@@ -202,7 +241,7 @@
           <list>
             <option value=":test" />
             <option value="--tests" />
-            <option value="&quot;ParseExpressionTest.operators&quot;" />
+            <option value="&quot;ParseDefinitionTest.struct&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -213,37 +252,20 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="ParseStatementTest.forStatement" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
-      <ExternalSystemSettings>
-        <option name="executionName" />
-        <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" value="" />
-        <option name="taskDescriptions">
-          <list />
-        </option>
-        <option name="taskNames">
-          <list>
-            <option value=":test" />
-            <option value="--tests" />
-            <option value="&quot;ParseStatementTest.forStatement&quot;" />
-          </list>
-        </option>
-        <option name="vmOptions" />
-      </ExternalSystemSettings>
-      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
-      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
-      <DebugAllEnabled>false</DebugAllEnabled>
-      <ForceTestExec>true</ForceTestExec>
-      <method v="2" />
+    <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="nitrolang.MainKt" />
+      <module name="NitroLang.main" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Gradle.NitroLang [test]" />
-        <item itemvalue="Gradle.ParseExpressionTest.invalidFunction" />
-        <item itemvalue="Gradle.ParseExpressionTest.function" />
-        <item itemvalue="Gradle.ParseExpressionTest.operators" />
-        <item itemvalue="Gradle.ParseStatementTest.forStatement" />
+        <item itemvalue="Kotlin.MainKt" />
+        <item itemvalue="Gradle.ParseDefinitionTest.option" />
+        <item itemvalue="Gradle.ParseDefinitionTest.const" />
+        <item itemvalue="Gradle.ParseDefinitionTest.struct" />
       </list>
     </recent_temporary>
   </component>
@@ -284,13 +306,35 @@
       <option name="project" value="LOCAL" />
       <updated>1686418026007</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors">
+      <created>1686440402227</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1686440402227</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.ts" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial Commit&#10;&#10;Add grammar/lexer&#10;Add parser&#10;Add linear syntax tree &#10;Add parser tests" />
     <MESSAGE value="Remove previous Parser TODOs&#10;&#10;Add local variable scoping and shadowing&#10;Add errors for name collisions" />
     <MESSAGE value="Add type checking and type inference&#10;&#10;Add more tests&#10;Add json compilation output for tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add type checking and type inference&#10;&#10;Add more tests&#10;Add json compilation output for tests" />
+    <MESSAGE value="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt</url>
+          <line>118</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

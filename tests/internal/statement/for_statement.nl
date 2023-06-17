@@ -1,12 +1,4 @@
 // Prerequisites of 'for' needed to work without the stdlib
-@Extern fun List<#T>.get(index: Int): #T {}
-@Extern fun List<#T>.len(): Int {}
-@Extern fun Int.get_ordering(other: Int): Int {}
-@Extern fun Int.is_less(): Boolean {}
-
-option Optional<#T> { Some { value: #T }; None {} }
-
-fun Optional<#T>.is_some(): Boolean = this is Optional::Some<#T>
 
 struct Iterator<#T> {
     index: Int

@@ -10,7 +10,7 @@ data class TypeTree(
     val params: List<TypeTree> = emptyList()
 ) : Dumpable {
 
-    fun isUnit(): Boolean = base is StructType && base.struct.isBuiltin && base.struct.name === "Unit"
+    fun isUnit(): Boolean = base is StructType && base.struct.isExternal && base.struct.name == "Unit"
 
     fun hasUnresolved(): Boolean = base is UnresolvedType || params.any { it.hasUnresolved() }
 

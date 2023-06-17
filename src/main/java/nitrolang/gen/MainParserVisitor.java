@@ -1,4 +1,4 @@
-// Generated from java-escape by ANTLR 4.11.1
+// Generated from /Data/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.12.0
 package nitrolang.gen;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -11,11 +11,29 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	/**
-	 * Visit a parse tree produced by {@link MainParser#file}.
+	 * Visit a parse tree produced by {@link MainParser#parseFile}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitFile(MainParser.FileContext ctx);
+	T visitParseFile(MainParser.ParseFileContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#parseTypeUsage}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParseTypeUsage(MainParser.ParseTypeUsageContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#parseExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParseExpression(MainParser.ParseExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#parseFunctionDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParseFunctionDefinition(MainParser.ParseFunctionDefinitionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#nameToken}.
 	 * @param ctx the parse tree
@@ -40,6 +58,24 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitAnnotation(MainParser.AnnotationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#annotationArgs}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAnnotationArgs(MainParser.AnnotationArgsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#annotationArgEntry}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAnnotationArgEntry(MainParser.AnnotationArgEntryContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#annotationArgKey}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAnnotationArgKey(MainParser.AnnotationArgKeyContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#definitionChoice}.
 	 * @param ctx the parse tree
@@ -322,6 +358,18 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExpressionBase(MainParser.ExpressionBaseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#jsonExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitJsonExpr(MainParser.JsonExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#constExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstExpr(MainParser.ConstExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#unitExpression}.
 	 * @param ctx the parse tree

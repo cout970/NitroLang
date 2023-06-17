@@ -16,7 +16,7 @@ fun formatItem(item: Any?): String = when (item) {
 
     else -> {
         val result = item.toString()
-        result.replace("\n", "\n  ")
+        indent(result)
     }
 }
 
@@ -26,7 +26,7 @@ fun formatList(values: Collection<Any>, inline: Boolean = true): String {
     val lines = values.joinToString("\n") { indent(formatItem(it)) }
     val result = "[\n$lines\n]"
 
-    return if (inline) result.replace("\n", "\n  ").trimStart() else result
+    return if (inline) indent(result).trimStart() else result
 }
 
-private fun indent(value: String, indent: String = "  ") = indent + value.replace("\n", "\n  ")
+fun indent(value: String, indent: String = "  ") = indent + value.replace("\n", "\n  ")

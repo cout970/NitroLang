@@ -4,8 +4,11 @@ parser grammar MainParser;
 
 options { tokenVocab = MainLexer; }
 
-// Root
-file : NL* definition* EOF;
+// Entry points
+parseFile : NL* definition* EOF;
+parseTypeUsage : NL* typeUsage EOF;
+parseExpression : NL* expression EOF;
+parseFunctionDefinition : NL* annotation* functionDefinition EOF;
 
 // Identifiers
 nameToken
@@ -18,8 +21,20 @@ declaredNameToken
 definition
     : annotation* definitionChoice NL* ;
 
+// @Extern $[lib: "core", name: "println"]
 annotation
-    : AT nameToken NL* ;
+    : AT nameToken annotationArgs? NL* ;
+
+annotationArgs
+    : STRUCT_START NL* annotationArgEntry* RBRACKET ;
+
+annotationArgEntry
+    : annotationArgKey COLON NL* constExpr COMMA? NL* ;
+
+annotationArgKey
+    : nameToken
+    | STRING
+    ;
 
 definitionChoice
     : structDefinition
@@ -93,7 +108,7 @@ optionDefinitionItem
 
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition
-    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL* functionParameter* RPAREN NL* functionReturnType? functionBody ;
+    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL* functionParameter* RPAREN NL* functionReturnType? functionBody;
 
 // E.g. Int.
 functionReceiver
@@ -271,12 +286,23 @@ expressionBase
     | structInstanceExpr
     | sizeOfExpr
     | variableExpr
-    | JSON json_value
+    | jsonExpr
     | THIS
     | BREAK
     | CONTINUE
     ;
 
+// json {"key": ["val1", 1, true, null]}
+jsonExpr
+    : JSON json_value ;
+
+// Constant value that can be evaluated at compile time
+constExpr
+    : unitExpression
+    | expressionLiteral
+    ;
+
+// Unit '()'
 unitExpression
     : LPAREN RPAREN ;
 
@@ -289,12 +315,15 @@ expressionLiteral
     | NULL
     ;
 
+// #[item1, item2]
 listExpr
     : LIST_START NL* listEntry* RBRACKET ;
 
+// item,
 listEntry
     : expression COMMA? NL* ;
 
+// @[key: value, "key": value, ("key" + 1): value]
 mapExpr
     : MAP_START NL* mapEntry* RBRACKET ;
 
@@ -307,14 +336,18 @@ mapKey
     | STRING
     ;
 
+// %[1, 2, 3]
 setExpr
     : SET_START NL* listEntry* RBRACKET ;
 
+// #{ a -> a + 1 }
+// #{}
 lambdaExpr
     : LAMBDA_START lambdaDef? NL* statement (NL+ statement)* NL* RBRACE
     | LAMBDA_START lambdaDef? NL* RBRACE
     ;
 
+// a, b, rec Int, ret Int ->
 lambdaDef
     : lambdaReceiver COMMA lambdaParams COMMA lambdaReturn ARROW
     | lambdaReceiver COMMA lambdaParams                    ARROW

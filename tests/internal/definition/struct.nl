@@ -2,12 +2,6 @@ struct Box<#A> {
     value: #A
 }
 
-struct List<#A> {
-    items: Box<#A>
-    size: Int
-    capacity: Int
-}
-
 struct Player {
     x: Int
     y: Int
@@ -28,8 +22,7 @@ struct World {
     pending_save: Boolean
 }
 
-
-fun main(): Unit {
+fun main() {
     let world: World = World $[
         player: Player $[
             x: 0
