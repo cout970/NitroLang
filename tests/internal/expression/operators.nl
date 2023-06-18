@@ -11,7 +11,7 @@ fun Int.range_in(other: Int): Range {}
 @Extern $[lib: "core", name: "range_ex"]
 fun Int.range_ex(other: Int): Range {}
 
-fun main(): Unit {
+fun main() {
     let a: Int = 1 + 2 // 1.plus(2)
     let b: Int = 1 - 2 // 1.minus(2)
     let c: Int = 1 * 2 // 1.mul(2)

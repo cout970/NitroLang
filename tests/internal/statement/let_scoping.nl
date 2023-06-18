@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     // #0
     let a: Float = 0.1
 

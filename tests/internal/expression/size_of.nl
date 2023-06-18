@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     let a: Int = size_of<Int>
     let b: Int = size_of<String>
     let c: Int = size_of<List<Int>>

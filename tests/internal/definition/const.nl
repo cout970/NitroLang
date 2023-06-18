@@ -7,6 +7,6 @@ let max_items: Int = 999
 let app_name: String = "CoolAppName"
 let app_version: String = "1.0.0"
 
-fun main(): Unit {
+fun main() {
     pi + e
 }

@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     func1()
     func2()
     func3(420)

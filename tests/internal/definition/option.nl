@@ -18,7 +18,7 @@ option Error {
 
 struct OsError { os_code: Int, message: String }
 
-fun main(): Unit {
+fun main() {
     let a: Optional<Int> = Optional::Some $[value: 42]
     let b: Optional<Int> = Optional::None $[]
 

@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     int()
     float()
     boolean_true()

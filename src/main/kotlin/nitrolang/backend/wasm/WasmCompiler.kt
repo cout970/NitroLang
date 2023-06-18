@@ -78,16 +78,21 @@ class WasmCompiler(
 
     private fun compileCode(code: LstCode, output: WasmNode) {
         code.variables.forEach { (_, variable) ->
-            output += node("local", "\$var_${variable.ref.id}", typeToWasm(variable.type))
+            output += node("local", varToWasm(variable.ref), typeToWasm(variable.type))
+                .comment(variable.name)
         }
 
         code.nodes.forEach { node ->
             compileNode(node, output)
         }
+
+        if (code.returnType!!.isUnit()) {
+            output += node("i32.const", 0)
+        }
     }
 
     private fun compileNode(node: LstNode, output: WasmNode) {
-        return when (node) {
+        when (node) {
             is LstComment -> {
                 output += node("").comment(node.comment)
             }
@@ -134,12 +139,13 @@ class WasmCompiler(
             }
 
             is LstFunCall -> {
-                val annotation = node.function!!.annotations.find { it.name == WASM_INLINE_NAME }
+                val function = node.function!!
+                val annotation = function.annotations.find { it.name == WASM_INLINE_NAME }
                 if (annotation != null) {
                     val opcode = (annotation.args["opcode"] as? LstConstString)?.value
 
                     if (opcode == null) {
-                        collector.report("Missing value for opcode", node.function!!.span)
+                        collector.report("Missing value for opcode", function.span)
                         return
                     }
 
@@ -149,15 +155,32 @@ class WasmCompiler(
 
                 output += node("call", "\$${node.funRef}")
                     .comment(node.toString())
+
+                if (function.returnType!!.isUnit()) {
+                    output += node("drop")
+                }
             }
 
             is LstIsType -> TODO()
             is LstLoadField -> TODO()
-            is LstLoadVar -> TODO()
+
             is LstReturn -> TODO()
             is LstSizeOf -> TODO()
             is LstStoreField -> TODO()
-            is LstStoreVar -> TODO()
+            is LstLoadVar -> {
+                output += node(
+                    if (node.varRef is ConstRef) "global.get" else "local.get",
+                    varToWasm(node.varRef!!)
+                ).comment(node.variable?.name ?: node.constant?.fullName ?: error("No var/const linked"))
+            }
+
+            is LstStoreVar -> {
+                output += node(
+                    if (node.varRef is ConstRef) "global.set" else "local.set",
+                    varToWasm(node.varRef!!)
+                ).comment(node.variable?.name ?: node.constant?.fullName ?: error("No var/const linked"))
+            }
+
             is LstIfJump -> TODO()
             is LstJumpTo -> TODO()
             is LstMarker -> {
@@ -165,6 +188,8 @@ class WasmCompiler(
             }
         }
     }
+
+    private fun varToWasm(ref: VarRef): String = "$$ref"
 
     private fun typeToWasm(type: TypeTree?): String {
         if (type == null) error("Type is null!")

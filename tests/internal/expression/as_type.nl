@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     let a: Int = 42 as Int
     let b: Float = 420.69 as Float
     let c: String = "An example string" as String

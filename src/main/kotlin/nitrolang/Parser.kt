@@ -1665,7 +1665,8 @@ class AstParser(
                         name = variable.name,
                         path = "",
                         expr = expr,
-                        varRef = variable.ref
+                        varRef = variable.ref,
+                        variable = variable
                     )
                 }
             }
@@ -1924,6 +1925,7 @@ class AstParser(
                     path = "",
                     expr = iteratorNext.ref,
                     varRef = variable.ref,
+                    variable = variable,
                 )
 
                 // i.is_none()
@@ -2270,6 +2272,7 @@ class AstParser(
 
         if (found != null) {
             node.varRef = found.ref
+            node.variable = found
             found.referencedBy.add(node)
             return
         }
@@ -2278,6 +2281,7 @@ class AstParser(
 
         if (found2 != null) {
             node.varRef = found2.ref
+            node.constant = found2
             found2.referencedBy.add(node)
             return
         }

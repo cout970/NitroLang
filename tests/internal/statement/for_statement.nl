@@ -22,7 +22,7 @@ fun List<Int>.to_iterator(): Iterator<Int> {
 }
 
 // Actual test
-fun main(): Unit {
+fun main() {
     for i in #[1, 2, 3] {
         42
     }

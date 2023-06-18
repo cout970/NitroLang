@@ -340,6 +340,8 @@ interface HasVarRef {
     val path: Path
     val block: LstNodeBlock
     var varRef: VarRef?
+    var variable: LstVar?
+    var constant: LstConst?
 }
 
 data class LstLoadVar(
@@ -350,7 +352,8 @@ data class LstLoadVar(
     override val path: Path,
     override var varRef: VarRef? = null
 ) : LstExpression(ref, span, block), HasVarRef {
-
+    override var variable: LstVar? = null
+    override var constant: LstConst? = null
     val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String = "$ref = load_var $name ($varRef) [$type]"
@@ -372,7 +375,9 @@ data class LstStoreVar(
     override val name: String,
     override val path: Path,
     val expr: Ref,
-    override var varRef: VarRef? = null
+    override var varRef: VarRef? = null,
+    override var variable: LstVar? = null,
+    override var constant: LstConst? = null,
 ) : LstExpression(ref, span, block), HasVarRef {
     var varType: TypeTree? = null
 

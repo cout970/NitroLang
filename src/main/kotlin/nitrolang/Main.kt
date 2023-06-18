@@ -5,29 +5,81 @@ import nitrolang.backend.wasm.WasmCompiler
 import nitrolang.util.ErrorCollector
 import nitrolang.util.SourceFile
 import java.io.File
+import java.nio.file.FileSystems
+import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds
+import kotlin.system.measureNanoTime
 
 fun main() {
-    val errors = ErrorCollector()
-    val program = LstProgram()
+    val source = File("example.nl")
+    compile(source.path)
+    watch(source) { compile(source.path) }
+}
 
-    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
-    AstParser.parseFile(SourceFile.load("example.nl"), errors, program)
+fun watch(file: File, changed: () -> Unit) {
+    val fs = FileSystems.getDefault()
+    fs.newWatchService().use { ws ->
+        val key = fs.getPath(file.absoluteFile.parent).register(ws, StandardWatchEventKinds.ENTRY_MODIFY)
 
-    if (!errors.isEmpty()) {
-        System.err.println(errors.toString())
-        return
+        while (true) {
+            val curr = ws.take()
+
+            // Required to avoid double fires
+            Thread.sleep(50)
+
+            val events = curr.pollEvents()
+
+            events.forEach { event ->
+                val changedPath = event.context() as Path
+
+                if (changedPath == file.toPath()) {
+                    println("[] Recompiling $changedPath")
+                    changed()
+                }
+            }
+
+            key.reset()
+        }
     }
+}
 
-    val output = File("build/output.wat")
+fun compile(path: String) {
+    val elapsed = measureNanoTime {
+        val errors = ErrorCollector()
+        val program = LstProgram()
 
-    output.bufferedWriter().use { WasmCompiler.compile(program, it, errors) }
+        AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+        AstParser.parseFile(SourceFile.load(path), errors, program)
 
-    if (!errors.isEmpty()) {
-        System.err.println(errors.toString())
-        return
+        if (!errors.isEmpty()) {
+            System.err.println(errors.toString())
+            return
+        }
+
+        val output = File("build/output.wat")
+
+        output.bufferedWriter().use { WasmCompiler.compile(program, it, errors) }
+
+        if (!errors.isEmpty()) {
+            System.err.println(errors.toString())
+            return
+        }
+
+//        println("Calling wat2wasm")
+        ProcessBuilder("wat2wasm", "build/output.wat", "-o", "src/main/resources/output.wasm")
+            .inheritIO()
+            .start()
+            .waitFor()
     }
+    println("[] Compiled in ${elapsed / 1_000_000} ms")
 
-    println("Calling wat2wasm")
-    Runtime.getRuntime().exec("wat2wasm build/output.wat -o build/output.wasm").waitFor()
-    println("Done")
+    val rtElapsed = measureNanoTime {
+        println("--- Running output.wasm")
+        ProcessBuilder("./src/main/resources/wrapper.ts")
+            .inheritIO()
+            .start()
+            .waitFor()
+        println("---")
+    }
+    println("[] Executed in ${rtElapsed / 1_000_000} ms")
 }

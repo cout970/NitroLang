@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
     let a: Int = get_int()
 }
 

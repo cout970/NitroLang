@@ -1,4 +1,4 @@
-fun main(): Unit {
+fun main() {
 
     ```js
     console.log(1 + 2)
