@@ -27,6 +27,19 @@ data class TypeTree(
     }
 
     override fun dump(): JsonElement = toDebugString().dump()
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TypeTree) return false
+
+        if (base != other.base) return false
+        return params == other.params
+    }
+
+    override fun hashCode(): Int {
+        var result = base.hashCode()
+        result = 31 * result + params.hashCode()
+        return result
+    }
 }
 
 fun TypeTree?.isInvalid(): Boolean = this == null || base == InvalidType || params.any { it.isInvalid() }
@@ -45,6 +58,17 @@ data class StructType(val struct: LstStruct) : TypeBase() {
         it.add("ref", struct.ref.dump())
         it.add("name", struct.fullName.dump())
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is StructType) return false
+
+        return struct.ref == other.struct.ref
+    }
+
+    override fun hashCode(): Int {
+        return struct.ref.hashCode()
+    }
 }
 
 data class OptionType(val option: LstOption) : TypeBase() {
@@ -56,6 +80,17 @@ data class OptionType(val option: LstOption) : TypeBase() {
         it.add("kind", "option".dump())
         it.add("ref", option.ref.dump())
         it.add("name", option.fullName.dump())
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is OptionType) return false
+
+        return option.ref == other.option.ref
+    }
+
+    override fun hashCode(): Int {
+        return option.ref.hashCode()
     }
 }
 
@@ -69,6 +104,17 @@ data class ParamType(val param: TypeParameter) : TypeBase() {
         it.add("ref", param.ref.dump())
         it.add("name", param.name.dump())
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ParamType) return false
+
+        return param.ref == other.param.ref
+    }
+
+    override fun hashCode(): Int {
+        return param.ref.hashCode()
+    }
 }
 
 data class UnresolvedType(val ref: UnresolvedTypeRef) : TypeBase() {
@@ -81,6 +127,17 @@ data class UnresolvedType(val ref: UnresolvedTypeRef) : TypeBase() {
         it.add("ref", ref.dump())
         it.add("name", "<unresolved ${ref.id}>".dump())
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is UnresolvedType) return false
+
+        return ref == other.ref
+    }
+
+    override fun hashCode(): Int {
+        return ref.hashCode()
+    }
 }
 
 object InvalidType : TypeBase() {
@@ -90,4 +147,8 @@ object InvalidType : TypeBase() {
     override fun toDebugString(): String = "<InvalidType>"
 
     override fun dump(): JsonElement = toDebugString().dump()
+
+    override fun hashCode(): Int {
+        return -1
+    }
 }

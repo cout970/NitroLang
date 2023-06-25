@@ -1,25 +1,25 @@
 {
   "structs": [
     {
-      "ref": "struct#4",
+      "ref": "struct#5",
       "name": "Ordering::Less",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#5",
+      "ref": "struct#6",
       "name": "Ordering::Equals",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#6",
+      "ref": "struct#7",
       "name": "Ordering::Greater",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#7",
+      "ref": "struct#8",
       "name": "Optional::Some",
       "fields": [
         {
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "ref": "struct#8",
+      "ref": "struct#9",
       "name": "Optional::None",
       "fields": [],
       "type_params": [
@@ -42,35 +42,35 @@
       ]
     },
     {
-      "ref": "struct#9",
+      "ref": "struct#10",
       "name": "Result::Ok",
       "fields": [
         {
           "ref": "field#1",
           "name": "value",
           "index": 0,
-          "type": "param:Ok#5"
+          "type": "param:Ok#1"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     },
     {
-      "ref": "struct#10",
+      "ref": "struct#11",
       "name": "Result::Err",
       "fields": [
         {
           "ref": "field#2",
           "name": "value",
           "index": 0,
-          "type": "param:Err#6"
+          "type": "param:Err#2"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     },
     {
@@ -108,7 +108,7 @@
           "ref": "field#10003",
           "name": "name",
           "index": 2,
-          "type": "struct:String#11"
+          "type": "struct:String#12"
         },
         {
           "ref": "field#10004",
@@ -145,7 +145,7 @@
           "ref": "field#10008",
           "name": "kind",
           "index": 2,
-          "type": "struct:String#11"
+          "type": "struct:String#12"
         }
       ],
       "type_params": []
@@ -164,7 +164,7 @@
           "ref": "field#10010",
           "name": "entities",
           "index": 1,
-          "type": "struct:List#12<struct:Entity#10002>"
+          "type": "struct:List#13<struct:Entity#10002>"
         },
         {
           "ref": "field#10011",
@@ -181,9 +181,9 @@
       "ref": "option#0",
       "name": "Ordering",
       "items": [
-        "struct#4",
         "struct#5",
-        "struct#6"
+        "struct#6",
+        "struct#7"
       ],
       "type_params": []
     },
@@ -191,8 +191,8 @@
       "ref": "option#1",
       "name": "Optional",
       "items": [
-        "struct#7",
-        "struct#8"
+        "struct#8",
+        "struct#9"
       ],
       "type_params": [
         "param:Value#0"
@@ -202,12 +202,12 @@
       "ref": "option#2",
       "name": "Result",
       "items": [
-        "struct#9",
-        "struct#10"
+        "struct#10",
+        "struct#11"
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     }
   ],
@@ -283,7 +283,7 @@
             "ref": "$7",
             "kind": "String",
             "block": "block#0/0",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "value": "Anonymous"
           },
           {
@@ -332,345 +332,277 @@
           },
           {
             "ref": "$13",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:Player#10001",
-            "expr": "$2"
-          },
-          {
-            "ref": "$14",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "player",
             "instance": "$1",
             "field_ref": "field#10009",
-            "expr": "$13"
+            "expr": "$2"
+          },
+          {
+            "ref": "$14",
+            "kind": "Alloc",
+            "block": "block#0/0",
+            "type": "struct:List#13<struct:Entity#10002>",
+            "alloc": "struct:List#13<struct:Entity#10002>"
           },
           {
             "ref": "$15",
             "kind": "Alloc",
             "block": "block#0/0",
-            "type": "struct:List#12<struct:Entity#10002>",
-            "alloc": "struct:List#12<struct:Entity#10002>"
+            "type": "struct:Entity#10002",
+            "alloc": "struct:Entity#10002"
           },
           {
             "ref": "$16",
-            "kind": "Alloc",
+            "kind": "Int",
             "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "alloc": "struct:Entity#10002"
+            "type": "struct:Int#2",
+            "value": 50
           },
           {
             "ref": "$17",
-            "kind": "Int",
-            "block": "block#0/0",
-            "type": "struct:Int#2",
-            "value": 50
-          },
-          {
-            "ref": "$18",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "x",
-            "instance": "$16",
+            "instance": "$15",
             "field_ref": "field#10006",
-            "expr": "$17"
-          },
-          {
-            "ref": "$19",
-            "kind": "Int",
-            "block": "block#0/0",
-            "type": "struct:Int#2",
-            "value": 50
-          },
-          {
-            "ref": "$20",
-            "kind": "StoreField",
-            "block": "block#0/0",
-            "type": "struct:Unit#0",
-            "name": "y",
-            "instance": "$16",
-            "field_ref": "field#10007",
-            "expr": "$19"
-          },
-          {
-            "ref": "$21",
-            "kind": "String",
-            "block": "block#0/0",
-            "type": "struct:String#11",
-            "value": "target"
-          },
-          {
-            "ref": "$22",
-            "kind": "StoreField",
-            "block": "block#0/0",
-            "type": "struct:Unit#0",
-            "name": "kind",
-            "instance": "$16",
-            "field_ref": "field#10008",
-            "expr": "$21"
-          },
-          {
-            "ref": "$23",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
             "expr": "$16"
           },
           {
-            "ref": "$24",
+            "ref": "$18",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#2",
+            "value": 50
+          },
+          {
+            "ref": "$19",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "y",
+            "instance": "$15",
+            "field_ref": "field#10007",
+            "expr": "$18"
+          },
+          {
+            "ref": "$20",
+            "kind": "String",
+            "block": "block#0/0",
+            "type": "struct:String#12",
+            "value": "target"
+          },
+          {
+            "ref": "$21",
+            "kind": "StoreField",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "kind",
+            "instance": "$15",
+            "field_ref": "field#10008",
+            "expr": "$20"
+          },
+          {
+            "ref": "$22",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "add",
+            "func_ref": "fun#45",
+            "args": [
+              "$14",
+              "$15"
+            ],
+            "concrete_type_params": [
+              "struct:List#13<struct:Entity#10002>",
+              "struct:Entity#10002"
+            ]
+          },
+          {
+            "ref": "$23",
             "kind": "Alloc",
             "block": "block#0/0",
             "type": "struct:Entity#10002",
             "alloc": "struct:Entity#10002"
+          },
+          {
+            "ref": "$24",
+            "kind": "Int",
+            "block": "block#0/0",
+            "type": "struct:Int#2",
+            "value": 25
           },
           {
             "ref": "$25",
-            "kind": "Int",
-            "block": "block#0/0",
-            "type": "struct:Int#2",
-            "value": 25
-          },
-          {
-            "ref": "$26",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "x",
-            "instance": "$24",
+            "instance": "$23",
             "field_ref": "field#10006",
-            "expr": "$25"
+            "expr": "$24"
           },
           {
-            "ref": "$27",
+            "ref": "$26",
             "kind": "Int",
             "block": "block#0/0",
             "type": "struct:Int#2",
             "value": 50
           },
           {
-            "ref": "$28",
+            "ref": "$27",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "y",
-            "instance": "$24",
+            "instance": "$23",
             "field_ref": "field#10007",
-            "expr": "$27"
+            "expr": "$26"
           },
           {
-            "ref": "$29",
+            "ref": "$28",
             "kind": "String",
             "block": "block#0/0",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "value": "enemy"
           },
           {
-            "ref": "$30",
+            "ref": "$29",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "kind",
-            "instance": "$24",
+            "instance": "$23",
             "field_ref": "field#10008",
-            "expr": "$29"
+            "expr": "$28"
+          },
+          {
+            "ref": "$30",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "add",
+            "func_ref": "fun#45",
+            "args": [
+              "$14",
+              "$23"
+            ],
+            "concrete_type_params": [
+              "struct:List#13<struct:Entity#10002>",
+              "struct:Entity#10002"
+            ]
           },
           {
             "ref": "$31",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "expr": "$24"
-          },
-          {
-            "ref": "$32",
             "kind": "Alloc",
             "block": "block#0/0",
             "type": "struct:Entity#10002",
             "alloc": "struct:Entity#10002"
           },
           {
-            "ref": "$33",
+            "ref": "$32",
             "kind": "Int",
             "block": "block#0/0",
             "type": "struct:Int#2",
             "value": 50
           },
           {
-            "ref": "$34",
+            "ref": "$33",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "x",
-            "instance": "$32",
+            "instance": "$31",
             "field_ref": "field#10006",
-            "expr": "$33"
+            "expr": "$32"
           },
           {
-            "ref": "$35",
+            "ref": "$34",
             "kind": "Int",
             "block": "block#0/0",
             "type": "struct:Int#2",
             "value": 25
           },
           {
-            "ref": "$36",
+            "ref": "$35",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "y",
-            "instance": "$32",
+            "instance": "$31",
             "field_ref": "field#10007",
-            "expr": "$35"
+            "expr": "$34"
           },
           {
-            "ref": "$37",
+            "ref": "$36",
             "kind": "String",
             "block": "block#0/0",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "value": "enemy"
           },
           {
-            "ref": "$38",
+            "ref": "$37",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "kind",
-            "instance": "$32",
+            "instance": "$31",
             "field_ref": "field#10008",
-            "expr": "$37"
+            "expr": "$36"
+          },
+          {
+            "ref": "$38",
+            "kind": "FunCall",
+            "block": "block#0/0",
+            "type": "struct:Unit#0",
+            "name": "add",
+            "func_ref": "fun#45",
+            "args": [
+              "$14",
+              "$31"
+            ],
+            "concrete_type_params": [
+              "struct:List#13<struct:Entity#10002>",
+              "struct:Entity#10002"
+            ]
           },
           {
             "ref": "$39",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "expr": "$32"
-          },
-          {
-            "ref": "$40",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:List#12<struct:Entity#10002>",
-            "expr": "$15"
-          },
-          {
-            "ref": "$41",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "expr": "$23"
-          },
-          {
-            "ref": "$42",
-            "kind": "FunCall",
-            "block": "block#0/0",
-            "type": "struct:Unit#0",
-            "name": "list::add",
-            "func_ref": "fun#48",
-            "arg_count": 2,
-            "concrete_type_params": [
-              "struct:List#12<struct:Entity#10002>",
-              "struct:Entity#10002"
-            ]
-          },
-          {
-            "ref": "$43",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:List#12<struct:Entity#10002>",
-            "expr": "$15"
-          },
-          {
-            "ref": "$44",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "expr": "$31"
-          },
-          {
-            "ref": "$45",
-            "kind": "FunCall",
-            "block": "block#0/0",
-            "type": "struct:Unit#0",
-            "name": "list::add",
-            "func_ref": "fun#48",
-            "arg_count": 2,
-            "concrete_type_params": [
-              "struct:List#12<struct:Entity#10002>",
-              "struct:Entity#10002"
-            ]
-          },
-          {
-            "ref": "$46",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:List#12<struct:Entity#10002>",
-            "expr": "$15"
-          },
-          {
-            "ref": "$47",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:Entity#10002",
-            "expr": "$39"
-          },
-          {
-            "ref": "$48",
-            "kind": "FunCall",
-            "block": "block#0/0",
-            "type": "struct:Unit#0",
-            "name": "list::add",
-            "func_ref": "fun#48",
-            "arg_count": 2,
-            "concrete_type_params": [
-              "struct:List#12<struct:Entity#10002>",
-              "struct:Entity#10002"
-            ]
-          },
-          {
-            "ref": "$49",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "entities",
             "instance": "$1",
             "field_ref": "field#10010",
-            "expr": "$15"
+            "expr": "$14"
           },
           {
-            "ref": "$50",
+            "ref": "$40",
             "kind": "Boolean",
             "block": "block#0/0",
             "type": "struct:Boolean#1",
             "value": true
           },
           {
-            "ref": "$51",
+            "ref": "$41",
             "kind": "StoreField",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "pending_save",
             "instance": "$1",
             "field_ref": "field#10011",
-            "expr": "$50"
+            "expr": "$40"
           },
           {
-            "ref": "$52",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:World#10003",
-            "expr": "$1"
-          },
-          {
-            "ref": "$53",
+            "ref": "$42",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "world",
-            "expr": "$52",
+            "expr": "$1",
             "var_ref": "var#0"
           }
         ]

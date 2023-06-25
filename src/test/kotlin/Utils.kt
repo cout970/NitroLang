@@ -8,7 +8,7 @@ import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
-private const val debug = false
+private val debug = System.getenv("override-tests") == "true"
 
 fun assertCompilationSuccess(path: String): LstProgram {
     val errors = ErrorCollector()

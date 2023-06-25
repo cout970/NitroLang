@@ -3,7 +3,10 @@ package nitrolang.ast
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import nitrolang.EXTERN_NAME
+import nitrolang.ANNOTATION_EXTERN
+import nitrolang.sm.ConstString
+import nitrolang.sm.ConstValue
+import nitrolang.sm.SmCode
 import nitrolang.util.Dumpable
 import nitrolang.util.Span
 import nitrolang.util.dump
@@ -79,7 +82,9 @@ class LstStruct(
 ) : Dumpable {
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
-    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
+    val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
+
+    fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 
     val templateType: TypeTree
         get() = TypeTree(
@@ -142,7 +147,7 @@ class LstOption(
 ) : Dumpable {
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
-    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
+    val isExternal: Boolean get() = annotations.any { it.name == ANNOTATION_EXTERN }
 
     override fun toString(): String {
         return "LstOption {\n" +
@@ -176,7 +181,7 @@ class LstConst(
     var isDeadCode: Boolean = false
     val referencedBy = mutableListOf<LstExpression>()
     val fullName: Path get() = createPath(path, name)
-    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
+    val isExternal: Boolean get() = annotations.any { it.name == ANNOTATION_EXTERN }
 
     override fun toString(): String {
         return "LstConst {\n" +
@@ -212,7 +217,12 @@ class LstFunction(
     var returnType: TypeTree? = null
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
-    val isExternal: Boolean get() = annotations.any { it.name == EXTERN_NAME }
+    val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
+    val smBody: SmCode = SmCode()
+
+    val finalName: String = ref.toString()
+
+    fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 
     override fun toString(): String {
         return "LstFunction {\n" +
@@ -255,6 +265,7 @@ data class LstFunctionParam(
     val typeUsage: TypeUsage,
 ) : Dumpable {
     var type: TypeTree? = null
+    var variable: LstVar? = null
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("name", name.dump())
@@ -279,8 +290,8 @@ class LstCode : Dumpable {
     val variables: MutableMap<VarRef, LstVar> = mutableMapOf()
 
     // Linking loops and break/continue
-    var breakNodes: MutableList<LstJumpTo> = mutableListOf()
-    var continueNodes: MutableList<LstJumpTo> = mutableListOf()
+    var breakNodes: MutableList<LstLoopJump> = mutableListOf()
+    var continueNodes: MutableList<LstLoopJump> = mutableListOf()
 
     fun createBlock(): LstNodeBlock = LstNodeBlock(currentBlock, lastBlock++)
 
@@ -289,6 +300,8 @@ class LstCode : Dumpable {
     fun nextRef() = Ref(counter++)
 
     fun nextVarRef() = LocalVarRef(counter++)
+
+    fun getNode(ref: Ref): LstNode = nodes.find { it.ref == ref } ?: error("Ref not found!")
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("variables", variables.dump())
@@ -312,7 +325,9 @@ class LstVar(
     val ref: VarRef,
 ) : Dumpable {
     var type: TypeTree? = null
+    var isParam: Boolean = false
     val referencedBy = mutableListOf<LstExpression>()
+    val finalName: String get() = "$$ref"
 
     override fun toString(): String {
         return "LstVar {\n" +
@@ -460,7 +475,7 @@ class TypeParameter(
 class LstAnnotation(
     val span: Span,
     val name: String,
-    val args: Map<String, LstConstValue> = emptyMap(),
+    val args: Map<String, ConstValue> = emptyMap(),
 ) : Dumpable {
     override fun toString(): String {
         if (args.isNotEmpty()) return "@$name $[${args.entries.joinToString(", ") { "${it.key}: ${it.value}" }}]"
@@ -471,10 +486,10 @@ class LstAnnotation(
 
     companion object {
         fun extern(lib: String, name: String): LstAnnotation {
-            return of(EXTERN_NAME, "lib" to LstConstString(lib), "name" to LstConstString(name))
+            return of(ANNOTATION_EXTERN, "lib" to ConstString(lib), "name" to ConstString(name))
         }
 
-        fun of(name: String, vararg args: Pair<String, LstConstValue>): LstAnnotation {
+        fun of(name: String, vararg args: Pair<String, ConstValue>): LstAnnotation {
             return LstAnnotation(
                 span = Span.internal(),
                 name = name,

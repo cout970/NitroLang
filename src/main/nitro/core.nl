@@ -1,13 +1,22 @@
 
 @Extern $[lib: "core", name: "Unit"]
+@StackValue
 struct Unit {}
 
+// Intrinsic functions
+
 @Extern $[lib: "core", name: "alloc"]
+@Required
 fun alloc(bytes: Int): Int {}
+
+@Extern $[lib: "core", name: "check_cast"]
+@Required
+fun check_cast(ptr: Int, expected_type: Int): Int {}
 
 //region type Boolean
 
 @Extern $[lib: "core", name: "Boolean"]
+@StackValue
 struct Boolean {}
 
 // @Extern $[lib: "core", name: "logical_not"]
@@ -31,6 +40,7 @@ fun Boolean.logical_xor(other: Boolean): Boolean {}
 //region type Int
 
 @Extern $[lib: "core", name: "Int"]
+@StackValue
 struct Int {}
 
 @Extern $[lib: "core", name: "int_plus"]
@@ -102,6 +112,7 @@ fun Int.bitwise_count_nonzero_bits(): Int {}
 //region type Float
 
 @Extern $[lib: "core", name: "Float"]
+@StackValue
 struct Float {}
 
 @Extern $[lib: "core", name: "float_plus"]
@@ -121,7 +132,7 @@ fun Float.mul(other: Float): Float {}
 fun Float.div(other: Float): Float {}
 
 @Extern $[lib: "core", name: "float_rem"]
-@WasmInline $[opcode: "f32.rem"]
+// WASM does not provide f32.rem
 fun Float.rem(other: Float): Float {}
 
 @Extern $[lib: "core", name: "float_min"]
@@ -166,6 +177,14 @@ fun Float.nearest(): Float {}
 
 //endregion
 
+//region type Ptr
+
+@Extern $[lib: "core", name: "Ptr"]
+@StackValue
+struct Ptr {}
+
+//endregion
+
 //region type Ordering
 
 option Ordering {
@@ -207,11 +226,11 @@ option Optional<#Value> {
     None {}
 }
 
-fun Some(some: #Value): Optional<#Value> = Optional::Some<#Value> $[value: some]
-fun None<#Value>(): Optional<#Value> = Optional::None<#Value> $[]
+//fun Some(some: #Value): Optional<#Value> = Optional::Some<#Value> $[value: some]
+//fun None<#Value>(): Optional<#Value> = Optional::None<#Value> $[]
 
-fun Optional<#Value>.is_some(): Boolean = this is Optional::Some<#Value>
-fun Optional<#Value>.is_none(): Boolean = this is Optional::None<#Value>
+//fun Optional<#Value>.is_some(): Boolean = this is Optional::Some<#Value>
+//fun Optional<#Value>.is_none(): Boolean = this is Optional::None<#Value>
 
 //endregion
 
@@ -227,12 +246,19 @@ option Result<#Ok, #Err> {
 //region type String
 
 @Extern $[lib: "core", name: "String"]
-struct String {}
+struct String {
+    data: Int
+    len: Int
+}
 
 //endregion
 
 @Extern $[lib: "core", name: "List"]
-struct List<#Item> {}
+struct List<#Item> {
+    data: Int
+    len: Int
+    capacity: Int
+}
 
 @Extern $[lib: "core", name: "list_add"]
 fun List<#Item>.add(item: #Item) {}
@@ -270,5 +296,14 @@ fun Map<#Key, #Value>.get(key: #Key): Optional<#Value> {}
 @Extern $[lib: "core", name: "map_len"]
 fun Map<#Key, #Value>.len(): Int {}
 
-@Extern $[lib: "core", name: "println"]
+@Extern $[lib: "core", name: "println_int"]
 fun println(i: Int) {}
+
+@Extern $[lib: "core", name: "println_float"]
+fun println(i: Float) {}
+
+@Extern $[lib: "core", name: "println_string"]
+fun println(i: String) {}
+
+@Extern $[lib: "core", name: "println_string_list"]
+fun println(i: List<String>) {}

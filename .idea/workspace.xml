@@ -4,38 +4,37 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add definitions to the core library&#10;&#10;Update kotlin to 1.8.21&#10;Update antlr4 to 4.12.0&#10;Add base implementation for wasm compiler WIP&#10;Add annotation parameters&#10;Add dead code elimination&#10;Add dup instruction&#10;Add base offset to auto-generated ids in tests">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc.">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmNode.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/ExpressionTree.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/ExpressionTree.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/wrapper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/wrapper.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/definition/const.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/const.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/definition/function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/function.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/definition/option.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/option.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/alloc.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/alloc.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/as_type.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/as_type.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/constant.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/constant.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/field.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/field.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/function.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/invalid_function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/invalid_function.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/is_type.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/is_type.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/operators.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/operators.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/return.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/return.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/size_of.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/size_of.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/expression/variable.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/expression/variable.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/empty.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/empty.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/const.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/const.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/function.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/function.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/option.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/option.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/redeclaration.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/redeclaration.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/definition/struct.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/definition/struct.nl.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/internal/statement/for_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/for_statement.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/foreign_block_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/foreign_block_statement.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/if_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/if_statement.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/let_scoping.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/let_scoping.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/let_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/let_statement.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/loop_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/loop_statement.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/internal/statement/while_statement.nl" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/statement/while_statement.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/field_type_inference.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/field_type_inference.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/invalid_let_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/invalid_let_type.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/let_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/let_type.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/let_type_inference.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/let_type_inference.nl.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/internal/type/struct_type.nl.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/internal/type/struct_type.nl.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,8 +90,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin Class" />
         <option value="Kotlin File" />
+        <option value="Kotlin Class" />
       </list>
     </option>
   </component>
@@ -144,13 +143,18 @@
       <recent name="" />
     </key>
   </component>
-  <component name="RunManager" selected="Kotlin.MainKt">
-    <configuration name="NitroLang [test]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+  <component name="RunManager" selected="Gradle.ParseStatementTest.forStatement">
+    <configuration name="NitroLang [test]" type="GradleRunConfiguration" factoryName="Gradle">
       <ExternalSystemSettings>
+        <option name="env">
+          <map>
+            <entry key="override-tests" value="true" />
+          </map>
+        </option>
         <option name="executionName" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="externalSystemIdString" value="GRADLE" />
-        <option name="scriptParameters" />
+        <option name="scriptParameters" value="" />
         <option name="taskDescriptions">
           <list />
         </option>
@@ -239,7 +243,36 @@
       <ForceTestExec>true</ForceTestExec>
       <method v="2" />
     </configuration>
-    <configuration name="MainKt" type="JetRunConfigurationType" temporary="true" nameIsGenerated="true">
+    <configuration name="ParseStatementTest.forStatement" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="env">
+          <map>
+            <entry key="override-tests" value="true" />
+          </map>
+        </option>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value=":test" />
+            <option value="--tests" />
+            <option value="&quot;ParseStatementTest.forStatement&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <ForceTestExec>true</ForceTestExec>
+      <method v="2" />
+    </configuration>
+    <configuration name="MainKt" type="JetRunConfigurationType" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="nitrolang.MainKt" />
       <module name="NitroLang.main" />
       <method v="2">
@@ -248,8 +281,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Kotlin.MainKt" />
-        <item itemvalue="Gradle.NitroLang [test]" />
+        <item itemvalue="Gradle.ParseStatementTest.forStatement" />
         <item itemvalue="Gradle.ParseDefinitionTest.option" />
         <item itemvalue="Gradle.ParseDefinitionTest.const" />
         <item itemvalue="Gradle.ParseDefinitionTest.struct" />
@@ -307,7 +339,14 @@
       <option name="project" value="LOCAL" />
       <updated>1687024828067</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically">
+      <created>1687100459224</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1687100459224</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -319,17 +358,8 @@
     <MESSAGE value="Add type checking and type inference&#10;&#10;Add more tests&#10;Add json compilation output for tests" />
     <MESSAGE value="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors" />
     <MESSAGE value="Add definitions to the core library&#10;&#10;Update kotlin to 1.8.21&#10;Update antlr4 to 4.12.0&#10;Add base implementation for wasm compiler WIP&#10;Add annotation parameters&#10;Add dead code elimination&#10;Add dup instruction&#10;Add base offset to auto-generated ids in tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add definitions to the core library&#10;&#10;Update kotlin to 1.8.21&#10;Update antlr4 to 4.12.0&#10;Add base implementation for wasm compiler WIP&#10;Add annotation parameters&#10;Add dead code elimination&#10;Add dup instruction&#10;Add base offset to auto-generated ids in tests" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt</url>
-          <line>118</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically" />
+    <MESSAGE value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
   </component>
 </project>

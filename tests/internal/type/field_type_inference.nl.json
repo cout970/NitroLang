@@ -1,25 +1,25 @@
 {
   "structs": [
     {
-      "ref": "struct#4",
+      "ref": "struct#5",
       "name": "Ordering::Less",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#5",
+      "ref": "struct#6",
       "name": "Ordering::Equals",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#6",
+      "ref": "struct#7",
       "name": "Ordering::Greater",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#7",
+      "ref": "struct#8",
       "name": "Optional::Some",
       "fields": [
         {
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "ref": "struct#8",
+      "ref": "struct#9",
       "name": "Optional::None",
       "fields": [],
       "type_params": [
@@ -42,35 +42,35 @@
       ]
     },
     {
-      "ref": "struct#9",
+      "ref": "struct#10",
       "name": "Result::Ok",
       "fields": [
         {
           "ref": "field#1",
           "name": "value",
           "index": 0,
-          "type": "param:Ok#5"
+          "type": "param:Ok#1"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     },
     {
-      "ref": "struct#10",
+      "ref": "struct#11",
       "name": "Result::Err",
       "fields": [
         {
           "ref": "field#2",
           "name": "value",
           "index": 0,
-          "type": "param:Err#6"
+          "type": "param:Err#2"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     },
     {
@@ -108,9 +108,9 @@
       "ref": "option#0",
       "name": "Ordering",
       "items": [
-        "struct#4",
         "struct#5",
-        "struct#6"
+        "struct#6",
+        "struct#7"
       ],
       "type_params": []
     },
@@ -118,8 +118,8 @@
       "ref": "option#1",
       "name": "Optional",
       "items": [
-        "struct#7",
-        "struct#8"
+        "struct#8",
+        "struct#9"
       ],
       "type_params": [
         "param:Value#0"
@@ -129,12 +129,12 @@
       "ref": "option#2",
       "name": "Result",
       "items": [
-        "struct#9",
-        "struct#10"
+        "struct#10",
+        "struct#11"
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     }
   ],
@@ -152,58 +152,58 @@
           {
             "ref": "var#0",
             "name": "inst",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
             "block": "block#0/0",
             "valid_after": "$0"
           },
           {
-            "ref": "var#10",
+            "ref": "var#9",
             "name": "inst2",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
             "block": "block#0/0",
-            "valid_after": "$10"
+            "valid_after": "$9"
           },
           {
-            "ref": "var#13",
+            "ref": "var#12",
             "name": "a_var",
             "type": "struct:Int#2",
             "block": "block#0/0",
-            "valid_after": "$13"
+            "valid_after": "$12"
           },
           {
-            "ref": "var#17",
+            "ref": "var#16",
             "name": "b_var",
             "type": "struct:Float#3",
             "block": "block#0/0",
-            "valid_after": "$17"
+            "valid_after": "$16"
           },
           {
-            "ref": "var#21",
+            "ref": "var#20",
             "name": "c_var",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "block": "block#0/0",
-            "valid_after": "$21"
+            "valid_after": "$20"
           },
           {
-            "ref": "var#25",
+            "ref": "var#24",
             "name": "a_var2",
             "type": "struct:Int#2",
             "block": "block#0/0",
-            "valid_after": "$25"
+            "valid_after": "$24"
           },
           {
-            "ref": "var#28",
+            "ref": "var#27",
             "name": "b_var2",
             "type": "struct:Float#3",
             "block": "block#0/0",
-            "valid_after": "$28"
+            "valid_after": "$27"
           },
           {
-            "ref": "var#31",
+            "ref": "var#30",
             "name": "c_var2",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "block": "block#0/0",
-            "valid_after": "$31"
+            "valid_after": "$30"
           }
         ],
         "nodes": [
@@ -211,8 +211,8 @@
             "ref": "$1",
             "kind": "Alloc",
             "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
-            "alloc": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>"
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
+            "alloc": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>"
           },
           {
             "ref": "$2",
@@ -252,7 +252,7 @@
             "ref": "$6",
             "kind": "String",
             "block": "block#0/0",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "value": "Test"
           },
           {
@@ -267,165 +267,158 @@
           },
           {
             "ref": "$8",
-            "kind": "Dup",
-            "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
-            "expr": "$1"
-          },
-          {
-            "ref": "$9",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "inst",
-            "expr": "$8",
+            "expr": "$1",
+            "var_ref": "var#0"
+          },
+          {
+            "ref": "$10",
+            "kind": "LoadVar",
+            "block": "block#0/0",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
+            "name": "inst",
             "var_ref": "var#0"
           },
           {
             "ref": "$11",
-            "kind": "LoadVar",
-            "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
-            "name": "inst",
-            "var_ref": "var#0"
-          },
-          {
-            "ref": "$12",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "inst2",
-            "expr": "$11",
-            "var_ref": "var#10"
+            "expr": "$10",
+            "var_ref": "var#9"
           },
           {
-            "ref": "$14",
+            "ref": "$13",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
             "name": "inst",
             "var_ref": "var#0"
           },
           {
-            "ref": "$15",
+            "ref": "$14",
             "kind": "LoadField",
             "block": "block#0/0",
             "type": "struct:Int#2",
             "name": "a",
-            "instance": "$14",
+            "instance": "$13",
             "field_ref": "field#10000"
           },
           {
-            "ref": "$16",
+            "ref": "$15",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "a_var",
-            "expr": "$15",
-            "var_ref": "var#13"
+            "expr": "$14",
+            "var_ref": "var#12"
           },
           {
-            "ref": "$18",
+            "ref": "$17",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
             "name": "inst",
             "var_ref": "var#0"
           },
           {
-            "ref": "$19",
+            "ref": "$18",
             "kind": "LoadField",
             "block": "block#0/0",
             "type": "struct:Float#3",
             "name": "b",
-            "instance": "$18",
+            "instance": "$17",
             "field_ref": "field#10001"
           },
           {
-            "ref": "$20",
+            "ref": "$19",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "b_var",
-            "expr": "$19",
-            "var_ref": "var#17"
+            "expr": "$18",
+            "var_ref": "var#16"
           },
           {
-            "ref": "$22",
+            "ref": "$21",
             "kind": "LoadVar",
             "block": "block#0/0",
-            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#11>",
+            "type": "struct:Struct#10000<struct:Int#2,struct:Float#3,struct:String#12>",
             "name": "inst",
             "var_ref": "var#0"
           },
           {
-            "ref": "$23",
+            "ref": "$22",
             "kind": "LoadField",
             "block": "block#0/0",
-            "type": "struct:String#11",
+            "type": "struct:String#12",
             "name": "c",
-            "instance": "$22",
+            "instance": "$21",
             "field_ref": "field#10002"
           },
           {
-            "ref": "$24",
+            "ref": "$23",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "c_var",
-            "expr": "$23",
-            "var_ref": "var#21"
+            "expr": "$22",
+            "var_ref": "var#20"
           },
           {
-            "ref": "$26",
+            "ref": "$25",
             "kind": "LoadVar",
             "block": "block#0/0",
             "type": "struct:Int#2",
             "name": "a_var",
-            "var_ref": "var#13"
+            "var_ref": "var#12"
           },
           {
-            "ref": "$27",
+            "ref": "$26",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "a_var2",
-            "expr": "$26",
-            "var_ref": "var#25"
+            "expr": "$25",
+            "var_ref": "var#24"
           },
           {
-            "ref": "$29",
+            "ref": "$28",
             "kind": "LoadVar",
             "block": "block#0/0",
             "type": "struct:Float#3",
             "name": "b_var",
-            "var_ref": "var#17"
+            "var_ref": "var#16"
           },
           {
-            "ref": "$30",
+            "ref": "$29",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "b_var2",
-            "expr": "$29",
-            "var_ref": "var#28"
+            "expr": "$28",
+            "var_ref": "var#27"
+          },
+          {
+            "ref": "$31",
+            "kind": "LoadVar",
+            "block": "block#0/0",
+            "type": "struct:String#12",
+            "name": "c_var",
+            "var_ref": "var#20"
           },
           {
             "ref": "$32",
-            "kind": "LoadVar",
-            "block": "block#0/0",
-            "type": "struct:String#11",
-            "name": "c_var",
-            "var_ref": "var#21"
-          },
-          {
-            "ref": "$33",
             "kind": "StoreVar",
             "block": "block#0/0",
             "type": "struct:Unit#0",
             "name": "c_var2",
-            "expr": "$32",
-            "var_ref": "var#31"
+            "expr": "$31",
+            "var_ref": "var#30"
           }
         ]
       }

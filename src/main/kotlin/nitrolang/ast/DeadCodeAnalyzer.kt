@@ -1,5 +1,6 @@
 package nitrolang.ast
 
+import nitrolang.ANNOTATION_REQUIRED
 import nitrolang.MAIN_FUNCTION_NAME
 
 class DeadCodeAnalyzer(val program: LstProgram) {
@@ -10,8 +11,14 @@ class DeadCodeAnalyzer(val program: LstProgram) {
             val main = program.functions.values.find { it.fullName == MAIN_FUNCTION_NAME }
                 ?: error("Missing $MAIN_FUNCTION_NAME function")
 
-            program.functions.values.forEach { it.isDeadCode = true }
-            program.consts.values.forEach { it.isDeadCode = true }
+            program.functions.values.forEach {
+                if (it.getAnnotation(ANNOTATION_REQUIRED) == null) {
+                    it.isDeadCode = true
+                }
+            }
+            program.consts.values.forEach {
+                it.isDeadCode = true
+            }
             DeadCodeAnalyzer(program).visitFunction(main)
         }
     }

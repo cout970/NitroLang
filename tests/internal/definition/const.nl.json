@@ -1,25 +1,25 @@
 {
   "structs": [
     {
-      "ref": "struct#4",
+      "ref": "struct#5",
       "name": "Ordering::Less",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#5",
+      "ref": "struct#6",
       "name": "Ordering::Equals",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#6",
+      "ref": "struct#7",
       "name": "Ordering::Greater",
       "fields": [],
       "type_params": []
     },
     {
-      "ref": "struct#7",
+      "ref": "struct#8",
       "name": "Optional::Some",
       "fields": [
         {
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "ref": "struct#8",
+      "ref": "struct#9",
       "name": "Optional::None",
       "fields": [],
       "type_params": [
@@ -42,35 +42,35 @@
       ]
     },
     {
-      "ref": "struct#9",
+      "ref": "struct#10",
       "name": "Result::Ok",
       "fields": [
         {
           "ref": "field#1",
           "name": "value",
           "index": 0,
-          "type": "param:Ok#5"
+          "type": "param:Ok#1"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     },
     {
-      "ref": "struct#10",
+      "ref": "struct#11",
       "name": "Result::Err",
       "fields": [
         {
           "ref": "field#2",
           "name": "value",
           "index": 0,
-          "type": "param:Err#6"
+          "type": "param:Err#2"
         }
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     }
   ],
@@ -79,9 +79,9 @@
       "ref": "option#0",
       "name": "Ordering",
       "items": [
-        "struct#4",
         "struct#5",
-        "struct#6"
+        "struct#6",
+        "struct#7"
       ],
       "type_params": []
     },
@@ -89,8 +89,8 @@
       "ref": "option#1",
       "name": "Optional",
       "items": [
-        "struct#7",
-        "struct#8"
+        "struct#8",
+        "struct#9"
       ],
       "type_params": [
         "param:Value#0"
@@ -100,12 +100,12 @@
       "ref": "option#2",
       "name": "Result",
       "items": [
-        "struct#9",
-        "struct#10"
+        "struct#10",
+        "struct#11"
       ],
       "type_params": [
-        "param:Ok#5",
-        "param:Err#6"
+        "param:Ok#1",
+        "param:Err#2"
       ]
     }
   ],
@@ -174,26 +174,15 @@
           },
           {
             "ref": "$2",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:Float#3",
-            "expr": "$0"
-          },
-          {
-            "ref": "$3",
-            "kind": "FunArg",
-            "block": "block#0/0",
-            "type": "struct:Float#3",
-            "expr": "$1"
-          },
-          {
-            "ref": "$4",
             "kind": "FunCall",
             "block": "block#0/0",
             "type": "struct:Float#3",
             "name": "plus",
-            "func_ref": "fun#21",
-            "arg_count": 2,
+            "func_ref": "fun#22",
+            "args": [
+              "$0",
+              "$1"
+            ],
             "concrete_type_params": [
               "struct:Float#3",
               "struct:Float#3"

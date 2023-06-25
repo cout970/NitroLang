@@ -12,7 +12,7 @@ Intended for the developers
 - [x] Resolve and check types
 - [x] Link types and symbols
 - [x] Type inference
-- [ ] Compile to WASM
+- [x] Compile to WASM
 - [ ] StdLib
 - [ ] Intellij Language Plugin
 - [ ] Package manager for dependencies
@@ -20,3 +20,11 @@ Intended for the developers
 - [ ] Community feedback and fine-tuning
 - [ ] Sell the project to a big company and retire to a tropical paradise
 - [ ] Profit?
+
+
+### Other features to implement
+- Unary prefix minus and plus `+5`, `-7`
+- String interpolation `"Var is $x, or ${x}"`
+- When expression `when { x > 10 -> 1, x == 10 -> 2, else -> 3}`
+- Inline json `let a = json {"a": 1, "b": [1, 2, 3]}` 
+- Thousands of other ideas...

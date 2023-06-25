@@ -21,6 +21,8 @@ fun List<Int>.to_iterator(): Iterator<Int> {
     ret Iterator $[index: 0, list: this]
 }
 
+fun Optional<Int>.is_some(): Boolean = true
+
 // Actual test
 fun main() {
     for i in #[1, 2, 3] {

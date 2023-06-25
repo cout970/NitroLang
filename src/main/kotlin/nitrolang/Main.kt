@@ -56,6 +56,15 @@ fun compile(path: String) {
             return
         }
 
+        program.functions.forEach { (_, func) ->
+            if (func.fullName != "main") return@forEach
+            println("${func.fullName}:")
+            func.body.nodes.forEach {
+                println("   $it")
+            }
+            println()
+        }
+
         val output = File("build/output.wat")
 
         output.bufferedWriter().use { WasmCompiler.compile(program, it, errors) }
