@@ -26,6 +26,10 @@ class LstProgram : Dumpable {
     private var lastUnresolvedType = 0
     private var lastField = 0
 
+    fun getFunction(fullName: String): LstFunction {
+        return functions.values.find { it.fullName == fullName } ?: error("Function '$fullName' not found")
+    }
+
     override fun toString(): String {
         return "LstProgram {\n" +
                 "  structs=${formatItem(structs.values)}\n" +
@@ -80,6 +84,7 @@ class LstStruct(
     val annotations: List<LstAnnotation>,
     val ref: StructRef,
 ) : Dumpable {
+    var parentOption: OptionRef? = null
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
@@ -119,6 +124,7 @@ class LstStructureField(
     val ref: FieldRef,
 ) : Dumpable {
     var type: TypeTree? = null
+
     override fun toString(): String {
         return "LstStructureField {\n" +
                 "  name=${formatItem(name)}\n" +
@@ -140,7 +146,7 @@ class LstOption(
     val span: Span,
     val name: String,
     val path: Path,
-    val items: Set<StructRef>,
+    val items: List<StructRef>,
     val typeParameters: List<TypeParameter>,
     val annotations: List<LstAnnotation>,
     val ref: OptionRef,
@@ -281,6 +287,7 @@ class LstCode : Dumpable {
 
     val nodes: MutableList<LstNode> = mutableListOf()
     var returnType: TypeTree? = null
+    var lastExpression: Ref? = null
 
     // Block nesting
     val rootBlock: LstNodeBlock = LstNodeBlock(null, lastBlock++)
@@ -369,9 +376,9 @@ data class TypeUsage(
     override fun dump(): JsonElement = this.toString().dump()
 
     companion object {
-        fun unit() = TypeUsage(
+        fun simple(name: String) = TypeUsage(
             span = Span.internal(),
-            name = "Unit",
+            name = name,
             path = "",
             sub = mutableListOf(),
             modifier = Modifier.NONE,
@@ -379,25 +386,13 @@ data class TypeUsage(
             currentPath = ""
         )
 
-        fun int() = TypeUsage(
-            span = Span.internal(),
-            name = "Int",
-            path = "",
-            sub = mutableListOf(),
-            modifier = Modifier.NONE,
-            typeParameter = null,
-            currentPath = ""
-        )
+        fun unit() = simple("Unit")
 
-        fun float() = TypeUsage(
-            span = Span.internal(),
-            name = "Float",
-            path = "",
-            sub = mutableListOf(),
-            modifier = Modifier.NONE,
-            typeParameter = null,
-            currentPath = ""
-        )
+        fun int() = simple("Int")
+
+        fun float() = simple("Float")
+
+        fun string() = simple("String")
 
         fun unresolved(unresolvedTypeRef: UnresolvedTypeRef) = TypeUsage(
             span = Span.internal(),

@@ -362,9 +362,9 @@ data class LstLoadVar(
     override val block: LstNodeBlock,
     override val name: String,
     override val path: Path,
-    override var varRef: VarRef? = null
-) : LstExpression(ref, span, block), HasVarRef {
+    override var varRef: VarRef? = null,
     override var variable: LstVar? = null
+) : LstExpression(ref, span, block), HasVarRef {
     override var constant: LstConst? = null
     val fullName: Path get() = createPath(path, name)
     val finalName: Path get() = "$" + varRef.toString()
@@ -401,7 +401,7 @@ data class LstStoreVar(
     }
 
     val fullName: Path get() = createPath(path, name)
-    override fun toString(): String = "$ref store_var $name ($varRef) = $expr [$type]"
+    override fun toString(): String = "$ref store_var $name: $varType ($varRef) = $expr [$type]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())

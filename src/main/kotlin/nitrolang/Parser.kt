@@ -19,6 +19,8 @@ import nitrolang.gen.MainParser.FunctionCallParamsContext
 import nitrolang.gen.MainParser.FunctionDefinitionContext
 import nitrolang.gen.MainParser.IfExprContext
 import nitrolang.gen.MainParser.IncludeDefinitionContext
+import nitrolang.gen.MainParser.JsonExprContext
+import nitrolang.gen.MainParser.JsonValueContext
 import nitrolang.gen.MainParser.LambdaExprContext
 import nitrolang.gen.MainParser.ListExprContext
 import nitrolang.gen.MainParser.MapExprContext
@@ -29,6 +31,7 @@ import nitrolang.gen.MainParser.SetExprContext
 import nitrolang.gen.MainParser.SizeOfExprContext
 import nitrolang.gen.MainParser.StatementBlockContext
 import nitrolang.gen.MainParser.StatementContext
+import nitrolang.gen.MainParser.StringContext
 import nitrolang.gen.MainParser.StructDefinitionContext
 import nitrolang.gen.MainParser.StructInstanceExprContext
 import nitrolang.gen.MainParser.TypeParamDefContext
@@ -62,7 +65,18 @@ class AstParser(
 
     companion object {
 
-        fun parseFile(source: SourceFile, collector: ErrorCollector, program: LstProgram): Boolean {
+        fun includeFile(ns: String, path: String, collector: ErrorCollector, program: LstProgram): Boolean {
+            assert(ns == "core") { "Only core is supported for now" }
+            val source = SourceFile.load("src/main/nitro/$path")
+            return parseFile(source, collector, program, false)
+        }
+
+        fun parseFile(
+            source: SourceFile,
+            collector: ErrorCollector,
+            program: LstProgram,
+            finalize: Boolean = true
+        ): Boolean {
             val parser = createParser(source, collector)
             val fileCtx = parser.parseFile()
 
@@ -79,16 +93,23 @@ class AstParser(
 
             ParseTreeWalker().walk(astParser, fileCtx)
 
-            astParser.program.consts.values.forEach { const ->
+            if (finalize) {
+                finalize(astParser, program, collector)
+            }
+            return true
+        }
+
+        private fun finalize(astParser: AstParser, program: LstProgram, collector: ErrorCollector) {
+            program.consts.values.forEach { const ->
                 const.type = astParser.typeUsageToTypeTree(const.typeUsage)
                 const.body.returnType = const.type
             }
-            astParser.program.structs.values.forEach { struct ->
+            program.structs.values.forEach { struct ->
                 struct.fields.values.forEach { field ->
                     field.type = astParser.typeUsageToTypeTree(field.typeUsage)
                 }
             }
-            astParser.program.functions.values.forEach { func ->
+            program.functions.values.forEach { func ->
                 func.params.forEach { param ->
                     param.type = astParser.typeUsageToTypeTree(param.typeUsage)
                     param.variable!!.type = param.type
@@ -97,7 +118,7 @@ class AstParser(
                 func.body.returnType = func.returnType
             }
 
-            astParser.program.functions.values.forEach { func ->
+            program.functions.values.forEach { func ->
                 // Extern functions have empty body
                 if (func.isExternal) {
                     if (func.body.nodes.isNotEmpty()) {
@@ -111,7 +132,7 @@ class AstParser(
                 // Check that the function actually returns something
                 val defined = func.body.returnType!!
                 if (!defined.isUnit()) {
-                    when (val last = func.body.nodes.lastOrNull()) {
+                    when (val last = func.body.lastExpression?.let { func.body.getNode(it) }) {
                         null -> {
                             collector.report(
                                 "Function '${func.name}' must return '$defined' but has empty body",
@@ -123,7 +144,7 @@ class AstParser(
                         is LstReturn -> Unit
 
                         is LstExpression -> {
-                            if (!astParser.canBeAssignedTo(defined, last.type!!)) {
+                            if (!last.type!!.isNever() && !astParser.canBeAssignedTo(defined, last.type!!)) {
                                 collector.report(
                                     "Type mismatch, attempt to return '${last.type}' on a function that must return '$defined'",
                                     last.span
@@ -140,11 +161,9 @@ class AstParser(
                     }
                 }
             }
-            astParser.program.consts.values.forEach { const ->
+            program.consts.values.forEach { const ->
                 astParser.processCode(const.body)
             }
-
-            return true
         }
 
         fun parseFunctionDefinition(source: SourceFile, collector: ErrorCollector, program: LstProgram): LstFunction? {
@@ -245,7 +264,8 @@ class AstParser(
         startTypeParams(ctx.typeParamDef())
 
         val mutableTypeParametersList = mutableListOf<TypeParameter>()
-        val options = mutableSetOf<StructRef>()
+        val options = mutableListOf<StructRef>()
+        val optionRef = program.nextOptionRef()
 
         ctx.optionDefinitionItem().forEach { opt ->
 
@@ -282,6 +302,7 @@ class AstParser(
                 return
             }
 
+            struct.parentOption = optionRef
             program.definedNames[struct.fullName] = struct.span
             program.structs[struct.ref] = struct
             options += struct.ref
@@ -297,7 +318,7 @@ class AstParser(
             items = options,
             typeParameters = mutableTypeParametersList,
             annotations = resolveAnnotations(ctx),
-            ref = program.nextOptionRef()
+            ref = optionRef,
         )
 
         if (option.fullName in program.definedNames) {
@@ -379,7 +400,7 @@ class AstParser(
             }
 
             ctx.functionBody().expression() != null -> {
-                processExpression(ctx.functionBody().expression(), body)
+                body.lastExpression = processExpression(ctx.functionBody().expression(), body)
             }
 
             else -> error("Grammar has been expanded and parser is outdated")
@@ -404,7 +425,7 @@ class AstParser(
 
     override fun enterConstDefinition(ctx: ConstDefinitionContext) {
         val body = LstCode()
-        processExpression(ctx.expression(), body)
+        body.lastExpression = processExpression(ctx.expression(), body)
 
         val const = LstConst(
             span = ctx.declaredNameToken().span(),
@@ -448,8 +469,8 @@ class AstParser(
             if (subCtx.annotationArgs() != null) {
                 subCtx.annotationArgs().annotationArgEntry().forEach { entry ->
                     val name = when {
-                        entry.annotationArgKey().STRING() != null -> {
-                            unescapeStringLiteral(entry.annotationArgKey().STRING().text)
+                        entry.annotationArgKey().PLAIN_STRING() != null -> {
+                            processPlainString(entry.annotationArgKey().PLAIN_STRING())
                         }
 
                         entry.annotationArgKey().nameToken() != null -> {
@@ -472,11 +493,20 @@ class AstParser(
     }
 
     override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {
-//        val location = ctx.location()
-//        val namespace = if (location.declaredNameToken() != null) location.declaredNameToken().text else ""
-//        val path = location.nameToken().joinToString("/") { it.text }
+        val location = processPlainString(ctx.PLAIN_STRING())
+        val namespace = location.substringBefore(':')
+        val path = location.substringAfter(':')
 
-        TODO("Includes")
+//        val location = ctx.location()
+//        val namespace = if (location.declaredNameToken() != null) location.declaredNameToken().text else "this"
+//        var path = location.nameToken().joinToString("/") { it.text }
+
+//        location.extension()?.let {
+//            path += "."
+//            path += it.nameToken().text
+//        }
+
+        includeFile(namespace, path, collector, program)
     }
 
     override fun enterUseDefinition(ctx: UseDefinitionContext) {
@@ -888,8 +918,8 @@ class AstParser(
             specifiedTypeParams += resolveTypeUsage(param)
         }
 
-        params?.functionCallParam()?.forEach { param ->
-            args += processExpression(param.expression(), code)
+        params?.functionCallParamList()?.expression()?.forEach { param ->
+            args += processExpression(param, code)
         }
 
         if (end != null) {
@@ -964,7 +994,7 @@ class AstParser(
             }
 
             ctx.jsonExpr() != null -> {
-                error("Json value not currently implemented")
+                processExpressionJsonExpr(ctx.jsonExpr(), code)
             }
 
             ctx.THIS() != null -> {
@@ -1024,18 +1054,18 @@ class AstParser(
             return ConstUnit
         }
 
-        if (ctx.expressionLiteral() == null) {
+        if (ctx.constExpressionLiteral() == null) {
             error("Grammar has been expanded and parser is outdated")
         }
 
         return when {
-            ctx.expressionLiteral().STRING() != null -> {
-                ConstString(unescapeStringLiteral(ctx.expressionLiteral().STRING().text))
+            ctx.constExpressionLiteral().PLAIN_STRING() != null -> {
+                ConstString(processPlainString(ctx.constExpressionLiteral().PLAIN_STRING()))
             }
 
-            ctx.expressionLiteral().FALSE() != null -> ConstBoolean(false)
-            ctx.expressionLiteral().TRUE() != null -> ConstBoolean(true)
-            ctx.expressionLiteral().NULL() != null -> {
+            ctx.constExpressionLiteral().FALSE() != null -> ConstBoolean(false)
+            ctx.constExpressionLiteral().TRUE() != null -> ConstBoolean(true)
+            ctx.constExpressionLiteral().NULL() != null -> {
                 collector.report(
                     "Null values are not available in this language, use Optional::None instead",
                     ctx.span()
@@ -1043,8 +1073,8 @@ class AstParser(
                 ConstUnit
             }
 
-            ctx.expressionLiteral().INT_NUMBER() != null -> {
-                val text = ctx.expressionLiteral().INT_NUMBER().text
+            ctx.constExpressionLiteral().INT_NUMBER() != null -> {
+                val text = ctx.constExpressionLiteral().INT_NUMBER().text
 
                 val intValue = when {
                     text.startsWith("0x") -> text.substring(2).toUInt(16).toInt()
@@ -1054,14 +1084,14 @@ class AstParser(
                 }
 
                 if (text.startsWith("-") || text.startsWith("+")) {
-                    checkSubPreviousToken(ctx.expressionLiteral(), ctx.expressionLiteral().INT_NUMBER())
+                    checkSubPreviousToken(ctx.constExpressionLiteral(), ctx.constExpressionLiteral().INT_NUMBER())
                 }
 
                 ConstInt(intValue)
             }
 
-            ctx.expressionLiteral().FLOAT_NUMBER() != null -> {
-                val text = ctx.expressionLiteral().FLOAT_NUMBER().text
+            ctx.constExpressionLiteral().FLOAT_NUMBER() != null -> {
+                val text = ctx.constExpressionLiteral().FLOAT_NUMBER().text
                 val floatValue = text.toFloatOrNull()
 
                 if (floatValue == null) {
@@ -1069,7 +1099,7 @@ class AstParser(
                 }
 
                 if (text.startsWith("-") || text.startsWith("+")) {
-                    checkSubPreviousToken(ctx.expressionLiteral(), ctx.expressionLiteral().FLOAT_NUMBER())
+                    checkSubPreviousToken(ctx.constExpressionLiteral(), ctx.constExpressionLiteral().FLOAT_NUMBER())
                 }
 
                 ConstFloat(floatValue ?: 0f)
@@ -1079,16 +1109,26 @@ class AstParser(
         }
     }
 
+    private fun stringToInt(text: String): Int? {
+        return when {
+            text.startsWith("0x") -> text.substring(2).toUIntOrNull(16)?.toInt()
+            text.startsWith("0o") -> text.substring(2).toUIntOrNull(8)?.toInt()
+            text.startsWith("0b") -> text.substring(2).toUIntOrNull(2)?.toInt()
+            else -> text.toIntOrNull()
+        }
+    }
+
+    private fun stringToFloat(text: String): Float? = text.toFloatOrNull()
+
     private fun processExpressionExpressionLiteral(ctx: ExpressionLiteralContext, code: LstCode): Ref {
         return when {
             ctx.INT_NUMBER() != null -> {
                 val text = ctx.INT_NUMBER().text
+                var intValue = stringToInt(text)
 
-                val intValue = when {
-                    text.startsWith("0x") -> text.substring(2).toUInt(16).toInt()
-                    text.startsWith("0o") -> text.substring(2).toUInt(8).toInt()
-                    text.startsWith("0b") -> text.substring(2).toUInt(2).toInt()
-                    else -> text.toInt()
+                if (intValue == null) {
+                    collector.report("Invalid int value '${text}'", ctx.span())
+                    intValue = 0
                 }
 
                 if (text.startsWith("-") || text.startsWith("+")) {
@@ -1107,10 +1147,11 @@ class AstParser(
 
             ctx.FLOAT_NUMBER() != null -> {
                 val text = ctx.FLOAT_NUMBER().text
-                val floatValue = text.toFloatOrNull()
+                var floatValue = text.toFloatOrNull()
 
                 if (floatValue == null) {
                     collector.report("Invalid float value '${text}'", ctx.span())
+                    floatValue = 0f
                 }
 
                 if (text.startsWith("-") || text.startsWith("+")) {
@@ -1121,23 +1162,14 @@ class AstParser(
                     ref = code.nextRef(),
                     span = ctx.span(),
                     block = code.currentBlock,
-                    value = floatValue ?: 0f
+                    value = floatValue
                 )
                 code.nodes += node
                 node.ref
             }
 
-            ctx.STRING() != null -> {
-                val value = unescapeStringLiteral(ctx.STRING().text)
-
-                val node = LstString(
-                    ref = code.nextRef(),
-                    span = ctx.span(),
-                    block = code.currentBlock,
-                    value = value
-                )
-                code.nodes += node
-                node.ref
+            ctx.string() != null -> {
+                processString(ctx.string(), code)
             }
 
             ctx.TRUE() != null -> {
@@ -1181,9 +1213,42 @@ class AstParser(
         }
     }
 
+    private fun processPlainString(ctx: TerminalNode): String {
+        val tokenText = ctx.text
+        val text = tokenText.substring(1, tokenText.length - 1)
+        return unescapeStringLiteral(text)
+    }
+
+    private fun processString(ctx: StringContext, code: LstCode): Ref {
+        val buff = StringBuilder()
+
+        if (ctx.PLAIN_STRING() != null) {
+            buff.append(processPlainString(ctx.PLAIN_STRING()))
+        } else {
+            ctx.stringContents().forEach { item ->
+                when {
+                    item.STRING_BLOB() != null -> buff.append(item.STRING_BLOB().text)
+                    item.STRING_ESCAPE() != null -> buff.append("\"")
+                    item.STRING_VAR() != null -> buff.append("{{UNSUPORTED}}")
+                    item.STRING_INTERP_START() != null -> {
+                        buff.append("{{UNSUPORTED}}")
+                    }
+                }
+            }
+        }
+
+        val node = LstString(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            value = unescapeStringLiteral(buff.toString())
+        )
+        code.nodes += node
+        return node.ref
+    }
+
     private fun unescapeStringLiteral(tokenText: String): String {
-        // "a" -> a
-        var text = tokenText.substring(1, tokenText.length - 1)
+        var text = tokenText
 
         // Hex \xFF
         text = text.replace(Regex("""\\x([0-9a-fA-F]{2})""")) { res ->
@@ -1219,14 +1284,240 @@ class AstParser(
         return text
     }
 
-    private fun processExpressionListExpr(ctx: ListExprContext, code: LstCode): Ref {
+    private fun createStructInstance(type: TypeUsage, fields: List<Pair<String, Ref>>, code: LstCode, span: Span): Ref {
         val alloc = LstAlloc(
+            ref = code.nextRef(),
+            span = span,
+            block = code.currentBlock,
+            typeUsage = type
+        )
+        code.nodes += alloc
+
+        fields.forEach { (name, expr) ->
+            val store = LstStoreField(
+                ref = code.nextRef(),
+                span = span,
+                block = code.currentBlock,
+                name = name,
+                instance = alloc.ref,
+                expr = expr
+            )
+            code.nodes += store
+        }
+
+        return alloc.ref
+    }
+
+    private fun processExpressionJsonExpr(ctx: JsonExprContext, code: LstCode): Ref {
+        return processJsonValue(ctx.jsonValue(), code)
+    }
+
+    private fun processJsonValue(value: JsonValueContext, code: LstCode): Ref {
+        return when {
+            value.string() != null -> {
+                val string = processString(value.string(), code)
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::String"),
+                    fields = listOf("value" to string),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.INT_NUMBER() != null -> {
+                val text = value.INT_NUMBER().text
+                var intValue = stringToInt(text)
+
+                if (intValue == null) {
+                    collector.report("Invalid int value '${text}'", value.span())
+                    intValue = 0
+                }
+
+                val const = LstFloat(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    value = intValue.toFloat(),
+                )
+                code.nodes += const
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Number"),
+                    fields = listOf("value" to const.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.FLOAT_NUMBER() != null -> {
+                val text = value.FLOAT_NUMBER().text
+                var floatValue = stringToFloat(text)
+
+                if (floatValue == null) {
+                    collector.report("Invalid float value '${text}'", value.span())
+                    floatValue = 0f
+                }
+
+                val const = LstFloat(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    value = floatValue,
+                )
+                code.nodes += const
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Number"),
+                    fields = listOf("value" to const.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.TRUE() != null -> {
+                val const = LstBoolean(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    value = true,
+                )
+                code.nodes += const
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Boolean"),
+                    fields = listOf("value" to const.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.FALSE() != null -> {
+                val const = LstBoolean(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    value = false,
+                )
+                code.nodes += const
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Boolean"),
+                    fields = listOf("value" to const.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.NULL() != null -> {
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Null"),
+                    fields = listOf(),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.jsonObject() != null -> {
+                val map = LstFunCall(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    name = "create_string_map",
+                    path = "",
+                    arguments = emptyList(),
+                    specifiedTypeParams = listOf(TypeUsage.simple("Json")),
+                )
+                code.nodes += map
+
+                value.jsonObject().jsonPair().forEach { pair ->
+                    val keyRef = if (pair.string() != null) {
+                        processString(pair.string(), code)
+                    } else {
+                        val entryKey = LstString(
+                            ref = code.nextRef(),
+                            span = value.span(),
+                            block = code.currentBlock,
+                            value = pair.nameToken().text
+                        )
+                        code.nodes += entryKey
+                        entryKey.ref
+                    }
+
+                    val valueRef = processJsonValue(pair.jsonValue(), code)
+
+                    val set = LstFunCall(
+                        ref = code.nextRef(),
+                        span = value.span(),
+                        block = code.currentBlock,
+                        name = "set",
+                        path = "",
+                        arguments = listOf(map.ref, keyRef, valueRef),
+                    )
+                    code.nodes += set
+                }
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Object"),
+                    fields = listOf("value" to map.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.jsonArray() != null -> {
+                val list = LstFunCall(
+                    ref = code.nextRef(),
+                    span = value.span(),
+                    block = code.currentBlock,
+                    name = "create_list",
+                    path = "",
+                    arguments = emptyList(),
+                    specifiedTypeParams = listOf(TypeUsage.simple("Json")),
+                )
+                code.nodes += list
+
+                value.jsonArray().jsonValue().forEach { jsonValue ->
+                    val entryValue = processJsonValue(jsonValue, code)
+
+                    val add = LstFunCall(
+                        ref = code.nextRef(),
+                        span = value.span(),
+                        block = code.currentBlock,
+                        name = "add",
+                        path = "",
+                        arguments = listOf(list.ref, entryValue),
+                    )
+                    code.nodes += add
+                }
+
+                createStructInstance(
+                    type = TypeUsage.simple("Json::Array"),
+                    fields = listOf("value" to list.ref),
+                    code = code,
+                    span = value.span(),
+                )
+            }
+
+            value.expression() != null -> {
+                processExpression(value.expression(), code)
+            }
+
+            else -> error("Grammar has been expanded and parser is outdated")
+        }
+    }
+
+    private fun processExpressionListExpr(ctx: ListExprContext, code: LstCode): Ref {
+        val list = LstFunCall(
             ref = code.nextRef(),
             span = ctx.span(),
             block = code.currentBlock,
-            typeUsage = TypeUsage.list(TypeUsage.unresolved(program.nextUnresolvedTypeRef()))
+            name = "create_list",
+            path = "",
+            arguments = emptyList(),
+            specifiedTypeParams = listOf(TypeUsage.unresolved(program.nextUnresolvedTypeRef())),
         )
-        code.nodes += alloc
+        code.nodes += list
 
         ctx.listEntry().forEach { item ->
             val span = item.expression().span()
@@ -1239,11 +1530,11 @@ class AstParser(
                 block = code.currentBlock,
                 name = "add",
                 path = "",
-                arguments = listOf(alloc.ref, itemRef)
+                arguments = listOf(list.ref, itemRef)
             )
         }
 
-        return alloc.ref
+        return list.ref
     }
 
     private fun processExpressionMapExpr(ctx: MapExprContext, code: LstCode): Ref {
@@ -1271,15 +1562,8 @@ class AstParser(
                     node.ref
                 }
 
-                keyCtx.STRING() != null -> {
-                    val node = LstString(
-                        ref = code.nextRef(),
-                        span = ctx.span(),
-                        block = code.currentBlock,
-                        value = unescapeStringLiteral(keyCtx.STRING().text)
-                    )
-                    code.nodes += node
-                    node.ref
+                keyCtx.string() != null -> {
+                    processString(keyCtx.string(), code)
                 }
 
                 keyCtx.expression() != null -> {
@@ -1407,7 +1691,7 @@ class AstParser(
         code.currentBlock = code.createBlock()
 
         ctx.statementBlock(0).statement().map { processStatement(it, code) }
-        val ifTrue = code.nodes.last()
+        val ifTrue = code.lastExpression ?: error("Code block has no last expression")
 
         // Restore prev block
         code.currentBlock = prevBlock
@@ -1420,7 +1704,7 @@ class AstParser(
         )
 
         ctx.statementBlock(1).statement().map { processStatement(it, code) }
-        val ifFalse = code.nodes.last()
+        val ifFalse = code.lastExpression ?: error("Code block has no last expression")
 
         // Restore prev block
         code.currentBlock = prevBlock
@@ -1436,8 +1720,8 @@ class AstParser(
             span = ctx.span(),
             block = code.currentBlock,
             cond = cond,
-            ifTrue = ifTrue.ref,
-            ifFalse = ifFalse.ref,
+            ifTrue = ifTrue,
+            ifFalse = ifFalse,
         )
 
         code.nodes += choose
@@ -1654,6 +1938,7 @@ class AstParser(
 
     private fun processStatement(ctx: StatementContext, code: LstCode) {
         val stm = ctx.statementChoice()
+        code.lastExpression = null
 
         when {
             stm.letStatement() != null -> {
@@ -1780,7 +2065,7 @@ class AstParser(
             }
 
             stm.whileStatement() != null -> {
-                // Convierte un while en loop+if
+                // Converts a while in loop+if
                 // loop: {
                 //   if (cond) {
                 //     code...
@@ -1862,8 +2147,229 @@ class AstParser(
                 code.continueNodes = prevContinueNodes
             }
 
+            stm.repeatStatement() != null -> {
+                // Converts a while in
+                // {
+                //   let limit = count
+                //   let it = 0
+                //   loop: {
+                //     if (it < limit) {
+                //       let it = _repeat_index_
+                //       code...
+                //       it = it + 1
+                //       goto loop;
+                //     }
+                //   }
+                // }
+
+                val subCtx = stm.repeatStatement()
+                val prevBlockStart = code.currentBlock
+                code.currentBlock = code.createBlock()
+
+                // let limit = count
+                val count = processExpression(subCtx.expression(), code)
+
+                val varLimit = LstVar(
+                    span = subCtx.expression().span(),
+                    block = code.currentBlock,
+                    name = "limit",
+                    typeUsage = TypeUsage.int(),
+                    validAfter = code.currentRef(),
+                    ref = code.nextVarRef(),
+                )
+
+                code.variables[varLimit.ref] = varLimit
+
+                code.nodes += LstStoreVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "limit",
+                    path = "",
+                    expr = count,
+                    varRef = varLimit.ref,
+                    variable = varLimit,
+                )
+
+                // let it = 0
+                val varIt = LstVar(
+                    span = subCtx.expression().span(),
+                    block = code.currentBlock,
+                    name = "it",
+                    typeUsage = TypeUsage.int(),
+                    validAfter = code.currentRef(),
+                    ref = code.nextVarRef(),
+                )
+
+                code.variables[varIt.ref] = varIt
+
+                val zero1 = LstInt(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    value = 0,
+                )
+                code.nodes += zero1
+
+                code.nodes += LstStoreVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "it",
+                    path = "",
+                    expr = zero1.ref,
+                    varRef = varIt.ref,
+                    variable = varIt,
+                )
+
+                val prevBreakNodes = code.breakNodes
+                val prevContinueNodes = code.continueNodes
+
+                code.breakNodes = mutableListOf()
+                code.continueNodes = mutableListOf()
+
+                // loop {
+                val prevBlock = code.currentBlock
+                val breakBlock = code.createBlock()
+                code.currentBlock = breakBlock
+                val continueBlock = code.createBlock()
+                code.currentBlock = continueBlock
+
+                code.nodes += LstLoopStart(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = prevBlock,
+                    breakBlock = breakBlock,
+                    continueBlock = continueBlock,
+                )
+
+                // if it < limit
+                val loadIfIt = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "it",
+                    path = "",
+                    varRef = varIt.ref,
+                    variable = varIt,
+                )
+                code.nodes += loadIfIt
+
+                val loadIfLimit = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "limit",
+                    path = "",
+                    varRef = varLimit.ref,
+                    variable = varLimit,
+                )
+                code.nodes += loadIfLimit
+
+                val cond = LstFunCall(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "less_than_signed",
+                    path = "",
+                    arguments = listOf(loadIfIt.ref, loadIfLimit.ref),
+                )
+                code.nodes += cond
+
+                code.nodes += LstIfStart(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    cond = cond.ref,
+                )
+
+                val prevBlock2 = code.currentBlock
+                code.currentBlock = code.createBlock()
+
+                // Code in loop...
+                processStatementBlock(subCtx.statementBlock(), code)
+
+                // it = it + 1
+                val loadItInc = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "it",
+                    path = "",
+                    varRef = varIt.ref,
+                    variable = varIt,
+                )
+                code.nodes += loadItInc
+
+                val one = LstInt(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    value = 1,
+                )
+                code.nodes += one
+
+                val inc = LstFunCall(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "plus",
+                    path = "",
+                    arguments = listOf(loadItInc.ref, one.ref),
+                )
+                code.nodes += inc
+
+                code.nodes += LstStoreVar(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    name = "repeat_aux",
+                    path = "",
+                    varRef = varIt.ref,
+                    variable = varIt,
+                    expr = inc.ref,
+                )
+
+                // jump to start
+                code.nodes += LstLoopJump(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                    backwards = true,
+                    loopBlock = continueBlock,
+                )
+
+                // Restore prev block
+                code.currentBlock = prevBlock2
+
+                // end-if
+                code.nodes += LstIfEnd(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock
+                )
+
+                // } end-loop
+                code.currentBlock = prevBlock
+
+                code.nodes += LstLoopEnd(
+                    ref = code.nextRef(),
+                    span = subCtx.span(),
+                    block = code.currentBlock,
+                )
+
+                // Link jumps inside this block
+                code.breakNodes.forEach { it.loopBlock = breakBlock }
+                code.continueNodes.forEach { it.loopBlock = continueBlock }
+
+                code.breakNodes = prevBreakNodes
+                code.continueNodes = prevContinueNodes
+
+                code.currentBlock = prevBlockStart
+            }
+
             stm.forStatement() != null -> {
-                // Convierte un for en while+iter.next()
+                // Converts a for in while+iter.next()
                 // let aux = iterable.to_iterator()
                 // loop: {
                 //   let i = aux.next()
@@ -2076,7 +2582,7 @@ class AstParser(
                         else -> error("Grammar has been expanded and parser is outdated")
                     }
                 } else {
-                    processExpression(subCtx.expression(), code)
+                    code.lastExpression = processExpression(subCtx.expression(), code)
                 }
             }
 
@@ -2452,10 +2958,23 @@ class AstParser(
                     return
                 }
 
-                node.type = ifTrue.type
+                // Attempt to replace unsolved types
+                attemptResolveUnresolvedTypes(
+                    node.span,
+                    listOf(ifTrue.type!!),
+                    listOf(ifFalse.type!!),
+                    code
+                )
+                attemptResolveUnresolvedTypes(
+                    node.span,
+                    listOf(ifFalse.type!!),
+                    listOf(ifTrue.type!!),
+                    code
+                )
 
-                // TODO allow common type
-                if (ifTrue.type != ifFalse.type) {
+                node.type = commonType(ifTrue.type!!, ifFalse.type!!)
+
+                if (node.type!!.isInvalid()) {
                     collector.report(
                         "Choice has different types for each choice: " +
                                 "${ifTrue.type} vs ${ifFalse.type}",
@@ -2823,7 +3342,7 @@ class AstParser(
                 paramsTypes.zip(argsTypes).forEachIndexed { index, (param, arg) ->
                     if (!canBeAssignedTo(param, arg)) {
                         collector.report(
-                            "Type mismatch calling function '${function.name}', param $index expects '${param}', " +
+                            "Type mismatch calling function '${function.name}', param ${index + 1} expects '${param}', " +
                                     "but '${arg}' was found instead",
                             args[index].span
                         )
@@ -2877,6 +3396,35 @@ class AstParser(
                 }
             }
         }
+    }
+
+    private fun commonType(a: TypeTree, b: TypeTree): TypeTree {
+        val base = when {
+            // Same type
+            a.base == b.base -> a.base
+
+            // Option and Option Item
+            a.base is OptionType && b.base is StructType
+                    && b.base.struct.ref in a.base.option.items -> a.base
+
+            // Option Item and Option
+            b.base is OptionType && a.base is StructType
+                    && a.base.struct.ref in b.base.option.items -> b.base
+
+            // Option Item and Option Item
+            b.base is StructType && a.base is StructType
+                    && a.base.struct.parentOption != null
+                    && a.base.struct.parentOption == b.base.struct.parentOption -> {
+
+                OptionType(program.options[b.base.struct.parentOption]!!)
+            }
+
+            else -> InvalidType
+        }
+
+        val params = a.params.zip(b.params).map { commonType(it.first, it.second) }
+
+        return TypeTree(base, params)
     }
 
     private fun canBeAssignedTo(defined: TypeTree, used: TypeTree): Boolean {
@@ -3034,18 +3582,25 @@ class AstParser(
                 continue
             }
 
+            var newReplacement = usedParam
             val ref = defParam.base.param.ref
             val prev = replacements[ref]
 
-            if (prev != null && !prev.hasUnresolved() && !usedParam.hasUnresolved() && prev != usedParam) {
-                collector.report(
-                    "Type conflict, multiple conflicting alternatives to resolve '${defParam.base.param}', " +
-                            "'$prev' vs '$usedParam'", span
-                )
-                continue
+            if (prev != null && !prev.hasUnresolved() && !newReplacement.hasUnresolved()) {
+                val common = commonType(prev, newReplacement)
+
+                if (common.isInvalid() || !canBeAssignedTo(common, newReplacement)) {
+                    collector.report(
+                        "Type conflict, multiple conflicting alternatives to resolve '${defParam.base.param}', " +
+                                "'$prev' vs '$newReplacement'", span
+                    )
+                    continue
+                } else {
+                    newReplacement = common
+                }
             }
 
-            replacements[ref] = usedParam
+            replacements[ref] = newReplacement
         }
     }
 

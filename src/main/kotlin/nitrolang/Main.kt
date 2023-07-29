@@ -13,7 +13,13 @@ import kotlin.system.measureNanoTime
 fun main() {
     val source = File("example.nl")
     compile(source.path)
-    watch(source) { compile(source.path) }
+    watch(source) {
+        try {
+            compile(source.path)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
+    }
 }
 
 fun watch(file: File, changed: () -> Unit) {
@@ -48,16 +54,12 @@ fun compile(path: String) {
         val errors = ErrorCollector()
         val program = LstProgram()
 
-        AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+        AstParser.includeFile("core", "core.nl", errors, program)
         AstParser.parseFile(SourceFile.load(path), errors, program)
 
-        if (!errors.isEmpty()) {
-            System.err.println(errors.toString())
-            return
-        }
-
         program.functions.forEach { (_, func) ->
-            if (func.fullName != "main") return@forEach
+            if (func.fullName !in setOf("main", "test")) return@forEach
+
             println("${func.fullName}:")
             func.body.nodes.forEach {
                 println("   $it")
@@ -65,9 +67,20 @@ fun compile(path: String) {
             println()
         }
 
+        if (!errors.isEmpty()) {
+            System.err.println(errors.toString())
+            return
+        }
+
         val output = File("build/output.wat")
 
         output.bufferedWriter().use { WasmCompiler.compile(program, it, errors) }
+
+        println("------------------------------")
+        output.readLines().forEachIndexed { index, s ->
+            println("${(index + 1).toString().padStart(4)} |$s")
+        }
+        println("------------------------------")
 
         if (!errors.isEmpty()) {
             System.err.println(errors.toString())

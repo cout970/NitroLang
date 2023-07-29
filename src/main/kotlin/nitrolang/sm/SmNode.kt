@@ -83,6 +83,7 @@ data class SmLoadVar(
 data class SmSaveVar(
     override val span: Span,
     val name: String,
+    val type: TypeTree,
 ) : SmNode(span) {
     override fun updateStack(stack: ArrayDeque<TypeTree>) {
         stack.removeLast()
@@ -102,7 +103,8 @@ data class SmLoadGlobal(
 
 data class SmSaveGlobal(
     override val span: Span,
-    val name: String
+    val name: String,
+    val type: TypeTree,
 ) : SmNode(span) {
     override fun updateStack(stack: ArrayDeque<TypeTree>) {
         stack.removeLast()
@@ -113,7 +115,8 @@ data class SmSaveGlobal(
 data class SmSaveAux(
     override val span: Span,
     val ref: Ref,
-    var type: TypeTree,
+    val type: TypeTree,
+    val isGeneric: Boolean = false,
 ) : SmNode(span) {
     override fun updateStack(stack: ArrayDeque<TypeTree>) {
         stack.addLast(type)
@@ -123,7 +126,8 @@ data class SmSaveAux(
 data class SmLoadAux(
     override val span: Span,
     val ref: Ref,
-    var type: TypeTree,
+    val type: TypeTree,
+    val isGeneric: Boolean = false,
 ) : SmNode(span) {
     override fun updateStack(stack: ArrayDeque<TypeTree>) {
         stack.removeLast()

@@ -11,9 +11,78 @@ const LIST_CAPACITY_FIELD = PTR_SIZE * 3;
 
 export const mem = {
   u32: new Uint32Array(),
+  f32: new Float32Array(),
   u16: new Uint16Array(),
   u8: new Uint8Array(),
 }
+
+// memory.nl
+
+export function memory_alloc(amount: number): number {
+    return alloc(amount);
+}
+
+export function memory_write_int(ptr: number, value: number) { setInt(ptr, value|0); }
+export function memory_write_boolean(ptr: number, value: number) { setInt(ptr, value|0); }
+export function memory_write_float(ptr: number, value: number) { setInt(ptr, value); }
+export function memory_write_generic(ptr: number, raw: number, type: number) {
+    setInt(ptr, raw);
+    setInt(ptr + PTR_SIZE , type);
+}
+
+export function memory_read_int(ptr: number): number { setInt(ptr, value|0); }
+export function memory_read_boolean(ptr: number): number { setInt(ptr, value|0); }
+export function memory_read_float(ptr: number): number { setInt(ptr, value); }
+export function memory_read_generic(ptr: number) {
+    assert(ptr);
+    return [getInt(ptr), getInt(ptr + PTR_SIZE)];
+}
+
+export function memory_copy(src: number, dst: number, len: number) {
+    mem.u8.copyWithin(dst, src, src + len);
+}
+
+// string.nl
+
+export function string_len(a: number): number {
+    let str = getString(a);
+    let chars = Array.from(str);
+    return chars.length;
+}
+
+export function string_get_codepoint(a: number, index: number): number {
+    let str = getString(a);
+    let chars = Array.from(str);
+    let char = chars[index];
+
+    return char.codePointAt(0);
+}
+
+export function string_concat_string(a: number, b: number): number {
+    return createString(getString(a) + getString(b))
+}
+
+export function string_replace(a: number, b: number, c: number): number {
+    let base = getString(a);
+    let find = getString(b);
+    let replacement = getString(c);
+
+    return createString(base.replaceAll(find, replacement))
+}
+
+export function int_to_string(int: number): number {
+    return createString(String(int | 0));
+}
+
+export function float_to_string(float: number): number {
+    return createString(String(float));
+}
+
+export function any_to_string(ptr: number, ty: number): number {
+    return createString("#" + ptr + ":" + ty);
+}
+
+// intrinsic.nl
 
 export function alloc(amount: number): number {
   let next = getInt(ALLOC_NEXT);
@@ -26,6 +95,13 @@ export function alloc(amount: number): number {
 
   // console.log(`alloc(${amount}) => ${next} ..< ${next + amount}`);
   return next;
+}
+
+export function is_variant(ptr: number, expected_variant: number): number {
+    // console.log('is_variant', {ptr, variant: getInt(ptr), expected_variant});
+    assert(ptr);
+    const found: number = getInt(ptr);
+    return (found === expected_variant) ? 1 : 0;
 }
 
 export function check_cast(ptr: number, expected_type: number): number {
@@ -43,8 +119,20 @@ export function choose(cond: number, a: number, b: number): number {
   return cond ? a : b;
 }
 
+// float.nl
+
 export function float_rem(a: number, b: number): number {
   return a % b;
+}
+
+// console.nl
+
+export function println_unit(_: number) {
+  console.log('()');
+}
+
+export function println_boolean(val: number) {
+  console.log(val !== 0);
 }
 
 export function println_int(val: number) {
@@ -56,8 +144,11 @@ export function println_float(val: number) {
 }
 
 export function println_string(ptr: number) {
-  // console.log('println_string', ptr);
   console.log(getString(ptr));
+}
+
+export function eprintln_string(ptr: number) {
+  console.error(getString(ptr));
 }
 
 export function println_string_list(ptr: number) {
@@ -65,101 +156,36 @@ export function println_string_list(ptr: number) {
   console.log(getStringList(ptr));
 }
 
-export function list_add(ptr: number, value: number) {
-  // console.log('list_add(', ptr, value, ')');
-  assert(ptr);
+// ordering.nl
 
-  const type = getInt(ptr);
-  let data = getInt(ptr + LIST_DATA_FIELD);
-  let len = getInt(ptr + LIST_LEN_FIELD);
-  let capacity = getInt(ptr + LIST_CAPACITY_FIELD);
+export function string_get_ordering_internal(a: number, b: number): number {
+  if(a === b) return 0;
 
-  // console.log("Pre add", {type, data, len, capacity});
+  let aStr = getString(a);
+  let bStr = getString(b);
 
-  if ((len + 1) * PTR_SIZE > capacity) {
-    // Double or initialize to 16
-    const newCapacity = Math.max(capacity, 8 * PTR_SIZE) * 2;
-    const newData = alloc(newCapacity);
-
-    mem.u8.copyWithin(newData, data, data + capacity);
-    data = newData;
-    capacity = newCapacity;
-
-    setInt(ptr + LIST_DATA_FIELD, data);
-    setInt(ptr + LIST_CAPACITY_FIELD, capacity);
-
-    // console.log("Expanded List", {type, data, len, capacity});
-  }
-
-  const offset = len * PTR_SIZE;
-  len++;
-
-  setInt(data + offset, value);
-  setInt(ptr + LIST_LEN_FIELD, len);
+  return aStr.localeCompare(bStr);
 }
 
-export function list_get(ptr: number, index: number): number {
-  // console.log('list_get(', ptr, ')');
-  const data = getInt(ptr + LIST_DATA_FIELD);
-  const len = getInt(ptr + LIST_LEN_FIELD);
-
-  if (index < 0 || index >= len) {
-    throw new Error(`Index out of bounds: index=${index}, len=${len}`);
-  }
-
-  return getInt(data + index * PTR_SIZE);
-}
-
-export function list_set(ptr: number, index: number, value: number) {
-  // console.log('list_get(', ptr, ')');
-  const data = getInt(ptr + LIST_DATA_FIELD);
-  const len = getInt(ptr + LIST_LEN_FIELD);
-
-  if (index < 0 || index >= len) {
-    throw new Error(`Index out of bounds: index=${index}, len=${len}`);
-  }
-
-  setInt(data + index * PTR_SIZE, value);
-}
-
-
-export function int_get_ordering(a: number, b: number): number {
-  if (a == b) {
-    return 0;
-  } else if (a > b) {
-    return 1;
-  } else {
-    return -1;
-  }
-}
-
-export function is_less(ord: number): number {
-  return (ord === -1) ? 1 : 0;
-}
-
-export function is_less_or_equals(ord: number): number {
-  return (ord === -1 || ord === 0) ? 1 : 0;
-}
-
-export function is_equals(ord: number): number {
-  return (ord === 0) ? 1 : 0;
-}
-
-export function is_greater_or_equals(ord: number): number {
-  return (ord === 1 || ord === 0) ? 1 : 0;
-}
-
-export function is_greater(ord: number): number {
-  return (ord === 1) ? 1 : 0;
-}
+// internal
 
 function getString(ptr: number): string {
   assert(ptr);
 
   const len = getInt(ptr);
   const bytes = mem.u8.subarray(ptr + 4, ptr + 4 + len);
-  const decoder = new TextDecoder('utf-8', {fatal: true});
-  return decoder.decode(bytes);
+
+  return (new TextDecoder('utf-8', {fatal: true})).decode(bytes);
+}
+
+function createString(value: string): number {
+    const uint8array = (new TextEncoder()).encode(value);
+
+    const ptr = memory_alloc(uint8array.length + 4);
+    setInt(ptr, uint8array.length);
+    mem.u8.set(uint8array, ptr + 4);
+
+    return ptr;
 }
 
 function getStringList(ptr: number) {
@@ -188,6 +214,19 @@ function setInt(ptr: number, value: number) {
 
   // console.debug(`- setInt(${ptr}, ${value})`, {prev: getInt(ptr)});
   mem.u32[(ptr / 4) | 0] = value | 0;
+}
+
+function getFloat(ptr: number): number {
+  assert(ptr);
+
+  return mem.f32[(ptr / 4) | 0];
+}
+
+function setFloat(ptr: number, value: number) {
+  assert(ptr);
+
+  // console.debug(`- setFloat(${ptr}, ${value})`, {prev: setFloat(ptr)});
+  mem.f32[(ptr / 4) | 0] = value;
 }
 
 function assert(ptr: number) {

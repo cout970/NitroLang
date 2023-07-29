@@ -3,8 +3,7 @@ package nitrolang.sm
 import nitrolang.ANNOTATION_STACK_VALUE
 import nitrolang.ANNOTATION_WASM_INLINE
 import nitrolang.ast.*
-import nitrolang.backend.wasm.PTR_SIZE
-import nitrolang.backend.wasm.STRUCT_HEADER_SIZE
+import nitrolang.backend.wasm.*
 import nitrolang.util.ErrorCollector
 import nitrolang.util.Span
 
@@ -16,7 +15,9 @@ class SmTransformer(
 ) {
 
     private val validTypes = mutableMapOf<TypeTree, Int>()
+    private val neverType = findSimpleType("Never")
     private val intType = findSimpleType("Int")
+    private val booleanType = findSimpleType("Boolean")
 
     companion object {
         fun transform(program: LstProgram, collector: ErrorCollector) {
@@ -34,13 +35,27 @@ class SmTransformer(
 
         input.variables.values.forEach {
             if (!it.isParam) {
+                val type = it.type ?: error("[${it.span}] Variable has not type: $it")
+
                 output.variables += SmLocalVar(
                     name = it.finalName,
-                    type = it.type ?: error("[${it.span}] Variable has not type: $it"),
+                    type = type,
                 )
+
+                if (type.isGeneric()) {
+                    output.variables += SmLocalVar(
+                        name = it.finalName + GENERIC_SUFFIX,
+                        type = intType,
+                    )
+                }
             }
         }
         input.nodes.forEach { transformNode(it) }
+
+        if (!input.returnType!!.isUnit() && input.lastExpression != null) {
+            val lastExpr = input.getNode(input.lastExpression!!) as LstExpression
+            load(span = lastExpr.span, expr = lastExpr)
+        }
 
         val auxNames = mutableSetOf<String>()
 
@@ -48,7 +63,8 @@ class SmTransformer(
 
             when (val inst = output.inst[index]) {
                 is SmSaveAux -> {
-                    val name = "\$aux#${inst.ref.id}"
+                    var name = "\$aux#${inst.ref.id}"
+                    if (inst.isGeneric) name += GENERIC_SUFFIX
 
                     if (name !in auxNames) {
                         auxNames += name
@@ -60,12 +76,14 @@ class SmTransformer(
 
                     output.inst[index] = SmSaveVar(
                         span = inst.span,
-                        name = name
+                        name = name,
+                        type = inst.type,
                     ).comment(inst.comment)
                 }
 
                 is SmLoadAux -> {
-                    val name = "\$aux#${inst.ref.id}"
+                    var name = "\$aux#${inst.ref.id}"
+                    if (inst.isGeneric) name += GENERIC_SUFFIX
 
                     if (name !in auxNames) {
                         auxNames += name
@@ -87,82 +105,83 @@ class SmTransformer(
         }
     }
 
-    private fun mark() {
-        output.inst += SmNop(span = Span.internal()).comment("---")
+    private fun mark(comment: String) {
+        output.inst += SmNop(span = Span.internal()).comment("--------------------------- $comment")
     }
 
     private fun transformNode(node: LstNode) {
         when (node) {
             is LstComment -> {
+                mark(node.comment)
                 output.inst += SmNop(
                     span = node.span,
-                ).comment(node.comment)
-                mark()
+                )
             }
 
             is LstBoolean -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstBoolean(node.value),
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, type)
             }
 
             is LstFloat -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstFloat(node.value),
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, type)
             }
 
             is LstInt -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstInt(node.value),
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, type)
             }
 
             is LstString -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstString(node.value),
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, type)
             }
 
             is LstUnit -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstUnit,
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, type)
             }
 
             is LstAlloc -> {
+                mark(node.toString())
                 val type = node.type ?: error("Invalid state")
-                val alloc = program.functions.values.find { it.fullName == "alloc" } ?: error("Missing alloc function")
+                val alloc = program.getFunction("alloc")
 
                 output.inst += SmConst(
                     span = node.span,
@@ -175,33 +194,39 @@ class SmTransformer(
                     name = "$${alloc.finalName}",
                     args = 1,
                     result = intType
-                ).comment(node.toString())
-
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-
-                // struct Type
-                output.inst += SmLoadAux(span = node.span, ref = node.ref, type = intType)
-
-                output.inst += SmConst(
-                    span = node.span,
-                    value = ConstInt(type.typeId),
-                    type = intType
                 )
 
-                output.inst += SmWrite(
-                    span = node.span,
-                    type = intType
-                )
-                mark()
+                store(node, type)
+
+                if (type.base is StructType && type.isOptionItem()) {
+                    val option = program.options[type.base.struct.parentOption]!!
+                    val index = option.items.indexOf(type.base.struct.ref)
+
+                    load(span = node.span, expr = node, type = intType)
+
+                    output.inst += SmConst(
+                        span = node.span,
+                        value = ConstInt(index),
+                        type = intType
+                    )
+
+                    output.inst += SmWrite(
+                        span = node.span,
+                        type = intType
+                    ).comment("Int")
+                }
             }
 
             is LstFunCall -> {
+                mark(node.toString())
                 val func = node.function ?: error("Function not linked!")
                 val result = func.returnType!!
 
-                node.arguments.forEach { argRef ->
+                node.arguments.forEachIndexed { index, argRef ->
                     val arg = input.getNode(argRef) as LstExpression
-                    output.inst += SmLoadAux(span = arg.span, ref = arg.ref, type = arg.type!!)
+                    val param = func.params[index]
+
+                    load(span = node.span, expr = arg, generic = param.type!!.isGeneric())
                 }
 
                 val annotation = func.getAnnotation(ANNOTATION_WASM_INLINE)
@@ -219,94 +244,117 @@ class SmTransformer(
                         name = opcode,
                         args = func.params.size,
                         result = result
-                    ).comment(node.toString())
+                    )
                 } else {
                     output.inst += SmCall(
                         span = node.span,
                         name = "$${func.finalName}",
                         args = func.params.size,
                         result = result
-                    ).comment(node.toString())
+                    )
                 }
 
-                if (!result.isUnit()) {
-                    output.inst += SmSaveAux(span = node.span, ref = node.ref, type = result)
+                if (!result.isUnit() && !result.isNever()) {
+                    store(node, result)
                 }
-                mark()
-            }
 
-            is LstChoose -> {
-                // no-op
-                mark()
+                if (result.isNever()) {
+                    output.inst += SmOpcode(
+                        span = node.span,
+                        name = "unreachable",
+                        args = 0,
+                        result = neverType,
+                    )
+                }
             }
 
             is LstReturn -> {
+                mark(node.toString())
                 val arg = input.getNode(node.expr) as LstExpression
-                output.inst += SmLoadAux(span = arg.span, ref = arg.ref, type = arg.type!!)
+                load(span = node.span, expr = arg, generic = arg.type!!.isGeneric())
 
                 output.inst += SmOpcode(
                     span = node.span,
                     name = "return",
                     args = 1,
                     result = null,
-                ).comment(node.toString())
-                mark()
+                )
             }
 
             is LstSizeOf -> {
+                mark(node.toString())
                 val type = node.typeTree!!
                 output.inst += SmConst(
                     span = node.span,
                     value = ConstInt(type.heapSize),
                     type = type
-                ).comment(node.toString())
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                store(node, node.type!!)
             }
 
             is LstIfStart -> {
+                mark(node.toString())
                 val arg = input.getNode(node.cond) as LstExpression
-                output.inst += SmLoadAux(
-                    span = node.span,
-                    ref = arg.ref,
-                    type = arg.type!!
-                ).comment(node.toString())
+                load(span = node.span, expr = arg)
 
                 output.inst += SmIf(span = node.span)
-                mark()
             }
 
             is LstIfElse -> {
-                output.inst += SmElse(span = node.span).comment(node.toString())
-                mark()
+                mark(node.toString())
+                output.inst += SmElse(span = node.span)
             }
 
             is LstIfEnd -> {
-                output.inst += SmEnd(span = node.span).comment(node.toString())
-                mark()
+                mark(node.toString())
+                output.inst += SmEnd(span = node.span)
+            }
+
+            is LstChoose -> {
+                mark(node.toString())
+                val type = node.type!!
+
+                val ifTrue = input.getNode(node.ifTrue) as LstExpression
+                val ifFalse = input.getNode(node.ifFalse) as LstExpression
+                val cond = input.getNode(node.cond) as LstExpression
+
+                // TODO generics
+                load(span = node.span, expr = ifTrue, type = type)
+                load(span = node.span, expr = ifFalse, type = type)
+                load(span = node.span, expr = cond, type = booleanType)
+
+                output.inst += SmOpcode(
+                    span = node.span,
+                    name = "select",
+                    args = 3,
+                    result = type
+                )
+
+                store(node, type)
             }
 
             is LstLoopStart -> {
+                mark(node.toString())
                 output.inst += SmBlock(span = node.span)
-                output.inst += SmLoop(span = node.span).comment(node.toString())
-                mark()
+                output.inst += SmLoop(span = node.span)
             }
 
             is LstLoopEnd -> {
+                mark(node.toString())
                 output.inst += SmEnd(span = node.span)
                 output.inst += SmEnd(span = node.span)
-                mark()
             }
 
             is LstLoopJump -> {
+                mark(node.toString())
                 val diff = node.block.depth - node.loopBlock!!.depth
 
-                output.inst += SmBranch(span = node.span, level = diff).comment(node.toString())
-                mark()
+                output.inst += SmBranch(span = node.span, level = diff)
             }
 
             is LstLoadVar -> {
+                mark(node.toString())
                 val type = node.type!!
 
                 if (node.varRef is ConstRef) {
@@ -314,137 +362,337 @@ class SmTransformer(
                         span = node.span,
                         name = node.finalName,
                         type = type,
-                    ).comment(node.toString())
+                    )
                 } else {
                     output.inst += SmLoadVar(
                         span = node.span,
                         name = node.finalName,
                         type = type,
-                    ).comment(node.toString())
+                    )
                 }
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+
+                if (type.isGeneric()) {
+                    if (node.varRef is ConstRef) {
+                        output.inst += SmLoadGlobal(
+                            span = node.span,
+                            name = node.finalName + GENERIC_SUFFIX,
+                            type = intType,
+                        )
+                    } else {
+                        output.inst += SmLoadVar(
+                            span = node.span,
+                            name = node.finalName + GENERIC_SUFFIX,
+                            type = intType,
+                        )
+                    }
+                }
+
+                store(node, type)
             }
 
             is LstStoreVar -> {
+                mark(node.toString())
                 val type = node.type!!
+                val value = input.getNode(node.expr) as LstExpression
 
-                output.inst += SmLoadAux(span = node.span, ref = node.expr, type = type)
+                load(span = node.span, expr = value, generic = type.isGeneric())
+                if (type.isGeneric()) {
+                    if (node.varRef is ConstRef) {
+                        output.inst += SmSaveGlobal(
+                            span = node.span,
+                            name = node.finalName + GENERIC_SUFFIX,
+                            type = intType,
+                        )
+                    } else {
+                        output.inst += SmSaveVar(
+                            span = node.span,
+                            name = node.finalName + GENERIC_SUFFIX,
+                            type = intType,
+                        )
+                    }
+                }
 
                 if (node.varRef is ConstRef) {
                     output.inst += SmSaveGlobal(
                         span = node.span,
-                        name = node.finalName
-                    ).comment(node.toString())
+                        name = node.finalName,
+                        type = type,
+                    )
                 } else {
                     output.inst += SmSaveVar(
                         span = node.span,
-                        name = node.finalName
-                    ).comment(node.toString())
+                        name = node.finalName,
+                        type = type,
+                    )
                 }
-                mark()
             }
 
             is LstLoadField -> {
-                val type = node.type!!
+                mark(node.toString())
                 val instance = input.getNode(node.instance) as LstExpression
                 val field = node.field!!
 
-                output.inst += SmLoadAux(
-                    span = node.span,
-                    ref = instance.ref,
-                    type = instance.type!!,
-                ).comment(node.toString())
+                val offset = getFieldOffset(field, instance.type!!)
+
+                load(span = node.span, expr = instance)
 
                 output.inst += SmConst(
                     span = node.span,
-                    value = ConstInt(STRUCT_HEADER_SIZE + field.index * PTR_SIZE),
+                    value = ConstInt(offset),
                     type = intType,
-                ).comment(node.toString())
+                )
 
                 output.inst += SmOpcode(
                     span = node.span,
-                    name = "i32.add",
+                    name = "$INT_TYPE.add",
                     args = 2,
                     result = intType,
-                ).comment(node.toString())
+                )
 
                 output.inst += SmRead(
                     span = node.span,
-                    type = type,
-                ).comment(node.toString())
+                    type = node.type!!,
+                )
 
-                output.inst += SmSaveAux(span = node.span, ref = node.ref, type = type)
-                mark()
+                if (node.type!!.isGeneric()) {
+                    load(span = node.span, expr = instance)
+
+                    output.inst += SmConst(
+                        span = node.span,
+                        value = ConstInt(offset + PTR_SIZE),
+                        type = intType,
+                    )
+
+                    output.inst += SmOpcode(
+                        span = node.span,
+                        name = "$INT_TYPE.add",
+                        args = 2,
+                        result = intType,
+                    )
+
+                    output.inst += SmRead(
+                        span = node.span,
+                        type = node.type!!,
+                    )
+                }
+
+                store(node, node.type!!)
             }
 
             is LstStoreField -> {
-                val type = node.type!!
+                mark(node.toString())
                 val instance = input.getNode(node.instance) as LstExpression
                 val field = node.field!!
                 val value = input.getNode(node.expr) as LstExpression
 
-                // ptr
-                output.inst += SmLoadAux(
-                    span = node.span,
-                    ref = instance.ref,
-                    type = instance.type!!,
-                ).comment(node.toString())
+                val offset = getFieldOffset(field, instance.type!!)
 
-                output.inst += SmConst(
-                    span = node.span,
-                    value = ConstInt(STRUCT_HEADER_SIZE + field.index * PTR_SIZE),
-                    type = intType,
-                ).comment(node.toString())
+                if (!node.field!!.type!!.isGeneric()) {
+                    // ptr
+                    load(span = node.span, expr = instance)
 
-                output.inst += SmOpcode(
-                    span = node.span,
-                    name = "i32.add",
-                    args = 2,
-                    result = intType,
-                ).comment(node.toString())
+                    output.inst += SmConst(
+                        span = node.span,
+                        value = ConstInt(offset),
+                        type = intType,
+                    )
 
-                // value
-                output.inst += SmLoadAux(
-                    span = node.span,
-                    ref = value.ref,
-                    type = value.type!!,
-                ).comment(node.toString())
+                    output.inst += SmOpcode(
+                        span = node.span,
+                        name = "$INT_TYPE.add",
+                        args = 2,
+                        result = intType,
+                    )
 
-                // ptr, value -> i32.store
-                output.inst += SmWrite(
-                    span = node.span,
-                    type = type,
-                ).comment(node.toString())
-                mark()
+                    load(span = node.span, expr = value)
+
+                    // ptr, value -> $INT_TYPE.store
+                    output.inst += SmWrite(
+                        span = node.span,
+                        type = field.type!!,
+                    ).comment(field.type!!.toString())
+                } else {
+                    // ptr
+                    load(span = node.span, expr = instance)
+
+                    // value offset
+                    output.inst += SmConst(
+                        span = node.span,
+                        value = ConstInt(offset),
+                        type = intType,
+                    )
+
+                    output.inst += SmOpcode(
+                        span = node.span,
+                        name = "$INT_TYPE.add",
+                        args = 2,
+                        result = intType,
+                    )
+
+                    // value
+                    load(span = node.span, expr = value, generic = false)
+
+                    // ptr, value -> $INT_TYPE.store
+                    output.inst += SmWrite(
+                        span = node.span,
+                        type = field.type!!,
+                    ).comment(field.type!!.toString())
+
+                    // ptr
+                    load(span = node.span, expr = instance)
+
+                    // ty offset
+                    output.inst += SmConst(
+                        span = node.span,
+                        value = ConstInt(offset + PTR_SIZE),
+                        type = intType,
+                    )
+
+                    output.inst += SmOpcode(
+                        span = node.span,
+                        name = "$INT_TYPE.add",
+                        args = 2,
+                        result = intType,
+                    )
+
+                    // ty
+                    loadGenericTy(value, value.type!!)
+
+                    // ptr+4, ty -> $INT_TYPE.store
+                    output.inst += SmWrite(
+                        span = node.span,
+                        type = intType,
+                    ).comment("Int")
+                }
             }
 
             is LstAsType -> {
-                TODO()
+                // TODO generics
+                mark(node.toString())
+                val expr = input.getNode(node.expr) as LstExpression
+
+                val exprBase = expr.type!!.base
+                if (exprBase !is OptionType) {
+                    collector.report("The 'as' operator is only supported for option types", node.span)
+                    return
+                }
+                val typeBase = node.type!!.base
+                if (typeBase !is StructType) {
+                    collector.report("The 'as' operator must be used with an Option and an Option variant", node.span)
+                    return
+                }
+
+                val index = exprBase.option.items.indexOf(typeBase.struct.ref)
+
+                if (index == -1) {
+                    collector.report(
+                        "The struct '${typeBase.struct.fullName}' is not a valid variant " +
+                                "of the '${exprBase.option.fullName}' option",
+                        node.span
+                    )
+                    return
+                }
+
+                load(span = node.span, expr = expr)
+                store(node, node.type!!)
             }
 
             is LstIsType -> {
-                // val expr = code.getNode(stack.last()) as LstExpression
-                //                val static = node.type!!.isStackBased() || expr.type!!.isStackBased()
-                //
-                //                if (static) {
-                //                    // Statically checked that the type on the stack does not match the expected type
-                //                    // We can doo this because the only valid values are primitives Int, Float, Unit, Boolean, Ptr
-                //                    if (expr.type !== node.type) {
-                //                        output += node("drop").comment(node.toString())
-                //                        output += node("unreachable").comment(node.toString())
-                //                    }
-                //                } else {
-                //                    val checkCast = program.functions.values.find { it.fullName == "check_cast" }
-                //                        ?: error("Missing check_cast function")
-                //
-                //                    output += node("i32.const", wasmTypeId(node.type!!))
-                //                    output += node("call", funcToWasm(checkCast.ref))
-                //                        .comment(node.toString())
-                //                }
-                TODO()
+                // TODO generics
+                mark(node.toString())
+                val expr = input.getNode(node.expr) as LstExpression
+
+                val exprBase = expr.type!!.base
+                if (exprBase !is OptionType) {
+                    collector.report("The 'is' operator is only supported for option types", node.span)
+                    return
+                }
+                val typeBase = node.typeTree!!.base
+                if (typeBase !is StructType) {
+                    collector.report("The 'is' operator must be used with an Option and an Option variant", node.span)
+                    return
+                }
+
+                val index = exprBase.option.items.indexOf(typeBase.struct.ref)
+
+                if (index == -1) {
+                    collector.report(
+                        "The struct '${typeBase.struct.fullName}' is not a valid variant " +
+                                "of the '${exprBase.option.fullName}' option",
+                        node.span
+                    )
+                    return
+                }
+
+                load(span = node.span, expr = expr)
+
+                val type = node.type ?: error("Invalid state")
+                output.inst += SmConst(
+                    span = node.span,
+                    value = ConstInt(index),
+                    type = type
+                ).comment("Variant $index => ${exprBase.option.items[index]}")
+
+                val func = program.getFunction("is_variant")
+
+                output.inst += SmCall(
+                    span = node.span,
+                    name = "$${func.finalName}",
+                    args = func.params.size,
+                    result = booleanType
+                )
+
+                store(node, booleanType)
             }
         }
+    }
+
+    private fun load(
+        expr: LstExpression,
+        type: TypeTree? = null,
+        generic: Boolean = false,
+        span: Span = expr.span,
+    ): SmNode {
+        val ty = type ?: expr.type!!
+        if (generic) {
+            return loadGeneric(expr, ty)
+        }
+
+        val inst = SmLoadAux(span = span, ref = expr.ref, type = ty)
+        output.inst += inst
+        return inst
+    }
+
+    private fun loadGeneric(expr: LstExpression, type: TypeTree): SmNode {
+        val inst = SmLoadAux(span = expr.span, ref = expr.ref, type = type)
+        output.inst += inst
+
+        loadGenericTy(expr, type)
+        return inst
+    }
+
+    private fun loadGenericTy(expr: LstExpression, type: TypeTree) {
+        if (type.isGeneric()) {
+            output.inst += SmLoadAux(span = expr.span, ref = expr.ref, type = intType, isGeneric = true)
+        } else {
+            output.inst += SmConst(span = expr.span, value = ConstInt(type.typeId), type = intType)
+        }
+    }
+
+    private fun store(node: LstNode, type: TypeTree): SmNode {
+        if (type.isGeneric()) {
+            return storeGeneric(node, type)
+        }
+        val inst = SmSaveAux(span = node.span, ref = node.ref, type = type)
+        output.inst += inst
+        return inst
+    }
+
+    private fun storeGeneric(node: LstNode, type: TypeTree): SmNode {
+        output.inst += SmSaveAux(span = node.span, ref = node.ref, type = intType, isGeneric = true)
+        val inst = SmSaveAux(span = node.span, ref = node.ref, type = type)
+        output.inst += inst
+        return inst
     }
 
     private fun findSimpleType(name: String): TypeTree {
@@ -457,6 +705,29 @@ class SmTransformer(
         return this
     }
 
+    private fun getFieldOffset(field: LstStructureField, structType: TypeTree): Int {
+        var offset = 0
+
+        if (structType.isOptionItem()) {
+            offset += PTR_SIZE
+        }
+
+        val struct = (structType.base as StructType).struct
+        val allFields = struct.fields.values.sortedBy { it.index }
+
+        repeat(field.index) { index ->
+            val ty = allFields[index].type!!
+
+            offset += ty.stackSize
+            // stackSize already computes the size as a fat pointer
+//            if (ty.isGeneric()) {
+//                offset += PTR_SIZE
+//            }
+        }
+
+        return offset
+    }
+
     private val TypeTree.typeId: Int
         get() = validTypes.getOrPut(this) { validTypes.size }
 
@@ -464,7 +735,7 @@ class SmTransformer(
         get() = when (this.base) {
             InvalidType -> error("Invalid type!")
             is UnresolvedType -> error("Unresolved type!")
-            is ParamType -> PTR_SIZE
+            is ParamType -> GENERIC_SIZE
             is StructType -> PTR_SIZE
             is OptionType -> PTR_SIZE
         }
@@ -473,7 +744,7 @@ class SmTransformer(
         get() = when (val base = this.base) {
             InvalidType -> error("Invalid type!")
             is UnresolvedType -> error("Unresolved type!")
-            is ParamType -> PTR_SIZE
+            is ParamType -> GENERIC_SIZE
             is StructType -> base.struct.heapSize
             is OptionType -> {
                 base.option.items.maxOf { program.structs[it]!!.heapSize }
@@ -486,8 +757,12 @@ class SmTransformer(
                 return PTR_SIZE
             }
 
-            // Minimum size is 32bit, for the type id for runtime checks
-            var total = PTR_SIZE
+            var total = STRUCT_HEADER_SIZE
+
+            // Store the option variant index
+            if (this.parentOption != null) {
+                total += PTR_SIZE
+            }
 
             this.fields.values.forEach {
                 total += it.type!!.stackSize

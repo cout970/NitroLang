@@ -23,7 +23,16 @@ DOT                             : '.' ;
 LPAREN                          : '(' ;
 RPAREN                          : ')' ;
 LBRACE                          : '{' ;
-RBRACE                          : '}' ;
+// Especial case for string interpolation
+RBRACE                          : '}' {
+  if(_modeStack.size() > 0) {
+      popMode();
+      if(_mode != DEFAULT_MODE) {
+          setType(STRING_INTERP_END);
+      }
+  }
+};
+
 LBRACKET                        : '[' ;
 RBRACKET                        : ']' ;
 COMMA                           : ',' ;
@@ -60,6 +69,7 @@ FOR                             : 'for' ;
 IN                              : 'in' ;
 NOT_IN                          : '!in' ;
 WHILE                           : 'while' ;
+REPEAT                          : 'repeat' ;
 LOOP                            : 'loop' ;
 IS                              : 'is' ;
 NOT_IS                          : '!is' ;
@@ -93,9 +103,18 @@ fragment FLOAT_OPTION           : DIGIT+ | DIGIT+ '.' DIGIT+ | '.' DIGIT+ ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
 FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGIT+)?[fFdD]? ;
 IDENTIFIER                      : [a-zA-Z][a-zA-Z0-9_]* ;
-STRING                          : '"' ~["]* '"' ;
+PLAIN_STRING                    : '"' (~["]|([\\]["]))* '"' ;
+STRING_START                    : '"'  -> pushMode(STRING_MODE)  ;
 
 ERROR_CHARACTER                 : . ;
+
+mode STRING_MODE;
+STRING_ESCAPE                   : '\\' '"' ;
+STRING_INTERP_START             : '$' '{' -> pushMode(DEFAULT_MODE) ;
+STRING_INTERP_END               : '}';
+STRING_VAR                      : '$' IDENTIFIER ;
+STRING_BLOB                     : ~["$\\]+ ;
+STRING_END                      : '"' -> popMode ;
 
 mode BLOCK_MODE;
 BLOCK_END                       : '```' -> popMode ;

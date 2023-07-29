@@ -23,8 +23,8 @@ Intended for the developers
 
 
 ### Other features to implement
+- Runtime type detection o compile time function specialization  
 - Unary prefix minus and plus `+5`, `-7`
 - String interpolation `"Var is $x, or ${x}"`
 - When expression `when { x > 10 -> 1, x == 10 -> 2, else -> 3}`
-- Inline json `let a = json {"a": 1, "b": [1, 2, 3]}` 
 - Thousands of other ideas...

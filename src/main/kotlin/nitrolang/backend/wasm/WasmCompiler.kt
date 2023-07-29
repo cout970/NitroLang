@@ -9,8 +9,16 @@ import nitrolang.util.ErrorCollector
 import nitrolang.util.indent
 import java.lang.Appendable
 
+const val INT_TYPE = "i32"
+const val INT_SIZE: Int = 4
+
+const val PTR_TYPE = "i32"
 const val PTR_SIZE: Int = 4
-const val STRUCT_HEADER_SIZE: Int = 4
+
+const val GENERIC_TYPE = "i32"
+const val GENERIC_SUFFIX = "_ty"
+const val GENERIC_SIZE: Int = 8
+const val STRUCT_HEADER_SIZE: Int = 0
 
 class WasmCompiler(
     private val program: LstProgram,
@@ -49,9 +57,9 @@ class WasmCompiler(
         root += node("memory", node("export", "memory".surround()), 1)
 
         // Null pointer points to 0, lets not have something important there
-        root += node("data", node("i32.const", dataOffset), intToWasmHex(0).surround()).comment("null")
+        root += node("data", node("$INT_TYPE.const", dataOffset), intToWasmHex(0).surround()).comment("null")
         dataOffset += PTR_SIZE
-        val heapStart = node("data", node("i32.const", dataOffset)).comment("end of data region")
+        val heapStart = node("data", node("$INT_TYPE.const", dataOffset)).comment("end of data region")
         dataOffset += PTR_SIZE
         root += heapStart
 
@@ -78,17 +86,29 @@ class WasmCompiler(
 
         if (func.fullName == MAIN_FUNCTION_NAME) {
             output += node("export", "main".surround())
+        } else if(extern == null) {
+            output += node("export", "fun_${func.ref.id}".surround())
         }
 
         if (extern == null) {
-            func.params.forEach {
-                output += node("param", it.variable!!.finalName, typeToWasm(it.type))
+            func.params.forEach { param ->
+                if (!param.type!!.isGeneric()) {
+                    output += node("param", param.variable!!.finalName, typeToWasm(param.type))
+                } else {
+                    output += node("param", param.variable!!.finalName, typeToWasm(param.type))
+                    output += node("param", param.variable!!.finalName + GENERIC_SUFFIX, "i32")
+                }
             }
         } else {
             val params = node("param")
 
-            func.params.forEach {
-                params += node(typeToWasm(it.type))
+            func.params.forEach { param ->
+                if (!param.type!!.isGeneric()) {
+                    params += node(typeToWasm(param.type))
+                } else {
+                    params += node(typeToWasm(param.type))
+                    params += node("i32")
+                }
             }
 
             if (params.children.isNotEmpty()) {
@@ -97,7 +117,11 @@ class WasmCompiler(
         }
 
         if (!func.returnType!!.isUnit()) {
-            output += node("result", typeToWasm(func.returnType))
+            output += if (!func.returnType!!.isGeneric()) {
+                node("result", typeToWasm(func.returnType))
+            } else {
+                node("result", typeToWasm(func.returnType), "i32")
+            }
         }
 
         if (extern != null) {
@@ -124,7 +148,6 @@ class WasmCompiler(
         code.variables.forEach { variable ->
             output += node("local", variable.name, typeToWasm(variable.type)).comment(variable.name)
         }
-
         code.inst.forEach { inst ->
             compileInst(inst, output)
         }
@@ -218,13 +241,13 @@ class WasmCompiler(
 
         val size = intToWasmHex(bytes.size)
         val contents = bytes.joinToString("") {
-            "\\" + it.toString(16).padStart(2, '0')
+            "\\" + it.toUByte().toString(16).padStart(2, '0')
         }
 
         root += node("data", node("i32.const", start), "$size$contents".surround())
             .comment("offset: 0x${start.toString(16)}")
 
-        return node("i32.const", start)
+        return node("$PTR_TYPE.const", start)
     }
 
     private fun padOffset() {
@@ -233,10 +256,6 @@ class WasmCompiler(
         dataOffset += if (pad < 0) pad + PTR_SIZE else pad
     }
 
-    private fun varToWasm(ref: VarRef): String = "$$ref"
-
-    private fun funcToWasm(ref: FunRef): String = "$$ref"
-
     private fun typeToWasm(type: TypeTree?): String {
         if (type == null) error("Type is null!")
 
@@ -244,7 +263,15 @@ class WasmCompiler(
             return "f32"
         }
 
-        return "i32"
+        if (type.base is StructType) {
+            return PTR_TYPE
+        }
+
+        if (type.base is ParamType) {
+            return GENERIC_TYPE
+        }
+
+        return INT_TYPE
     }
 
     private fun intToWasmHex(num: Int): String {
@@ -321,6 +348,10 @@ data class WasmNode(
         val postfix = if (comm.isNotEmpty()) " $comm" else ""
 
         if (children.isEmpty()) {
+            if (name == "i32.store" || name == "i64.store" || name == "f32.store" || name == "f64.store" || name == "unreachable") {
+                return "($name)$postfix"
+            }
+
             return "$name$postfix"
         }
 

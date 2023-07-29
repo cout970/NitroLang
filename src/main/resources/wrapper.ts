@@ -13,6 +13,7 @@ const wasmInstance = new WebAssembly.Instance(wasmModule, {core});
 
 const memory: WebAssembly.Memory = wasmInstance.exports.memory as WebAssembly.Memory;
 mem.u32 = new Uint32Array(memory.buffer);
+mem.f32 = new Float32Array(memory.buffer);
 mem.u16 = new Uint16Array(memory.buffer);
 mem.u8 = new Uint8Array(memory.buffer);
 
@@ -22,4 +23,5 @@ try {
   main();
 } catch (e) {
   console.error(e);
+  Deno.exit(0);
 }

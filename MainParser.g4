@@ -17,6 +17,18 @@ nameToken
 declaredNameToken
     : nameToken ;
 
+string
+    : PLAIN_STRING
+    | STRING_START stringContents* STRING_END
+    ;
+
+stringContents
+    : STRING_BLOB
+    | STRING_ESCAPE
+    | STRING_VAR
+    | STRING_INTERP_START expression STRING_INTERP_END
+    ;
+
 // Definitions
 definition
     : annotation* definitionChoice NL* ;
@@ -26,14 +38,14 @@ annotation
     : AT nameToken annotationArgs? NL* ;
 
 annotationArgs
-    : STRUCT_START NL* annotationArgEntry* RBRACKET ;
+    : STRUCT_START NL* (annotationArgEntry (commaOrNl annotationArgEntry)* COMMA?)? NL* RBRACKET ;
 
 annotationArgEntry
-    : annotationArgKey COLON NL* constExpr COMMA? NL* ;
+    : annotationArgKey COLON NL* constExpr ;
 
 annotationArgKey
     : nameToken
-    | STRING
+    | PLAIN_STRING
     ;
 
 definitionChoice
@@ -47,13 +59,9 @@ definitionChoice
     | constDefinition
     ;
 
-// E.g. include submodule
+// E.g. include "core:optional.nl"
 includeDefinition
-    : INCLUDE location ;
-
-// E.g. std:core/Optional
-location
-    : (declaredNameToken COLON)? nameToken (DIV nameToken)* ;
+    : INCLUDE PLAIN_STRING ;
 
 // E.g. alias Int32 = Int
 aliasDefinition
@@ -92,23 +100,27 @@ structDefinition
 
 // E.g. { a: Int, b: Int }
 structBody
-    : LBRACE NL* structField* RBRACE ;
+    : LBRACE NL* (structField (commaOrNl structField)* COMMA?)? NL* RBRACE ;
 
 // E.g. value: Int,
 structField
-    : nameToken COLON typeUsage COMMA? NL* ;
+    : nameToken COLON typeUsage;
 
 // E.g. type Optional<T> {}
 optionDefinition
-    : OPTION declaredNameToken typeParamDef? NL* LBRACE NL* optionDefinitionItem* RBRACE ;
+    : OPTION declaredNameToken typeParamDef? NL* LBRACE NL*
+    (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
+    RBRACE ;
 
 // E.g. Some { value: T },
 optionDefinitionItem
-    : declaredNameToken structBody? COMMA? NL*;
+    : declaredNameToken structBody?;
 
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition
-    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL* functionParameter* RPAREN NL* functionReturnType? functionBody;
+    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL*
+    (functionParameter (commaOrNl functionParameter)* COMMA?)? NL*
+    RPAREN NL* functionReturnType? functionBody;
 
 // E.g. Int.
 functionReceiver
@@ -120,7 +132,7 @@ functionReturnType
 
 // E.g. count: Int,
 functionParameter
-    : nameToken NL* COLON NL* typeUsage COMMA? NL* ;
+    : nameToken NL* COLON NL* typeUsage;
 
 // E.g. {}
 // E.g. = 3.14
@@ -144,6 +156,7 @@ statementChoice
     : letStatement
     | ifStatement
     | forStatement
+    | repeatStatement
     | whileStatement
     | loopStatement
     | expressionStatement
@@ -161,6 +174,10 @@ ifStatement
 // E.g. for item in list {}
 forStatement
     : FOR NL* nameToken NL* IN NL* expression NL* statementBlock ;
+
+// E.g. repeat 5 {}
+repeatStatement
+    : REPEAT NL* expression NL* statementBlock ;
 
 // E.g. while condition {}
 whileStatement
@@ -294,12 +311,12 @@ expressionBase
 
 // json {"key": ["val1", 1, true, null]}
 jsonExpr
-    : JSON json_value ;
+    : JSON jsonValue ;
 
 // Constant value that can be evaluated at compile time
 constExpr
     : unitExpression
-    | expressionLiteral
+    | constExpressionLiteral
     ;
 
 // Unit '()'
@@ -309,7 +326,16 @@ unitExpression
 expressionLiteral
     : INT_NUMBER
     | FLOAT_NUMBER
-    | STRING
+    | string
+    | TRUE
+    | FALSE
+    | NULL
+    ;
+
+constExpressionLiteral
+    : INT_NUMBER
+    | FLOAT_NUMBER
+    | PLAIN_STRING
     | TRUE
     | FALSE
     | NULL
@@ -317,23 +343,23 @@ expressionLiteral
 
 // #[item1, item2]
 listExpr
-    : LIST_START NL* listEntry* RBRACKET ;
+    : LIST_START NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
 
-// item,
+// item
 listEntry
-    : expression COMMA? NL* ;
+    : expression;
 
 // @[key: value, "key": value, ("key" + 1): value]
 mapExpr
-    : MAP_START NL* mapEntry* RBRACKET ;
+    : MAP_START NL* (mapEntry (commaOrNl mapEntry)* COMMA?)? NL* RBRACKET ;
 
 mapEntry
-    : mapKey COLON NL* expression COMMA? NL* ;
+    : mapKey COLON NL* expression ;
 
 mapKey
     : LPAREN NL* expression NL* RPAREN
     | nameToken
-    | STRING
+    | string
     ;
 
 // %[1, 2, 3]
@@ -386,10 +412,10 @@ ifExpr
     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;
 
 structInstanceExpr
-    : modulePath? nameToken typeParamArg? STRUCT_START NL* structInstanceEntry* RBRACKET ;
+    : modulePath? nameToken typeParamArg? STRUCT_START NL* (structInstanceEntry (commaOrNl structInstanceEntry)* COMMA?)? NL* RBRACKET ;
 
 structInstanceEntry
-    : nameToken (COLON NL* expression)? COMMA? NL* ;
+    : nameToken (COLON NL* expression)? ;
 
 variableExpr
     : modulePath? nameToken ;
@@ -400,10 +426,10 @@ modulePath
 // Function call
 
 functionCallParams
-    : typeParamArg? LPAREN NL* functionCallParam* RPAREN ;
+    : typeParamArg? LPAREN NL* functionCallParamList? RPAREN ;
 
-functionCallParam
-    : expression COMMA? NL* ;
+functionCallParamList
+    : expression (commaOrNl expression)* COMMA? NL* ;
 
 functionCallEnd
     : lambdaExpr
@@ -414,10 +440,10 @@ functionCallEnd
 
 // Types
 typeParamDef
-    : LTH NL* typeParameter (COMMA? NL* typeParameter)* NL* GTH ;
+    : LTH NL* typeParameter (commaOrNl typeParameter)* COMMA? NL* GTH ;
 
 typeParamArg
-    : LTH NL* typeUsage (COMMA NL* typeUsage)* NL* GTH ;
+    : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;
 
 // #T, #A, #B, List<#A>
 typeParameter
@@ -438,23 +464,28 @@ baseTypeUsage
     : refModifier? modulePath? nameToken typeParamArg? ;
 
 // JSON value
-json_value
-   : STRING
+jsonValue
+   : string
    | INT_NUMBER
    | FLOAT_NUMBER
    | TRUE
    | FALSE
    | NULL
-   | json_obj
-   | json_arr
+   | jsonObject
+   | jsonArray
    | LPAREN NL* expression NL* RPAREN
    ;
 
-json_obj
-   : LBRACE NL* (json_pair COMMA? NL*)* RBRACE ;
+jsonObject
+   : LBRACE NL* (jsonPair (commaOrNl jsonPair)* COMMA?)? NL* RBRACE ;
 
-json_pair
-   : STRING NL* COLON NL* json_value ;
+jsonPair
+   : (nameToken|string) NL* COLON NL* jsonValue ;
 
-json_arr
-   : LBRACKET NL* (json_value COMMA? NL*)* RBRACKET ;
+jsonArray
+   : LBRACKET NL* (jsonValue (commaOrNl jsonValue)* COMMA?)? NL* RBRACKET ;
+
+commaOrNl
+    : COMMA NL*
+    | NL+
+    ;

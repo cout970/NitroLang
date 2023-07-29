@@ -47,6 +47,18 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#string}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitString(MainParser.StringContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#stringContents}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStringContents(MainParser.StringContentsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#definition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -88,12 +100,6 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitIncludeDefinition(MainParser.IncludeDefinitionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link MainParser#location}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLocation(MainParser.LocationContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#aliasDefinition}.
 	 * @param ctx the parse tree
@@ -239,6 +245,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitForStatement(MainParser.ForStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#repeatStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRepeatStatement(MainParser.RepeatStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#whileStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -383,6 +395,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionLiteral(MainParser.ExpressionLiteralContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#constExpressionLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstExpressionLiteral(MainParser.ConstExpressionLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#listExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -509,11 +527,11 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionCallParams(MainParser.FunctionCallParamsContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#functionCallParam}.
+	 * Visit a parse tree produced by {@link MainParser#functionCallParamList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitFunctionCallParam(MainParser.FunctionCallParamContext ctx);
+	T visitFunctionCallParamList(MainParser.FunctionCallParamListContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#functionCallEnd}.
 	 * @param ctx the parse tree
@@ -557,27 +575,33 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBaseTypeUsage(MainParser.BaseTypeUsageContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#json_value}.
+	 * Visit a parse tree produced by {@link MainParser#jsonValue}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitJson_value(MainParser.Json_valueContext ctx);
+	T visitJsonValue(MainParser.JsonValueContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#json_obj}.
+	 * Visit a parse tree produced by {@link MainParser#jsonObject}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitJson_obj(MainParser.Json_objContext ctx);
+	T visitJsonObject(MainParser.JsonObjectContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#json_pair}.
+	 * Visit a parse tree produced by {@link MainParser#jsonPair}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitJson_pair(MainParser.Json_pairContext ctx);
+	T visitJsonPair(MainParser.JsonPairContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#json_arr}.
+	 * Visit a parse tree produced by {@link MainParser#jsonArray}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitJson_arr(MainParser.Json_arrContext ctx);
+	T visitJsonArray(MainParser.JsonArrayContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#commaOrNl}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCommaOrNl(MainParser.CommaOrNlContext ctx);
 }

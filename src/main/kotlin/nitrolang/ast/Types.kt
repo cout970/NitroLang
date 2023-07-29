@@ -4,13 +4,26 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import nitrolang.util.Dumpable
 import nitrolang.util.dump
+import java.lang.RuntimeException
 
 data class TypeTree(
     val base: TypeBase,
     val params: List<TypeTree> = emptyList()
 ) : Dumpable {
 
-    fun isUnit(): Boolean = base is StructType && base.struct.isExternal && base.struct.name == "Unit"
+    fun isUnit(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Unit"
+
+    fun isInt(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Int"
+
+    fun isFloat(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Float"
+
+    fun isBoolean(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Float"
+
+    fun isOptionItem(): Boolean = base is StructType && base.struct.parentOption != null
+
+    fun isNever(): Boolean = base is StructType && base.struct.fullName == "Never"
+
+    fun isGeneric(): Boolean = base is ParamType
 
     fun hasUnresolved(): Boolean = base is UnresolvedType || params.any { it.hasUnresolved() }
 
@@ -27,7 +40,12 @@ data class TypeTree(
     }
 
     override fun dump(): JsonElement = toDebugString().dump()
+
     override fun equals(other: Any?): Boolean {
+//        if (RuntimeException().stackTrace.none { it.methodName == "canBeAssignedTo" }) {
+//            error("Using incorrect equals function!")
+//        }
+
         if (this === other) return true
         if (other !is TypeTree) return false
 
