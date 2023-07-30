@@ -192,6 +192,56 @@ data class LstIfEnd(
     }
 }
 
+data class LstWhenStart(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+) : LstNode(ref, span, block) {
+    override fun toString(): String {
+        return "$ref when"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "WhenStart".dump())
+        it.add("block", block.dump())
+    }
+}
+
+data class LstWhenJump(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val whenBlock: LstNodeBlock,
+) : LstNode(ref, span, block) {
+    override fun toString(): String {
+        return "$ref break"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "WhenJump".dump())
+        it.add("block", block.dump())
+        it.add("when", whenBlock.dump())
+    }
+}
+
+data class LstWhenEnd(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+) : LstNode(ref, span, block) {
+    override fun toString(): String {
+        return "$ref end-when"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "WhenEnd".dump())
+        it.add("block", block.dump())
+    }
+}
+
 data class LstChoose(
     override val ref: Ref,
     override val span: Span,
@@ -257,7 +307,7 @@ data class LstLoopJump(
         it.add("kind", "JumpTo".dump())
         it.add("block", block.dump())
         it.add("backwards", backwards.dump())
-        it.add("block", loopBlock?.dump())
+        it.add("loop", loopBlock?.dump())
     }
 }
 

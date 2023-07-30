@@ -28,3 +28,4 @@ Intended for the developers
 - Implicit Interfaces
 - Runtime reflection
 - Thousands of other ideas...
+- Fix `a\n.func()`

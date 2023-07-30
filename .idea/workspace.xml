@@ -4,8 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap">
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Rename Unit to Nothing">
+      <change beforePath="$PROJECT_DIR$/.idea/kotlinc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,22 +102,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Downloaded.Files.Path.Enabled": "false",
-    "Repository.Attach.Annotations": "false",
-    "Repository.Attach.JavaDocs": "false",
-    "Repository.Attach.Sources": "false",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "/Data/Dev/3D/custom",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.0",
-    "settings.editor.selected.configurable": "preferences.fileTypes"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
+    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Data/Dev/3D/custom&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.fileTypes&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/tests/internal/expression" />
@@ -331,7 +350,21 @@
       <option name="project" value="LOCAL" />
       <updated>1690660444987</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Add string interpolation&#10;Rename alloc() to memory_alloc()">
+      <created>1690735911554</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1690735911554</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Rename Unit to Nothing">
+      <created>1690738526751</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1690738526751</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -346,6 +379,8 @@
     <MESSAGE value="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically" />
     <MESSAGE value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
     <MESSAGE value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
+    <MESSAGE value="Add string interpolation&#10;Rename alloc() to memory_alloc()" />
+    <MESSAGE value="Rename Unit to Nothing" />
+    <option name="LAST_COMMIT_MESSAGE" value="Rename Unit to Nothing" />
   </component>
 </project>

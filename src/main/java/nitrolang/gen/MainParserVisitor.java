@@ -401,6 +401,24 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConstExpressionLiteral(MainParser.ConstExpressionLiteralContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#whenExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhenExpr(MainParser.WhenExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#whenEntry}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhenEntry(MainParser.WhenEntryContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#whenKey}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhenKey(MainParser.WhenKeyContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#listExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -24,10 +24,23 @@ fun recursive(a: Int ) {
 }
 
 fun main() {
-    let a = 42
-    println("Hello world $a-$a-$a-$a-Test")
-    println("Hello ${a + 1} world")
-    recursive(1)
+    println("\n\n\n\n")
+
+
+    repeat 3 {
+        println("current: $it")
+
+        when it {
+            1 -> println("  es 1")
+            2 -> println("  es 2")
+            else -> {
+                println("  Inserte una opción válida")
+            }
+        }
+        println("")
+    }
+
+    println("\n\n\n\n")
 
 //    let config = json {
 //      firstName: "John"

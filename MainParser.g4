@@ -296,6 +296,7 @@ expressionBase
     : parenthesizedExpression
     | nothingExpression
     | expressionLiteral
+    | whenExpr
     | listExpr
     | mapExpr
     | setExpr
@@ -338,6 +339,19 @@ constExpressionLiteral
     | TRUE
     | FALSE
     | NULL
+    ;
+
+whenExpr
+    : WHEN NL* expression NL* LBRACE NL* (whenEntry (commaOrNl whenEntry)* COMMA?)? NL* RBRACE ;
+
+whenEntry
+    : whenKey ARROW expression
+    | whenKey ARROW statementBlock
+    ;
+
+whenKey
+    : expression
+    | ELSE
     ;
 
 // #[item1, item2]

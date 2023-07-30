@@ -658,6 +658,36 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitConstExpressionLiteral(MainParser.ConstExpressionLiteralContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#whenExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhenExpr(MainParser.WhenExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#whenExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhenExpr(MainParser.WhenExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#whenEntry}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhenEntry(MainParser.WhenEntryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#whenEntry}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhenEntry(MainParser.WhenEntryContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#whenKey}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhenKey(MainParser.WhenKeyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#whenKey}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhenKey(MainParser.WhenKeyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#listExpr}.
 	 * @param ctx the parse tree
 	 */

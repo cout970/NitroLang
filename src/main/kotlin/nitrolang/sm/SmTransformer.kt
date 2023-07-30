@@ -353,6 +353,23 @@ class SmTransformer(
                 output.inst += SmBranch(span = node.span, level = diff)
             }
 
+            is LstWhenStart -> {
+                mark(node.toString())
+                output.inst += SmBlock(span = node.span)
+            }
+
+            is LstWhenEnd -> {
+                mark(node.toString())
+                output.inst += SmEnd(span = node.span)
+            }
+
+            is LstWhenJump -> {
+                mark(node.toString())
+                val diff = node.block.depth - node.whenBlock.depth
+
+                output.inst += SmBranch(span = node.span, level = diff)
+            }
+
             is LstLoadVar -> {
                 mark(node.toString())
                 val type = node.type!!

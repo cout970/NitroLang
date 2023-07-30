@@ -38,6 +38,7 @@ import nitrolang.gen.MainParser.TypeParamDefContext
 import nitrolang.gen.MainParser.TypeUsageContext
 import nitrolang.gen.MainParser.UseDefinitionContext
 import nitrolang.gen.MainParser.VariableExprContext
+import nitrolang.gen.MainParser.WhenExprContext
 import nitrolang.gen.MainParserBaseListener
 import nitrolang.sm.*
 import nitrolang.util.ErrorCollector
@@ -978,6 +979,10 @@ class AstParser(
                 processExpressionExpressionLiteral(ctx.expressionLiteral(), code)
             }
 
+            ctx.whenExpr() != null -> {
+                processExpressionWhenExpr(ctx.whenExpr(), code)
+            }
+
             ctx.listExpr() != null -> {
                 processExpressionListExpr(ctx.listExpr(), code)
             }
@@ -1582,6 +1587,117 @@ class AstParser(
 
             else -> error("Grammar has been expanded and parser is outdated")
         }
+    }
+
+    private fun processExpressionWhenExpr(ctx: WhenExprContext, code: LstCode): Ref {
+        val entries = ctx.whenEntry()
+
+        val whenArg = processExpression(ctx.expression(), code)
+
+        if (entries.isEmpty()) {
+            collector.report("when-expression must have at least one entry", ctx.span())
+            return whenArg
+        }
+
+        val elseCount = entries.count { it.whenKey().ELSE() != null }
+
+        if (elseCount > 1) {
+            collector.report("when-expression must have at most 1 'else' entry", ctx.span())
+            return whenArg
+        }
+
+        val start = LstWhenStart(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+        )
+        code.nodes += start
+
+        val prevBlock = code.currentBlock
+        val whenBlock = code.createBlock()
+        code.currentBlock = whenBlock
+
+        entries.forEachIndexed { index, entry ->
+            val key = entry.whenKey()
+
+            if (key.expression() != null) {
+                val keyRef = processExpression(key.expression(), code)
+
+                val cond = LstFunCall(
+                    ref = code.nextRef(),
+                    span = ctx.span(),
+                    block = code.currentBlock,
+                    name = "is_equal",
+                    path = "",
+                    arguments = listOf(whenArg, keyRef),
+                )
+                code.nodes += cond
+
+                code.nodes += LstIfStart(
+                    ref = code.nextRef(),
+                    span = ctx.span(),
+                    block = code.currentBlock,
+                    cond = cond.ref
+                )
+
+                val prevIfBlock = code.currentBlock
+                code.currentBlock = code.createBlock()
+
+                if (entry.expression() != null) {
+                    processExpression(entry.expression(), code)
+
+                } else if (entry.statementBlock() != null) {
+                    processStatementBlock(entry.statementBlock(), code)
+
+                } else {
+                    error("Grammar has been expanded and parser is outdated")
+                }
+
+                code.nodes += LstWhenJump(
+                    ref = code.nextRef(),
+                    span = ctx.span(),
+                    block = code.currentBlock,
+                    whenBlock = whenBlock,
+                )
+
+                // Restore prev block
+                code.currentBlock = prevIfBlock
+
+                code.nodes += LstIfEnd(
+                    ref = code.nextRef(),
+                    span = ctx.span(),
+                    block = code.currentBlock,
+                )
+
+            } else if (key.ELSE() != null) {
+                if (index != entries.lastIndex) {
+                    collector.report("'else' entry must be the last one in a when-expression", ctx.span())
+                }
+
+                if (entry.expression() != null) {
+                    processExpression(entry.expression(), code)
+
+                } else if (entry.statementBlock() != null) {
+                    processStatementBlock(entry.statementBlock(), code)
+
+                } else {
+                    error("Grammar has been expanded and parser is outdated")
+                }
+            } else {
+                error("Grammar has been expanded and parser is outdated")
+            }
+        }
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+
+        code.nodes += LstWhenEnd(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+        )
+
+        return start.ref
     }
 
     private fun processExpressionListExpr(ctx: ListExprContext, code: LstCode): Ref {

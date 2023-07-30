@@ -23,16 +23,6 @@ DOT                             : '.' ;
 LPAREN                          : '(' ;
 RPAREN                          : ')' ;
 LBRACE                          : '{' ;
-// Especial case for string interpolation
-RBRACE                          : '}' {
-  if(_modeStack.size() > 0) {
-      popMode();
-      if(_mode != DEFAULT_MODE) {
-          setType(STRING_INTERP_END);
-      }
-  }
-};
-
 LBRACKET                        : '[' ;
 RBRACKET                        : ']' ;
 COMMA                           : ',' ;
@@ -62,6 +52,8 @@ SIZE_OF                         : 'size_of' | 'sizeOf' ;
 OPTION                          : 'type'    | 'option';
 REC                             : 'rec'     | 'recv' | 'receiver' ;
 NOTHING                         : 'nothing' ;
+WHEN                            : 'when' ;
+MATCH                           : 'match' ;
 EITHER                          : 'either' ;
 ALIAS                           : 'alias' ;
 IF                              : 'if' ;
@@ -104,8 +96,20 @@ fragment FLOAT_OPTION           : DIGIT+ | DIGIT+ '.' DIGIT+ | '.' DIGIT+ ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
 FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGIT+)?[fFdD]? ;
 IDENTIFIER                      : [a-zA-Z][a-zA-Z0-9_]* ;
+
+// Simple no interpolation string
 PLAIN_STRING                    : '"' (~["$]|[\\]["]|[\\][$])* '"' ;
+// String interpolation section
 STRING_START                    : '"'  -> pushMode(STRING_MODE) ;
+// Especial case to end string interpolation
+RBRACE                          : '}' {
+  if(_modeStack.size() > 0) {
+      popMode();
+      if(_mode != DEFAULT_MODE) {
+          setType(STRING_INTERP_END);
+      }
+  }
+};
 
 ERROR_CHARACTER                 : . ;
 
