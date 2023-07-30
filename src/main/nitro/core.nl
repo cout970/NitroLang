@@ -1,5 +1,3 @@
-fun a() = "abc ${1234} bc"
-
 include "core:intrinsic.nl"
 include "core:boolean.nl"
 include "core:int.nl"

@@ -30,9 +30,10 @@ export function memory_write_generic(ptr: number, raw: number, type: number) {
     setInt(ptr + PTR_SIZE , type);
 }
 
-export function memory_read_int(ptr: number): number { setInt(ptr, value|0); }
-export function memory_read_boolean(ptr: number): number { setInt(ptr, value|0); }
-export function memory_read_float(ptr: number): number { setInt(ptr, value); }
+export function memory_read_byte(ptr: number): number { return getInt(ptr) & 0xFF; }
+export function memory_read_int(ptr: number): number { return getInt(ptr); }
+export function memory_read_boolean(ptr: number): number { return getInt(ptr); }
+export function memory_read_float(ptr: number): number { return getFloat(ptr); }
 export function memory_read_generic(ptr: number) {
     assert(ptr);
     return [getInt(ptr), getInt(ptr + PTR_SIZE)];
@@ -97,22 +98,11 @@ export function alloc(amount: number): number {
   return next;
 }
 
-export function is_variant(ptr: number, expected_variant: number): number {
-    // console.log('is_variant', {ptr, variant: getInt(ptr), expected_variant});
+export function internal_is_variant(ptr: number, expected_variant: number): number {
+    // console.log('internal_is_variant', {ptr, variant: getInt(ptr), expected_variant});
     assert(ptr);
     const found: number = getInt(ptr);
     return (found === expected_variant) ? 1 : 0;
-}
-
-export function check_cast(ptr: number, expected_type: number): number {
-  assert(ptr);
-  const found: number = getInt(ptr);
-
-  if (found !== expected_type) {
-    throw new Error(`Cast error: expected ${expected_type}, found ${found}`);
-  }
-
-  return ptr;
 }
 
 export function choose(cond: number, a: number, b: number): number {

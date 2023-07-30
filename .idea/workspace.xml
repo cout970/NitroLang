@@ -4,50 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc.">
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/boolean.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/char.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/console.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/float.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/int.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/intrinsic.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/json.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/list.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/map.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/math.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/memory.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/optional.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/ordering.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/result.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/set.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/string.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/string_map.nl" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/wrapper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/wrapper.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -134,7 +92,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "/opt/tmp",
+    "last_opened_file_path": "/Data/Dev/3D/custom",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.0",
     "project.structure.side.proportion": "0.0",
@@ -366,7 +324,14 @@
       <option name="project" value="LOCAL" />
       <updated>1687722965139</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap">
+      <created>1690660444987</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1690660444987</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -380,6 +345,7 @@
     <MESSAGE value="Add definitions to the core library&#10;&#10;Update kotlin to 1.8.21&#10;Update antlr4 to 4.12.0&#10;Add base implementation for wasm compiler WIP&#10;Add annotation parameters&#10;Add dead code elimination&#10;Add dup instruction&#10;Add base offset to auto-generated ids in tests" />
     <MESSAGE value="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically" />
     <MESSAGE value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
+    <MESSAGE value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
   </component>
 </project>

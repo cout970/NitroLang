@@ -1220,31 +1220,107 @@ class AstParser(
     }
 
     private fun processString(ctx: StringContext, code: LstCode): Ref {
-        val buff = StringBuilder()
-
         if (ctx.PLAIN_STRING() != null) {
-            buff.append(processPlainString(ctx.PLAIN_STRING()))
-        } else {
-            ctx.stringContents().forEach { item ->
-                when {
-                    item.STRING_BLOB() != null -> buff.append(item.STRING_BLOB().text)
-                    item.STRING_ESCAPE() != null -> buff.append("\"")
-                    item.STRING_VAR() != null -> buff.append("{{UNSUPORTED}}")
-                    item.STRING_INTERP_START() != null -> {
-                        buff.append("{{UNSUPORTED}}")
-                    }
+            val node = LstString(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                value = processPlainString(ctx.PLAIN_STRING())
+            )
+            code.nodes += node
+            return node.ref
+        }
+
+        val buff = StringBuilder()
+        val allParts = mutableListOf<Ref>()
+
+        fun endChunk() {
+            val part = LstString(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                value = unescapeStringLiteral(buff.toString())
+            )
+            code.nodes += part
+            buff.clear()
+            allParts += part.ref
+        }
+
+        ctx.stringContents().forEach { item ->
+            when {
+                item.STRING_BLOB() != null -> buff.append(item.STRING_BLOB().text)
+                item.STRING_ESCAPE() != null -> buff.append("\"")
+                item.STRING_VAR() != null -> {
+                    endChunk()
+                    val node = LstLoadVar(
+                        ref = code.nextRef(),
+                        span = ctx.span(),
+                        block = code.currentBlock,
+                        name = item.STRING_VAR().text.substring(1),
+                        path = "",
+                    )
+                    code.nodes += node
+
+                    val call = LstFunCall(
+                        ref = code.nextRef(),
+                        span = ctx.span(),
+                        block = code.currentBlock,
+                        name = "to_string",
+                        path = "",
+                        arguments = listOf(node.ref),
+                    )
+                    code.nodes += call
+
+                    allParts += call.ref
+                }
+
+                item.STRING_INTERP_START() != null -> {
+                    endChunk()
+                    val ref = processExpression(item.expression(), code)
+
+                    val call = LstFunCall(
+                        ref = code.nextRef(),
+                        span = ctx.span(),
+                        block = code.currentBlock,
+                        name = "to_string",
+                        path = "",
+                        arguments = listOf(ref),
+                    )
+                    code.nodes += call
+
+                    allParts += call.ref
                 }
             }
         }
 
-        val node = LstString(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            value = unescapeStringLiteral(buff.toString())
-        )
-        code.nodes += node
-        return node.ref
+        if (buff.isNotEmpty() || allParts.isEmpty()) {
+            val node = LstString(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                value = unescapeStringLiteral(buff.toString())
+            )
+            code.nodes += node
+            buff.clear()
+            allParts += node.ref
+        }
+
+        if (allParts.size == 1) {
+            return allParts.first()
+        }
+
+        return allParts.reduce { acc, ref ->
+            val node = LstFunCall(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                name = "concat",
+                path = "",
+                arguments = listOf(acc, ref),
+            )
+            code.nodes += node
+            node.ref
+        }
     }
 
     private fun unescapeStringLiteral(tokenText: String): String {

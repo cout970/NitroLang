@@ -103,8 +103,8 @@ fragment FLOAT_OPTION           : DIGIT+ | DIGIT+ '.' DIGIT+ | '.' DIGIT+ ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
 FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGIT+)?[fFdD]? ;
 IDENTIFIER                      : [a-zA-Z][a-zA-Z0-9_]* ;
-PLAIN_STRING                    : '"' (~["]|([\\]["]))* '"' ;
-STRING_START                    : '"'  -> pushMode(STRING_MODE)  ;
+PLAIN_STRING                    : '"' (~["$]|[\\]["]|[\\][$])* '"' ;
+STRING_START                    : '"'  -> pushMode(STRING_MODE) ;
 
 ERROR_CHARACTER                 : . ;
 

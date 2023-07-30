@@ -1,17 +1,10 @@
 
-@Extern $[lib: "core", name: "alloc"]
+@Extern $[lib: "core", name: "internal_is_variant"]
 @Required
-fun alloc(bytes: Int): Int {}
-
-@Extern $[lib: "core", name: "check_cast"]
-@Required
-fun check_cast(ptr: Int, expected_type: Int): Int {}
-
-@Extern $[lib: "core", name: "is_variant"]
-@Required
-fun is_variant(ptr: Int, expected_variant: Int): Boolean {}
+fun internal_is_variant(ptr: Int, expected_variant: Int): Boolean {}
 
 @Extern $[lib: "core", name: "memory_alloc"]
+@Required
 fun memory_alloc(bytes: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_copy"]
@@ -32,11 +25,14 @@ fun memory_write(ptr: Int, value: Boolean) {}
 @Extern $[lib: "core", name: "memory_read_generic"]
 fun memory_read(ptr: Int): #Value {}
 
+@Extern $[lib: "core", name: "memory_read_byte"]
+fun memory_read_byte(ptr: Int): Int {}
+
 @Extern $[lib: "core", name: "memory_read_int"]
-fun memory_read(ptr: Int): Int {}
+fun memory_read_int(ptr: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_read_float"]
-fun memory_read(ptr: Int): Float {}
+fun memory_read_float(ptr: Int): Float {}
 
 @Extern $[lib: "core", name: "memory_read_boolean"]
-fun memory_read(ptr: Int): Boolean {}
+fun memory_read_boolean(ptr: Int): Boolean {}

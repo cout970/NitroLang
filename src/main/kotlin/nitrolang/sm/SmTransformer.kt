@@ -181,7 +181,7 @@ class SmTransformer(
             is LstAlloc -> {
                 mark(node.toString())
                 val type = node.type ?: error("Invalid state")
-                val alloc = program.getFunction("alloc")
+                val alloc = program.getFunction("memory_alloc")
 
                 output.inst += SmConst(
                     span = node.span,
@@ -633,7 +633,7 @@ class SmTransformer(
                     type = type
                 ).comment("Variant $index => ${exprBase.option.items[index]}")
 
-                val func = program.getFunction("is_variant")
+                val func = program.getFunction("internal_is_variant")
 
                 output.inst += SmCall(
                     span = node.span,

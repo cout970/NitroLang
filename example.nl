@@ -1,38 +1,42 @@
-struct Box<#T> {
-    value: #T
-    value2: #T
-}
-
-option A {
-    B {}
-    C {
-        a: Int
-    }
-}
-
-fun println(a: List<Int>) {
-    println("List (".concat(a.len().to_string()).concat("):"))
-    repeat a.len() {
-        println("  - ".concat(a[it].to_string()))
-    }
-}
+//struct Box<#T> {
+//    value: #T
+//    value2: #T
+//}
+//
+//option A {
+//    B {}
+//    C {
+//        a: Int
+//    }
+//}
+//
+//fun println(a: List<Int>) {
+//    println("List (".concat(a.len().to_string()).concat("):"))
+//    repeat a.len() {
+//        println("  - ".concat(a[it].to_string()))
+//    }
+//}
 
 fun main() {
-    let config = json {
-      firstName: "John"
-      lastName: "Smith"
-      isAlive: true
-      age: 27
-      address: {
-        "streetAddress": "21 2nd Street"
-        "city": "New York"
-        "state": "NY"
-        "postalCode": "10021-3100"
-      }
-    }
+    let a = 42
+    println("Hello world $a-$a-$a-$a-Test")
+    println("Hello ${a + 1} world")
 
-    println(config.to_string())
-
+//    let config = json {
+//      firstName: "John"
+//      lastName: "Smith"
+//      isAlive: true
+//      age: 27
+//      address: {
+//        "streetAddress": "21 2nd Street"
+//        "city": "New York"
+//        "state": "NY"
+//        "postalCode": "10021-3100"
+//      }
+//    }
+//
+//    println(config.to_string())
+}
 //    let a = #[1, 2, 3]
 //
 //    repeat 7 {
@@ -65,17 +69,17 @@ fun main() {
 
 //    println(fib(40))
 //    println(recFib(40))
-}
-
-fun test(a: #Value): #Value {
-    ret a
-}
-
-fun test2(a: Box<#Value>): Box<#Value> {
-    let b = a.value
-    ret Box $[value: b]
-}
-
+//}
+//
+//fun test(a: #Value): #Value {
+//    ret a
+//}
+//
+//fun test2(a: Box<#Value>): Box<#Value> {
+//    let b = a.value
+//    ret Box $[value: b]
+//}
+//
 //
 //fun fib(count: Int): Int {
 //    let i = 0

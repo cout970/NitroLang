@@ -4,19 +4,33 @@ struct String {
     ptr: Int
 }
 
+// Bytes
+
 fun String.byte_len(): Int {
     ret this.byte_len
 }
 
+fun String.get_byte(index: Int): Int {
+    ret memory_read_byte(this.ptr + index)
+}
+
+// Interface
+
 fun String.get(index: Int): Char {
     ret this.get_codepoint(index).to_char()
 }
+fun String.len(): Int {
+    ret this.codepoint_len()
+}
 
+// Codepoints
 @Extern $[lib: "core", name: "string_codepoint_len"]
 fun String.codepoint_len(): Int {}
 
 @Extern $[lib: "core", name: "string_get_codepoint"]
 fun String.get_codepoint(index: Int): Int {}
+
+// Utils
 
 @Extern $[lib: "core", name: "string_concat_string"]
 fun String.concat(other: String): String {}
@@ -27,7 +41,7 @@ fun String.concat(char: Char): String {}
 fun String.get_hash(): Int {
     let hash: Int = 0
 
-    repeat this.len() {
+    repeat this.codepoint_len() {
         hash = (31 * hash).bitwise_xor(this[it].to_int())
     }
 
