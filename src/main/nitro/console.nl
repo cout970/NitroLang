@@ -1,6 +1,6 @@
 
-@Extern $[lib: "core", name: "println_unit"]
-fun println(i: Unit) {}
+@Extern $[lib: "core", name: "println_nothing"]
+fun println(i: Nothing) {}
 
 @Extern $[lib: "core", name: "println_boolean"]
 fun println(i: Boolean) {}

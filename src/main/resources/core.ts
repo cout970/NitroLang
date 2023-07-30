@@ -19,7 +19,16 @@ export const mem = {
 // memory.nl
 
 export function memory_alloc(amount: number): number {
-    return alloc(amount);
+    let next = getInt(ALLOC_NEXT);
+
+    const pad = (PTR_SIZE - next) % PTR_SIZE;
+    next += (pad < 0) ? pad + PTR_SIZE : pad;
+
+    // Increment next free slot
+    setInt(ALLOC_NEXT, next + amount);
+
+    // console.log(`alloc(${amount}) => ${next} ..< ${next + amount}`);
+    return next;
 }
 
 export function memory_write_int(ptr: number, value: number) { setInt(ptr, value|0); }
@@ -84,19 +93,6 @@ export function any_to_string(ptr: number, ty: number): number {
 }
 
 // intrinsic.nl
-
-export function alloc(amount: number): number {
-  let next = getInt(ALLOC_NEXT);
-
-  const pad = (PTR_SIZE - next) % PTR_SIZE;
-  next += (pad < 0) ? pad + PTR_SIZE : pad;
-
-  // Increment next free slot
-  setInt(ALLOC_NEXT, next + amount);
-
-  // console.log(`alloc(${amount}) => ${next} ..< ${next + amount}`);
-  return next;
-}
 
 export function internal_is_variant(ptr: number, expected_variant: number): number {
     // console.log('internal_is_variant', {ptr, variant: getInt(ptr), expected_variant});

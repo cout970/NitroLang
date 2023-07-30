@@ -628,15 +628,15 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitConstExpr(MainParser.ConstExprContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#unitExpression}.
+	 * Enter a parse tree produced by {@link MainParser#nothingExpression}.
 	 * @param ctx the parse tree
 	 */
-	void enterUnitExpression(MainParser.UnitExpressionContext ctx);
+	void enterNothingExpression(MainParser.NothingExpressionContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MainParser#unitExpression}.
+	 * Exit a parse tree produced by {@link MainParser#nothingExpression}.
 	 * @param ctx the parse tree
 	 */
-	void exitUnitExpression(MainParser.UnitExpressionContext ctx);
+	void exitNothingExpression(MainParser.NothingExpressionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#expressionLiteral}.
 	 * @param ctx the parse tree

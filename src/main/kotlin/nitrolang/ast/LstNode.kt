@@ -125,18 +125,18 @@ data class LstString(
     }
 }
 
-data class LstUnit(
+data class LstNothing(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = Unit [$type]"
+    override fun toString(): String = "$ref = Nothing [$type]"
 
     override fun toRawString(): String = "()"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
-        it.add("kind", "Unit".dump())
+        it.add("kind", "Nothing".dump())
         it.add("block", block.dump())
         it.add("type", type?.dump())
     }

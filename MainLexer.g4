@@ -61,6 +61,7 @@ RETURN                          : 'ret'     | 'return' ;
 SIZE_OF                         : 'size_of' | 'sizeOf' ;
 OPTION                          : 'type'    | 'option';
 REC                             : 'rec'     | 'recv' | 'receiver' ;
+NOTHING                         : 'nothing' ;
 EITHER                          : 'either' ;
 ALIAS                           : 'alias' ;
 IF                              : 'if' ;

@@ -294,7 +294,7 @@ parenthesizedExpression
 
 expressionBase
     : parenthesizedExpression
-    | unitExpression
+    | nothingExpression
     | expressionLiteral
     | listExpr
     | mapExpr
@@ -315,13 +315,12 @@ jsonExpr
 
 // Constant value that can be evaluated at compile time
 constExpr
-    : unitExpression
+    : nothingExpression
     | constExpressionLiteral
     ;
 
-// Unit '()'
-unitExpression
-    : LPAREN RPAREN ;
+nothingExpression
+    : NOTHING ;
 
 expressionLiteral
     : INT_NUMBER

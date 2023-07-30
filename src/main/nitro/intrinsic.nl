@@ -1,7 +1,7 @@
 // Unit type, the literal is '()', has only 1 instance
-@Extern $[lib: "core", name: "Unit"]
+@Extern $[lib: "core", name: "Nothing"]
 @StackValue
-struct Unit {}
+struct Nothing {}
 
 // Never type, a function returning Never, will never return: infinite loop, panic, etc.
 @Extern $[lib: "core", name: "Never"]

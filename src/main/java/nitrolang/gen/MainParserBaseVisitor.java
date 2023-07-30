@@ -452,7 +452,7 @@ public class MainParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitUnitExpression(MainParser.UnitExpressionContext ctx) { return visitChildren(ctx); }
+	@Override public T visitNothingExpression(MainParser.NothingExpressionContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

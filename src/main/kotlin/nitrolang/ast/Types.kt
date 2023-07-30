@@ -4,14 +4,13 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import nitrolang.util.Dumpable
 import nitrolang.util.dump
-import java.lang.RuntimeException
 
 data class TypeTree(
     val base: TypeBase,
     val params: List<TypeTree> = emptyList()
 ) : Dumpable {
 
-    fun isUnit(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Unit"
+    fun isNothing(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Nothing"
 
     fun isInt(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Int"
 

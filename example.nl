@@ -17,10 +17,17 @@
 //    }
 //}
 
+
+@Export $[name: "recursive"]
+fun recursive(a: Int ) {
+    println("- $a")
+}
+
 fun main() {
     let a = 42
     println("Hello world $a-$a-$a-$a-Test")
     println("Hello ${a + 1} world")
+    recursive(1)
 
 //    let config = json {
 //      firstName: "John"

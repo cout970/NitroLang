@@ -52,7 +52,7 @@ class SmTransformer(
         }
         input.nodes.forEach { transformNode(it) }
 
-        if (!input.returnType!!.isUnit() && input.lastExpression != null) {
+        if (!input.returnType!!.isNothing() && input.lastExpression != null) {
             val lastExpr = input.getNode(input.lastExpression!!) as LstExpression
             load(span = lastExpr.span, expr = lastExpr)
         }
@@ -166,12 +166,12 @@ class SmTransformer(
                 store(node, type)
             }
 
-            is LstUnit -> {
+            is LstNothing -> {
                 mark(node.toString())
                 val type = node.type ?: error("Invalid state")
                 output.inst += SmConst(
                     span = node.span,
-                    value = ConstUnit,
+                    value = ConstNothing,
                     type = type
                 )
 
@@ -254,7 +254,7 @@ class SmTransformer(
                     )
                 }
 
-                if (!result.isUnit() && !result.isNever()) {
+                if (!result.isNothing() && !result.isNever()) {
                     store(node, result)
                 }
 

@@ -386,7 +386,7 @@ data class TypeUsage(
             currentPath = ""
         )
 
-        fun unit() = simple("Unit")
+        fun nothing() = simple("Nothing")
 
         fun int() = simple("Int")
 
@@ -446,7 +446,7 @@ data class TypeUsage(
         )
 
         // TODO
-        fun lambda(@Suppress("UNUSED_PARAMETER") lambda: LstLambdaFunction) = unit()
+        fun lambda(@Suppress("UNUSED_PARAMETER") lambda: LstLambdaFunction) = nothing()
     }
 
     enum class Modifier {

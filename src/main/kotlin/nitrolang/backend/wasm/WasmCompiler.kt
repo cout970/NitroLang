@@ -1,5 +1,6 @@
 package nitrolang.backend.wasm
 
+import nitrolang.ANNOTATION_EXPORT
 import nitrolang.ANNOTATION_EXTERN
 import nitrolang.MAIN_FUNCTION_NAME
 import nitrolang.ANNOTATION_WASM_INLINE
@@ -80,14 +81,21 @@ class WasmCompiler(
         }
 
         val extern = func.getAnnotation(ANNOTATION_EXTERN)
+        val export = func.getAnnotation(ANNOTATION_EXPORT)
         val output = node("func")
 
         output += node("\$${func.ref}").comment(func.fullName)
 
         if (func.fullName == MAIN_FUNCTION_NAME) {
             output += node("export", "main".surround())
-        } else if(extern == null) {
-            output += node("export", "fun_${func.ref.id}".surround())
+        } else if (export != null) {
+            val exportName = export.args["name"]
+
+            if (exportName != null && exportName is ConstString) {
+                output += node("export", exportName.value.surround())
+            } else {
+                collector.report("No export name provided", export.span)
+            }
         }
 
         if (extern == null) {
@@ -116,7 +124,7 @@ class WasmCompiler(
             }
         }
 
-        if (!func.returnType!!.isUnit()) {
+        if (!func.returnType!!.isNothing()) {
             output += if (!func.returnType!!.isGeneric()) {
                 node("result", typeToWasm(func.returnType))
             } else {
@@ -165,7 +173,7 @@ class WasmCompiler(
                     is ConstFloat -> node("f32.const", v.value)
                     is ConstInt -> node("i32.const", v.value)
                     is ConstString -> compileString(v.value)
-                    ConstUnit -> node("i32.const", 0)
+                    ConstNothing -> node("i32.const", 0)
                 }.comment(inst.comment)
             }
 

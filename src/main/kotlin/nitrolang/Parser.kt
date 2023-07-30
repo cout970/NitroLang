@@ -50,6 +50,7 @@ import org.antlr.v4.runtime.tree.TerminalNode
 
 const val SELF_NAME = "this"
 const val ANNOTATION_EXTERN = "Extern"
+const val ANNOTATION_EXPORT = "Export"
 const val ANNOTATION_REQUIRED = "Required"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
 const val ANNOTATION_STACK_VALUE = "StackValue"
@@ -131,7 +132,7 @@ class AstParser(
 
                 // Check that the function actually returns something
                 val defined = func.body.returnType!!
-                if (!defined.isUnit()) {
+                if (!defined.isNothing()) {
                     when (val last = func.body.lastExpression?.let { func.body.getNode(it) }) {
                         null -> {
                             collector.report(
@@ -366,7 +367,7 @@ class AstParser(
         val returnTypeUsage: TypeUsage = if (ctx.functionReturnType() != null) {
             resolveTypeUsage(ctx.functionReturnType().typeUsage())
         } else {
-            TypeUsage.unit()
+            TypeUsage.nothing()
         }
 
         ctx.functionParameter().forEach { rawParam ->
@@ -963,10 +964,10 @@ class AstParser(
                 processExpression(ctx.parenthesizedExpression().expression(), code)
             }
 
-            ctx.unitExpression() != null -> {
-                val node = LstUnit(
+            ctx.nothingExpression() != null -> {
+                val node = LstNothing(
                     ref = code.nextRef(),
-                    span = ctx.unitExpression().span(),
+                    span = ctx.nothingExpression().span(),
                     block = code.currentBlock,
                 )
                 code.nodes += node
@@ -1050,8 +1051,8 @@ class AstParser(
     }
 
     private fun processConstExpr(ctx: ConstExprContext): ConstValue {
-        if (ctx.unitExpression() != null) {
-            return ConstUnit
+        if (ctx.nothingExpression() != null) {
+            return ConstNothing
         }
 
         if (ctx.constExpressionLiteral() == null) {
@@ -1070,7 +1071,7 @@ class AstParser(
                     "Null values are not available in this language, use Optional::None instead",
                     ctx.span()
                 )
-                ConstUnit
+                ConstNothing
             }
 
             ctx.constExpressionLiteral().INT_NUMBER() != null -> {
@@ -1200,7 +1201,7 @@ class AstParser(
                     ctx.span()
                 )
 
-                val node = LstUnit(
+                val node = LstNothing(
                     ref = code.nextRef(),
                     span = ctx.span(),
                     block = code.currentBlock,
@@ -1696,7 +1697,7 @@ class AstParser(
 
     private fun processExpressionLambdaExpr(ctx: LambdaExprContext, code: LstCode): Ref {
         val params: MutableList<LstFunctionParam> = mutableListOf()
-        var returnType: TypeUsage = TypeUsage.unit()
+        var returnType: TypeUsage = TypeUsage.nothing()
         var index = 0
 
         if (ctx.lambdaDef() != null) {
@@ -2943,8 +2944,8 @@ class AstParser(
 
     private fun processNodeExpression(node: LstExpression, code: LstCode) {
         when (node) {
-            is LstUnit -> {
-                node.type = typeOf("Unit")
+            is LstNothing -> {
+                node.type = typeOf("Nothing")
             }
 
             is LstBoolean -> {
@@ -3150,7 +3151,7 @@ class AstParser(
                     return
                 }
 
-                node.type = typeOf("Unit")
+                node.type = typeOf("Nothing")
             }
 
             is LstLoadField -> {
@@ -3321,7 +3322,7 @@ class AstParser(
                     )
                 }
 
-                node.type = typeOf("Unit")
+                node.type = typeOf("Nothing")
             }
 
             is LstFunCall -> {
@@ -3429,7 +3430,7 @@ class AstParser(
             }
 
             is LstReturn -> {
-                node.type = typeOf("Unit")
+                node.type = typeOf("Nothing")
                 val value = code.getNode(node.expr)
 
                 if (value !is LstExpression) {
@@ -3567,9 +3568,9 @@ class AstParser(
      *  $2 = 1 as Int
      *  $3   FunArg($1)     // => List<Unresolved(1)>
      *  $3   FunArg($2)     // => Int
-     *  $3 = FunCall("add") // => List<#Item> -> #Item -> Unit
+     *  $3 = FunCall("add") // => List<#Item> -> #Item -> Nothing
      *  :
-     *  List<Unresolved(1)> vs List<#Item>
+     *  List<Unresolved(1)> vs List<#Item>1
      *  Int vs #Item
      *  =>
      *  Unresolved(1) => Int
