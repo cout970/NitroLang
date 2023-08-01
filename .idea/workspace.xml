@@ -4,27 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Rename Unit to Nothing">
-      <change beforePath="$PROJECT_DIR$/.idea/kotlinc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add basic when expression (no value return yet)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/int.nl" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -364,7 +354,14 @@
       <option name="project" value="LOCAL" />
       <updated>1690738526751</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Add basic when expression (no value return yet)">
+      <created>1690744015225</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1690744015225</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -381,6 +378,7 @@
     <MESSAGE value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
     <MESSAGE value="Add string interpolation&#10;Rename alloc() to memory_alloc()" />
     <MESSAGE value="Rename Unit to Nothing" />
-    <option name="LAST_COMMIT_MESSAGE" value="Rename Unit to Nothing" />
+    <MESSAGE value="Add basic when expression (no value return yet)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add basic when expression (no value return yet)" />
   </component>
 </project>

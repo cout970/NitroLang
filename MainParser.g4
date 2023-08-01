@@ -159,6 +159,7 @@ statementChoice
     | repeatStatement
     | whileStatement
     | loopStatement
+    | whenExpr
     | expressionStatement
     | foreignBlockStatement
     ;
@@ -342,7 +343,7 @@ constExpressionLiteral
     ;
 
 whenExpr
-    : WHEN NL* expression NL* LBRACE NL* (whenEntry (commaOrNl whenEntry)* COMMA?)? NL* RBRACE ;
+    : WHEN NL* expression? NL* LBRACE NL* (whenEntry (commaOrNl whenEntry)* COMMA?)? NL* RBRACE ;
 
 whenEntry
     : whenKey ARROW expression

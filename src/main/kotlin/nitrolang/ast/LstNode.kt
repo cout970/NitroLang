@@ -112,7 +112,7 @@ data class LstString(
     override val block: LstNodeBlock,
     val value: String
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = \"$value\" as String [$type]"
+    override fun toString(): String = "$ref = \"${value.replace("\n", "\\n")}\" as String [$type]"
 
     override fun toRawString(): String = value
 
@@ -242,7 +242,7 @@ data class LstWhenEnd(
     }
 }
 
-data class LstChoose(
+data class LstIfChoose(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
@@ -250,7 +250,7 @@ data class LstChoose(
     val ifTrue: Ref,
     val ifFalse: Ref
 ) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = choose $cond => $ifTrue | $ifFalse [$type]"
+    override fun toString(): String = "$ref = if-choose $cond => $ifTrue | $ifFalse [$type]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())

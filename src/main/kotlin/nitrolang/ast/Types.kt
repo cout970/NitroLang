@@ -16,7 +16,7 @@ data class TypeTree(
 
     fun isFloat(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Float"
 
-    fun isBoolean(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Float"
+    fun isBoolean(): Boolean = base is StructType && base.struct.isExternal && base.struct.fullName == "Boolean"
 
     fun isOptionItem(): Boolean = base is StructType && base.struct.parentOption != null
 

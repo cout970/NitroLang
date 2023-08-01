@@ -23,20 +23,39 @@ fun recursive(a: Int ) {
     println("- $a")
 }
 
+// TODO not working
+//fun Int.get_ordering2(other: Int): Ordering {
+//    ret when {
+//        this.is_equal(other) -> Ordering::Equals $[]
+//        this.greater_than_signed(other) -> Ordering::Greater $[]
+//        else -> Ordering::Less $[]
+//    }
+//}
+
 fun main() {
     println("\n\n\n\n")
-
 
     repeat 3 {
         println("current: $it")
 
-        when it {
-            1 -> println("  es 1")
-            2 -> println("  es 2")
-            else -> {
-                println("  Inserte una opción válida")
-            }
+        when {
+            it == 1 -> println("  1")
+            it == 2 -> println("  2")
+            else -> println("  else")
         }
+
+        when it {
+            1 -> println("  1")
+            2 -> println("  2")
+            else -> println("  else")
+        }
+
+        let a = when it {
+            1 -> "  1"
+            2 -> "  2"
+            else -> "  else"
+        }
+        println(a)
         println("")
     }
 

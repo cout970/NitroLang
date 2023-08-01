@@ -1592,18 +1592,182 @@ class AstParser(
     private fun processExpressionWhenExpr(ctx: WhenExprContext, code: LstCode): Ref {
         val entries = ctx.whenEntry()
 
-        val whenArg = processExpression(ctx.expression(), code)
+        val whenArg = ctx.expression()?.let { processExpression(it, code) }
+
+        val start = LstWhenStart(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+        )
+        code.nodes += start
+
+        val prevBlock = code.currentBlock
+        val whenBlock = code.createBlock()
+        code.currentBlock = whenBlock
+
+        val resultVarName = "when-result"
+        val resultVar = LstVar(
+            span = ctx.span(),
+            name = resultVarName,
+            block = code.currentBlock,
+            typeUsage = null,
+            validAfter = code.currentRef(),
+            ref = code.nextVarRef(),
+        )
+
+        code.variables[resultVar.ref] = resultVar
+
+        entries.forEachIndexed { index, entry ->
+            val key = entry.whenKey()
+
+            if (key.expression() != null) {
+                val keyRef = processExpression(key.expression(), code)
+
+                val condRef = if (whenArg != null) {
+                    val cond = LstFunCall(
+                        ref = code.nextRef(),
+                        span = key.expression().span(),
+                        block = code.currentBlock,
+                        name = "is_equal",
+                        path = "",
+                        arguments = listOf(whenArg, keyRef),
+                    )
+                    code.nodes += cond
+                    cond.ref
+                } else {
+                    keyRef
+                }
+
+                code.nodes += LstIfStart(
+                    ref = code.nextRef(),
+                    span = key.expression().span(),
+                    block = code.currentBlock,
+                    cond = condRef,
+                )
+
+                val prevIfBlock = code.currentBlock
+                code.currentBlock = code.createBlock()
+
+                val (branchValue, span) = if (entry.expression() != null) {
+                    processExpression(entry.expression(), code) to entry.expression().span()
+
+                } else if (entry.statementBlock() != null) {
+                    processStatementBlock(entry.statementBlock(), code)
+
+                    (code.lastExpression ?: error("Code block has no last expression")) to entry.statementBlock().span()
+                } else {
+                    error("Grammar has been expanded and parser is outdated")
+                }
+
+                code.nodes += LstStoreVar(
+                    ref = code.nextRef(),
+                    span = span,
+                    block = code.currentBlock,
+                    name = resultVarName,
+                    path = "",
+                    varRef = resultVar.ref,
+                    variable = resultVar,
+                    expr = branchValue,
+                )
+
+                code.nodes += LstWhenJump(
+                    ref = code.nextRef(),
+                    span = entry.span(),
+                    block = code.currentBlock,
+                    whenBlock = whenBlock,
+                )
+
+                // Restore prev block
+                code.currentBlock = prevIfBlock
+
+                code.nodes += LstIfEnd(
+                    ref = code.nextRef(),
+                    span = entry.span(),
+                    block = code.currentBlock,
+                )
+
+            } else if (key.ELSE() != null) {
+                if (index != entries.lastIndex) {
+                    collector.report("'else' entry must be the last one in a when-expression", ctx.span())
+                }
+
+                val (branchValue, span) = if (entry.expression() != null) {
+                    processExpression(entry.expression(), code) to entry.expression().span()
+
+                } else if (entry.statementBlock() != null) {
+                    processStatementBlock(entry.statementBlock(), code)
+
+                    (code.lastExpression ?: error("Code block has no last expression")) to entry.statementBlock().span()
+                } else {
+                    error("Grammar has been expanded and parser is outdated")
+                }
+
+                code.nodes += LstStoreVar(
+                    ref = code.nextRef(),
+                    span = span,
+                    block = code.currentBlock,
+                    name = resultVarName,
+                    path = "",
+                    varRef = resultVar.ref,
+                    variable = resultVar,
+                    expr = branchValue,
+                )
+
+            } else {
+                error("Grammar has been expanded and parser is outdated")
+            }
+        }
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+
+        code.nodes += LstWhenEnd(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+        )
+
+        val result = LstLoadVar(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            name = resultVarName,
+            path = "",
+            varRef = resultVar.ref,
+            variable = resultVar,
+        )
+        code.nodes += result
 
         if (entries.isEmpty()) {
             collector.report("when-expression must have at least one entry", ctx.span())
-            return whenArg
+            return result.ref
+        }
+
+        val elseCount = entries.count { it.whenKey().ELSE() != null }
+
+        if (elseCount != 1) {
+            collector.report("when-expression must have one 'else' entry", ctx.span())
+            return result.ref
+        }
+
+        return result.ref
+    }
+
+    private fun processExpressionWhenStatement(ctx: WhenExprContext, code: LstCode) {
+        val entries = ctx.whenEntry()
+
+        val whenArg = ctx.expression()?.let { processExpression(it, code) }
+
+        if (entries.isEmpty()) {
+            collector.report("when-statement must have at least one entry", ctx.span())
+            return
         }
 
         val elseCount = entries.count { it.whenKey().ELSE() != null }
 
         if (elseCount > 1) {
-            collector.report("when-expression must have at most 1 'else' entry", ctx.span())
-            return whenArg
+            collector.report("when-statement must have at most 1 'else' entry", ctx.span())
+            return
         }
 
         val start = LstWhenStart(
@@ -1623,28 +1787,33 @@ class AstParser(
             if (key.expression() != null) {
                 val keyRef = processExpression(key.expression(), code)
 
-                val cond = LstFunCall(
-                    ref = code.nextRef(),
-                    span = ctx.span(),
-                    block = code.currentBlock,
-                    name = "is_equal",
-                    path = "",
-                    arguments = listOf(whenArg, keyRef),
-                )
-                code.nodes += cond
+                val condRef = if (whenArg != null) {
+                    val cond = LstFunCall(
+                        ref = code.nextRef(),
+                        span = key.expression().span(),
+                        block = code.currentBlock,
+                        name = "is_equal",
+                        path = "",
+                        arguments = listOf(whenArg, keyRef),
+                    )
+                    code.nodes += cond
+                    cond.ref
+                } else {
+                    keyRef
+                }
 
                 code.nodes += LstIfStart(
                     ref = code.nextRef(),
-                    span = ctx.span(),
+                    span = key.expression().span(),
                     block = code.currentBlock,
-                    cond = cond.ref
+                    cond = condRef,
                 )
 
                 val prevIfBlock = code.currentBlock
                 code.currentBlock = code.createBlock()
 
                 if (entry.expression() != null) {
-                    processExpression(entry.expression(), code)
+                    processExpression(entry.expression(), code) to entry.expression().span()
 
                 } else if (entry.statementBlock() != null) {
                     processStatementBlock(entry.statementBlock(), code)
@@ -1655,7 +1824,7 @@ class AstParser(
 
                 code.nodes += LstWhenJump(
                     ref = code.nextRef(),
-                    span = ctx.span(),
+                    span = entry.span(),
                     block = code.currentBlock,
                     whenBlock = whenBlock,
                 )
@@ -1665,7 +1834,7 @@ class AstParser(
 
                 code.nodes += LstIfEnd(
                     ref = code.nextRef(),
-                    span = ctx.span(),
+                    span = entry.span(),
                     block = code.currentBlock,
                 )
 
@@ -1675,7 +1844,7 @@ class AstParser(
                 }
 
                 if (entry.expression() != null) {
-                    processExpression(entry.expression(), code)
+                    processExpression(entry.expression(), code) to entry.expression().span()
 
                 } else if (entry.statementBlock() != null) {
                     processStatementBlock(entry.statementBlock(), code)
@@ -1696,8 +1865,6 @@ class AstParser(
             span = ctx.span(),
             block = code.currentBlock,
         )
-
-        return start.ref
     }
 
     private fun processExpressionListExpr(ctx: ListExprContext, code: LstCode): Ref {
@@ -1908,7 +2075,7 @@ class AstParser(
             block = code.currentBlock
         )
 
-        val choose = LstChoose(
+        val choose = LstIfChoose(
             ref = code.nextRef(),
             span = ctx.span(),
             block = code.currentBlock,
@@ -2703,6 +2870,10 @@ class AstParser(
                 code.continueNodes = prevContinueNodes
             }
 
+            stm.whenExpr() != null -> {
+                processExpressionWhenStatement(stm.whenExpr(), code)
+            }
+
             stm.expressionStatement() != null -> {
                 val subCtx = stm.expressionStatement()
 
@@ -3005,6 +3176,16 @@ class AstParser(
             .filter { it.type == null && !it.hasTypeError }
             .forEach { node -> processNodeExpression(node, code) }
 
+        // Check if and when conditions
+        code.nodes.filterIsInstance<LstIfStart>()
+            .forEach { node ->
+                val cond = code.getNode(node.cond).asExpr(node) ?: return
+
+                if (!cond.hasTypeError && cond.type != null && !cond.type!!.isBoolean()) {
+                    collector.report("Condition must be a boolean, '${cond.type}' found", cond.span)
+                }
+            }
+
         // Flag errors
         code.variables.values.forEach { variable ->
 
@@ -3127,18 +3308,9 @@ class AstParser(
                 node.type = finalType
             }
 
-            is LstChoose -> {
-                val ifTrue = code.getNode(node.ifTrue)
-                val ifFalse = code.getNode(node.ifFalse)
-
-                if (ifTrue !is LstExpression || ifFalse !is LstExpression) {
-                    collector.report(
-                        "Choice has invalid ref: not an expression ($ifTrue | $ifFalse)",
-                        node.span
-                    )
-                    node.propagateTypeError()
-                    return
-                }
+            is LstIfChoose -> {
+                val ifTrue = code.getNode(node.ifTrue).asExpr(node) ?: return
+                val ifFalse = code.getNode(node.ifFalse).asExpr(node) ?: return
 
                 // Propagate errors
                 if (ifTrue.hasTypeError || ifFalse.hasTypeError) {
@@ -3199,16 +3371,7 @@ class AstParser(
             }
 
             is LstStoreVar -> {
-                val value = code.getNode(node.expr)
-
-                if (value !is LstExpression) {
-                    collector.report(
-                        "StoreVar has invalid ref: not an expression ($value)",
-                        node.span
-                    )
-                    node.propagateTypeError()
-                    return
-                }
+                val value = code.getNode(node.expr).asExpr(node) ?: return
 
                 // Propagate errors
                 if (value.hasTypeError || value.type == null) {
@@ -3271,16 +3434,7 @@ class AstParser(
             }
 
             is LstLoadField -> {
-                val instance = code.getNode(node.instance)
-
-                if (instance !is LstExpression) {
-                    collector.report(
-                        "LstLoadField has invalid ref: not an expression ($instance)",
-                        node.span
-                    )
-                    node.propagateTypeError()
-                    return
-                }
+                val instance = code.getNode(node.instance).asExpr(node) ?: return
 
                 // Propagate errors
                 if (instance.hasTypeError) {
@@ -3343,17 +3497,8 @@ class AstParser(
             }
 
             is LstStoreField -> {
-                val instance = code.getNode(node.instance)
-                val value = code.getNode(node.expr)
-
-                if (instance !is LstExpression || value !is LstExpression) {
-                    collector.report(
-                        "LstLoadField has invalid ref: not an expression ($instance | $value)",
-                        node.span
-                    )
-                    node.propagateTypeError()
-                    return
-                }
+                val instance = code.getNode(node.instance).asExpr(node) ?: return
+                val value = code.getNode(node.expr).asExpr(node) ?: return
 
                 // Propagate errors
                 if (instance.hasTypeError || value.hasTypeError) {
@@ -3547,16 +3692,7 @@ class AstParser(
 
             is LstReturn -> {
                 node.type = typeOf("Nothing")
-                val value = code.getNode(node.expr)
-
-                if (value !is LstExpression) {
-                    collector.report(
-                        "LstReturn has invalid ref: not an expression ($value)",
-                        node.span
-                    )
-                    node.propagateTypeError()
-                    return
-                }
+                val value = code.getNode(node.expr).asExpr(node) ?: return
 
                 // Propagate errors
                 if (value.hasTypeError) {
@@ -3589,6 +3725,15 @@ class AstParser(
                 }
             }
         }
+    }
+
+    private fun LstNode.asExpr(ctx: LstNode): LstExpression? {
+        if (this !is LstExpression) {
+            collector.report("Invalid ref: not an expression $this", ctx.span)
+            (ctx as? LstExpression)?.propagateTypeError()
+            return null
+        }
+        return this
     }
 
     private fun commonType(a: TypeTree, b: TypeTree): TypeTree {

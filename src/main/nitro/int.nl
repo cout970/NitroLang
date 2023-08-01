@@ -78,7 +78,7 @@ fun Int.bitwise_count_nonzero_bits(): Int {}
 
 @Extern $[lib: "core", name: "int_is_equal_int"]
 @WasmInline $[opcode: "i32.eq"]
-fun Int.is_equal(other: Int): Int {}
+fun Int.is_equal(other: Int): Boolean {}
 
 @Extern $[lib: "core", name: "int_is_not_equal_int"]
 @WasmInline $[opcode: "i32.ne"]

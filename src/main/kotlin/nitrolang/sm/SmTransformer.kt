@@ -311,7 +311,7 @@ class SmTransformer(
                 output.inst += SmEnd(span = node.span)
             }
 
-            is LstChoose -> {
+            is LstIfChoose -> {
                 mark(node.toString())
                 val type = node.type!!
 
