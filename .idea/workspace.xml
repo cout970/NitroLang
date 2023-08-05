@@ -4,17 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add basic when expression (no value return yet)">
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Improve when expression and add when statements">
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Other.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/types/TypeChecking.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/int.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmCompiler.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/SmNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/sm/SmTransformer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/SmTransformer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/string.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/string.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,8 +80,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin File" />
         <option value="Kotlin Class" />
+        <option value="Kotlin File" />
       </list>
     </option>
   </component>
@@ -92,22 +102,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Data/Dev/3D/custom&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.fileTypes&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Downloaded.Files.Path.Enabled": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/Data/Dev/3D/custom",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "preferences.keymap"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/tests/internal/expression" />
@@ -117,6 +127,8 @@
       <recent name="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing" />
+      <recent name="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm" />
       <recent name="$PROJECT_DIR$/tests/internal/statement" />
     </key>
     <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
@@ -361,7 +373,14 @@
       <option name="project" value="LOCAL" />
       <updated>1690744015225</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Improve when expression and add when statements">
+      <created>1690850751661</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1690850751661</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -379,6 +398,18 @@
     <MESSAGE value="Add string interpolation&#10;Rename alloc() to memory_alloc()" />
     <MESSAGE value="Rename Unit to Nothing" />
     <MESSAGE value="Add basic when expression (no value return yet)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add basic when expression (no value return yet)" />
+    <MESSAGE value="Improve when expression and add when statements" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve when expression and add when statements" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="kotlin-line">
+          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/types/TypeChecking.kt</url>
+          <line>1019</line>
+          <option name="timeStamp" value="12" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

@@ -24,6 +24,8 @@ data class TypeTree(
 
     fun isGeneric(): Boolean = base is ParamType
 
+    fun isUnresolved(): Boolean = base is UnresolvedType
+
     fun hasUnresolved(): Boolean = base is UnresolvedType || params.any { it.hasUnresolved() }
 
     override fun toString(): String {

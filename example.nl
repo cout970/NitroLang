@@ -17,50 +17,30 @@
 //    }
 //}
 
-
-@Export $[name: "recursive"]
-fun recursive(a: Int ) {
-    println("- $a")
-}
-
-// TODO not working
-//fun Int.get_ordering2(other: Int): Ordering {
-//    ret when {
-//        this.is_equal(other) -> Ordering::Equals $[]
-//        this.greater_than_signed(other) -> Ordering::Greater $[]
-//        else -> Ordering::Less $[]
-//    }
+//@Export $[name: "recursive"]
+//fun recursive(a: Int ) {
+//    println("- $a")
 //}
 
 fun main() {
-    println("\n\n\n\n")
-
-    repeat 3 {
-        println("current: $it")
-
-        when {
-            it == 1 -> println("  1")
-            it == 2 -> println("  2")
-            else -> println("  else")
-        }
-
-        when it {
-            1 -> println("  1")
-            2 -> println("  2")
-            else -> println("  else")
-        }
-
-        let a = when it {
-            1 -> "  1"
-            2 -> "  2"
-            else -> "  else"
-        }
-        println(a)
-        println("")
-    }
-
-    println("\n\n\n\n")
-
+    #[Ordering::Equals $[], Ordering::Greater $[]]
+//    println("\n\n\n\n")
+//
+//    repeat 3 {
+//        println("current: $it")
+//
+//        // Bug 'a' has type List<Ordering::Equals> instead of List<Ordering::Greater>
+//        let a = when it {
+//            1 -> #[Ordering::Equals $[], Ordering::Greater $[]]
+//            2 -> #[]
+//            else -> #[]
+//        }
+////        println(a)
+//        println("")
+//    }
+//
+//    println("\n\n\n\n")
+//
 //    let config = json {
 //      firstName: "John"
 //      lastName: "Smith"

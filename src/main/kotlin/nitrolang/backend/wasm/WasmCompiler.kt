@@ -1,11 +1,10 @@
 package nitrolang.backend.wasm
 
-import nitrolang.ANNOTATION_EXPORT
-import nitrolang.ANNOTATION_EXTERN
-import nitrolang.MAIN_FUNCTION_NAME
-import nitrolang.ANNOTATION_WASM_INLINE
+import nitrolang.parsing.ANNOTATION_EXPORT
+import nitrolang.parsing.ANNOTATION_EXTERN
+import nitrolang.parsing.MAIN_FUNCTION_NAME
+import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.ast.*
-import nitrolang.sm.*
 import nitrolang.util.ErrorCollector
 import nitrolang.util.indent
 import java.lang.Appendable

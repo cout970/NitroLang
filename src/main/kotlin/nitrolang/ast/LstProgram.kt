@@ -3,10 +3,10 @@ package nitrolang.ast
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import nitrolang.ANNOTATION_EXTERN
-import nitrolang.sm.ConstString
-import nitrolang.sm.ConstValue
-import nitrolang.sm.SmCode
+import nitrolang.parsing.ANNOTATION_EXTERN
+import nitrolang.backend.wasm.ConstString
+import nitrolang.backend.wasm.ConstValue
+import nitrolang.backend.wasm.SmCode
 import nitrolang.util.Dumpable
 import nitrolang.util.Span
 import nitrolang.util.dump
@@ -18,6 +18,9 @@ class LstProgram : Dumpable {
     val consts = mutableMapOf<ConstRef, LstConst>()
     val functions = mutableMapOf<FunRef, LstFunction>()
     val definedNames = mutableMapOf<Path, Span>()
+
+    val includedFiles = mutableSetOf<String>()
+
     private var lastStruct = 0
     private var lastOption = 0
     private var lastConst = 0

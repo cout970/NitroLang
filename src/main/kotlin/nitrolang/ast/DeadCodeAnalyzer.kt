@@ -1,7 +1,7 @@
 package nitrolang.ast
 
-import nitrolang.ANNOTATION_REQUIRED
-import nitrolang.MAIN_FUNCTION_NAME
+import nitrolang.parsing.ANNOTATION_REQUIRED
+import nitrolang.parsing.MAIN_FUNCTION_NAME
 
 class DeadCodeAnalyzer(val program: LstProgram) {
     private val visited = mutableSetOf<LstFunction>()

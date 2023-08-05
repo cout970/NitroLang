@@ -2,6 +2,7 @@ package nitrolang
 
 import nitrolang.ast.LstProgram
 import nitrolang.backend.wasm.WasmCompiler
+import nitrolang.parsing.AstParser
 import nitrolang.util.ErrorCollector
 import nitrolang.util.SourceFile
 import java.io.File
@@ -24,6 +25,7 @@ fun main() {
 
 fun watch(file: File, changed: () -> Unit) {
     val fs = FileSystems.getDefault()
+
     fs.newWatchService().use { ws ->
         val key = fs.getPath(file.absoluteFile.parent).register(ws, StandardWatchEventKinds.ENTRY_MODIFY)
 

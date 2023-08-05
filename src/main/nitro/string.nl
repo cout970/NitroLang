@@ -41,8 +41,8 @@ fun String.concat(char: Char): String {}
 fun String.get_hash(): Int {
     let hash: Int = 0
 
-    repeat this.codepoint_len() {
-        hash = (31 * hash).bitwise_xor(this[it].to_int())
+    repeat this.byte_len() {
+        hash = (31 * hash).bitwise_xor(this.get_byte(it))
     }
 
     ret hash

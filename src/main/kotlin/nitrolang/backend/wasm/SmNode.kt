@@ -1,4 +1,4 @@
-package nitrolang.sm
+package nitrolang.backend.wasm
 
 import nitrolang.ast.Ref
 import nitrolang.ast.TypeTree
@@ -11,7 +11,7 @@ data class ConstInt(val value: Int) : ConstValue()
 data class ConstFloat(val value: Float) : ConstValue()
 data class ConstBoolean(val value: Boolean) : ConstValue()
 data class ConstString(val value: String) : ConstValue()
-object ConstNothing : ConstValue()
+data object ConstNothing : ConstValue()
 
 sealed class SmNode(
     override val span: Span,

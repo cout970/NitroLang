@@ -1,9 +1,8 @@
-package nitrolang.sm
+package nitrolang.backend.wasm
 
-import nitrolang.ANNOTATION_STACK_VALUE
-import nitrolang.ANNOTATION_WASM_INLINE
+import nitrolang.parsing.ANNOTATION_STACK_VALUE
+import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.ast.*
-import nitrolang.backend.wasm.*
 import nitrolang.util.ErrorCollector
 import nitrolang.util.Span
 
@@ -356,11 +355,25 @@ class SmTransformer(
             is LstWhenStart -> {
                 mark(node.toString())
                 output.inst += SmBlock(span = node.span)
+                output.variables += SmLocalVar(
+                    name = node.name,
+                    type = node.type!!,
+                )
             }
 
             is LstWhenEnd -> {
                 mark(node.toString())
                 output.inst += SmEnd(span = node.span)
+                output.inst += SmLoadVar(span = node.span, name = node.start.name, type = node.type!!)
+                store(node, node.type!!)
+            }
+
+            is LstWhenStore -> {
+                mark(node.toString())
+                val value = input.getNode(node.expr) as LstExpression
+
+                load(span = node.span, expr = value, generic = node.type!!.isGeneric())
+                output.inst += SmSaveVar(span = node.span, name = node.start.name, type = node.type!!)
             }
 
             is LstWhenJump -> {

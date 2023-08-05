@@ -1,4 +1,4 @@
-import nitrolang.AstParser
+import nitrolang.parsing.AstParser
 import nitrolang.ast.DeadCodeAnalyzer
 import nitrolang.ast.LstProgram
 import nitrolang.ast.LstProgram.Companion.toJson

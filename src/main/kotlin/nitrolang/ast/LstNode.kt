@@ -192,11 +192,36 @@ data class LstIfEnd(
     }
 }
 
+
+data class LstIfChoose(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val cond: Ref,
+    val ifTrue: Ref,
+    val ifFalse: Ref
+) : LstExpression(ref, span, block) {
+    override fun toString(): String = "$ref = if-choose $cond => $ifTrue | $ifFalse [$type]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Choose".dump())
+        it.add("block", block.dump())
+        it.add("type", type?.dump())
+        it.add("cond", cond.dump())
+        it.add("if_true", ifTrue.dump())
+        it.add("if_false", ifFalse.dump())
+    }
+}
+
 data class LstWhenStart(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
 ) : LstNode(ref, span, block) {
+    val name: String get() = "\$when-${ref.id}"
+    var type: TypeTree? = null
+
     override fun toString(): String {
         return "$ref when"
     }
@@ -226,11 +251,35 @@ data class LstWhenJump(
     }
 }
 
+data class LstWhenStore(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val expr: Ref,
+    val start: LstWhenStart,
+) : LstNode(ref, span, block) {
+    var type: TypeTree? = null
+
+    override fun toString(): String {
+        return "$ref when-store"
+    }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "WhenStore".dump())
+        it.add("block", block.dump())
+    }
+}
+
 data class LstWhenEnd(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
-) : LstNode(ref, span, block) {
+    val variable: LstVar? = null,
+    val branchStores: List<LstWhenStore> = emptyList(),
+    val start: LstWhenStart,
+) : LstExpression(ref, span, block) {
+
     override fun toString(): String {
         return "$ref end-when"
     }
@@ -239,27 +288,6 @@ data class LstWhenEnd(
         it.add("ref", ref.dump())
         it.add("kind", "WhenEnd".dump())
         it.add("block", block.dump())
-    }
-}
-
-data class LstIfChoose(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    val cond: Ref,
-    val ifTrue: Ref,
-    val ifFalse: Ref
-) : LstExpression(ref, span, block) {
-    override fun toString(): String = "$ref = if-choose $cond => $ifTrue | $ifFalse [$type]"
-
-    override fun dump(): JsonElement = JsonObject().also {
-        it.add("ref", ref.dump())
-        it.add("kind", "Choose".dump())
-        it.add("block", block.dump())
-        it.add("type", type?.dump())
-        it.add("cond", cond.dump())
-        it.add("if_true", ifTrue.dump())
-        it.add("if_false", ifFalse.dump())
     }
 }
 
@@ -571,9 +599,13 @@ class LstFunCall(
     var funRef: FunRef? = null
     var function: LstFunction? = null
     var concreteTypeParams: List<TypeTree>? = null
+    var concreteParamTypes: List<TypeTree>? = null
     val fullName: Path get() = createPath(path, name)
 
-    override fun toString(): String = "$ref = call $name ($funRef, args: $arguments) [$type]"
+    override fun toString(): String {
+        return "$ref = call $name ($funRef, args: $arguments) " +
+                "[(${concreteParamTypes?.joinToString(", ")}) -> $type]"
+    }
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -584,6 +616,7 @@ class LstFunCall(
         it.add("func_ref", funRef?.dump())
         it.add("args", arguments.dump())
         it.add("concrete_type_params", concreteTypeParams?.dump())
+        it.add("concreteParamTypes", concreteParamTypes?.dump())
     }
 }
 

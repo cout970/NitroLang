@@ -54,7 +54,7 @@ export function memory_copy(src: number, dst: number, len: number) {
 
 // string.nl
 
-export function string_len(a: number): number {
+export function string_codepoint_len(a: number): number {
     let str = getString(a);
     let chars = Array.from(str);
     return chars.length;
