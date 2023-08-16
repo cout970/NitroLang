@@ -24,8 +24,8 @@ Intended for the developers
 
 ### Other features to implement
 - Unary prefix minus and plus `+5`, `-7`
-- When expression `when { x > 10 -> 1, x == 10 -> 2, else -> 3}`
 - Implicit Interfaces
 - Runtime reflection
 - Thousands of other ideas...
 - Fix `a\n.func()`
+- Fix Float -> #Item (Float as (i32, i32))

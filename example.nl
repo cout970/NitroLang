@@ -17,13 +17,19 @@
 //    }
 //}
 
-//@Export $[name: "recursive"]
-//fun recursive(a: Int ) {
-//    println("- $a")
+//interface ToString {
+//    fun This.to_string(): String
 //}
 
 fun main() {
-    #[Ordering::Equals $[], Ordering::Greater $[]]
+    let a = #[
+        Some(Ordering::Equals $[])
+        Some(Ordering::Greater $[])
+        None<Ordering>()
+    ]
+
+//    a.add()
+//    a.add()
 //    println("\n\n\n\n")
 //
 //    repeat 3 {

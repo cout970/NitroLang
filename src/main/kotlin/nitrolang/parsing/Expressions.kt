@@ -1255,6 +1255,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
 }
 
 fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
+    val listType = program.nextUnresolvedTypeRef()
     val list = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
@@ -1262,24 +1263,39 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
         name = "create_list",
         path = "",
         arguments = emptyList(),
-        specifiedTypeParams = listOf(TypeUsage.unresolved(program.nextUnresolvedTypeRef())),
+        specifiedTypeParams = listOf(TypeUsage.unresolved(listType)),
     )
     code.nodes += list
 
-    ctx.listEntry().forEach { item ->
-        val span = item.expression().span()
+    val expressions = mutableListOf<Ref>()
 
+    val hint = LstTypeInferenceHint(
+        ref = code.nextRef(),
+        span = ctx.span(),
+        block = code.currentBlock,
+        unresolved = listType,
+        expressions = expressions,
+    )
+
+    ctx.listEntry().forEach { item ->
         val itemRef = processExpression(item.expression())
 
-        code.nodes += LstFunCall(
+        expressions += itemRef
+
+        val delayed = LstFunCall(
             ref = code.nextRef(),
-            span = span,
+            span = item.expression().span(),
             block = code.currentBlock,
             name = "add",
             path = "",
-            arguments = listOf(list.ref, itemRef)
+            arguments = listOf(list.ref, itemRef),
+            delayTypeCheckingUntil = hint,
         )
+        code.nodes += delayed
+        hint.delayed += delayed.ref
     }
+
+    code.nodes += hint
 
     return list.ref
 }

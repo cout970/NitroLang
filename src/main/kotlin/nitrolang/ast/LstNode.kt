@@ -562,6 +562,26 @@ data class LstStoreField(
     }
 }
 
+data class LstTypeInferenceHint(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val unresolved: UnresolvedTypeRef,
+    val expressions: List<Ref>,
+) : LstNode(ref, span, block) {
+    var isResolved: Boolean = false
+    var resolvedType: TypeTree? = null
+    val delayed = mutableListOf<Ref>()
+
+    override fun toString(): String = "$ref type-hint $unresolved $expressions"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "TypeInferenceHint".dump())
+        it.add("block", block.dump())
+    }
+}
+
 data class LstAlloc(
     override val ref: Ref,
     override val span: Span,
@@ -595,6 +615,7 @@ class LstFunCall(
     val path: Path,
     val arguments: List<Ref>,
     val specifiedTypeParams: List<TypeUsage> = emptyList(),
+    val delayTypeCheckingUntil: LstTypeInferenceHint? = null,
 ) : LstExpression(ref, span, block) {
     var funRef: FunRef? = null
     var function: LstFunction? = null

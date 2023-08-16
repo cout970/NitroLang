@@ -189,6 +189,30 @@ fun ParserCtx.typeCheckCode(code: LstCode) {
                 }
             }
 
+            is LstTypeInferenceHint -> {
+                val exprs = node.expressions.map {
+                    code.getNode(it).asExpr(node) ?: return
+                }
+
+                val types = exprs.mapNotNull { it.type }
+                val commonType = multiCommonType(types)
+
+                node.isResolved = true
+                node.resolvedType = commonType
+
+                if (!commonType.isInvalid()) {
+                    replaceAllUnresolved(code, mapOf(node.unresolved to commonType))
+                }
+
+                node.delayed.forEach { delayedRef ->
+                    val delayedExpr = code.getNode(delayedRef).asExpr(node) ?: return
+
+                    if (delayedExpr.type == null && !delayedExpr.hasTypeError) {
+                        typeCheckNodeExpression(delayedExpr, code)
+                    }
+                }
+            }
+
             is LstExpression -> {
                 if (node.type == null && !node.hasTypeError) typeCheckNodeExpression(node, code)
             }
@@ -665,6 +689,9 @@ fun ParserCtx.typeCheckNodeExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstFunCall -> {
+            if (node.delayTypeCheckingUntil != null && !node.delayTypeCheckingUntil.isResolved) {
+                return
+            }
             val args = node.arguments.map { argRef ->
                 val argNode = code.getNode(argRef)
                 argNode as? LstExpression ?: error("Expression expected: $argNode")
@@ -751,18 +778,16 @@ fun ParserCtx.typeCheckNodeExpression(node: LstExpression, code: LstCode) {
                 replaceTypeParams(param.type!!, replacements)
             }
 
-            val argsTypes = args.map {
-                replaceTypeParams(it.type!!, replacements)
-            }
-
             node.concreteParamTypes = paramsTypes
 
-            paramsTypes.zip(argsTypes).forEachIndexed { index, (param, arg) ->
-                if (!canBeAssignedTo(param, arg)) {
+            paramsTypes.zip(args).forEachIndexed { index, (param, arg) ->
+                val argType = replaceTypeParams(arg.type!!, replacements)
+
+                if (!canBeAssignedTo(param, argType)) {
                     collector.report(
-                        "Type mismatch calling function '${function.name}', param ${index + 1} expects '${param}', " +
-                                "but '${arg}' was found instead",
-                        args[index].span
+                        "Type mismatch calling function '${function.name}', param $index expects '${param}', " +
+                                "but '${argType}' was found instead",
+                        arg.span
                     )
                 }
             }
@@ -960,6 +985,7 @@ fun ParserCtx.extractUnresolvedReplacements(
 
         if (prev != null && prev != usedParam) {
             collector.report("Type conflict, '$ref': '$prev' vs '$usedParam'", span)
+            continue
         }
 
         replacements[ref] = usedParam
@@ -1017,18 +1043,22 @@ fun ParserCtx.extractTypeReplacements(
         val prev = replacements[ref]
 
         if (prev != null && !prev.hasUnresolved() && !newReplacement.hasUnresolved()) {
-            // TODO: BUG #[Ordering::Equals $[], Ordering::Greater $[]]
-            val common = commonType(prev, newReplacement)
-
-            if (common.isInvalid() || !canBeAssignedTo(common, newReplacement)) {
-                collector.report(
-                    "Type conflict, multiple conflicting alternatives to resolve '${defParam.base.param}', " +
-                            "'$prev' vs '$newReplacement'", span
-                )
+            if (!prev.isInvalid()) {
                 continue
-            } else {
-                newReplacement = common
             }
+            // TODO: BUG #[Ordering::Equals $[], Ordering::Greater $[]]
+//            val common = commonType(prev, newReplacement)
+//            val common = prev
+//
+//            if (common.isInvalid() || !canBeAssignedTo(common, newReplacement)) {
+//                collector.report(
+//                    "Type conflict, multiple conflicting alternatives to resolve '${defParam.base.param}', " +
+//                            "'$prev' vs '$newReplacement'", span
+//                )
+//                continue
+//            } else {
+//                newReplacement = common
+//            }
         }
 
         replacements[ref] = newReplacement

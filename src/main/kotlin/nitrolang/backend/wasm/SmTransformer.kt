@@ -110,6 +110,9 @@ class SmTransformer(
 
     private fun transformNode(node: LstNode) {
         when (node) {
+            is LstTypeInferenceHint -> {
+                // Nothing
+            }
             is LstComment -> {
                 mark(node.comment)
                 output.inst += SmNop(

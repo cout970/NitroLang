@@ -318,11 +318,16 @@ class LstCode : Dumpable {
         it.add("nodes", nodes.dump())
     }
 
-    override fun toString(): String {
+    fun toPrettyString(): String {
         return "LstCode {\n" +
                 "  variables=${formatItem(variables.values)}\n" +
                 "  nodes=${formatItem(nodes)}\n" +
                 "}"
+    }
+
+    override fun toString(): String {
+        // Printing all the variables and nodes slows down the debugger
+        return "LstCode ()"
     }
 }
 
