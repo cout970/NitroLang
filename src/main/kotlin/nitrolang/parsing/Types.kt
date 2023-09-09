@@ -5,6 +5,8 @@ import nitrolang.ast.TypeParameter
 import nitrolang.ast.TypeUsage
 import nitrolang.gen.MainParser
 
+const val THIS_TYPE = "This"
+
 fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
 
     if (ctx.typeParameter() != null) {
@@ -31,6 +33,18 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             sub = emptyList(),
             modifier = TypeUsage.Modifier.NONE,
             typeParameter = typeParameterRef,
+            currentPath = currentPath(ctx)
+        )
+    }
+
+    if (ctx.THIS_TYPE() != null) {
+        return TypeUsage(
+            span = ctx.span(),
+            name = THIS_TYPE,
+            path = "",
+            sub = emptyList(),
+            modifier = TypeUsage.Modifier.NONE,
+            typeParameter = null,
             currentPath = currentPath(ctx)
         )
     }

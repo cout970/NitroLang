@@ -5,6 +5,7 @@ import nitrolang.ast.LstAnnotation
 import nitrolang.ast.Ref
 import nitrolang.backend.wasm.ConstValue
 import nitrolang.gen.MainParser
+import nitrolang.gen.MainParser.*
 import nitrolang.util.Span
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.misc.Interval
@@ -13,16 +14,24 @@ import org.antlr.v4.runtime.tree.TerminalNode
 fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
 
     val annotations = when (ctx.parent) {
-        is MainParser.ParseFunctionDefinitionContext -> {
-            (ctx.parent as MainParser.ParseFunctionDefinitionContext).annotation()
+        is ParseFunctionDefinitionContext -> {
+            (ctx.parent as ParseFunctionDefinitionContext).annotation()
         }
 
-        is MainParser.DefinitionChoiceContext -> {
-            ((ctx.parent as MainParser.DefinitionChoiceContext).parent as MainParser.DefinitionContext).annotation()
+        is DefinitionChoiceContext -> {
+            ((ctx.parent as DefinitionChoiceContext).parent as DefinitionContext).annotation()
+        }
+
+        is FunctionDefinitionContext -> {
+            (((ctx.parent as FunctionDefinitionContext).parent as DefinitionChoiceContext).parent as DefinitionContext).annotation()
+        }
+
+        is TagDefinitionFunctionContext -> {
+            (ctx.parent as TagDefinitionFunctionContext).annotation()
         }
 
         else -> {
-            error("Unknown context to extract annotations: $ctx, parent: ${ctx.parent}")
+            error("Unknown context to extract annotations: ${ctx.javaClass}, parent: ${ctx.parent.javaClass}")
         }
     }
 
@@ -56,9 +65,9 @@ fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
 }
 
 fun ParserCtx.resolvePrecedence(
-    exprs: List<MainParser.ExpressionSimpleContext>,
-    ops: List<Pair<MainParser.BinaryOperatorContext, Span>>,
-    func: (MainParser.ExpressionSimpleContext) -> Ref
+    exprs: List<ExpressionSimpleContext>,
+    ops: List<Pair<BinaryOperatorContext, Span>>,
+    func: (ExpressionSimpleContext) -> Ref
 ): Ref {
     if (ops.isEmpty()) {
         return func(exprs.first())
@@ -115,7 +124,7 @@ private fun resolvePrecedence(
     return exprStack.removeLast()
 }
 
-fun ParserCtx.getBinaryOperator(ctx: MainParser.BinaryOperatorContext): ExpressionTree.Operator {
+fun ParserCtx.getBinaryOperator(ctx: BinaryOperatorContext): ExpressionTree.Operator {
     return when {
         ctx.MUL() != null -> ExpressionTree.Operator.MUL
         ctx.DIV() != null -> ExpressionTree.Operator.DIV

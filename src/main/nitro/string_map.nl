@@ -17,6 +17,8 @@ fun create_string_map(): StringMap<#Value> {
 }
 
 fun StringMap<#Value>.set(key: String, value: #Value) {
+    println("set");
+
     // Grow table
     if this.len.to_float() >= this.table.len().to_float() * 0.75 {
         let old_table = this.table
@@ -60,11 +62,14 @@ fun StringMap<#Value>.set(key: String, value: #Value) {
             if opt.is_none() {
                 this.len = this.len + 1
             }
+            println("set-return-nothing");
             ret nothing
         }
 
         index = index + 1
     }
+
+    println("set-end");
 
     crash("No empty entry in table!")
 }

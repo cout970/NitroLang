@@ -46,6 +46,13 @@ data class FunRef(val id: Int) : Dumpable {
     override fun dump(): JsonElement = toString().dump()
 }
 
+data class TagRef(val id: Int) : Dumpable {
+
+    override fun toString(): String = "tag#$id"
+
+    override fun dump(): JsonElement = toString().dump()
+}
+
 data class TypeRef(val id: Int) : Dumpable {
 
     override fun toString(): String = "type#$id"

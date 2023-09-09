@@ -13,35 +13,43 @@ fun create_list<#Item>(): List<#Item> {
     ]
 }
 
-fun List<#Item>.add(item: #Item) {
+fun List<#Item>.add(value: #Item) {
     // Expand list
     if this.len + 1 > this.capacity {
         // Double or initialize to 16
         let new_capacity: Int = max(this.capacity, 8) * 2
         let new_data: Int = memory_alloc(new_capacity * size_of<#Item>)
 
-        memory_copy(this.data, new_data, this.capacity)
+        if (this.capacity > 0) {
+            memory_copy(this.data, new_data, this.capacity)
+        }
 
         this.data = new_data
         this.capacity = new_capacity
     }
 
-    memory_write(this.data + this.len * size_of<#Item>, item)
+    let ptr_in_list = this.data + this.len * size_of<#Item>
+    memory_write_int(ptr_in_list, ptr_of(value))
     this.len = this.len + 1
 }
 
 fun List<#Item>.get(index: Int): #Item {
     if index < 0 || index >= this.len {
-        crash("Invalid list index: ".concat(index.to_string()).concat(" len: ").concat(this.len.to_string()))
+        crash("Invalid list index: $index, len: ${this.len}")
     }
-    ret memory_read<#Item>(this.data +  index * size_of<#Item>)
+
+    let ptr_in_list = this.data + index * size_of<#Item>
+    let ptr = memory_read_int(ptr_in_list)
+    ret ptr
 }
 
 fun List<#Item>.set(index: Int, value: #Item) {
     if index < 0 || index >= this.len {
-        crash("Invalid list index: ".concat(index.to_string()).concat(" len: ").concat(this.len.to_string()))
+        crash("Invalid list index: $index, len: ${this.len}")
     }
-    memory_write<#Item>(this.data +  index * size_of<#Item>, value)
+
+    let ptr_in_list = this.data + index * size_of<#Item>
+    memory_write_int(ptr_in_list, ptr_of(value))
 }
 
 fun List<#Item>.len(): Int {
@@ -53,15 +61,15 @@ fun List<#Item>.is_empty(): Boolean = this.len == 0
 fun List<#Item>.is_not_empty(): Boolean = this.len != 0
 
 fun println(a: List<Int>) {
-    println("List (".concat(a.len().to_string()).concat("):"))
+    println("List (${a.len()}):")
     repeat a.len() {
-        println("  - ".concat(a.get(it).to_string()))
+        println("  - ${a.get(it)}")
     }
 }
 
 fun println(a: List<String>) {
-    println("List (".concat(a.len().to_string()).concat("):"))
+    println("List (${a.len()}):")
     repeat a.len() {
-        println("  - ".concat(a.get(it)))
+        println("  - ${a.get(it)}")
     }
 }

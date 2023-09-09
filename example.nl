@@ -1,132 +1,22 @@
-//struct Box<#T> {
-//    value: #T
-//    value2: #T
-//}
-//
-//option A {
-//    B {}
-//    C {
-//        a: Int
-//    }
-//}
-//
-//fun println(a: List<Int>) {
-//    println("List (".concat(a.len().to_string()).concat("):"))
-//    repeat a.len() {
-//        println("  - ".concat(a[it].to_string()))
-//    }
-//}
-
-//interface ToString {
-//    fun This.to_string(): String
-//}
+struct BigStruct {
+    a: Int
+    b: Int
+    c: Int
+}
 
 fun main() {
-    let a = #[
-        Some(Ordering::Equals $[])
-        Some(Ordering::Greater $[])
-        None<Ordering>()
-    ]
+    let list = create_list<Int>()
+    list[] = 42
+    list[] = 69
 
-//    a.add()
-//    a.add()
-//    println("\n\n\n\n")
-//
-//    repeat 3 {
-//        println("current: $it")
-//
-//        // Bug 'a' has type List<Ordering::Equals> instead of List<Ordering::Greater>
-//        let a = when it {
-//            1 -> #[Ordering::Equals $[], Ordering::Greater $[]]
-//            2 -> #[]
-//            else -> #[]
-//        }
-////        println(a)
-//        println("")
-//    }
-//
-//    println("\n\n\n\n")
-//
-//    let config = json {
-//      firstName: "John"
-//      lastName: "Smith"
-//      isAlive: true
-//      age: 27
-//      address: {
-//        "streetAddress": "21 2nd Street"
-//        "city": "New York"
-//        "state": "NY"
-//        "postalCode": "10021-3100"
-//      }
-//    }
-//
-//    println(config.to_string())
+    println(list)
+
+    let list = create_list<BigStruct>()
+    let str = BigStruct $[a: 42, b: 2, c: 12]
+    list[] = str
+
+    println(list.get(0).a)
+    println(list.get(0).b)
+    println(list.get(0).c)
 }
-//    let a = #[1, 2, 3]
-//
-//    repeat 7 {
-//        a[] = it
-//    }
-//    a[] = 42
-//
-//    println(a)
-//
-//    repeat a.len() {
-//        println(a.get(it))
-//    }
-
-//    let cond = true
-//    let c: Optional<Int> = if cond { Some(69) } else { None() }
-//
-//    println(c is Optional::Some)
-//    println(c is Optional::None)
-//
-//    let d: Result<Int, Int> = if cond {
-//        Ok(420)
-//    } else {
-//        Err(-1)
-//    }
-//
-//    println(d is Result::Ok)
-//    println(d is Result::Err)
-//    println(d.ok_or_panic())
-//    println(d.err_or_panic())
-
-//    println(fib(40))
-//    println(recFib(40))
-//}
-//
-//fun test(a: #Value): #Value {
-//    ret a
-//}
-//
-//fun test2(a: Box<#Value>): Box<#Value> {
-//    let b = a.value
-//    ret Box $[value: b]
-//}
-//
-//
-//fun fib(count: Int): Int {
-//    let i = 0
-//    let j = 1
-//
-//    while count > 1 {
-//        let aux = i + j
-//        i = j
-//        j = aux
-//        count = count - 1
-//    }
-//
-//    ret j
-//}
-//
-//fun recFib(count: Int): Int {
-//    if count <= 0 {
-//        ret 0
-//    }
-//    if count <= 1 {
-//        ret 1
-//    }
-//
-//    ret recFib(count - 1) + recFib(count - 2)
-//}
+// 1234567

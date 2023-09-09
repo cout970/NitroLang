@@ -353,6 +353,30 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterTagDefinition(MainParser.TagDefinitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTagDefinition(MainParser.TagDefinitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterFunctionDefinition(MainParser.FunctionDefinitionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -360,6 +384,18 @@ public class MainParserBaseListener implements MainParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitFunctionDefinition(MainParser.FunctionDefinitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunctionHeader(MainParser.FunctionHeaderContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunctionHeader(MainParser.FunctionHeaderContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -996,6 +1032,42 @@ public class MainParserBaseListener implements MainParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitSizeOfExpr(MainParser.SizeOfExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPtrOfExpr(MainParser.PtrOfExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPtrOfExpr(MainParser.PtrOfExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMemoryReadExpr(MainParser.MemoryReadExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMemoryReadExpr(MainParser.MemoryReadExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

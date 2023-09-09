@@ -179,11 +179,29 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitOptionDefinitionItem(MainParser.OptionDefinitionItemContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#tagDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTagDefinition(MainParser.TagDefinitionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#tagDefinitionFunction}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitFunctionDefinition(MainParser.FunctionDefinitionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#functionHeader}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionHeader(MainParser.FunctionHeaderContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#functionReceiver}.
 	 * @param ctx the parse tree
@@ -502,6 +520,24 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSizeOfExpr(MainParser.SizeOfExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#ptrOfExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPtrOfExpr(MainParser.PtrOfExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#memoryWriteExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#memoryReadExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMemoryReadExpr(MainParser.MemoryReadExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#notExpr}.
 	 * @param ctx the parse tree

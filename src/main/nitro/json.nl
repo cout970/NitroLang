@@ -54,7 +54,8 @@ fun Json::Null.to_string(): String = "null"
 
 fun Json::Boolean.to_string(): String = this.value.to_string()
 
-fun Json::Number.to_string(): String = this.value.to_string()
+// TODO remove once floats work
+fun Json::Number.to_string(): String = this.value.to_int().to_string()
 
 fun Json::String.to_string(): String = "\"".concat(this.value).concat("\"")
 

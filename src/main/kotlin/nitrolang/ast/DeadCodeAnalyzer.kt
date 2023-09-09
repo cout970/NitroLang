@@ -27,6 +27,14 @@ class DeadCodeAnalyzer(val program: LstProgram) {
         visited += func
         func.isDeadCode = false
 
+        func.tag?.functionInstances?.values?.forEach { newFunc ->
+            newFunc.isDeadCode = false
+
+            if (newFunc !in visited) {
+                visitFunction(newFunc)
+            }
+        }
+
         func.body.nodes.filterIsInstance<LstLoadVar>().forEach {
             if (it.varRef is ConstRef) program.consts[it.varRef]!!.isDeadCode = false
         }

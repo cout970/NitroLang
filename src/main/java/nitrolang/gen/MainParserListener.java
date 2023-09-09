@@ -288,6 +288,26 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitOptionDefinitionItem(MainParser.OptionDefinitionItemContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#tagDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void enterTagDefinition(MainParser.TagDefinitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#tagDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void exitTagDefinition(MainParser.TagDefinitionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#tagDefinitionFunction}.
+	 * @param ctx the parse tree
+	 */
+	void enterTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#tagDefinitionFunction}.
+	 * @param ctx the parse tree
+	 */
+	void exitTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 */
@@ -297,6 +317,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitFunctionDefinition(MainParser.FunctionDefinitionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#functionHeader}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionHeader(MainParser.FunctionHeaderContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#functionHeader}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionHeader(MainParser.FunctionHeaderContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#functionReceiver}.
 	 * @param ctx the parse tree
@@ -827,6 +857,36 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitSizeOfExpr(MainParser.SizeOfExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#ptrOfExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterPtrOfExpr(MainParser.PtrOfExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#ptrOfExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitPtrOfExpr(MainParser.PtrOfExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#memoryWriteExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#memoryWriteExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#memoryReadExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterMemoryReadExpr(MainParser.MemoryReadExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#memoryReadExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitMemoryReadExpr(MainParser.MemoryReadExprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#notExpr}.
 	 * @param ctx the parse tree

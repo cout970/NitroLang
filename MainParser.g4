@@ -57,6 +57,7 @@ definitionChoice
     | aliasDefinition
     | moduleDefinition
     | constDefinition
+    | tagDefinition
     ;
 
 // E.g. include "core:optional.nl"
@@ -116,11 +117,19 @@ optionDefinition
 optionDefinitionItem
     : declaredNameToken structBody?;
 
+tagDefinition
+    : TAG declaredNameToken LBRACE NL* (tagDefinitionFunction (NL+ tagDefinitionFunction)*)? NL* RBRACE ;
+
+tagDefinitionFunction
+    : annotation* functionHeader;
+
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition
-    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL* LPAREN NL*
-    (functionParameter (commaOrNl functionParameter)* COMMA?)? NL*
-    RPAREN NL* functionReturnType? functionBody;
+    : functionHeader NL* functionBody;
+
+functionHeader
+    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL*
+    LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType? ;
 
 // E.g. Int.
 functionReceiver
@@ -128,7 +137,7 @@ functionReceiver
 
 // E.g. : Int
 functionReturnType
-    : COLON typeUsage NL* ;
+    : COLON typeUsage ;
 
 // E.g. count: Int,
 functionParameter
@@ -137,8 +146,8 @@ functionParameter
 // E.g. {}
 // E.g. = 3.14
 functionBody
-    : (statementBlock NL*)
-    | (ASSIGN NL* expression NL*)
+    : statementBlock
+    | ASSIGN NL* expression
     ;
 
 // Statements
@@ -304,6 +313,9 @@ expressionBase
     | lambdaExpr
     | structInstanceExpr
     | sizeOfExpr
+    | ptrOfExpr
+    | memoryWriteExpr
+    | memoryReadExpr
     | variableExpr
     | jsonExpr
     | THIS
@@ -418,6 +430,18 @@ returnExpr
 sizeOfExpr
     : SIZE_OF LTH NL* typeUsage NL* GTH ;
 
+// E.g. ptr_of<Int>
+ptrOfExpr
+    : PTR_OF LPAREN NL* expression NL* RPAREN ;
+
+// E.g. memory_write<Int>(ptr, value)
+memoryWriteExpr
+    : MEMORY_WRITE LTH NL* typeUsage NL* GTH NL* LPAREN NL* expression commaOrNl expression NL* RPAREN ;
+
+// E.g. memory_read<Int>(ptr)
+memoryReadExpr
+    : MEMORY_READ LTH NL* typeUsage NL* GTH NL* LPAREN NL* expression NL* RPAREN ;
+
 // E.g. not true
 notExpr
     : NOT expressionBase ;
@@ -471,6 +495,7 @@ refModifier
 typeUsage
     : typeParameter
     | baseTypeUsage
+    | THIS_TYPE
     | LTH NL* typeUsage NL* GTH
     ;
 

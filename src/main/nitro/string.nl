@@ -65,3 +65,7 @@ fun String.to_string(): String = this
 
 @Extern $[lib: "core", name: "any_to_string"]
 fun #Any.to_string(): String {}
+
+tag ToString {
+    fun This.to_string(): String
+}

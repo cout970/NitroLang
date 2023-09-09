@@ -5,7 +5,8 @@ import nitrolang.gen.MainLexer
 import nitrolang.gen.MainParser
 import nitrolang.gen.MainParser.*
 import nitrolang.gen.MainParserBaseListener
-import nitrolang.types.doTypeChecking
+import nitrolang.typeinference.TypeEnv
+import nitrolang.typeinference.doAllTypeChecking
 import nitrolang.util.ErrorCollector
 import nitrolang.util.SourceFile
 import nitrolang.util.Span
@@ -22,13 +23,17 @@ const val ANNOTATION_STACK_VALUE = "StackValue"
 const val MAIN_FUNCTION_NAME = "main"
 
 data class ParserCtx(
-    val collector: ErrorCollector,
     val source: SourceFile,
     val program: LstProgram,
     val typeParamMap: MutableMap<String, TypeParameter>,
     var allowTypeParamCollection: Boolean,
     var code: LstCode,
 ) {
+    val collector: ErrorCollector = program.collector
+    val typeEnv: TypeEnv = program.typeEnv
+
+    var currentTag: LstTag? = null
+
     fun ParserRuleContext.span(): Span {
         return Span(start.startIndex, stop.stopIndex, this@ParserCtx.source)
     }
@@ -36,7 +41,6 @@ data class ParserCtx(
     fun LstNode.asExpr(ctx: LstNode): LstExpression? {
         if (this !is LstExpression) {
             collector.report("Invalid ref: not an expression $this", ctx.span)
-            (ctx as? LstExpression)?.propagateTypeError()
             return null
         }
         return this
@@ -70,7 +74,7 @@ data class ParserCtx(
 class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
     companion object {
 
-        fun includeFile(ns: String, path: String, collector: ErrorCollector, program: LstProgram): Boolean {
+        fun includeFile(ns: String, path: String, program: LstProgram): Boolean {
             assert(ns == "core") { "Only core is supported for now" }
 
             val realPath = "src/main/nitro/$path"
@@ -83,29 +87,27 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
 
             val source = SourceFile.load(realPath)
             program.includedFiles += absPath
-            return parseFile(source, collector, program, false)
+            return parseFile(source, program, false)
         }
 
         fun parseFile(
             source: SourceFile,
-            collector: ErrorCollector,
             program: LstProgram,
             finalize: Boolean = true
         ): Boolean {
-            val parser = createParser(source, collector)
+            val parser = createParser(source, program.collector)
             val fileCtx = parser.parseFile()
 
-            if (collector.isNotEmpty()) {
+            if (program.collector.isNotEmpty()) {
                 return false
             }
 
             if (fileCtx.exception != null) {
-                collector.report("Parse exception: ${fileCtx.exception}", Span.internal())
+                program.collector.report("Parse exception: ${fileCtx.exception}", Span.internal())
                 return false
             }
 
             val ctx = ParserCtx(
-                collector = collector,
                 source = source,
                 program = program,
                 code = LstCode(),
@@ -117,7 +119,7 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
             ParseTreeWalker().walk(astParser, fileCtx)
 
             if (finalize) {
-                astParser.parserCtx.doTypeChecking()
+                astParser.parserCtx.doAllTypeChecking()
             }
             return true
         }
@@ -170,6 +172,10 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
 
     override fun enterConstDefinition(ctx: ConstDefinitionContext) {
         parserCtx.processConstDefinition(ctx)
+    }
+
+    override fun enterTagDefinition(ctx: TagDefinitionContext) {
+        parserCtx.processTagDefinition(ctx)
     }
 
     override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {

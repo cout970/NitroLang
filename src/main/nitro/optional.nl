@@ -17,3 +17,12 @@ fun Optional<#Value>.get_or_crash(): #Value {
 
     crash("Call to get_or_crash() on None variant")
 }
+
+fun Optional<ToString>.to_string(): String {
+    if this is Optional::Some<ToString> {
+        let value: ToString = (this as Optional::Some<ToString>).value
+        ret "Some(".concat(value.to_string()).concat(")")
+    }
+
+    ret "None"
+}

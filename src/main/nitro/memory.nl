@@ -1,38 +1,61 @@
-
-@Extern $[lib: "core", name: "internal_is_variant"]
-@Required
-fun internal_is_variant(ptr: Int, expected_variant: Int): Boolean {}
-
 @Extern $[lib: "core", name: "memory_alloc"]
 @Required
 fun memory_alloc(bytes: Int): Int {}
 
+@Extern $[lib: "core", name: "memory_write_internal"]
+@Required
+fun memory_write_internal(ptr: Int, value: Int, size: Int) {}
+
+@Extern $[lib: "core", name: "memory_read_internal"]
+@Required
+fun memory_read_internal(ptr: Int, size: Int): Int {}
+
+@Extern $[lib: "core", name: "as_type_internal"]
+@Required
+fun as_type_internal(ptr: Int, ty: Int): Int {}
+
+@Extern $[lib: "core", name: "is_type_internal"]
+@Required
+fun is_type_internal(ptr: Int, ty: Int): Boolean {}
+
+@Extern $[lib: "core", name: "debug"]
+@Required
+fun debug(ptr: Int) {}
+
+//
+
 @Extern $[lib: "core", name: "memory_copy"]
+@Required
 fun memory_copy(src: Int, dst: Int, byte_len: Int) {}
 
-@Extern $[lib: "core", name: "memory_write_generic"]
-fun memory_write(ptr: Int, value: #Value) {}
+@Extern $[lib: "core", name: "memory_write_byte"]
+@Required
+fun memory_write_byte(ptr: Int, value: Int) {}
 
 @Extern $[lib: "core", name: "memory_write_int"]
-fun memory_write(ptr: Int, value: Int) {}
+@Required
+fun memory_write_int(ptr: Int, value: Int) {}
 
 @Extern $[lib: "core", name: "memory_write_float"]
-fun memory_write(ptr: Int): Float {}
+@Required
+fun memory_write_float(ptr: Int, value: Float): Float {}
 
 @Extern $[lib: "core", name: "memory_write_boolean"]
-fun memory_write(ptr: Int, value: Boolean) {}
-
-@Extern $[lib: "core", name: "memory_read_generic"]
-fun memory_read(ptr: Int): #Value {}
+@Required
+fun memory_write_boolean(ptr: Int, value: Boolean) {}
 
 @Extern $[lib: "core", name: "memory_read_byte"]
+@Required
 fun memory_read_byte(ptr: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_read_int"]
+@Required
 fun memory_read_int(ptr: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_read_float"]
+@Required
 fun memory_read_float(ptr: Int): Float {}
 
 @Extern $[lib: "core", name: "memory_read_boolean"]
+@Required
 fun memory_read_boolean(ptr: Int): Boolean {}

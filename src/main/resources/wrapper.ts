@@ -21,6 +21,9 @@ const main = wasmInstance.exports.main as CallableFunction
 
 try {
   main();
+//  for(let i = 0; i < 192; i += 4) {
+//    console.log(`${i.toString().padStart(8, '0')} 0x${i.toString(16).padStart(8, '0')} - ${mem.u8[i+3].toString(16).padStart(2, '0')} ${mem.u8[i+2].toString(16).padStart(2, '0')} ${mem.u8[i+1].toString(16).padStart(2, '0')} ${mem.u8[i].toString(16).padStart(2, '0')}`);
+//  }
 } catch (e) {
   console.error(e);
   Deno.exit(0);

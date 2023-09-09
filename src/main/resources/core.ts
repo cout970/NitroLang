@@ -27,26 +27,63 @@ export function memory_alloc(amount: number): number {
     // Increment next free slot
     setInt(ALLOC_NEXT, next + amount);
 
-    // console.log(`alloc(${amount}) => ${next} ..< ${next + amount}`);
+    // console.debug(`alloc(${amount}) => ${next} ..< ${next + amount}`);
     return next;
 }
 
+export function memory_write_byte(ptr: number, value: number) {
+    mem.u8[ptr | 0] = value & 0xFF;
+}
 export function memory_write_int(ptr: number, value: number) { setInt(ptr, value|0); }
 export function memory_write_boolean(ptr: number, value: number) { setInt(ptr, value|0); }
 export function memory_write_float(ptr: number, value: number) { setInt(ptr, value); }
-export function memory_write_generic(ptr: number, raw: number, type: number) {
-    setInt(ptr, raw);
-    setInt(ptr + PTR_SIZE , type);
+
+export function memory_write_internal(ptr: number, value: number, size: number): number {
+    assert(ptr);
+    console.debug({ptr, value, size});
+    memory_copy(value, ptr, size);
+    return 0;
 }
 
 export function memory_read_byte(ptr: number): number { return getInt(ptr) & 0xFF; }
-export function memory_read_int(ptr: number): number { return getInt(ptr); }
+export function memory_read_int(ptr: number): number {
+    return getInt(ptr);
+}
 export function memory_read_boolean(ptr: number): number { return getInt(ptr); }
 export function memory_read_float(ptr: number): number { return getFloat(ptr); }
-export function memory_read_generic(ptr: number) {
+
+export function memory_read_internal(ptr: number, size: number): number {
     assert(ptr);
-    return [getInt(ptr), getInt(ptr + PTR_SIZE)];
+    const value = memory_alloc(size);
+    memory_copy(ptr, value, size);
+    return value;
 }
+
+// Check the type id of an struct instance
+export function is_type_internal(ptr: number, typeId: number) {
+    assert(ptr);
+    const objTypeId = getInt(ptr);
+    // console.debug('is_type_internal', {ptr, typeId, objTypeId})
+    return objTypeId == typeId ? 1 : 0;
+}
+
+// Cast to another type
+export function as_type_internal(ptr: number, typeId: number) {
+    assert(ptr);
+    const objTypeId = getInt(ptr);
+
+    if (objTypeId != typeId) {
+        throw new Error("Attempt to cast incompatible types: expected: " + typeId + ", found: " + objTypeId);
+    }
+
+    return ptr;
+}
+
+export function debug(ptr: number): number {
+    console.debug(`ptr: ${ptr}`)
+    return 0;
+}
+
 
 export function memory_copy(src: number, dst: number, len: number) {
     mem.u8.copyWithin(dst, src, src + len);
@@ -72,6 +109,10 @@ export function string_concat_string(a: number, b: number): number {
     return createString(getString(a) + getString(b))
 }
 
+export function string_concat_char(a: number, b: number): number {
+    return createString(getString(a) + String.fromCodePoint(b))
+}
+
 export function string_replace(a: number, b: number, c: number): number {
     let base = getString(a);
     let find = getString(b);
@@ -95,10 +136,14 @@ export function any_to_string(ptr: number, ty: number): number {
 // intrinsic.nl
 
 export function internal_is_variant(ptr: number, expected_variant: number): number {
-    // console.log('internal_is_variant', {ptr, variant: getInt(ptr), expected_variant});
+    // console.debug('internal_is_variant', {ptr, variant: getInt(ptr), expected_variant});
     assert(ptr);
     const found: number = getInt(ptr);
     return (found === expected_variant) ? 1 : 0;
+}
+
+export function internal_get_type_id(ptr: number, ty: number): number {
+    return ty;
 }
 
 export function choose(cond: number, a: number, b: number): number {
@@ -158,18 +203,21 @@ export function string_get_ordering_internal(a: number, b: number): number {
 function getString(ptr: number): string {
   assert(ptr);
 
-  const len = getInt(ptr);
-  const bytes = mem.u8.subarray(ptr + 4, ptr + 4 + len);
+  const len = getInt(ptr + 4);
+  const bytes = mem.u8.subarray(ptr + 8, ptr + 8 + len);
 
-  return (new TextDecoder('utf-8', {fatal: true})).decode(bytes);
+  const jsString = (new TextDecoder('utf-8', {fatal: true})).decode(bytes);
+
+  return jsString;
 }
 
 function createString(value: string): number {
     const uint8array = (new TextEncoder()).encode(value);
 
-    const ptr = memory_alloc(uint8array.length + 4);
-    setInt(ptr, uint8array.length);
-    mem.u8.set(uint8array, ptr + 4);
+    const ptr = memory_alloc(uint8array.length + 8);
+    setInt(ptr, 3);
+    setInt(ptr + 4, uint8array.length);
+    mem.u8.set(uint8array, ptr + 8);
 
     return ptr;
 }

@@ -21,3 +21,16 @@ fun crash(msg: String): Never {
     eprintln(msg)
     panic()
 }
+
+// Given a value, extract it's type and gets the size in bytes needed to store it in memory
+fun size_of_value(value: #S): Int {
+    ret size_of<#S>
+}
+
+//@Extern $[lib: "core", name: "internal_is_variant"]
+//@Required
+//fun internal_is_variant(ptr: Int, expected_variant: Int): Boolean {}
+//
+//@Extern $[lib: "core", name: "internal_get_type_id"]
+//@Required
+//fun internal_get_type_id(ptr: #Value): Int {}

@@ -21,7 +21,7 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
                 span = complex.notExpr().span(),
                 block = code.currentBlock,
                 name = "logical_not",
-                path = "core",
+                path = "",
                 arguments = listOf(expr),
             )
             code.nodes += call
@@ -465,6 +465,18 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
 
         ctx.sizeOfExpr() != null -> {
             processExpressionSizeOf(ctx.sizeOfExpr())
+        }
+
+        ctx.ptrOfExpr() != null -> {
+            processExpressionPtrOf(ctx.ptrOfExpr())
+        }
+
+        ctx.memoryWriteExpr() != null -> {
+            processExpressionMemoryWrite(ctx.memoryWriteExpr())
+        }
+
+        ctx.memoryReadExpr() != null -> {
+            processExpressionMemoryRead(ctx.memoryReadExpr())
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
@@ -1269,14 +1281,6 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
 
     val expressions = mutableListOf<Ref>()
 
-    val hint = LstTypeInferenceHint(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        unresolved = listType,
-        expressions = expressions,
-    )
-
     ctx.listEntry().forEach { item ->
         val itemRef = processExpression(item.expression())
 
@@ -1289,13 +1293,9 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
             name = "add",
             path = "",
             arguments = listOf(list.ref, itemRef),
-            delayTypeCheckingUntil = hint,
         )
         code.nodes += delayed
-        hint.delayed += delayed.ref
     }
-
-    code.nodes += hint
 
     return list.ref
 }
@@ -1575,6 +1575,42 @@ fun ParserCtx.processExpressionSizeOf(ctx: MainParser.SizeOfExprContext): Ref {
         span = ctx.span(),
         block = code.currentBlock,
         typeUsage = resolveTypeUsage(ctx.typeUsage()),
+    )
+    code.nodes += node
+    return node.ref
+}
+
+fun ParserCtx.processExpressionMemoryWrite(ctx: MainParser.MemoryWriteExprContext): Ref {
+    val node = LstMemoryWrite(
+        ref = code.nextRef(),
+        span = ctx.span(),
+        block = code.currentBlock,
+        typeUsage = resolveTypeUsage(ctx.typeUsage()),
+        ptrExpr = processExpression(ctx.expression(0)),
+        valueExpr = processExpression(ctx.expression(1)),
+    )
+    code.nodes += node
+    return node.ref
+}
+
+fun ParserCtx.processExpressionPtrOf(ctx: MainParser.PtrOfExprContext): Ref {
+    val node = LstPtrOf(
+        ref = code.nextRef(),
+        span = ctx.span(),
+        block = code.currentBlock,
+        expr = processExpression(ctx.expression()),
+    )
+    code.nodes += node
+    return node.ref
+}
+
+fun ParserCtx.processExpressionMemoryRead(ctx: MainParser.MemoryReadExprContext): Ref {
+    val node = LstMemoryRead(
+        ref = code.nextRef(),
+        span = ctx.span(),
+        block = code.currentBlock,
+        typeUsage = resolveTypeUsage(ctx.typeUsage()),
+        expr = processExpression(ctx.expression()),
     )
     code.nodes += node
     return node.ref

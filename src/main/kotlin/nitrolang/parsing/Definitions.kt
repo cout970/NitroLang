@@ -8,7 +8,7 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
 
     var index = 0
     val fields = ctx.structBody().structField().map { fieldCtx ->
-        LstStructureField(
+        LstStructField(
             span = fieldCtx.nameToken().span(),
             name = fieldCtx.nameToken().text,
             index = index++,
@@ -43,14 +43,14 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     startTypeParams(ctx.typeParamDef())
 
     val mutableTypeParametersList = mutableListOf<TypeParameter>()
-    val options = mutableListOf<StructRef>()
+    val options = mutableListOf<LstStruct>()
     val optionRef = program.nextOptionRef()
 
     ctx.optionDefinitionItem().forEach { opt ->
 
         var index = 0
         val fields = opt.structBody()?.structField()?.map { fieldCtx ->
-            LstStructureField(
+            LstStructField(
                 span = fieldCtx.nameToken().span(),
                 name = fieldCtx.nameToken().text,
                 index = index++,
@@ -84,7 +84,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         struct.parentOption = optionRef
         program.definedNames[struct.fullName] = struct.span
         program.structs[struct.ref] = struct
-        options += struct.ref
+        options += struct
     }
 
     // Type parameters are shared between the option's items and the option type
@@ -94,6 +94,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         span = ctx.declaredNameToken().span(),
         name = ctx.declaredNameToken().text,
         path = currentPath(ctx),
+        itemsRef = options.map { it.ref },
         items = options,
         typeParameters = mutableTypeParametersList,
         annotations = resolveAnnotations(ctx),
@@ -110,7 +111,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     program.options[option.ref] = option
 }
 
-fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContext) {
+fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstFunction {
     startTypeParams(ctx.typeParamDef())
 
     val params = mutableListOf<LstFunctionParam>()
@@ -172,19 +173,6 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
     }
 
     val typeParameters = endTypeParams()
-    code = body
-
-    when {
-        ctx.functionBody().statementBlock() != null -> {
-            processStatementBlock(ctx.functionBody().statementBlock())
-        }
-
-        ctx.functionBody().expression() != null -> {
-            body.lastExpression = processExpression(ctx.functionBody().expression())
-        }
-
-        else -> error("Grammar has been expanded and parser is outdated")
-    }
 
     val annotations = resolveAnnotations(ctx)
     val func = LstFunction(
@@ -201,6 +189,27 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
     )
 
     program.functions[func.ref] = func
+    return func
+}
+
+fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContext): LstFunction {
+    val header = ctx.functionHeader()
+    val func = processFunctionHeader(header)
+
+    code = func.body
+    when {
+        ctx.functionBody().statementBlock() != null -> {
+            processStatementBlock(ctx.functionBody().statementBlock())
+        }
+
+        ctx.functionBody().expression() != null -> {
+            func.body.lastExpression = processExpression(ctx.functionBody().expression())
+        }
+
+        else -> error("Grammar has been expanded and parser is outdated")
+    }
+
+    return func
 }
 
 fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
@@ -233,5 +242,42 @@ fun ParserCtx.processIncludeDefinition(ctx: MainParser.IncludeDefinitionContext)
     val namespace = location.substringBefore(':')
     val path = location.substringAfter(':')
 
-    AstParser.includeFile(namespace, path, collector, program)
+    AstParser.includeFile(namespace, path, program)
+}
+
+fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
+    val annotations = resolveAnnotations(ctx)
+    val headers = mutableMapOf<String, LstFunction>()
+
+    ctx.tagDefinitionFunction().forEach { funHeader ->
+        val header = funHeader.functionHeader()
+        val name = header.declaredNameToken().nameToken().text
+
+        if (name in headers) {
+            collector.report("Duplicated function name: '$name'", header.declaredNameToken().span())
+        }
+
+        val func = processFunctionHeader(header)
+
+        headers[name] = func
+    }
+
+    val tag = LstTag(
+        span = ctx.declaredNameToken().span(),
+        name = ctx.declaredNameToken().text,
+        path = currentPath(ctx),
+        annotations = annotations,
+        headers = headers,
+        ref = program.nextTagRef()
+    )
+
+    headers.values.forEach { it.tag = tag }
+
+    if (tag.fullName in program.definedNames) {
+        val prev = program.definedNames[tag.fullName]
+        collector.report("Redeclaration of ${tag.fullName}, previously defined at $prev", tag.span)
+        return
+    }
+
+    program.tags[tag.ref] = tag
 }
