@@ -1,26 +1,31 @@
-@Extern $[lib: "core", name: "memory_alloc"]
-@Required
-fun memory_alloc(bytes: Int): Int {}
+// Represents and area on the heap where the user can allocate instances
+struct MemoryArena {
+    capacity: Int
+    len: Int
+    bytes: RawArray<Byte>
+}
 
-@Extern $[lib: "core", name: "memory_write_internal"]
-@Required
-fun memory_write_internal(ptr: Int, value: Int, size: Int) {}
+// Gets a reference to the global memory used as a heap, located after the data section on the wasm memory
+@Extern $[lib: "core", name: "memory_get_memory"]
+fun get_memory(): MemoryArena {}
 
-@Extern $[lib: "core", name: "memory_read_internal"]
-@Required
-fun memory_read_internal(ptr: Int, size: Int): Int {}
+fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
+    let next = this.len
+    let ptr_size = size_of<Ptr<Byte>>
 
-@Extern $[lib: "core", name: "as_type_internal"]
-@Required
-fun as_type_internal(ptr: Int, ty: Int): Int {}
+    let pad = (ptr_size - next) % ptr_size;
+    next = next + (if pad.less_than_signed(0) { pad + ptr_size } else { pad })
 
-@Extern $[lib: "core", name: "is_type_internal"]
-@Required
-fun is_type_internal(ptr: Int, ty: Int): Boolean {}
+    this.len = next + bytes
+    return this.bytes.get_ptr(next)
+}
 
-@Extern $[lib: "core", name: "debug"]
-@Required
-fun debug(ptr: Int) {}
+fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
+    ret this.alloc_bytes(size_of<#Value>).unsafe_cast()
+}
+
+@Extern $[lib: "core", name: "memory_dump"]
+fun MemoryArena.dump() {}
 
 //
 

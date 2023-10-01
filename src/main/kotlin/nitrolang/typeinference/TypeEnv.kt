@@ -3,7 +3,7 @@ package nitrolang.typeinference
 import nitrolang.ast.LstOption
 import nitrolang.ast.LstStruct
 import nitrolang.ast.LstTag
-import nitrolang.ast.TypeParameter
+import nitrolang.ast.LstTypeParameterDef
 import nitrolang.util.ErrorCollector
 import nitrolang.util.Span
 
@@ -67,6 +67,10 @@ class TypeEnv(val collector: ErrorCollector) {
         constrains += TUnify(nextConsId++, box(left, span), box(right, span), span)
     }
 
+    fun addBoundsConstraint(type: TType, bounds: List<LstTag>, span: Span) {
+        constrains += TBounds(nextConsId++, box(type, span), bounds, span)
+    }
+
     fun addFindFieldConstraint(instanceType: TType, span: Span, callback: (TType) -> Unit) {
         constrains += TFindField(nextConsId++, box(instanceType, span), callback, span)
     }
@@ -79,7 +83,7 @@ class TypeEnv(val collector: ErrorCollector) {
         TUnresolved(it, span).also { self -> unresolved += self }
     }
 
-    fun generic(instance: TypeParameter): TGeneric {
+    fun generic(instance: LstTypeParameterDef): TGeneric {
         val existing = allTypes.values
             .find { it is TGeneric && it.instance == instance } as? TGeneric
 
@@ -289,8 +293,7 @@ class TypeEnv(val collector: ErrorCollector) {
 
                     // Replace `key` in errors previously detected
                     errors.forEach { err ->
-                        err.left = err.left.replace(key, replacement)
-                        err.right = err.right.replace(key, replacement)
+                        err.replace(this, key, replacement)
                     }
 
                     // Remove this replacement
@@ -303,8 +306,30 @@ class TypeEnv(val collector: ErrorCollector) {
                 }
             }
 
+            // Bound
+            constrains.filterIsInstance<TBounds>().forEach { constraint ->
+                val ty = constraint.target.type
+                if (ty.hasUnresolved()) return@forEach
+
+                constraint.requiredTags.forEach inner@{ tag ->
+                    if (ty is TGeneric) {
+                        if (tag !in ty.instance.requiredTags) {
+                            errors += TypeBoundsError(ty, tag, constraint)
+                        }
+                        return@inner
+                    }
+
+                    if (ty !in tag.implementers) {
+                        errors += TypeBoundsError(ty, tag, constraint)
+                    }
+                }
+
+                madeProgress = true
+                constrains.remove(constraint)
+            }
+
             errors.forEach { err ->
-                collector.report("${err.msg}, expected '${err.left}', found: '${err.right}'", err.constraint.span)
+                collector.report(err.msg, err.constraint.span)
             }
 
             errors.clear()
@@ -395,7 +420,7 @@ class TypeEnv(val collector: ErrorCollector) {
         }
 
         if (!prev.hasUnresolved() && !next.hasUnresolved()) {
-            errors += TypeError("Type mismatch 2", prev, next)
+            errors += TypeMismatchError(prev, next)
             sub[key] = prev
             return
         }
@@ -443,11 +468,27 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (type1.base != type2.base &&
                     commonBaseType(type1.base, type2.base) == null
                 ) {
-                    errors += TypeError("Type mismatch", type1, type2)
+                    errors += TypeMismatchError(type1, type2)
                 }
 
                 if (type1.params.size != type2.params.size) {
-                    errors += TypeError("Type params count mismatch", type1, type2)
+                    errors += TypeMismatchError(type1, type2)
+                }
+            }
+
+            type1 is TGeneric -> {
+                if (type2.isNever()) return
+
+                if (type1 != type2) {
+                    errors += TypeMismatchError(type1, type2)
+                }
+            }
+
+            type2 is TGeneric -> {
+                if (type1.isNever()) return
+
+                if (type1 != type2) {
+                    errors += TypeMismatchError(type1, type2)
                 }
             }
         }
@@ -472,10 +513,6 @@ class TypeEnv(val collector: ErrorCollector) {
 
         if (a.isNever()) return b
         if (b.isNever()) return a
-
-        // ToString and Int => ToString
-        if (a is TTag && b is TComposite && b.base in a.instance.taggedBaseTypes) return a
-        if (b is TTag && a is TComposite && a.base in b.instance.taggedBaseTypes) return b
 
         if (a is TUnion && b is TUnion) return commonType((a.options + b.options).toList())
         if (a is TUnion) {

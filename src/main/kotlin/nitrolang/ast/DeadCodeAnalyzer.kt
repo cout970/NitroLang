@@ -12,13 +12,13 @@ class DeadCodeAnalyzer(val program: LstProgram) {
                 ?: error("Missing $MAIN_FUNCTION_NAME function")
 
             program.functions.values.forEach {
-                if (it.getAnnotation(ANNOTATION_REQUIRED) == null) {
-                    it.isDeadCode = true
-                }
+                it.isDeadCode = it.getAnnotation(ANNOTATION_REQUIRED) == null
             }
             program.consts.values.forEach {
                 it.isDeadCode = true
             }
+
+            DeadCodeAnalyzer(program).visitFunction(program.getFunction("memory_alloc_internal"))
             DeadCodeAnalyzer(program).visitFunction(main)
         }
     }
@@ -27,11 +27,13 @@ class DeadCodeAnalyzer(val program: LstProgram) {
         visited += func
         func.isDeadCode = false
 
-        func.tag?.functionInstances?.values?.forEach { newFunc ->
-            newFunc.isDeadCode = false
+        func.tag?.functionImplementations?.values?.forEach { perType ->
+            perType.values.forEach { newFunc ->
+                newFunc.isDeadCode = false
 
-            if (newFunc !in visited) {
-                visitFunction(newFunc)
+                if (newFunc !in visited) {
+                    visitFunction(newFunc)
+                }
             }
         }
 

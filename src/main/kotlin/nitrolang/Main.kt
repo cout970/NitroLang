@@ -18,8 +18,9 @@ import kotlin.io.path.name
 import kotlin.system.measureNanoTime
 
 fun main() {
-    val source = File("example.nl")
-    val core = File("src/main/nitro")
+//    val source = File("example.nl")
+    val source = File("src/main/nitro/compiler/main.nl")
+    val core = File("src/main/nitro/core")
     val res = File("src/main/resources")
     try {
         compile(source.path)
@@ -27,7 +28,7 @@ fun main() {
         e.printStackTrace()
     }
 
-    watchFolderForChanges(listOf(source.toPath(), core.toPath(), res.toPath())) {
+    watchFolderForChanges(listOf(source.parentFile.toPath(), core.toPath(), res.toPath())) {
         val fileName = it.fileName.toString()
         if (!fileName.endsWith(".nl") && !fileName.endsWith(".ts")) return@watchFolderForChanges
 
@@ -43,11 +44,11 @@ fun compile(path: String) {
     val elapsed = measureNanoTime {
         val program = LstProgram()
 
-        AstParser.includeFile("core", "core.nl", program)
+        AstParser.includeFile("core", "core.nl", program, null)
         AstParser.parseFile(SourceFile.load(path), program)
 
         program.functions.forEach { (_, func) ->
-            if (func.fullName !in setOf("main")) return@forEach
+            if (func.fullName !in setOf("main", "to_a", "convert")) return@forEach
 
             println("${func.fullName}:")
             func.body.nodes.forEach {
@@ -61,16 +62,17 @@ fun compile(path: String) {
             return
         }
 
-        val output = File("build/output.wat")
+        val assembly = File("src/main/resources/output/assembly.wat")
+        val compiled = File("src/main/resources/output/compiled.wasm")
 
         DeadCodeAnalyzer.markDeadCode(program)
 
-        output.bufferedWriter().use {
+        assembly.bufferedWriter().use {
             WasmBuilder(program).compile(it)
         }
 
         println("------------------------------")
-        output.readLines().forEachIndexed { index, s ->
+        assembly.readLines().forEachIndexed { index, s ->
             println("${(index + 1).toString().padStart(4)} |$s")
         }
         println("------------------------------")
@@ -81,7 +83,7 @@ fun compile(path: String) {
         }
 
 //        println("Calling wat2wasm")
-        ProcessBuilder("wat2wasm", "build/output.wat", "-o", "src/main/resources/output.wasm")
+        ProcessBuilder("wat2wasm", assembly.path, "-o", compiled.path)
             .inheritIO()
             .start()
             .waitFor()

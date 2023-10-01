@@ -2,7 +2,6 @@ package nitrolang.ast
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import nitrolang.backend.wasm.MonoVar
 import nitrolang.typeinference.TType
 import nitrolang.typeinference.TypeBox
 import nitrolang.util.Dumpable
@@ -279,6 +278,7 @@ data class LstWhenEnd(
     override val ref: Ref,
     override val span: Span,
     override val block: LstNodeBlock,
+    val isStatement: Boolean,
     val branchStores: List<LstWhenStore> = emptyList(),
     val start: LstWhenStart,
 ) : LstExpression(ref, span, block) {
@@ -416,68 +416,6 @@ data class LstSizeOf(
         it.add("block", block.dump())
         it.add("type", typeBox?.dump())
         it.add("type_param", typeUsageBox?.dump())
-    }
-}
-
-data class LstPtrOf(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    val expr: Ref,
-) : LstExpression(ref, span, block) {
-
-    override fun toString(): String = "$ref = ptr_of $expr [$typeBox]"
-
-    override fun dump(): JsonElement = JsonObject().also {
-        it.add("ref", ref.dump())
-        it.add("kind", "SizeOf".dump())
-        it.add("block", block.dump())
-        it.add("type", typeBox?.dump())
-        it.add("expr", expr.dump())
-    }
-}
-
-data class LstMemoryWrite(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    val typeUsage: TypeUsage,
-    val ptrExpr: Ref,
-    val valueExpr: Ref,
-) : LstExpression(ref, span, block) {
-    var typeUsageBox: TypeBox? = null
-
-    override fun toString(): String = "$ref = memory_write<$typeUsage>($ptrExpr, $valueExpr) [$typeBox]"
-
-    override fun dump(): JsonElement = JsonObject().also {
-        it.add("ref", ref.dump())
-        it.add("kind", "SizeOf".dump())
-        it.add("block", block.dump())
-        it.add("type", typeBox?.dump())
-        it.add("type_param", typeUsageBox?.dump())
-        it.add("ptr_expr", ptrExpr.dump())
-        it.add("value_expr", valueExpr.dump())
-    }
-}
-
-data class LstMemoryRead(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstNodeBlock,
-    val typeUsage: TypeUsage,
-    val expr: Ref,
-) : LstExpression(ref, span, block) {
-    var typeUsageBox: TypeBox? = null
-
-    override fun toString(): String = "$ref = memory_read<$typeUsage>($expr) [$typeBox]"
-
-    override fun dump(): JsonElement = JsonObject().also {
-        it.add("ref", ref.dump())
-        it.add("kind", "SizeOf".dump())
-        it.add("block", block.dump())
-        it.add("type", typeBox?.dump())
-        it.add("type_param", typeUsageBox?.dump())
-        it.add("expr", expr.dump())
     }
 }
 
@@ -629,7 +567,7 @@ class LstFunCall(
     val arguments: List<Ref>,
     var funRef: FunRef? = null,
     var function: LstFunction? = null,
-    val specifiedTypeParams: List<TypeUsage> = emptyList(),
+    val explicitTypeParams: List<TypeUsage> = emptyList(),
 ) : LstExpression(ref, span, block) {
     val concreteArgTypes = mutableListOf<TypeBox>()
     val typeParamsTypes = mutableListOf<TypeBox>()

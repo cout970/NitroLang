@@ -3,7 +3,7 @@ package nitrolang.typeinference
 import nitrolang.ast.LstOption
 import nitrolang.ast.LstStruct
 import nitrolang.ast.LstTag
-import nitrolang.ast.TypeParameter
+import nitrolang.ast.LstTypeParameterDef
 import nitrolang.util.Span
 
 sealed interface TType {
@@ -26,7 +26,7 @@ data class TComposite(override val id: Int, val base: TTypeBase, val params: Lis
 }
 
 // T
-data class TGeneric(override val id: Int, val instance: TypeParameter) : TType {
+data class TGeneric(override val id: Int, val instance: LstTypeParameterDef) : TType {
     override fun toString(): String = "[generic $id $instance]"
 }
 
@@ -71,6 +71,9 @@ sealed interface TConstraint {
 
 data class TUnify(val id: Int, val left: TypeBox, val right: TypeBox, override val span: Span) : TConstraint
 
+data class TBounds(val id: Int, val target: TypeBox, val requiredTags: List<LstTag>, override val span: Span) :
+    TConstraint
+
 data class TFindField(val id: Int, val dependency: TypeBox, val callback: (TType) -> Unit, override val span: Span) :
     TConstraint
 
@@ -92,8 +95,33 @@ data class TypeBox(val env: TypeEnv, var type: TType, val span: Span) {
     override fun toString(): String = type.toString()
 }
 
-data class TypeError(val msg: String, var left: TType, var right: TType) {
-    lateinit var constraint: TUnify
+interface TypeError {
+    val msg: String
+    var constraint: TConstraint
+
+    fun replace(env: TypeEnv, key: TUnresolved, replacement: TType)
+}
+
+class TypeMismatchError(var left: TType, var right: TType) : TypeError {
+    override val msg: String get() = "Type mismatch, expected '$left', found '$right'"
+    override lateinit var constraint: TConstraint
+
+    override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
+        with(env) {
+            left = left.replace(key, replacement)
+            right = right.replace(key, replacement)
+        }
+    }
+}
+
+class TypeBoundsError(var left: TType, val tag: LstTag, override var constraint: TConstraint) : TypeError {
+    override val msg: String get() = "Unsatisfied type bounds, type '$left' is missing the tag '${tag.fullName}'"
+
+    override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
+        with(env) {
+            left = left.replace(key, replacement)
+        }
+    }
 }
 
 // listOf(Some(Ordering::Less), Some(Ordering::Equal), Some(Ordering::Greater), None()) => List<Option<Ordering>>

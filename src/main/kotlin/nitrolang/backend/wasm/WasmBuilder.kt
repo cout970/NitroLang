@@ -3,6 +3,7 @@ package nitrolang.backend.wasm
 import nitrolang.ast.*
 import nitrolang.parsing.ANNOTATION_EXTERN
 import nitrolang.parsing.ANNOTATION_WASM_INLINE
+import nitrolang.parsing.ANNOTATION_WASM_NAME
 import nitrolang.typeinference.*
 import nitrolang.util.Span
 import java.lang.Appendable
@@ -17,6 +18,7 @@ class WasmBuilder(
     val structIds = mutableMapOf<List<Int>, MonoStruct>()
     val optionItemIds = mutableMapOf<List<Int>, MonoOptionItem>()
     val optionIds = mutableMapOf<List<Int>, MonoOption>()
+    val consts = mutableMapOf<Int, MonoConst>()
     val globalNames = mutableMapOf<String, Int>()
 
     var current: MonoFunction? = null
@@ -58,7 +60,8 @@ class WasmBuilder(
 
     fun consumer(span: Span, ref: Ref) {
         val mono = current!!
-        mono.instructions += MonoConsumer(mono.nextId(), span, mono.providers[ref]!!)
+        val provider = mono.providers[ref] ?: error("Missing provider for ref $ref")
+        mono.instructions += MonoConsumer(mono.nextId(), span, provider)
     }
 
     fun provider(span: Span, ref: Ref, type: MonoType) {
@@ -96,21 +99,33 @@ class MonoFuncSignature(
 }
 
 class MonoCtx(
-    val generics: Map<TypeParameter, MonoType> = emptyMap(),
+    val generics: Map<LstTypeParameterDef, MonoType> = emptyMap(),
     val parent: MonoCtx? = null,
 )
 
 fun WasmBuilder.compile(out: Appendable) {
-    module.sections += 0 to intToWasmHex(0)
-    module.sectionOffset += 4
-    module.sections += 4 to intToWasmHex(0)
+    // Null value
+    module.sections += module.sectionOffset to intToWasmHex(0)
     module.sectionOffset += 4
 
+    // Memory instance
+    val memoryAddr = module.sectionOffset
+    module.sections += module.sectionOffset to ""
+    module.sectionOffset += 16
+
     compileImports()
+    compileConsts()
     compileFunctions()
 
     // Override section with address where the heap starts
-    module.sections[1] = 4 to intToWasmHex(module.sectionOffset)
+    // @formatter:off
+    val memoryInstance =
+        /* type_id  */ intToWasmHex(0) +
+        /* capacity */ intToWasmHex(16 * 64 * 1024 - module.sectionOffset) +
+        /* len      */ intToWasmHex(0) +
+        /* bytes    */ intToWasmHex(module.sectionOffset)
+    // @formatter:on
+    module.sections[1] = memoryAddr to memoryInstance
 
     WasmPrint(Output(out)).module(module)
 }
@@ -148,17 +163,41 @@ fun WasmBuilder.compileImports() {
         )
 
         val name = external.args["name"] as? ConstString ?: error("Missing external name")
+        val lib = external.args["lib"] as? ConstString ?: error("Missing external lib name")
 
         module.imports += WasmImport(
-            module = "core",
+            module = lib.value,
             function = name.value,
             functionDefinition = def
         )
     }
 }
 
+fun WasmBuilder.compileConsts() {
+    program.consts.values.forEach { const ->
+        if (const.isDeadCode) return@forEach
+
+        val monoConst = MonoConst(const, typeToMonoType(const.type, MonoCtx()))
+        monoConst.offset = module.sectionOffset
+        monoConst.size = monoConst.type.stackSize()
+
+        // TODO proper implementation
+        val value = when (val last = const.body.nodes.last()) {
+            is LstInt -> intToWasmHex(last.value)
+            is LstFloat -> floatToWasmHex(last.value)
+            is LstBoolean -> intToWasmHex(if (last.value) 1 else 0)
+            is LstNothing -> intToWasmHex(0)
+            else -> TODO()
+        }
+
+        module.sections += monoConst.offset to value
+        module.sectionOffset += monoConst.size
+        consts[const.ref.id] = monoConst
+    }
+}
+
 fun WasmBuilder.compileFunctions() {
-    getMonoFunction(program.getFunction("memory_alloc"), MonoCtx())
+    getMonoFunction(program.getFunction("memory_alloc_internal"), MonoCtx())
     getMonoFunction(program.getFunction("main"), MonoCtx())
 
     for (it in funcCache.values) {
@@ -169,12 +208,35 @@ fun WasmBuilder.compileFunctions() {
     }
 }
 
+fun WasmBuilder.removeAllGenerics(type: TType): TType {
+    return when (type) {
+        is TGeneric -> program.typeEnv.find("Int")
+        is TComposite -> program.typeEnv.composite(type.base, type.params.map(::removeAllGenerics))
+        else -> type
+    }
+}
+
 fun WasmBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
-    val key = MonoFuncSignature(
-        func,
-        func.params.map { typeToMonoType(it.type, ctx) },
-        typeToMonoType(func.returnType, ctx)
-    )
+    if (func.tag != null) {
+        error("Calling invalid function!")
+    }
+
+    // External functions cannot be duplicated, generics become plain pointers, represented with Int
+    val key = if (func.isExternal) {
+        val params = func.params.map {
+            typeToMonoType(removeAllGenerics(it.type), ctx)
+        }
+        val returnType = typeToMonoType(removeAllGenerics(func.returnType), ctx)
+
+        MonoFuncSignature(func, params, returnType)
+    } else {
+        MonoFuncSignature(
+            func,
+            func.params.map { typeToMonoType(it.type, ctx) },
+            typeToMonoType(func.returnType, ctx)
+        )
+    }
+
     if (key in funcCache) return funcCache[key]!!
 
     val nameIndex = globalNames.getOrDefault(func.name, 0)
@@ -199,7 +261,10 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
     val code = signature.function.body
 
     for (variable in code.variables.values) {
-        val type = typeToMonoType(variable.type, ctx)
+        val type = typeToMonoType(
+            if (signature.function.isExternal) removeAllGenerics(variable.type) else variable.type,
+            ctx
+        )
 
         val monoVar = MonoVar(mono.locals.size, variable.name, type)
         varMap[variable] = monoVar
@@ -214,46 +279,92 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
     mono.returnType = signature.returnType
     mono.sourceFunction = signature.function
 
+    if (signature.function.isExternal) {
+        current = prev
+        return
+    }
+
     val providers = mono.providers
     val helperVars = mutableMapOf<Ref, MonoVar>()
 
     for (inst in code.nodes) {
         when (inst) {
             is LstFunCall -> {
-                val function = inst.function ?: error("Function nto bound: $inst")
-                val replacements = mutableMapOf<TypeParameter, TType>()
-
-                repeat(function.typeParameters.size) {
-                    val tp = function.typeParameters[it]
-                    val finalType = inst.typeParamsTypes[it].type
-
-                    replacements[tp] = finalType
-                }
-
-                val generics = mutableMapOf<TypeParameter, MonoType>()
-
-                for ((key, type) in replacements) {
-                    generics[key] = typeToMonoType(program.replaceGenerics(type, replacements), ctx)
-                }
+                val function = inst.function ?: error("Function not bound: $inst")
 
                 inst.arguments.forEach { ref ->
                     consumer(inst.span, ref)
                 }
 
-                val type = typeToMonoType(inst.type, ctx)
-
+                val finalType = typeToMonoType(inst.type, ctx)
                 val inline = function.getAnnotation(ANNOTATION_WASM_INLINE)
                 val opcode = inline?.args?.get("opcode") as? ConstString
 
                 if (opcode != null) {
                     mono.instructions += MonoOpcode(mono.nextId(), inst.span, opcode.value)
-                } else {
-                    val monoFunction = getMonoFunction(function, MonoCtx(generics, ctx))
-
-                    mono.instructions += MonoFunCall(mono.nextId(), inst.span, monoFunction)
+                    provider(inst.span, inst.ref, finalType)
+                    continue
                 }
 
-                provider(inst.span, inst.ref, type)
+                val external = function.getAnnotation(ANNOTATION_EXTERN)
+
+                if (external != null) {
+                    val lib = (external.args["lib"] as? ConstString)?.value
+                    val name = (external.args["name"] as? ConstString)?.value
+
+                    if (lib == null || name == null) {
+                        error("Missing attributes on @External annotation")
+                    }
+
+                    mono.instructions += MonoFunCall(mono.nextId(), inst.span, getMonoFunction(function, ctx))
+                    provider(inst.span, inst.ref, finalType)
+                    continue
+                }
+
+                val replacements = mutableMapOf<LstTypeParameterDef, TType>()
+
+                repeat(function.typeParameters.size) {
+                    val tp = function.typeParameters[it]
+
+                    replacements[tp] = inst.typeParamsTypes[it].type
+                }
+
+                val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
+
+                for ((key, type) in replacements) {
+                    generics[key] = typeToMonoType(program.replaceGenerics(type, replacements), ctx)
+                }
+                val newCtx = MonoCtx(generics, ctx)
+                val tag = function.tag
+
+                // Call to tag function, must be replaced by the concrete implementation
+                val monoFunction = if (tag != null) {
+                    val param = function.typeParameters.first()
+                    val paramType = generics[param] ?: error("No replacement for param: $param")
+                    var implFunc: LstFunction? = null
+
+                    for ((ty, map) in tag.functionImplementations) {
+                        val implementorAsMonoType = try {
+                            typeToMonoType(ty, newCtx)
+                        } catch (e: UnresolvedGenericError) {
+                            error("${e.msg}: $ty vs $paramType")
+                        }
+
+                        if (implementorAsMonoType == paramType) {
+                            implFunc = map[function.fullName]!!
+                            break
+                        }
+                    }
+
+                    if (implFunc == null) error("Invalid state, no implementation found for $function")
+
+                    getMonoFunction(implFunc, newCtx)
+                } else {
+                    getMonoFunction(function, newCtx)
+                }
+
+                mono.instructions += MonoFunCall(mono.nextId(), inst.span, monoFunction)
+                provider(inst.span, inst.ref, finalType)
             }
 
             is LstComment -> {
@@ -290,13 +401,6 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
                 provider(inst.span, inst.ref, type)
             }
 
-            is LstPtrOf -> {
-                val type = typeToMonoType(inst.type, ctx)
-                // TODO handle types with size greater than the pointer size
-                consumer(inst.span, inst.expr)
-                provider(inst.span, inst.ref, type)
-            }
-
             is LstSizeOf -> {
                 val type = typeToMonoType(inst.type, ctx)
                 val sizeType = typeToMonoType(inst.typeUsageBox!!.type, ctx)
@@ -304,76 +408,12 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
                 provider(inst.span, inst.ref, type)
             }
 
-            is LstMemoryWrite -> {
-                val type = typeToMonoType(inst.type, ctx)
-                val exprType = typeToMonoType((code.getNode(inst.valueExpr) as LstExpression).type, ctx)
-
-                // TODO handle types with size greater than the pointer size
-                consumer(inst.span, inst.ptrExpr)
-                consumer(inst.span, inst.valueExpr)
-
-                when {
-                    exprType.isInt() -> {
-                        call(inst.span, "memory_write_int", ctx)
-                    }
-
-                    exprType.isFloat() -> {
-                        call(inst.span, "memory_write_float", ctx)
-                    }
-
-                    exprType.isBoolean() -> {
-                        call(inst.span, "memory_write_boolean", ctx)
-                    }
-
-                    exprType.isNothing() -> {
-                        // Ignore
-                    }
-
-                    else -> {
-                        int(inst.span, type.heapSize())
-                        call(inst.span, "memory_write_internal", ctx)
-                    }
-                }
-                provider(inst.span, inst.ref, type)
-            }
-
-            is LstMemoryRead -> {
-                val type = typeToMonoType(inst.type, ctx)
-                // TODO handle types with size greater than the pointer size
-                consumer(inst.span, inst.expr)
-
-                when {
-                    type.isInt() -> {
-                        call(inst.span, "memory_read_int", ctx)
-                    }
-
-                    type.isFloat() -> {
-                        call(inst.span, "memory_read_float", ctx)
-                    }
-
-                    type.isBoolean() -> {
-                        call(inst.span, "memory_read_boolean", ctx)
-                    }
-
-                    type.isNothing() -> {
-                        int(inst.span, 0)
-                    }
-
-                    else -> {
-                        int(inst.span, type.heapSize())
-                        call(inst.span, "memory_read_internal", ctx)
-                    }
-                }
-
-                provider(inst.span, inst.ref, type)
-            }
-
             is LstAlloc -> {
                 val type = typeToMonoType(inst.type, ctx)
 
-                // $1 = memory_alloc(size_of<Type>)
+                // $1 = memory_alloc_internal(size_of<Type>)
                 int(inst.span, type.heapSize())
-                call(inst.span, "memory_alloc", ctx)
+                call(inst.span, "memory_alloc_internal", ctx)
 
                 // memory_write_int($1, type_id_of<Type>))
                 dup(inst.span, type)
@@ -435,9 +475,21 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
             }
 
             is LstLoadVar -> {
-                val variable = varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
-                mono.instructions += MonoLoadVar(mono.nextId(), inst.span, variable)
-                mono.instructions += MonoProvider(mono.nextId(), inst.span, variable.type).also {
+                val type = if (inst.constant != null) {
+                    val const = inst.constant!!
+                    val constType = typeToMonoType(const.type, ctx)
+
+
+                    mono.instructions += MonoLoadConst(mono.nextId(), inst.span, consts[const.ref.id]!!)
+                    constType
+                } else {
+                    val variable = varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
+
+                    mono.instructions += MonoLoadVar(mono.nextId(), inst.span, variable)
+                    variable.type
+                }
+
+                mono.instructions += MonoProvider(mono.nextId(), inst.span, type).also {
                     providers[inst.ref] = it
                 }
             }
@@ -592,10 +644,15 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
         }
     }
 
-    val extern = func.sourceFunction.getAnnotation(ANNOTATION_EXTERN)
-    val externName = (extern?.args?.get("name") as? ConstString)?.value ?: ""
+    val main = if (func.name == "main") "main" else null
 
-    val exportName = if (func.name == "main") "main" else externName
+    val wasmName = func.sourceFunction.getAnnotation(ANNOTATION_WASM_NAME)
+    val wasmNameValue = (wasmName?.args?.get("name") as? ConstString)?.value
+
+    val extern = func.sourceFunction.getAnnotation(ANNOTATION_EXTERN)
+    val externName = (extern?.args?.get("name") as? ConstString)?.value
+
+    val exportName = main ?: wasmNameValue ?: externName ?: ""
 
     val wasmFunc = WasmFunction(
         definition = WasmFunctionDefinition(
@@ -676,16 +733,21 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
                 module.sectionOffset += PTR_SIZE
                 // size
                 module.sectionOffset += PTR_SIZE
+                // pointer to string characters in heap or data section
+                module.sectionOffset += PTR_SIZE
+
                 // content
+                val contentStart = module.sectionOffset
                 module.sectionOffset += bytes.size
 
                 val type = intToWasmHex(inst.type.id)
                 val size = intToWasmHex(bytes.size)
+                val contentsPtr = intToWasmHex(contentStart)
                 val contents = bytes.joinToString("") {
                     "\\" + it.toUByte().toString(16).padStart(2, '0')
                 }
 
-                module.sections += start to "$type$size$contents"
+                module.sections += start to "$type$size$contentsPtr$contents"
 
                 wasmFunc.instructions += WasmInst("i32.const $start")
             }
@@ -711,6 +773,14 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
 
             is MonoIfElse -> {
                 wasmFunc.instructions += WasmInst("else").also { it.needsWrapping = false }
+            }
+
+            is MonoLoadConst -> {
+                val prims = monoTypeToPrimitive(inst.const.type)
+                prims.forEachIndexed { index, prim ->
+                    wasmFunc.instructions += WasmInst("i32.const ${inst.const.offset + index}")
+                    wasmFunc.instructions += WasmInst("$prim.load")
+                }
             }
 
             is MonoLoadVar -> {
@@ -787,6 +857,10 @@ private fun intToWasmHex(num: Int): String {
     return "\\$a3\\$a2\\$a1\\$a0"
 }
 
+private fun floatToWasmHex(num: Float): String {
+    return intToWasmHex(num.toRawBits())
+}
+
 private fun WasmBuilder.padOffset() {
     // Align to 4 bytes for the 32bit length field
     val pad = (PTR_SIZE - module.sectionOffset) % PTR_SIZE
@@ -821,7 +895,7 @@ fun monoTypeToPrimitive(mono: MonoType): List<WasmPrimitive> {
     }
 }
 
-fun LstProgram.replaceGenerics(type: TType, replacements: Map<TypeParameter, TType>): TType {
+fun LstProgram.replaceGenerics(type: TType, replacements: Map<LstTypeParameterDef, TType>): TType {
     if (type is TGeneric) {
         return replacements[type.instance] ?: type
     }
@@ -866,7 +940,7 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
         params += typeToMonoType(param, ctx)
     }
 
-    var kind: Int
+    val kind: Int
     val base = when (type.base) {
         is TOption -> {
             kind = 0
@@ -896,7 +970,7 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
 
 fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: MonoCtx): MonoStruct {
 
-    val generics = mutableMapOf<TypeParameter, MonoType>()
+    val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
     repeat(struct.typeParameters.size) {
         generics[struct.typeParameters[it]] = params[it]
     }
@@ -927,7 +1001,7 @@ fun WasmBuilder.getOptionItemType(
     params: List<MonoType>,
     ctx: MonoCtx
 ): MonoOptionItem {
-    val generics = mutableMapOf<TypeParameter, MonoType>()
+    val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
     repeat(option.typeParameters.size) {
         generics[option.typeParameters[it]] = params[it]
     }
@@ -948,7 +1022,7 @@ fun WasmBuilder.getOptionItemType(
 }
 
 fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: MonoCtx): MonoOption {
-    val generics = mutableMapOf<TypeParameter, MonoType>()
+    val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
     repeat(option.typeParameters.size) {
         generics[option.typeParameters[it]] = params[it]
     }

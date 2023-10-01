@@ -24,7 +24,7 @@ fun WasmPrint.module(module: WasmModule) {
     out.string("memory")
     out += ")"
     out.sep()
-    out += "1"
+    out += "16" // 1 MB
     out += ")"
     out.nl()
 

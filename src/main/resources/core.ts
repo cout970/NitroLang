@@ -1,74 +1,75 @@
-const PTR_SIZE = 4;
+import {
+    getInt,
+    setInt,
+    assert,
+    getFloat,
+    getString,
+    createString,
+    alloc,
+    setByte,
+    memcopy,
+    dumpMemory
+} from './internal.ts'
 
-// Bup allocator, stores a pointer to the next free byte on the addr 0
-const ALLOC_NEXT = 4;
+// ptr.nl
 
-// struct List
-const LIST_TYPE_FIELD = 0;
-const LIST_DATA_FIELD = PTR_SIZE;
-const LIST_LEN_FIELD = PTR_SIZE * 2;
-const LIST_CAPACITY_FIELD = PTR_SIZE * 3;
-
-export const mem = {
-  u32: new Uint32Array(),
-  f32: new Float32Array(),
-  u16: new Uint16Array(),
-  u8: new Uint8Array(),
+export function ptr_ptr_of(ptr: number): number {
+    return ptr;
 }
 
-// memory.nl
-
-export function memory_alloc(amount: number): number {
-    let next = getInt(ALLOC_NEXT);
-
-    const pad = (PTR_SIZE - next) % PTR_SIZE;
-    next += (pad < 0) ? pad + PTR_SIZE : pad;
-
-    // Increment next free slot
-    setInt(ALLOC_NEXT, next + amount);
-
-    // console.debug(`alloc(${amount}) => ${next} ..< ${next + amount}`);
-    return next;
+export function ptr_ptr_from_address(int: number): number {
+    return int;
 }
 
-export function memory_write_byte(ptr: number, value: number) {
-    mem.u8[ptr | 0] = value & 0xFF;
-}
-export function memory_write_int(ptr: number, value: number) { setInt(ptr, value|0); }
-export function memory_write_boolean(ptr: number, value: number) { setInt(ptr, value|0); }
-export function memory_write_float(ptr: number, value: number) { setInt(ptr, value); }
-
-export function memory_write_internal(ptr: number, value: number, size: number): number {
+export function ptr_get_value(ptr: number): number {
+    // console.debug('ptr_get_value', {ptr});
     assert(ptr);
-    console.debug({ptr, value, size});
-    memory_copy(value, ptr, size);
-    return 0;
+    return ptr;
 }
 
-export function memory_read_byte(ptr: number): number { return getInt(ptr) & 0xFF; }
-export function memory_read_int(ptr: number): number {
-    return getInt(ptr);
-}
-export function memory_read_boolean(ptr: number): number { return getInt(ptr); }
-export function memory_read_float(ptr: number): number { return getFloat(ptr); }
-
-export function memory_read_internal(ptr: number, size: number): number {
-    assert(ptr);
-    const value = memory_alloc(size);
-    memory_copy(ptr, value, size);
-    return value;
+export function ptr_get_address(ptr: number): number {
+    return ptr;
 }
 
-// Check the type id of an struct instance
-export function is_type_internal(ptr: number, typeId: number) {
+export function ptr_to_raw_array(ptr: number): number {
+    return ptr;
+}
+
+export function raw_array_to_ptr(ptr: number): number {
+    return ptr;
+}
+
+export function ptr_write(value_ptr: number, value: number) {
+    setInt(value_ptr, value);
+}
+
+export function ptr_read(value_ptr: number): number {
+    // console.debug('ptr_read', {value_ptr, result: getInt(value_ptr)});
+    return getInt(value_ptr);
+}
+
+export function ptr_unsafe_cast(ptr: number): number {
+    return ptr;
+}
+
+// raw_array.nl
+
+export function raw_array_copy_into(self: number, other: number, len: number) {
+    memcopy(other, self, len);
+}
+
+// intrinsic.nl
+
+// Check the type id of a struct instance
+export function is_type_internal(ptr: number, typeId: number): boolean {
     assert(ptr);
     const objTypeId = getInt(ptr);
     // console.debug('is_type_internal', {ptr, typeId, objTypeId})
-    return objTypeId == typeId ? 1 : 0;
+    return objTypeId == typeId;
 }
 
 // Cast to another type
-export function as_type_internal(ptr: number, typeId: number) {
+export function as_type_internal(ptr: number, typeId: number): number {
     assert(ptr);
     const objTypeId = getInt(ptr);
 
@@ -79,30 +80,89 @@ export function as_type_internal(ptr: number, typeId: number) {
     return ptr;
 }
 
-export function debug(ptr: number): number {
-    console.debug(`ptr: ${ptr}`)
+// memory.nl
+
+export function memory_get_memory(): number {
+    return 4;
+}
+
+export function memory_alloc(amount: number): number {
+    return alloc(amount);
+}
+
+export function memory_write_byte(ptr: number, value: number) {
+    setByte(ptr, value);
+}
+
+export function memory_write_int(ptr: number, value: number) {
+    setInt(ptr, value | 0);
+}
+
+export function memory_write_boolean(ptr: number, value: number) {
+    setInt(ptr, value | 0);
+}
+
+export function memory_write_float(ptr: number, value: number) {
+    setInt(ptr, value);
+}
+
+export function memory_write_internal(ptr: number, value: number, size: number): number {
+    assert(ptr);
+    // console.debug({ptr, value, size});
+    memory_copy(value, ptr, size);
     return 0;
 }
 
+export function memory_read_byte(ptr: number): number {
+    // console.log({ptr, value: getInt(ptr), byte: (getInt(ptr) & 0xFF)});
+    const int = getInt(ptr);
+    if (ptr % 4 == 0) return int & 0xFF;
+    if (ptr % 4 == 1) return (int >> 8) & 0xFF;
+    if (ptr % 4 == 2) return (int >> 16) & 0xFF;
+    return (int >> 24) & 0xFF;
+}
+
+export function memory_read_int(ptr: number): number {
+    return getInt(ptr);
+}
+
+export function memory_read_boolean(ptr: number): number {
+    return getInt(ptr);
+}
+
+export function memory_read_float(ptr: number): number {
+    return getFloat(ptr);
+}
+
+export function memory_read_internal(ptr: number, size: number): number {
+    assert(ptr);
+    const value = memory_alloc(size);
+    memory_copy(ptr, value, size);
+    return value;
+}
 
 export function memory_copy(src: number, dst: number, len: number) {
-    mem.u8.copyWithin(dst, src, src + len);
+    memcopy(src, dst, len);
+}
+
+export function memory_dump(ptr: number) {
+    console.debug(dumpMemory(ptr + 16, getInt(ptr + 8)))
 }
 
 // string.nl
 
 export function string_codepoint_len(a: number): number {
-    let str = getString(a);
-    let chars = Array.from(str);
+    const str = getString(a);
+    const chars = Array.from(str);
     return chars.length;
 }
 
 export function string_get_codepoint(a: number, index: number): number {
-    let str = getString(a);
-    let chars = Array.from(str);
-    let char = chars[index];
+    const str = getString(a);
+    const chars = Array.from(str);
+    const char = chars[index];
 
-    return char.codePointAt(0);
+    return char.codePointAt(0) || 0;
 }
 
 export function string_concat_string(a: number, b: number): number {
@@ -114,15 +174,19 @@ export function string_concat_char(a: number, b: number): number {
 }
 
 export function string_replace(a: number, b: number, c: number): number {
-    let base = getString(a);
-    let find = getString(b);
-    let replacement = getString(c);
+    const base = getString(a);
+    const find = getString(b);
+    const replacement = getString(c);
 
     return createString(base.replaceAll(find, replacement))
 }
 
 export function int_to_string(int: number): number {
     return createString(String(int | 0));
+}
+
+export function int_to_string_in_base(int: number, radix: number): number {
+    return createString((int | 0).toString(radix));
 }
 
 export function float_to_string(float: number): number {
@@ -135,136 +199,50 @@ export function any_to_string(ptr: number, ty: number): number {
 
 // intrinsic.nl
 
-export function internal_is_variant(ptr: number, expected_variant: number): number {
-    // console.debug('internal_is_variant', {ptr, variant: getInt(ptr), expected_variant});
-    assert(ptr);
-    const found: number = getInt(ptr);
-    return (found === expected_variant) ? 1 : 0;
-}
-
-export function internal_get_type_id(ptr: number, ty: number): number {
-    return ty;
-}
-
 export function choose(cond: number, a: number, b: number): number {
-  return cond ? a : b;
+    return cond ? a : b;
 }
 
 // float.nl
 
 export function float_rem(a: number, b: number): number {
-  return a % b;
+    return a % b;
 }
 
 // console.nl
 
 export function println_unit(_: number) {
-  console.log('()');
+    console.log('()');
 }
 
 export function println_boolean(val: number) {
-  console.log(val !== 0);
+    console.log(val !== 0);
 }
 
 export function println_int(val: number) {
-  console.log(val);
+    console.log(val);
 }
 
 export function println_float(val: number) {
-  console.log(val);
+    console.log(val);
 }
 
 export function println_string(ptr: number) {
-  console.log(getString(ptr));
+    console.log(getString(ptr));
 }
 
 export function eprintln_string(ptr: number) {
-  console.error(getString(ptr));
-}
-
-export function println_string_list(ptr: number) {
-  // console.log('println_string_list', ptr);
-  console.log(getStringList(ptr));
+    console.error(getString(ptr));
 }
 
 // ordering.nl
 
 export function string_get_ordering_internal(a: number, b: number): number {
-  if(a === b) return 0;
+    if (a === b) return 0;
 
-  let aStr = getString(a);
-  let bStr = getString(b);
+    const aStr = getString(a);
+    const bStr = getString(b);
 
-  return aStr.localeCompare(bStr);
+    return aStr.localeCompare(bStr);
 }
 
-// internal
-
-function getString(ptr: number): string {
-  assert(ptr);
-
-  const len = getInt(ptr + 4);
-  const bytes = mem.u8.subarray(ptr + 8, ptr + 8 + len);
-
-  const jsString = (new TextDecoder('utf-8', {fatal: true})).decode(bytes);
-
-  return jsString;
-}
-
-function createString(value: string): number {
-    const uint8array = (new TextEncoder()).encode(value);
-
-    const ptr = memory_alloc(uint8array.length + 8);
-    setInt(ptr, 3);
-    setInt(ptr + 4, uint8array.length);
-    mem.u8.set(uint8array, ptr + 8);
-
-    return ptr;
-}
-
-function getStringList(ptr: number) {
-  assert(ptr);
-
-  const data = getInt(ptr + LIST_DATA_FIELD);
-  const len = getInt(ptr + LIST_LEN_FIELD);
-  const result = [];
-
-  for (let i = 0; i < len; i++) {
-    const strPtr = getInt(data + i * PTR_SIZE);
-    result.push(getString(strPtr));
-  }
-
-  return result;
-}
-
-function getInt(ptr: number): number {
-  assert(ptr);
-
-  return mem.u32[(ptr / 4) | 0];
-}
-
-function setInt(ptr: number, value: number) {
-  assert(ptr);
-
-  // console.debug(`- setInt(${ptr}, ${value})`, {prev: getInt(ptr)});
-  mem.u32[(ptr / 4) | 0] = value | 0;
-}
-
-function getFloat(ptr: number): number {
-  assert(ptr);
-
-  return mem.f32[(ptr / 4) | 0];
-}
-
-function setFloat(ptr: number, value: number) {
-  assert(ptr);
-
-  // console.debug(`- setFloat(${ptr}, ${value})`, {prev: setFloat(ptr)});
-  mem.f32[(ptr / 4) | 0] = value;
-}
-
-function assert(ptr: number) {
-  if (ptr === 0) {
-    throw new Error("Null was here");
-  }
-}

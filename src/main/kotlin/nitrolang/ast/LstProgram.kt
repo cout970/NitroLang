@@ -6,6 +6,8 @@ import com.google.gson.JsonObject
 import nitrolang.parsing.ANNOTATION_EXTERN
 import nitrolang.backend.wasm.ConstString
 import nitrolang.backend.wasm.ConstValue
+import nitrolang.backend.wasm.MonoFunction
+import nitrolang.backend.wasm.MonoType
 import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.typeinference.TType
 import nitrolang.typeinference.TTypeBase
@@ -91,7 +93,7 @@ class LstStruct(
     val name: String,
     val path: Path,
     val fields: Map<FieldRef, LstStructField>,
-    val typeParameters: List<TypeParameter>,
+    val typeParameters: List<LstTypeParameterDef>,
     val annotations: List<LstAnnotation>,
     val ref: StructRef,
 ) : Dumpable {
@@ -159,7 +161,7 @@ class LstOption(
     val path: Path,
     val itemsRef: List<StructRef>,
     val items: List<LstStruct>,
-    val typeParameters: List<TypeParameter>,
+    val typeParameters: List<LstTypeParameterDef>,
     val annotations: List<LstAnnotation>,
     val ref: OptionRef,
 ) : Dumpable {
@@ -233,15 +235,27 @@ class LstTag(
     val span: Span,
     val name: String,
     val path: Path,
-    val typeParameters: List<TypeParameter> = emptyList(),
+    val typeParameters: List<LstTypeParameterDef> = emptyList(),
     val headers: Map<String, LstFunction>,
     val annotations: List<LstAnnotation>,
     val ref: TagRef
 ) : Dumpable {
     var checked: Boolean = false
-    val taggedBaseTypes = mutableSetOf<TTypeBase>()
-    val functionInstances = mutableMapOf<Pair<TTypeBase, String>, LstFunction>()
+    val posibleImplementation: MutableMap<TType, MutableMap<String, LstFunction>> = mutableMapOf()
+    val functionImplementations: MutableMap<TType, MutableMap<String, LstFunction>> = mutableMapOf()
+    val implementers: MutableSet<TType> = mutableSetOf()
     val fullName: Path get() = createPath(path, name)
+
+    fun addPosibleImpl(name: String, type: TType, func: LstFunction) {
+        val map = posibleImplementation.getOrPut(type) { mutableMapOf() }
+        if (name in map) error("Conflicting implementation for tag $this, prev: ${map[name]}, post: $func")
+        map[name] = func
+    }
+
+    fun addImpl(name: String, type: TType, func: LstFunction) {
+        val map = functionImplementations.getOrPut(type) { mutableMapOf() }
+        map[name] = func
+    }
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 
@@ -259,7 +273,7 @@ class LstTag(
     override fun dump(): JsonObject = JsonObject().also {
         it.add("ref", ref.dump())
         it.add("name", fullName.dump())
-        it.add("type_params", typeParameters.dump())
+        it.add("type_params", typeParameters.map { p -> p.ref }.dump())
     }
 }
 
@@ -270,7 +284,7 @@ class LstFunction(
     val hasReceiver: Boolean,
     val params: List<LstFunctionParam>,
     val returnTypeUsage: TypeUsage,
-    val typeParameters: List<TypeParameter>,
+    val typeParameters: List<LstTypeParameterDef>,
     val body: LstCode,
     val annotations: List<LstAnnotation>,
     val ref: FunRef
@@ -310,13 +324,16 @@ class LstFunction(
                 "}"
     }
 
-    override fun toString(): String = "Function($fullName)"
+    override fun toString(): String {
+        if (returnTypeBox == null) return "function($fullName)"
+        return "$fullName(${params.joinToString(", ") { it.type.toString() }}): $returnType"
+    }
 
     override fun dump(): JsonObject = JsonObject().also {
         it.add("ref", ref.dump())
         it.add("name", fullName.dump())
         it.add("has_receiver", hasReceiver.dump())
-        it.add("type_params", typeParameters.dump())
+        it.add("type_params", typeParameters.map { p -> p.ref }.dump())
         it.add("params", params.dump())
         it.add("return_type", returnTypeBox?.dump())
         it.add("body", body.dump())
@@ -452,7 +469,7 @@ data class TypeUsage(
     val sub: List<TypeUsage>,
     val modifier: Modifier,
     val currentPath: Path,
-    val typeParameter: TypeParameter?,
+    val typeParameter: LstTypeParameterDef?,
     val unresolvedTypeRef: UnresolvedTypeRef? = null,
 ) : Dumpable {
     val fullName: Path get() = createPath(path, name)
@@ -496,7 +513,7 @@ data class TypeUsage(
             unresolvedTypeRef = unresolvedTypeRef,
         )
 
-        fun typeParam(param: TypeParameter) = TypeUsage(
+        fun typeParam(param: LstTypeParameterDef) = TypeUsage(
             span = Span.internal(),
             name = param.name,
             path = "",
@@ -545,11 +562,13 @@ data class TypeUsage(
     }
 }
 
-class TypeParameter(
+class LstTypeParameterDef(
     val span: Span,
     val name: String,
-    val ref: TypeParamRef
+    val ref: TypeParamRef,
+    val bounds: List<TypeUsage>,
 ) : Dumpable {
+    val requiredTags = mutableListOf<LstTag>()
 
     override fun toString(): String = "#$name"
 

@@ -23,9 +23,11 @@ Intended for the developers
 
 
 ### Other features to implement
+- Enums
+- Comparison operators optimization
+- Vec, Set and Map implementations
+- Get annotations of type
+- Arena allocators
 - Unary prefix minus and plus `+5`, `-7`
-- Implicit Interfaces
 - Runtime reflection
 - Thousands of other ideas...
-- Fix `a\n.func()`
-- Fix Float -> #Item (Float as (i32, i32))

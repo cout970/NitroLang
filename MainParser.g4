@@ -97,7 +97,7 @@ constDefinition
 
 // E.g. struct List<Int> { }
 structDefinition
-    : STRUCT declaredNameToken typeParamDef? NL* structBody;
+    : STRUCT declaredNameToken typeParamsDef? NL* structBody;
 
 // E.g. { a: Int, b: Int }
 structBody
@@ -109,7 +109,7 @@ structField
 
 // E.g. type Optional<T> {}
 optionDefinition
-    : OPTION declaredNameToken typeParamDef? NL* LBRACE NL*
+    : OPTION declaredNameToken typeParamsDef? NL* LBRACE NL*
     (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
     RBRACE ;
 
@@ -128,8 +128,10 @@ functionDefinition
     : functionHeader NL* functionBody;
 
 functionHeader
-    : FUN NL* functionReceiver? declaredNameToken NL* typeParamDef? NL*
-    LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType? ;
+    : FUN NL* functionReceiver? declaredNameToken NL* typeParamsDef? NL*
+        LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?
+    | FUN NL* typeParamsDef? NL* functionReceiver? declaredNameToken NL*
+        LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?;
 
 // E.g. Int.
 functionReceiver
@@ -276,8 +278,8 @@ expressionSimple
 expressionWithSuffix
     : expressionWithSuffix collectionIndexingSuffix
     | expressionWithSuffix structFieldAccessSuffix
-    | expressionWithSuffix DOT nameToken functionCallParams functionCallEnd?
-    | expressionWithSuffix DOT nameToken functionCallEnd
+    | expressionWithSuffix NL? DOT nameToken functionCallParams functionCallEnd?
+    | expressionWithSuffix NL? DOT nameToken functionCallEnd
     | expressionOrFunctionCall
     ;
 
@@ -297,7 +299,7 @@ collectionIndexingSuffix
     : LBRACKET NL* expression NL* RBRACKET ;
 
 structFieldAccessSuffix
-    : DOT nameToken ;
+    : NL? DOT nameToken ;
 
 parenthesizedExpression
     : LPAREN NL* expression NL* RPAREN ;
@@ -313,9 +315,6 @@ expressionBase
     | lambdaExpr
     | structInstanceExpr
     | sizeOfExpr
-    | ptrOfExpr
-    | memoryWriteExpr
-    | memoryReadExpr
     | variableExpr
     | jsonExpr
     | THIS
@@ -430,18 +429,6 @@ returnExpr
 sizeOfExpr
     : SIZE_OF LTH NL* typeUsage NL* GTH ;
 
-// E.g. ptr_of<Int>
-ptrOfExpr
-    : PTR_OF LPAREN NL* expression NL* RPAREN ;
-
-// E.g. memory_write<Int>(ptr, value)
-memoryWriteExpr
-    : MEMORY_WRITE LTH NL* typeUsage NL* GTH NL* LPAREN NL* expression commaOrNl expression NL* RPAREN ;
-
-// E.g. memory_read<Int>(ptr)
-memoryReadExpr
-    : MEMORY_READ LTH NL* typeUsage NL* GTH NL* LPAREN NL* expression NL* RPAREN ;
-
 // E.g. not true
 notExpr
     : NOT expressionBase ;
@@ -477,8 +464,13 @@ functionCallEnd
     ;
 
 // Types
+typeParamsDef
+    : LTH NL* typeParamDef (commaOrNl typeParamDef)* COMMA? NL* GTH ;
+    
 typeParamDef
-    : LTH NL* typeParameter (commaOrNl typeParameter)* COMMA? NL* GTH ;
+    : typeParameter COLON typeUsage (commaOrNl typeUsage)*
+    | typeParameter
+    ;
 
 typeParamArg
     : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;

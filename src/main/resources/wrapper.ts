@@ -1,29 +1,29 @@
 #!/usr/bin/env -S deno run --allow-read
 
-import * as coreLib from './core.ts'
+import * as internal from './internal.ts'
+import * as core from './core.ts'
+import * as compiler from '../nitro/compiler/extern.ts'
 
 const __dirname = new URL('.', import.meta.url).pathname;
 
-const wasmCode = await Deno.readFile(`${__dirname}output.wasm`);
+const wasmCode = await Deno.readFile(`${__dirname}output/compiled.wasm`);
 const wasmModule = new WebAssembly.Module(wasmCode);
 
-const {mem, ...core} = coreLib;
-
-const wasmInstance = new WebAssembly.Instance(wasmModule, {core});
+const wasmInstance = new WebAssembly.Instance(wasmModule, {core, compiler});
 
 const memory: WebAssembly.Memory = wasmInstance.exports.memory as WebAssembly.Memory;
-mem.u32 = new Uint32Array(memory.buffer);
-mem.f32 = new Float32Array(memory.buffer);
-mem.u16 = new Uint16Array(memory.buffer);
-mem.u8 = new Uint8Array(memory.buffer);
+
+internal.mem.i32 = new Int32Array(memory.buffer);
+internal.mem.u32 = new Uint32Array(memory.buffer);
+internal.mem.f32 = new Float32Array(memory.buffer);
+internal.mem.u16 = new Uint16Array(memory.buffer);
+internal.mem.u8 = new Uint8Array(memory.buffer);
+internal.mem.program = wasmInstance.exports;
 
 const main = wasmInstance.exports.main as CallableFunction
 
 try {
   main();
-//  for(let i = 0; i < 192; i += 4) {
-//    console.log(`${i.toString().padStart(8, '0')} 0x${i.toString(16).padStart(8, '0')} - ${mem.u8[i+3].toString(16).padStart(2, '0')} ${mem.u8[i+2].toString(16).padStart(2, '0')} ${mem.u8[i+1].toString(16).padStart(2, '0')} ${mem.u8[i].toString(16).padStart(2, '0')}`);
-//  }
 } catch (e) {
   console.error(e);
   Deno.exit(0);

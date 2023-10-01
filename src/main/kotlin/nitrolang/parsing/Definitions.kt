@@ -4,7 +4,7 @@ import nitrolang.ast.*
 import nitrolang.gen.MainParser
 
 fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
-    startTypeParams(ctx.typeParamDef())
+    startTypeParams(ctx.typeParamsDef())
 
     var index = 0
     val fields = ctx.structBody().structField().map { fieldCtx ->
@@ -40,9 +40,9 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
 }
 
 fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
-    startTypeParams(ctx.typeParamDef())
+    startTypeParams(ctx.typeParamsDef())
 
-    val mutableTypeParametersList = mutableListOf<TypeParameter>()
+    val mutableTypeParametersList = mutableListOf<LstTypeParameterDef>()
     val options = mutableListOf<LstStruct>()
     val optionRef = program.nextOptionRef()
 
@@ -112,7 +112,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
 }
 
 fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstFunction {
-    startTypeParams(ctx.typeParamDef())
+    startTypeParams(ctx.typeParamsDef())
 
     val params = mutableListOf<LstFunctionParam>()
     val body = LstCode()
@@ -239,15 +239,18 @@ fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
 
 fun ParserCtx.processIncludeDefinition(ctx: MainParser.IncludeDefinitionContext) {
     val location = processPlainString(ctx.PLAIN_STRING())
-    val namespace = location.substringBefore(':')
+    val namespace = if (location.contains(':')) location.substringBefore(':') else ""
     val path = location.substringAfter(':')
 
-    AstParser.includeFile(namespace, path, program)
+    AstParser.includeFile(namespace, path, program, source)
 }
 
 fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
     val annotations = resolveAnnotations(ctx)
     val headers = mutableMapOf<String, LstFunction>()
+    val tagName = ctx.declaredNameToken().text
+
+    currentTagName = tagName
 
     ctx.tagDefinitionFunction().forEach { funHeader ->
         val header = funHeader.functionHeader()
@@ -258,13 +261,14 @@ fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
         }
 
         val func = processFunctionHeader(header)
-
         headers[name] = func
     }
 
+    currentTagName = null
+
     val tag = LstTag(
         span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().text,
+        name = tagName,
         path = currentPath(ctx),
         annotations = annotations,
         headers = headers,

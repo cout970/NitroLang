@@ -82,7 +82,7 @@ fun Int.is_equal(other: Int): Boolean {}
 
 @Extern $[lib: "core", name: "int_is_not_equal_int"]
 @WasmInline $[opcode: "i32.ne"]
-fun Int.is_not_equal(other: Int): Int {}
+fun Int.is_not_equal(other: Int): Boolean {}
 
 @Extern $[lib: "core", name: "int_is_equal_zero"]
 @WasmInline $[opcode: "i32.eqz"]
@@ -127,3 +127,9 @@ fun max(a: Int, b: Int): Int {
 fun min(a: Int, b: Int): Int {
     ret if a > b { b } else { a }
 }
+
+@Extern $[lib: "core", name: "int_to_string"]
+fun Int.to_string(): String {}
+
+@Extern $[lib: "core", name: "int_to_string_in_base"]
+fun Int.to_string_in_base(radix: Int): String {}

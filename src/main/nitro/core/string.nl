@@ -19,6 +19,7 @@ fun String.get_byte(index: Int): Int {
 fun String.get(index: Int): Char {
     ret this.get_codepoint(index).to_char()
 }
+
 fun String.len(): Int {
     ret this.codepoint_len()
 }
@@ -51,9 +52,6 @@ fun String.get_hash(): Int {
 @Extern $[lib: "core", name: "string_replace"]
 fun String.replace(find: String, replacement: String): String {}
 
-@Extern $[lib: "core", name: "int_to_string"]
-fun Int.to_string(): String {}
-
 @Extern $[lib: "core", name: "float_to_string"]
 fun Float.to_string(): String {}
 
@@ -62,10 +60,3 @@ fun Boolean.to_string(): String {
 }
 
 fun String.to_string(): String = this
-
-@Extern $[lib: "core", name: "any_to_string"]
-fun #Any.to_string(): String {}
-
-tag ToString {
-    fun This.to_string(): String
-}

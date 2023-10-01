@@ -368,7 +368,7 @@ fun ParserCtx.processFunctionCall(
         name = name,
         path = path,
         arguments = args,
-        specifiedTypeParams = specifiedTypeParams,
+        explicitTypeParams = specifiedTypeParams,
     )
     code.nodes += call
     return call.ref
@@ -465,18 +465,6 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
 
         ctx.sizeOfExpr() != null -> {
             processExpressionSizeOf(ctx.sizeOfExpr())
-        }
-
-        ctx.ptrOfExpr() != null -> {
-            processExpressionPtrOf(ctx.ptrOfExpr())
-        }
-
-        ctx.memoryWriteExpr() != null -> {
-            processExpressionMemoryWrite(ctx.memoryWriteExpr())
-        }
-
-        ctx.memoryReadExpr() != null -> {
-            processExpressionMemoryRead(ctx.memoryReadExpr())
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
@@ -673,7 +661,7 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     ctx.stringContents().forEach { item ->
         when {
             item.STRING_BLOB() != null -> buff.append(item.STRING_BLOB().text)
-            item.STRING_ESCAPE() != null -> buff.append("\"")
+            item.STRING_ESCAPE() != null -> buff.append(item.STRING_ESCAPE().text)
             item.STRING_VAR() != null -> {
                 endChunk()
                 val node = LstLoadVar(
@@ -926,7 +914,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 name = "create_string_map",
                 path = "",
                 arguments = emptyList(),
-                specifiedTypeParams = listOf(TypeUsage.simple("Json")),
+                explicitTypeParams = listOf(TypeUsage.simple("Json")),
             )
             code.nodes += map
 
@@ -973,7 +961,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 name = "create_list",
                 path = "",
                 arguments = emptyList(),
-                specifiedTypeParams = listOf(TypeUsage.simple("Json")),
+                explicitTypeParams = listOf(TypeUsage.simple("Json")),
             )
             code.nodes += list
 
@@ -1038,7 +1026,7 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
                     block = code.currentBlock,
                     name = "is_equal",
                     path = "",
-                    arguments = listOf(whenArg, keyRef),
+                    arguments = listOf(keyRef, whenArg),
                 )
                 code.nodes += cond
                 cond.ref
@@ -1131,6 +1119,7 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
+        isStatement = false,
         branchStores = branchStores,
         start = start,
     )
@@ -1192,7 +1181,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
                     block = code.currentBlock,
                     name = "is_equal",
                     path = "",
-                    arguments = listOf(whenArg, keyRef),
+                    arguments = listOf(keyRef, whenArg),
                 )
                 code.nodes += cond
                 cond.ref
@@ -1262,6 +1251,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
+        isStatement = true,
         start = start,
     )
 }
@@ -1275,7 +1265,7 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
         name = "create_list",
         path = "",
         arguments = emptyList(),
-        specifiedTypeParams = listOf(TypeUsage.unresolved(listType)),
+        explicitTypeParams = listOf(TypeUsage.unresolved(listType)),
     )
     code.nodes += list
 
@@ -1575,42 +1565,6 @@ fun ParserCtx.processExpressionSizeOf(ctx: MainParser.SizeOfExprContext): Ref {
         span = ctx.span(),
         block = code.currentBlock,
         typeUsage = resolveTypeUsage(ctx.typeUsage()),
-    )
-    code.nodes += node
-    return node.ref
-}
-
-fun ParserCtx.processExpressionMemoryWrite(ctx: MainParser.MemoryWriteExprContext): Ref {
-    val node = LstMemoryWrite(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        typeUsage = resolveTypeUsage(ctx.typeUsage()),
-        ptrExpr = processExpression(ctx.expression(0)),
-        valueExpr = processExpression(ctx.expression(1)),
-    )
-    code.nodes += node
-    return node.ref
-}
-
-fun ParserCtx.processExpressionPtrOf(ctx: MainParser.PtrOfExprContext): Ref {
-    val node = LstPtrOf(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        expr = processExpression(ctx.expression()),
-    )
-    code.nodes += node
-    return node.ref
-}
-
-fun ParserCtx.processExpressionMemoryRead(ctx: MainParser.MemoryReadExprContext): Ref {
-    val node = LstMemoryRead(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        typeUsage = resolveTypeUsage(ctx.typeUsage()),
-        expr = processExpression(ctx.expression()),
     )
     code.nodes += node
     return node.ref

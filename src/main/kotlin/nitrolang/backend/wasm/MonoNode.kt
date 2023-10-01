@@ -34,7 +34,19 @@ data class MonoType(
         return when (base) {
             is MonoOption -> base.size
             is MonoOptionItem -> base.size
-            is MonoStruct -> base.size
+            is MonoStruct -> {
+                when (base.instance.fullName) {
+                    "Never" -> 0
+                    "Nothing" -> 0
+                    "Byte" -> 1
+                    "Boolean" -> 1
+                    "Short" -> 2
+                    "Char" -> 4
+                    "Int" -> 4
+                    "Float" -> 4
+                    else -> base.size
+                }
+            }
         }
     }
 
@@ -58,6 +70,15 @@ data class MonoType(
 
 sealed class MonoTypeBase {
     abstract val id: Int
+}
+
+data class MonoConst(
+    val instance: LstConst,
+    val type: MonoType,
+) {
+    var offset: Int = 0
+    var size: Int = 0
+    override fun toString(): String = instance.fullName
 }
 
 data class MonoStruct(
@@ -195,6 +216,11 @@ class MonoReturn(
 class MonoComment(
     id: MonoRef, span: Span,
     val msg: String,
+) : MonoNode(id, span)
+
+class MonoLoadConst(
+    id: MonoRef, span: Span,
+    val const: MonoConst,
 ) : MonoNode(id, span)
 
 class MonoLoadVar(

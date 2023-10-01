@@ -50,9 +50,6 @@ MODULE                          : 'mod'         | 'module' ;
 STRUCT                          : 'struct'      | 'class' ;
 RETURN                          : 'ret'         | 'return' ;
 SIZE_OF                         : 'size_of'     | 'sizeOf' ;
-PTR_OF                          : 'ptr_of'      | 'ptrOf' ;
-MEMORY_WRITE                    : 'memory_write'| 'memoryWrite' ;
-MEMORY_READ                     : 'memory_read' | 'memoryRead' ;
 OPTION                          : 'type'        | 'option';
 REC                             : 'rec'         | 'recv'        | 'receiver' ;
 TAG                             : 'interface'   | 'trait'       | 'tag' ;
@@ -119,7 +116,7 @@ RBRACE                          : '}' {
 ERROR_CHARACTER                 : . ;
 
 mode STRING_MODE;
-STRING_ESCAPE                   : '\\' '"' ;
+STRING_ESCAPE                   : '\\' '"' | '\\' '$' | '\\' '\\' ;
 STRING_INTERP_START             : '$' '{' -> pushMode(DEFAULT_MODE) ;
 STRING_INTERP_END               : '}';
 STRING_VAR                      : '$' IDENTIFIER ;

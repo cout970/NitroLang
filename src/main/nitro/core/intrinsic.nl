@@ -1,4 +1,5 @@
-// Unit type, the literal is '()', has only 1 instance
+// Unit type, the literal is 'nothing', has only 1 instance
+// e.g. `return nothing`
 @Extern $[lib: "core", name: "Nothing"]
 @StackValue
 struct Nothing {}
@@ -23,14 +24,21 @@ fun crash(msg: String): Never {
 }
 
 // Given a value, extract it's type and gets the size in bytes needed to store it in memory
-fun size_of_value(value: #S): Int {
-    ret size_of<#S>
+fun size_of_value(value: #Value): Int {
+    ret size_of<#Value>
 }
 
-//@Extern $[lib: "core", name: "internal_is_variant"]
-//@Required
-//fun internal_is_variant(ptr: Int, expected_variant: Int): Boolean {}
-//
-//@Extern $[lib: "core", name: "internal_get_type_id"]
-//@Required
-//fun internal_get_type_id(ptr: #Value): Int {}
+@Extern $[lib: "core", name: "as_type_internal"]
+@Required
+fun as_type_internal(ptr: Int, ty: Int): Int {}
+
+@Extern $[lib: "core", name: "is_type_internal"]
+@Required
+fun is_type_internal(ptr: Int, ty: Int): Boolean {}
+
+// Intrinsic function used for struct automatic allocation
+@WasmName $[name: "memory_alloc_internal"]
+@Required
+fun memory_alloc_internal(bytes: Int): Int {
+    ret get_memory().alloc_bytes(bytes).get_address()
+}

@@ -1,8 +1,8 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.*
+import nitrolang.backend.wasm.replaceGenerics
 import nitrolang.parsing.ParserCtx
-import nitrolang.parsing.THIS_TYPE
 
 fun ParserCtx.doAllTypeChecking() {
     program.consts.values.forEach { const ->
@@ -19,6 +19,10 @@ fun ParserCtx.doAllTypeChecking() {
         struct.fields.values.forEach { field ->
             field.typeBox = typeEnv.box(typeUsage(field.typeUsage), field.span)
         }
+
+        struct.typeParameters.forEach { tp ->
+            tp.requiredTags += tp.bounds.mapNotNull { findTag(it) }
+        }
     }
 
     program.functions.values.forEach { func ->
@@ -32,15 +36,17 @@ fun ParserCtx.doAllTypeChecking() {
         }
         func.returnTypeBox = typeEnv.box(typeUsage(func.returnTypeUsage), func.span)
         func.body.returnTypeBox = func.returnTypeBox
+        func.typeParameters.forEach { tp ->
+            tp.requiredTags += tp.bounds.mapNotNull { findTag(it) }
+        }
         currentTag = null
     }
+
+    val matchMap = mutableMapOf<String, MutableList<Pair<LstTag, LstFunction>>>()
 
     program.tags.values.forEach { tag ->
         if (tag.checked) return@forEach
         tag.checked = true
-
-        val options = typeEnv.getSimpleBaseTypes().toMutableList()
-        val functions = mutableMapOf<Pair<TTypeBase, String>, LstFunction>()
 
         for (func in tag.headers.values) {
             if (func.params.isEmpty()) {
@@ -48,28 +54,48 @@ fun ParserCtx.doAllTypeChecking() {
                 continue
             }
 
-            val receiver = func.params[0].type
-
-            if (receiver !is TTag || receiver.instance != tag) {
-                collector.report("Receiver must be the same type as the tag", func.span)
+            if (func.typeParameters.count() != 1) {
+                collector.report("Tag function must have exactly 1 type parameter", func.span)
                 continue
             }
 
-            val res = findTagFunctionInstances(options, func, tag)
-            options.clear()
-            res.forEach {
-                options += it.first
-                functions[it.first to func.name] = it.second
+            val param = func.typeParameters.first()
+
+            if (param.bounds.isEmpty() || param.bounds.none { it.fullName == tag.fullName }) {
+                collector.report("Type param must contain the tag, ej. `#${param.name}: ${tag.fullName}`", func.span)
+                continue
             }
+
+            val matchEntry = matchMap.getOrPut(func.fullName) { mutableListOf() }
+            matchEntry += tag to func
         }
+    }
 
-        tag.taggedBaseTypes += options
+    program.functions.values.forEach { func ->
+        if (func.tag != null) return@forEach
 
-        functions.forEach { pair ->
-            // Exclude functions from types that are incomplete
-            if (pair.key.first in options) {
-                tag.functionInstances[pair.key] = pair.value
+        val possibleTags = matchMap[func.fullName] ?: emptyList()
+
+        possibleTags.forEach { (tag, header) ->
+            val matchType = functionMatchesTagHeader(func, header) ?: return
+            tag.addPosibleImpl(func.fullName, matchType, func)
+        }
+    }
+
+    program.tags.values.forEach { tag ->
+        tag.posibleImplementation.forEach { (implementer, impls) ->
+            if (tag.headers.size != impls.size) return
+
+            // Check all headers have an implementation
+            for (name in tag.headers.keys) {
+                if (name !in impls) return
             }
+
+            for (name in tag.headers.keys) {
+                tag.addImpl(name, implementer, impls[name]!!)
+            }
+
+            tag.implementers += implementer
         }
     }
 
@@ -166,15 +192,6 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
 
     val params = tu.sub.map { typeUsage(it) }
 
-    if (tu.fullName == THIS_TYPE) {
-        if (currentTag == null) {
-            collector.report("Use of '$THIS_TYPE' outside of a tag definition", tu.span)
-            return typeEnv.invalid(tu.span)
-        }
-
-        return typeEnv.typeTag(currentTag!!)
-    }
-
     // Search for struct/option/tag/etc
 
     val segments = createPathSegments(tu.currentPath, tu.fullName)
@@ -208,6 +225,26 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
 
     collector.report("Type '${tu.fullName}' not found", tu.span)
     return typeEnv.invalid(tu.span)
+}
+
+private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
+    if (tu.sub.isNotEmpty()) {
+        collector.report("Type parameters not allowed here", tu.span)
+    }
+
+    // Search for tag
+    val segments = createPathSegments(tu.currentPath, tu.fullName)
+
+    for (segment in segments) {
+        val tag = program.tags.values.find { it.fullName == segment }
+
+        if (tag != null) {
+            return tag
+        }
+    }
+
+    collector.report("Tag '${tu.fullName}' not found", tu.span)
+    return null
 }
 
 private fun ParserCtx.visitCode(code: LstCode) {
@@ -305,31 +342,6 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         is LstSizeOf -> {
             node.typeUsageBox = typeEnv.box(typeUsage(node.typeUsage), node.span)
             node.typeBox = typeEnv.box(typeEnv.find("Int"), node.span)
-        }
-
-        is LstPtrOf -> {
-            node.typeBox = typeEnv.box(typeEnv.find("Int"), node.span)
-        }
-
-        is LstMemoryWrite -> {
-            val ptrExpr = code.getNode(node.ptrExpr).asExpr(node) ?: error("MemoryWrite requires an expression")
-            val valueExpr = code.getNode(node.valueExpr).asExpr(node) ?: error("MemoryWrite requires two expressions")
-
-            val typeUsage = typeUsage(node.typeUsage)
-            node.typeUsageBox = typeEnv.box(typeUsage, node.span)
-            node.typeBox = typeEnv.box(typeEnv.find("Nothing"), node.span)
-
-            typeEnv.addEqualConstraint(ptrExpr.type, typeEnv.find("Int"), ptrExpr.span)
-            typeEnv.addEqualConstraint(valueExpr.type, typeUsage, valueExpr.span)
-        }
-
-        is LstMemoryRead -> {
-            val ptrExpr = code.getNode(node.expr).asExpr(node) ?: error("LstMemoryRead requires an expression")
-            val typeUsage = typeUsage(node.typeUsage)
-            node.typeUsageBox = typeEnv.box(typeUsage, node.span)
-            node.typeBox = typeEnv.box(typeUsage, node.span)
-
-            typeEnv.addEqualConstraint(ptrExpr.type, typeEnv.find("Int"), ptrExpr.span)
         }
 
         is LstReturn -> {
@@ -544,15 +556,20 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstWhenEnd -> {
-            val unresolved = typeEnv.unresolved(node.span)
-            node.typeBox = typeEnv.box(unresolved, node.span)
+            val resultType = if (node.isStatement) {
+                typeEnv.find("Nothing")
+            } else {
+                typeEnv.unresolved(node.span)
+            }
+
+            node.typeBox = typeEnv.box(resultType, node.span)
             node.start.typeBox = node.typeBox
 
             node.branchStores.forEach { branch ->
                 branch.typeBox = node.typeBox
                 val value = code.getNode(branch.expr).asExpr(node) ?: return@forEach
 
-                typeEnv.addAssignableConstraint(unresolved, value.type, branch.span)
+                typeEnv.addAssignableConstraint(resultType, value.type, branch.span)
             }
         }
 
@@ -568,18 +585,24 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             }
 
             typeEnv.addFindFunctionConstraint(argTypes, node.span) { args ->
-                val func = findFunction(node.fullName, args)
+                val options = findBestFunctionMatch(node.fullName, args)
 
-                if (func == null) {
+                if (options.isEmpty()) {
                     collector.report("Function '${node.fullName}' not found", node.span)
+                    node.type = typeEnv.invalid(node.span)
                     return@addFindFunctionConstraint
                 }
 
-                node.funRef = func.ref
-                node.function = func
-                for (arg in args) {
-                    node.concreteArgTypes += typeEnv.box(arg, node.span)
+                if (options.size != 1) {
+                    collector.report(
+                        "Function resolution ambiguity options: [${options.joinToString(", ") { it.span.toString() }}]",
+                        node.span
+                    )
+                    node.type = typeEnv.invalid(node.span)
+                    return@addFindFunctionConstraint
                 }
+
+                val func = options.first()
 
                 if (func.params.size != args.size) {
                     collector.report(
@@ -588,6 +611,14 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                     )
                 }
 
+                node.funRef = func.ref
+                node.function = func
+
+                for (arg in args) {
+                    node.concreteArgTypes += typeEnv.box(arg, node.span)
+                }
+
+                // Replace generics with unresolved
                 var paramTypes = func.params.map { it.type }
                 var returnType = func.returnType
 
@@ -596,6 +627,8 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                     val paramUnresolved = typeEnv.unresolved(node.span)
                     node.typeParamsTypes += typeEnv.box(paramUnresolved, node.span)
 
+                    typeEnv.addBoundsConstraint(paramUnresolved, typeParam.requiredTags, node.span)
+
                     typeEnv.apply {
                         paramTypes = paramTypes.map { it.replace(generic, paramUnresolved) }
                         returnType = returnType.replace(generic, paramUnresolved)
@@ -603,7 +636,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 }
 
                 // Type params explicitly defined
-                node.specifiedTypeParams.forEachIndexed { index, typeUsage ->
+                node.explicitTypeParams.forEachIndexed { index, typeUsage ->
                     if (index >= node.typeParamsTypes.size) {
                         collector.report("Incorrect number of type parameters supplied", typeUsage.span)
                         return@forEachIndexed
@@ -622,99 +655,141 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
     }
 }
 
-private fun ParserCtx.findTagFunctionInstances(
-    validOptions: List<TTypeBase>,
-    func: LstFunction,
-    tag: LstTag
-): List<Pair<TTypeBase, LstFunction>> {
-    val result = mutableListOf<Pair<TTypeBase, LstFunction>>()
+private fun ParserCtx.functionMatchesTagHeader(origFunc: LstFunction, headerFunc: LstFunction): TType? {
+    if (origFunc.tag != null) return null
+    if (origFunc.name != headerFunc.name) return null
+    if (origFunc.params.size != headerFunc.params.size) return null
+    var tagImplementer: TType? = null
+    val typeParam = headerFunc.typeParameters.first()
 
-    for (base in validOptions) {
-        outer@ for (baseFunc in program.functions.values) {
-            if (baseFunc.tag != null) continue
-            if (baseFunc.name != func.name) continue
-            if (baseFunc.params.size != func.params.size) continue
+    val result = mutableListOf<Pair<TType, TType>>()
 
-            inner@ for ((baseParam, funcParam) in baseFunc.params.zip(func.params)) {
-                val baseT = baseParam.type
-                val funcT = funcParam.type
+    val origTypes = mutableListOf(origFunc.returnType)
+    origFunc.params.forEach { origTypes += it.type }
 
-                if (funcT is TTag && funcT.instance == tag) {
-                    if (baseT !is TComposite || baseT.base != base) continue@outer
-                } else {
-                    if (baseT != funcT) continue@outer
-                }
-            }
+    val headerTypes = mutableListOf(headerFunc.returnType)
+    headerFunc.params.forEach { headerTypes += it.type }
 
-            val baseT = baseFunc.returnType
-            val funcT = func.returnType
+    deepCompareTypes(origTypes, headerTypes, result)
 
-            if (funcT is TTag && funcT.instance == tag) {
-                if (baseT !is TComposite || baseT.base != base) continue@outer
-            } else {
-                if (baseT != funcT) continue@outer
-            }
-
-            result += base to baseFunc
+    for ((base, header) in result) {
+        if (header is TGeneric && header.instance == typeParam) {
+            tagImplementer = base
+            break
         }
     }
 
-    return result
+    if (tagImplementer == null) return null
+
+    val replacements = mutableMapOf(typeParam to tagImplementer)
+
+    for ((baseParam, headerParam) in origFunc.params.zip(headerFunc.params)) {
+        val baseT = baseParam.type
+        val headerT = program.replaceGenerics(headerParam.type, replacements)
+
+        if (baseT != headerT) return null
+    }
+
+    val baseT = origFunc.returnType
+    val headerT = program.replaceGenerics(headerFunc.returnType, replacements)
+
+    if (baseT != headerT) return null
+
+    return tagImplementer
 }
 
-private fun ParserCtx.findFunction(name: String, args: List<TType>): LstFunction? {
+private fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): List<LstFunction> {
     val choices = program.functions.values.filter { it.name == name }
 
     if (choices.isEmpty()) {
-        return null
+        return emptyList()
     }
 
-    val sortedChoices = choices.sortedByDescending { func ->
-        functionSimilarity(func.params.map { param -> param.type }, args)
+    val scored = choices.map {
+        functionDiffScore(it.params.map { param -> param.type }, args) to it
+    }
+
+    val sortedChoices = scored.sortedBy { (score, _) ->
+        score
+    }
+
+    val bestScore = sortedChoices.first().first
+    val conflicts = mutableListOf<LstFunction>()
+
+    for ((score, func) in sortedChoices) {
+        if (score == bestScore) {
+            conflicts += func
+        } else {
+            break
+        }
     }
 
     // Best match
-    return sortedChoices.first()
+    return conflicts
 }
 
-fun ParserCtx.functionSimilarity(params: List<TType>, args: List<TType>): Float {
-    var total = 1000000f
+private fun deepCompareTypes(a: List<TType>, b: List<TType>, diff: MutableList<Pair<TType, TType>>) {
+    for ((aT, bT) in a.zip(b)) {
+        deepCompareTypes(aT, bT, diff)
+    }
+}
+
+private fun deepCompareTypes(a: TType, b: TType, diff: MutableList<Pair<TType, TType>>) {
+    if (a == b) return
+
+    if (a is TComposite && b is TComposite) {
+        if (a.base == b.base) {
+            deepCompareTypes(a.params, b.params, diff)
+            return
+        }
+    }
+
+    diff += a to b
+}
+
+fun ParserCtx.functionDiffScore(params: List<TType>, args: List<TType>): Float {
+    var diff = 0f
 
     if (params.size != args.size) {
-        total -= 100000f
+        diff += 100000f
     }
 
     for ((param, arg) in params.zip(args)) {
-        total += similarity(param, arg) - 10000f
+        diff += typeDiffScore(param, arg)
     }
 
-    return total
+    return diff
 }
 
-fun ParserCtx.similarity(param: TType, arg: TType): Float {
-    var total = 10000f
 
+fun ParserCtx.typeDiffScore(param: TType, arg: TType): Float {
     if (param == arg) {
-        return total
-    }
-
-    if (param !is TComposite || arg !is TComposite) {
         return 0f
     }
 
-    param.params.zip(arg.params).forEach { (p, a) ->
-        total += (similarity(p, a) - 10000f) / 100f
+    if (param is TComposite && arg is TComposite) {
+        if (param.base != arg.base) {
+            return 1000f
+        }
+
+        var diff = 0f
+
+        if (param.params.size != arg.params.size) {
+            diff += 100f
+        }
+
+        param.params.zip(arg.params).forEach { (p, a) ->
+            diff += typeDiffScore(p, a) * 0.1f
+        }
+
+        return diff
     }
 
-    if (param.params.size != arg.params.size) {
-        total -= 1000f
+    if (arg is TGeneric && param is TGeneric) {
+        val req = param.instance.requiredTags.toMutableSet()
+        req.removeAll(param.instance.requiredTags.toSet())
+        return req.size * 10f + 1f
     }
 
-    total -= 10000f
-
-    if (param.base != arg.base) {
-        total -= 10000f
-    }
-
-    return total
+    return 1000f
 }

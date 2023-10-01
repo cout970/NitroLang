@@ -1,17 +1,15 @@
 package nitrolang.parsing
 
 import nitrolang.ast.MODULE_SEPARATOR
-import nitrolang.ast.TypeParameter
+import nitrolang.ast.LstTypeParameterDef
 import nitrolang.ast.TypeUsage
 import nitrolang.gen.MainParser
 
-const val THIS_TYPE = "This"
-
 fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
 
-    if (ctx.typeParameter() != null) {
-        val name = ctx.typeParameter().nameToken().text
-        val typeParameterRef = typeParamMap.getOrPut(name) {
+    if (ctx.THIS_TYPE() != null) {
+        val name = "This"
+        val typeParameterDef = typeParamMap.getOrPut(name) {
             if (!allowTypeParamCollection) {
                 collector.report(
                     "Found undefined type parameter '${name}'",
@@ -19,10 +17,50 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
                 )
             }
 
-            TypeParameter(
+            val typeBound = TypeUsage(
+                span = ctx.span(),
+                name = currentTagName ?: error("Using `This` outside a tag definition"),
+                path = "",
+                sub = emptyList(),
+                modifier = TypeUsage.Modifier.NONE,
+                typeParameter = null,
+                currentPath = currentPath(ctx)
+            )
+
+            LstTypeParameterDef(
+                span = ctx.span(),
+                name = name,
+                ref = program.nextTypeParamRef(),
+                bounds = listOf(typeBound)
+            )
+        }
+
+        return TypeUsage(
+            span = ctx.span(),
+            name = name,
+            path = "",
+            sub = emptyList(),
+            modifier = TypeUsage.Modifier.NONE,
+            typeParameter = typeParameterDef,
+            currentPath = currentPath(ctx)
+        )
+    }
+
+    if (ctx.typeParameter() != null) {
+        val name = ctx.typeParameter().nameToken().text
+        val typeParameterDef = typeParamMap.getOrPut(name) {
+            if (!allowTypeParamCollection) {
+                collector.report(
+                    "Found undefined type parameter '${name}'",
+                    ctx.typeParameter().span()
+                )
+            }
+
+            LstTypeParameterDef(
                 span = ctx.typeParameter().nameToken().span(),
                 name = name,
-                ref = program.nextTypeParamRef()
+                ref = program.nextTypeParamRef(),
+                bounds = emptyList()
             )
         }
 
@@ -32,19 +70,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             path = "",
             sub = emptyList(),
             modifier = TypeUsage.Modifier.NONE,
-            typeParameter = typeParameterRef,
-            currentPath = currentPath(ctx)
-        )
-    }
-
-    if (ctx.THIS_TYPE() != null) {
-        return TypeUsage(
-            span = ctx.span(),
-            name = THIS_TYPE,
-            path = "",
-            sub = emptyList(),
-            modifier = TypeUsage.Modifier.NONE,
-            typeParameter = null,
+            typeParameter = typeParameterDef,
             currentPath = currentPath(ctx)
         )
     }
@@ -83,15 +109,19 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
     )
 }
 
-fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamDefContext?) {
+fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamsDefContext?) {
     typeParamMap.clear()
     allowTypeParamCollection = true
 
-    ctx?.typeParameter()?.forEach {
-        val td = TypeParameter(
-            span = it.nameToken().span(),
-            name = it.nameToken().text,
-            ref = program.nextTypeParamRef()
+    ctx?.typeParamDef()?.forEach { def ->
+        val typeParam = def.typeParameter()
+        val bounds = def.typeUsage().map { resolveTypeUsage(it) }
+
+        val td = LstTypeParameterDef(
+            span = typeParam.nameToken().span(),
+            name = typeParam.nameToken().text,
+            ref = program.nextTypeParamRef(),
+            bounds = bounds,
         )
 
         if (td.name in typeParamMap) {
@@ -106,7 +136,7 @@ fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamDefContext?) {
     }
 }
 
-fun ParserCtx.endTypeParams(): List<TypeParameter> {
+fun ParserCtx.endTypeParams(): List<LstTypeParameterDef> {
     allowTypeParamCollection = false
     return typeParamMap.values.toList()
 }

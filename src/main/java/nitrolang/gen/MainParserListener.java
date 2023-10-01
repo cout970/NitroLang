@@ -858,36 +858,6 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitSizeOfExpr(MainParser.SizeOfExprContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#ptrOfExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterPtrOfExpr(MainParser.PtrOfExprContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MainParser#ptrOfExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitPtrOfExpr(MainParser.PtrOfExprContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MainParser#memoryWriteExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MainParser#memoryWriteExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitMemoryWriteExpr(MainParser.MemoryWriteExprContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link MainParser#memoryReadExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterMemoryReadExpr(MainParser.MemoryReadExprContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MainParser#memoryReadExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitMemoryReadExpr(MainParser.MemoryReadExprContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link MainParser#notExpr}.
 	 * @param ctx the parse tree
 	 */
@@ -977,6 +947,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitFunctionCallEnd(MainParser.FunctionCallEndContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#typeParamsDef}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypeParamsDef(MainParser.TypeParamsDefContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typeParamsDef}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypeParamsDef(MainParser.TypeParamsDefContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#typeParamDef}.
 	 * @param ctx the parse tree

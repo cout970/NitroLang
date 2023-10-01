@@ -18,6 +18,7 @@ const val SELF_NAME = "this"
 const val ANNOTATION_EXTERN = "Extern"
 const val ANNOTATION_EXPORT = "Export"
 const val ANNOTATION_REQUIRED = "Required"
+const val ANNOTATION_WASM_NAME = "WasmName"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
 const val ANNOTATION_STACK_VALUE = "StackValue"
 const val MAIN_FUNCTION_NAME = "main"
@@ -25,13 +26,14 @@ const val MAIN_FUNCTION_NAME = "main"
 data class ParserCtx(
     val source: SourceFile,
     val program: LstProgram,
-    val typeParamMap: MutableMap<String, TypeParameter>,
+    val typeParamMap: MutableMap<String, LstTypeParameterDef>,
     var allowTypeParamCollection: Boolean,
     var code: LstCode,
 ) {
     val collector: ErrorCollector = program.collector
     val typeEnv: TypeEnv = program.typeEnv
 
+    var currentTagName: String? = null
     var currentTag: LstTag? = null
 
     fun ParserRuleContext.span(): Span {
@@ -74,18 +76,21 @@ data class ParserCtx(
 class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
     companion object {
 
-        fun includeFile(ns: String, path: String, program: LstProgram): Boolean {
-            assert(ns == "core") { "Only core is supported for now" }
-
-            val realPath = "src/main/nitro/$path"
-            val absPath = File(realPath).absolutePath
+        fun includeFile(ns: String, path: String, program: LstProgram, prevSource: SourceFile?): Boolean {
+            val absPath = if (ns == "core") {
+                File("src/main/nitro/core/$path").absolutePath
+            } else if (prevSource != null) {
+                File(prevSource.path).absoluteFile.parent + "/$path"
+            } else {
+                error("Missing source!")
+            }
 
             // Avoid duplicated includes
             if (absPath in program.includedFiles) {
                 return true
             }
 
-            val source = SourceFile.load(realPath)
+            val source = SourceFile.load(absPath)
             program.includedFiles += absPath
             return parseFile(source, program, false)
         }
