@@ -4,66 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Reimplementation of the type inference algorithm&#10;Reimplementation of the wasm backend&#10;Add Tags (wip)&#10;Add ptr_of, memory_write and memory_read">
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/compiler/extern.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/compiler/lexer.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/compiler/main.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/slice.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/internal.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/memory_layout.md" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add Tag bounds&#10;Update core lib&#10;Add Ptr and RawArray&#10;Start compiler reimplementation demo&#10;Remove ptrOfExpr, memoryWriteExpr and memoryReadExpr in flavor of external functions and better type specialization">
+      <change afterPath="$PROJECT_DIR$/LICENSE.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/SmNode.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/boolean.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/char.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/char.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/console.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/console.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/float.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/float.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/int.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/intrinsic.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/json.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/json.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/list.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/list.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/map.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/math.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/math.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/memory.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/optional.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/ordering.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/ordering.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/result.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/result.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/set.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/set.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/string.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/string_map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string_map.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/wrapper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/wrapper.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -438,7 +383,15 @@
       <option name="project" value="LOCAL" />
       <updated>1694296876851</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Add Tag bounds&#10;Update core lib&#10;Add Ptr and RawArray&#10;Start compiler reimplementation demo&#10;Remove ptrOfExpr, memoryWriteExpr and memoryReadExpr in flavor of external functions and better type specialization">
+      <option name="closed" value="true" />
+      <created>1696182375080</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1696182375080</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -462,7 +415,8 @@
     <MESSAGE value="Split Parser in sub-files &#10;Improve when expression type checking" />
     <MESSAGE value="Fix type-checking of when entries" />
     <MESSAGE value="Reimplementation of the type inference algorithm&#10;Reimplementation of the wasm backend&#10;Add Tags (wip)&#10;Add ptr_of, memory_write and memory_read" />
-    <option name="LAST_COMMIT_MESSAGE" value="Reimplementation of the type inference algorithm&#10;Reimplementation of the wasm backend&#10;Add Tags (wip)&#10;Add ptr_of, memory_write and memory_read" />
+    <MESSAGE value="Add Tag bounds&#10;Update core lib&#10;Add Ptr and RawArray&#10;Start compiler reimplementation demo&#10;Remove ptrOfExpr, memoryWriteExpr and memoryReadExpr in flavor of external functions and better type specialization" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add Tag bounds&#10;Update core lib&#10;Add Ptr and RawArray&#10;Start compiler reimplementation demo&#10;Remove ptrOfExpr, memoryWriteExpr and memoryReadExpr in flavor of external functions and better type specialization" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

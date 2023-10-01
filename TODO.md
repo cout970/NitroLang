@@ -30,4 +30,5 @@ Intended for the developers
 - Arena allocators
 - Unary prefix minus and plus `+5`, `-7`
 - Runtime reflection
+- Consts only accept simple values right now
 - Thousands of other ideas...
