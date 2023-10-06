@@ -204,6 +204,7 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
 
         ctx.functionBody().expression() != null -> {
             func.body.lastExpression = processExpression(ctx.functionBody().expression())
+            func.hasExpressionBody = true
         }
 
         else -> error("Grammar has been expanded and parser is outdated")

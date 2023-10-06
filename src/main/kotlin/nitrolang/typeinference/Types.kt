@@ -27,26 +27,22 @@ data class TComposite(override val id: Int, val base: TTypeBase, val params: Lis
 
 // T
 data class TGeneric(override val id: Int, val instance: LstTypeParameterDef) : TType {
-    override fun toString(): String = "[generic $id $instance]"
+    override fun toString(): String = instance.toString()
 }
 
 // ?
 data class TUnresolved(override val id: Int, val span: Span) : TType {
-    override fun toString(): String = "[unresolved $id]"
-}
-
-data class TTag(override val id: Int, val instance: LstTag) : TType {
-    override fun toString(): String = instance.fullName
+    override fun toString(): String = "Unresolved($id)"
 }
 
 // Int|Float
 data class TUnion(override val id: Int, val options: Set<TType>) : TType {
-    override fun toString(): String = "[union $options]"
+    override fun toString(): String = options.joinToString("|")
 }
 
 // <error>
-data class TInvalid(override val id: Int, val error: String) : TType {
-    override fun toString(): String = "[invalid $id $error]"
+data class TInvalid(override val id: Int, val span: Span, val error: String) : TType {
+    override fun toString(): String = "Error($id, $error, $span)"
 }
 
 sealed interface TTypeBase {

@@ -290,6 +290,7 @@ class LstFunction(
     val ref: FunRef
 ) : Dumpable {
     var tag: LstTag? = null
+    var hasExpressionBody: Boolean = false
 
     var returnTypeBox: TypeBox? = null
     var returnType: TType

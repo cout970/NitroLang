@@ -29,10 +29,22 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
         }
 
         complex.returnExpr() != null -> {
-            val expr = processExpression(complex.returnExpr().expression())
+            val returnExpr = complex.returnExpr()
+            val expr = if (returnExpr.expression() != null) {
+                processExpression(returnExpr.expression())
+            } else {
+                val node = LstNothing(
+                    ref = code.nextRef(),
+                    span = returnExpr.span(),
+                    block = code.currentBlock,
+                )
+                code.nodes += node
+                node.ref
+            }
+
             val node = LstReturn(
                 ref = code.nextRef(),
-                span = complex.returnExpr().span(),
+                span = returnExpr.span(),
                 block = code.currentBlock,
                 expr = expr
             )
@@ -1515,27 +1527,29 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
 
     ctx.structInstanceEntry().forEach { entry ->
 
-        val expr = if (entry.expression() != null) {
-            processExpression(entry.expression())
-        } else {
-            val node = LstString(
+        if (entry.expression() != null) {
+            val expr = processExpression(entry.expression())
+
+            code.nodes += LstStoreField(
                 ref = code.nextRef(),
                 span = ctx.span(),
                 block = code.currentBlock,
-                value = entry.nameToken().text
+                name = entry.nameToken().text,
+                instance = alloc.ref,
+                expr = expr,
             )
-            code.nodes += node
-            node.ref
-        }
+        } else {
+            val expr = processExpressionVariableExpr(entry.variableExpr())
 
-        code.nodes += LstStoreField(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            name = entry.nameToken().text,
-            instance = alloc.ref,
-            expr = expr,
-        )
+            code.nodes += LstStoreField(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                name = entry.variableExpr().nameToken().text,
+                instance = alloc.ref,
+                expr = expr,
+            )
+        }
     }
 
     return alloc.ref

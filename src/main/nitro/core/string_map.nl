@@ -62,8 +62,7 @@ fun StringMap<#Value>.set(key: String, value: #Value) {
             if opt.is_none() {
                 this.len = this.len + 1
             }
-            println("set-return-nothing");
-            ret nothing
+            ret
         }
 
         index = index + 1

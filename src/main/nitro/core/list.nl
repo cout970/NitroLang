@@ -63,3 +63,17 @@ fun List<#Item>.is_not_empty(): Boolean = this.len != 0
 fun List<#Item>.to_debug_string(): String {
     ret "List \$[capacity: ${this.capacity}, len: ${this.len}, data: ${this.items.to_debug_string()}]"
 }
+
+fun <#Item: ToString> List<#Item>.to_string(): String {
+    let str = "#["
+
+    repeat this.len {
+        str = str.concat(this[it].to_string())
+
+        if it != limit - 1 {
+            str = str.concat(", ")
+        }
+    }
+
+    ret str.concat("]")
+}

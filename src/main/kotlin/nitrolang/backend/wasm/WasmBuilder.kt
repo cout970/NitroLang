@@ -16,7 +16,6 @@ class WasmBuilder(
     val funcCache = mutableMapOf<MonoFuncSignature, MonoFunction>()
     val typeIds = mutableMapOf<List<Int>, MonoType>()
     val structIds = mutableMapOf<List<Int>, MonoStruct>()
-    val optionItemIds = mutableMapOf<List<Int>, MonoOptionItem>()
     val optionIds = mutableMapOf<List<Int>, MonoOption>()
     val consts = mutableMapOf<Int, MonoConst>()
     val globalNames = mutableMapOf<String, Int>()
@@ -94,7 +93,7 @@ class MonoFuncSignature(
     }
 
     override fun toString(): String {
-        return "${function.fullName}: (${paramTypes.joinToString(",")})->$returnType"
+        return "${function.fullName}(${paramTypes.joinToString(", ")}): $returnType"
     }
 }
 
@@ -119,6 +118,7 @@ fun WasmBuilder.compile(out: Appendable) {
 
     // Override section with address where the heap starts
     // @formatter:off
+    padOffset()
     val memoryInstance =
         /* type_id  */ intToWasmHex(0) +
         /* capacity */ intToWasmHex(16 * 64 * 1024 - module.sectionOffset) +
@@ -159,7 +159,7 @@ fun WasmBuilder.compileImports() {
             name = mono.finalName,
             params = params,
             results = results,
-            comment = func.fullName
+            comment = func.toString()
         )
 
         val name = external.args["name"] as? ConstString ?: error("Missing external name")
@@ -322,6 +322,7 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
                 }
 
                 val replacements = mutableMapOf<LstTypeParameterDef, TType>()
+                val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
 
                 repeat(function.typeParameters.size) {
                     val tp = function.typeParameters[it]
@@ -329,37 +330,27 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
                     replacements[tp] = inst.typeParamsTypes[it].type
                 }
 
-                val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
-
                 for ((key, type) in replacements) {
                     generics[key] = typeToMonoType(program.replaceGenerics(type, replacements), ctx)
                 }
-                val newCtx = MonoCtx(generics, ctx)
+
                 val tag = function.tag
 
                 // Call to tag function, must be replaced by the concrete implementation
                 val monoFunction = if (tag != null) {
                     val param = function.typeParameters.first()
                     val paramType = generics[param] ?: error("No replacement for param: $param")
-                    var implFunc: LstFunction? = null
 
-                    for ((ty, map) in tag.functionImplementations) {
-                        val implementorAsMonoType = try {
-                            typeToMonoType(ty, newCtx)
-                        } catch (e: UnresolvedGenericError) {
-                            error("${e.msg}: $ty vs $paramType")
-                        }
+                    val (ty, finalFunction) = findTagImplementation(tag, paramType, function.fullName)
+                        ?: error("Invalid state, no implementation found for $paramType: $function")
 
-                        if (implementorAsMonoType == paramType) {
-                            implFunc = map[function.fullName]!!
-                            break
-                        }
-                    }
+                    findReplacements(ty, paramType, generics)
 
-                    if (implFunc == null) error("Invalid state, no implementation found for $function")
+                    val newCtx = MonoCtx(generics, ctx)
 
-                    getMonoFunction(implFunc, newCtx)
+                    getMonoFunction(finalFunction, newCtx)
                 } else {
+                    val newCtx = MonoCtx(generics, ctx)
                     getMonoFunction(function, newCtx)
                 }
 
@@ -629,6 +620,47 @@ fun WasmBuilder.createMonoFunction(mono: MonoFunction, signature: MonoFuncSignat
     current = prev
 }
 
+fun findTagImplementation(tag: LstTag, paramType: MonoType, fullName: String): Pair<TType, LstFunction>? {
+    for ((ty, map) in tag.functionImplementations) {
+        if (fullName in map && monoTypeMatches(ty, paramType)) {
+            return ty to map[fullName]!!
+        }
+    }
+
+    return null
+}
+
+fun monoTypeMatches(a: TType, b: MonoType): Boolean {
+    if (a is TGeneric) return true
+
+    if (a is TComposite) {
+        if (a.params.size != b.params.size) return false
+
+        repeat(a.params.size) {
+            if (!monoTypeMatches(a.params[it], b.params[it])) return false
+        }
+
+        if (a.base is TStruct && b.base is MonoStruct && a.base.instance == b.base.instance) return true
+        if (a.base is TOption && b.base is MonoOption && a.base.instance == b.base.instance) return true
+        if (a.base is TOptionItem && b.base is MonoStruct && a.base.instance == b.base.instance) return true
+    }
+    return false
+}
+
+fun findReplacements(a: TType, b: MonoType, map: MutableMap<LstTypeParameterDef, MonoType>) {
+    if (a is TGeneric) {
+        map[a.instance] = b
+        return
+    }
+
+    if (a !is TComposite) error("Invalid type: $a")
+    if (a.params.size != b.params.size) return
+
+    repeat(a.params.size) {
+        findReplacements(a.params[it], b.params[it], map)
+    }
+}
+
 fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
     val params = mutableListOf<WasmVar>()
 
@@ -659,7 +691,7 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
             name = func.finalName,
             params = params,
             results = listOf(compileTypeToPtr(func.returnType)),
-            comment = func.name,
+            comment = func.signature.toString(),
             exportName = exportName
         )
     )
@@ -867,31 +899,13 @@ private fun WasmBuilder.padOffset() {
     module.sectionOffset += if (pad < 0) pad + PTR_SIZE else pad
 }
 
-fun findMonomorphizationParams(type: TType, res: MutableSet<TType>) {
-    when (type) {
-        is TComposite -> {
-            type.params.forEach { findMonomorphizationParams(it, res) }
-        }
-
-        is TGeneric -> {
-            res += type
-        }
-
-        is TTag -> {
-            res += type
-        }
-
-        is TInvalid -> error("Error")
-        is TUnion -> error("Error")
-        is TUnresolved -> error("Error")
-    }
-}
-
 fun monoTypeToPrimitive(mono: MonoType): List<WasmPrimitive> {
     return when (mono.base) {
         is MonoOption -> listOf(WasmPrimitive.i32)
-        is MonoOptionItem -> listOf(WasmPrimitive.i32)
-        is MonoStruct -> listOf(WasmPrimitive.i32)
+        is MonoStruct -> {
+            val prim = if (mono.base.instance.fullName == "Float") WasmPrimitive.f32 else WasmPrimitive.i32
+            listOf(prim)
+        }
     }
 }
 
@@ -926,10 +940,6 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
         throw UnresolvedGenericError("No valid replacement for generic: $type", type)
     }
 
-    if (type is TTag) {
-        TODO("Not yet!")
-    }
-
     if (type !is TComposite) {
         throw UnresolvedGenericError("Unable to convert type $type to MonoType", type)
     }
@@ -949,7 +959,7 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
 
         is TOptionItem -> {
             kind = 1
-            getOptionItemType(type.base.option.instance, type.base.instance, params, ctx)
+            getStructType(type.base.instance, params, ctx)
         }
 
         is TStruct -> {
@@ -962,7 +972,8 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
     params.forEach { typeSign += it.id }
 
     if (typeSign !in typeIds) {
-        typeIds[typeSign] = MonoType(typeIds.size + 1, base, params)
+        val newType = MonoType(typeIds.size + 1, base, params)
+        typeIds[typeSign] = newType
     }
 
     return typeIds[typeSign]!!
@@ -995,32 +1006,6 @@ fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: Mo
     return structIds[structSign]!!
 }
 
-fun WasmBuilder.getOptionItemType(
-    option: LstOption,
-    struct: LstStruct,
-    params: List<MonoType>,
-    ctx: MonoCtx
-): MonoOptionItem {
-    val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
-    repeat(option.typeParameters.size) {
-        generics[option.typeParameters[it]] = params[it]
-    }
-
-    val optionItemSign = mutableListOf(option.ref.id, struct.ref.id)
-    generics.values.forEach { optionItemSign += it.id }
-
-    if (optionItemSign !in optionItemIds) {
-        val newCtx = MonoCtx(generics, ctx)
-
-        val fields = toMonoStructFields(struct, newCtx)
-        val size = getOptionSize(option, newCtx)
-
-        optionItemIds[optionItemSign] = MonoOptionItem(optionItemIds.size + 1, struct, fields, option, size)
-    }
-
-    return optionItemIds[optionItemSign]!!
-}
-
 fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: MonoCtx): MonoOption {
     val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
     repeat(option.typeParameters.size) {
@@ -1031,26 +1016,21 @@ fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: Mo
     generics.values.forEach { optionSign += it.id }
 
     if (optionSign !in optionIds) {
+        val monoOption = MonoOption(optionIds.size + 1, option)
+        optionIds[optionSign] = monoOption
+
         val newCtx = MonoCtx(generics, ctx)
-        val size = getOptionSize(option, newCtx)
 
         val items = option.items.map { struct ->
-            getOptionItemType(option, struct, params, newCtx)
+            getStructType(struct, params, newCtx)
         }
 
-        optionIds[optionSign] = MonoOption(optionItemIds.size + 1, option, items, size)
+        monoOption.items = items
+        monoOption.size = PTR_SIZE + items.maxOf { it.size }
+        items.forEach { it.option = monoOption }
     }
 
     return optionIds[optionSign]!!
-}
-
-fun WasmBuilder.getOptionSize(option: LstOption, ctx: MonoCtx): Int {
-    var size = PTR_SIZE * 2
-    size += option.items.maxOf { struct ->
-        val fields = toMonoStructFields(struct, ctx)
-        fields.sumOf { it.size }
-    }
-    return size
 }
 
 fun WasmBuilder.toMonoStructFields(struct: LstStruct, ctx: MonoCtx): List<MonoStructField> {

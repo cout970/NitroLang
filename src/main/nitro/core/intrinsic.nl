@@ -4,6 +4,8 @@
 @StackValue
 struct Nothing {}
 
+fun Nothing.to_string(): String = "nothing"
+
 // Never type, a function returning Never, will never return: infinite loop, panic, etc.
 @Extern $[lib: "core", name: "Never"]
 @StackValue

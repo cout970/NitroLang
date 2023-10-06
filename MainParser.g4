@@ -423,7 +423,7 @@ lambdaArgument
 
 // E.g. ret 1
 returnExpr
-    : RETURN expression ;
+    : RETURN expression? ;
 
 // E.g. size_of<Int>
 sizeOfExpr
@@ -440,7 +440,9 @@ structInstanceExpr
     : modulePath? nameToken typeParamArg? STRUCT_START NL* (structInstanceEntry (commaOrNl structInstanceEntry)* COMMA?)? NL* RBRACKET ;
 
 structInstanceEntry
-    : nameToken (COLON NL* expression)? ;
+    : nameToken COLON NL* expression
+    | variableExpr
+    ;
 
 variableExpr
     : modulePath? nameToken ;

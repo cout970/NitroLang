@@ -36,6 +36,8 @@ data class Span(
         return "${file.path}(${file.path.substringAfterLast("/")}:${line + 1})"
     }
 
+    fun isInternal(): Boolean = file.length == 0
+
     companion object {
         fun internal() = Span(0, 0, SourceFile.fromString(""))
     }

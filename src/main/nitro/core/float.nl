@@ -96,3 +96,7 @@ fun Float.greater_equal(other: Float): Boolean {}
 @Extern $[lib: "core", name: "float_greater_than"]
 @WasmInline $[opcode: "f32.gt"]
 fun Float.greater_than(other: Float): Boolean {}
+
+@Extern $[lib: "core", name: "float_to_string"]
+fun Float.to_string(): String {}
+

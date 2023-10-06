@@ -52,11 +52,4 @@ fun String.get_hash(): Int {
 @Extern $[lib: "core", name: "string_replace"]
 fun String.replace(find: String, replacement: String): String {}
 
-@Extern $[lib: "core", name: "float_to_string"]
-fun Float.to_string(): String {}
-
-fun Boolean.to_string(): String {
-    if this { ret "true" } else { ret "false" }
-}
-
 fun String.to_string(): String = this

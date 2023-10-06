@@ -25,7 +25,6 @@ data class MonoType(
     fun stackSize(): Int {
         return when (base) {
             is MonoOption -> PTR_SIZE
-            is MonoOptionItem -> PTR_SIZE
             is MonoStruct -> PTR_SIZE
         }
     }
@@ -33,7 +32,6 @@ data class MonoType(
     fun heapSize(): Int {
         return when (base) {
             is MonoOption -> base.size
-            is MonoOptionItem -> base.size
             is MonoStruct -> {
                 when (base.instance.fullName) {
                     "Never" -> 0
@@ -87,6 +85,7 @@ data class MonoStruct(
     val fields: List<MonoStructField>,
     val size: Int,
 ) : MonoTypeBase() {
+    var option: MonoOption? = null
     override fun toString(): String = instance.fullName
 }
 
@@ -100,19 +99,10 @@ data class MonoStructField(
 data class MonoOption(
     override val id: Int,
     val instance: LstOption,
-    val items: List<MonoOptionItem>,
-    val size: Int,
 ) : MonoTypeBase() {
-    override fun toString(): String = instance.fullName
-}
+    lateinit var items: List<MonoStruct>
+    var size: Int = 0
 
-class MonoOptionItem(
-    override val id: Int,
-    val instance: LstStruct,
-    val fields: List<MonoStructField>,
-    val option: LstOption,
-    val size: Int,
-) : MonoTypeBase() {
     override fun toString(): String = instance.fullName
 }
 

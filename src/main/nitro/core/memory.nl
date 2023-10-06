@@ -30,37 +30,28 @@ fun MemoryArena.dump() {}
 //
 
 @Extern $[lib: "core", name: "memory_copy"]
-@Required
 fun memory_copy(src: Int, dst: Int, byte_len: Int) {}
 
 @Extern $[lib: "core", name: "memory_write_byte"]
-@Required
 fun memory_write_byte(ptr: Int, value: Int) {}
 
 @Extern $[lib: "core", name: "memory_write_int"]
-@Required
 fun memory_write_int(ptr: Int, value: Int) {}
 
 @Extern $[lib: "core", name: "memory_write_float"]
-@Required
 fun memory_write_float(ptr: Int, value: Float): Float {}
 
 @Extern $[lib: "core", name: "memory_write_boolean"]
-@Required
 fun memory_write_boolean(ptr: Int, value: Boolean) {}
 
 @Extern $[lib: "core", name: "memory_read_byte"]
-@Required
 fun memory_read_byte(ptr: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_read_int"]
-@Required
 fun memory_read_int(ptr: Int): Int {}
 
 @Extern $[lib: "core", name: "memory_read_float"]
-@Required
 fun memory_read_float(ptr: Int): Float {}
 
 @Extern $[lib: "core", name: "memory_read_boolean"]
-@Required
 fun memory_read_boolean(ptr: Int): Boolean {}

@@ -17,3 +17,7 @@ fun Boolean.logical_and(other: Boolean): Boolean {}
 @Extern $[lib: "core", name: "logical_xor"]
 @WasmInline $[opcode: "i32.xor"]
 fun Boolean.logical_xor(other: Boolean): Boolean {}
+
+fun Boolean.to_string(): String {
+    ret (if this { "true" } else { "false" })
+}

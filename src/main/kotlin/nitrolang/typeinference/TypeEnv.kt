@@ -92,7 +92,7 @@ class TypeEnv(val collector: ErrorCollector) {
         return type { TGeneric(it, instance) }
     }
 
-    fun invalid(span: Span) = type { TInvalid(it, span.toString()) }
+    fun invalid(span: Span, reason: String = "") = type { TInvalid(it, span, reason) }
 
     fun composite(base: TTypeBase, params: List<TType>): TComposite {
         val existing = allTypes.values
@@ -137,18 +137,6 @@ class TypeEnv(val collector: ErrorCollector) {
         val id = nextSubId()
         val ty = TOptionItem(id, instance, option)
         allTypeBases[id] = ty
-        return ty
-    }
-
-    fun typeTag(instance: LstTag): TTag {
-        val existing = allTypes.values
-            .find { it is TTag && it.instance == instance } as? TTag
-
-        if (existing != null) return existing
-
-        val id = nextId()
-        val ty = TTag(id, instance)
-        allTypes[id] = ty
         return ty
     }
 
@@ -261,6 +249,35 @@ class TypeEnv(val collector: ErrorCollector) {
     }
     // ---
 
+    fun matchesTag(ty: TType, tag: LstTag): Boolean {
+        if (ty is TGeneric) {
+            return tag in ty.instance.requiredTags
+        }
+
+        if (ty in tag.implementers) {
+            return true
+        }
+
+        return tag.implementers.any { matchesTagImplementer(ty, it) }
+    }
+
+    fun matchesTagImplementer(ty: TType, impl: TType): Boolean {
+        if (ty == impl) return true
+
+        if (ty is TComposite && impl is TComposite) {
+            if (ty.base != impl.base) return false
+            if (ty.params.size != impl.params.size) return false
+
+            return ty.params.zip(impl.params).all { matchesTagImplementer(it.first, it.second) }
+        }
+
+        if (ty is TComposite && impl is TGeneric) {
+            return impl.instance.requiredTags.all { tag -> matchesTag(ty, tag) }
+        }
+
+        return false
+    }
+
     fun solveConstraints() {
         val errors = mutableListOf<TypeError>()
         val substitutions = mutableMapOf<TUnresolved, TType>()
@@ -312,14 +329,7 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (ty.hasUnresolved()) return@forEach
 
                 constraint.requiredTags.forEach inner@{ tag ->
-                    if (ty is TGeneric) {
-                        if (tag !in ty.instance.requiredTags) {
-                            errors += TypeBoundsError(ty, tag, constraint)
-                        }
-                        return@inner
-                    }
-
-                    if (ty !in tag.implementers) {
+                    if (!matchesTag(ty, tag)) {
                         errors += TypeBoundsError(ty, tag, constraint)
                     }
                 }

@@ -166,7 +166,10 @@ export function string_get_codepoint(a: number, index: number): number {
 }
 
 export function string_concat_string(a: number, b: number): number {
-    return createString(getString(a) + getString(b))
+    const s1 = getString(a);
+    const s2 = getString(b);
+    // console.debug('string_concat_string', {s1, s2, a, b});
+    return createString(s1 + s2)
 }
 
 export function string_concat_char(a: number, b: number): number {

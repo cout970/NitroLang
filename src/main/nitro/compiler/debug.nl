@@ -69,22 +69,20 @@ struct Box {
 }
 
 fun Box.to_string(): String {
-    ret this.i.to_string()
+    ret "Box(${this.i}|)|"
 }
 
 fun debug() {
-      let a: MemoryArena = get_memory()
-      println(a.len)
+    println(true)
+    println(3.1434)
+    println("Hello world")
+    println(Box $[i: 1234567])
+    println #[1, 2, 3, 4]
+    println(json { a: 1, b: true, c: [1,2,3]})
 
-      let value = #[1,2,3,4]
-//      let b = Box $[i: 69]
-//      let check = 42 > 69
+    get_memory().dump()
 
-      println(a.len)
-      a.dump()
-
-
-//    let value = #[1,2,3,4]
-//    println(value.to_debug_string())
-//    println(value.to_string())
+//  let value = #[1,2,3,4]
+//  println(value.to_debug_string())
+//  println(value.to_string())
 }
