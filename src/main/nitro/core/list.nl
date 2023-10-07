@@ -18,12 +18,12 @@ fun create_list<#Item>(): List<#Item> {
 // Adds an item to the end of the list
 fun List<#Item>.add(item: #Item) {
     // Expand list if needed
-    if (this.len + 1).greater_than_signed(this.capacity) {
+    if this.len + 1 > this.capacity {
         // Double or initialize to 16
         let new_capacity: Int = max(this.capacity, 8) * 2
         let new_items: RawArray<Ptr<#Item>> = create_raw_array<Ptr<#Item>>(new_capacity)
 
-        if (this.capacity.greater_than_signed(0)) {
+        if (this.len > 0) {
             this.items.copy_into(new_items, this.capacity)
         }
 

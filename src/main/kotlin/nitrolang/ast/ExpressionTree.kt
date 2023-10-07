@@ -17,38 +17,40 @@ sealed class ExpressionTree {
     fun collect(list: MutableList<Ref>, code: LstCode, func: (ExpressionSimpleContext) -> Ref) {
         when (this) {
             is Leaf -> {
-                list += func(this.ctx)
+                list += func(ctx)
             }
 
             is Operation -> {
-                this.left.collect(list, code, func)
+                left.collect(list, code, func)
                 val e1 = list.last()
 
-                this.right.collect(list, code, func)
+                right.collect(list, code, func)
                 val e2 = list.last()
 
                 val call = LstFunCall(
                     ref = code.nextRef(),
-                    span = this.span,
+                    span = span,
                     block = code.currentBlock,
-                    name = this.operator.function,
+                    name = operator.function,
                     path = "",
                     arguments = listOf(e1, e2),
                 )
                 code.nodes += call
                 list += call.ref
 
-                if (this.operator.postFunction != null) {
+                if (operator.postFunction != null) {
                     val postCall = LstFunCall(
                         ref = code.nextRef(),
-                        span = this.span,
+                        span = span,
                         block = code.currentBlock,
-                        name = this.operator.postFunction,
+                        name = operator.postFunction,
                         path = "",
                         arguments = listOf(call.ref),
                     )
                     code.nodes += postCall
                     list += postCall.ref
+                    // Optimization for Int and Float
+                    call.posibleOptimizations = operator.posibleOptimizations
                 }
             }
         }
@@ -59,6 +61,7 @@ sealed class ExpressionTree {
         val precedence: Int,
         val function: String,
         val postFunction: String? = null,
+        val posibleOptimizations: Map<String, String> = emptyMap(),
     ) {
         MUL("*", 3, "mul"),
         DIV("/", 3, "div"),
@@ -73,13 +76,45 @@ sealed class ExpressionTree {
         BIT_AND("&", 7, "bitwise_and"),
         BIT_XOR("^", 8, "bitwise_xor"),
         BIT_OR("|", 9, "bitwise_or"),
-        LESS_THAN("<", 10, "get_ordering", "is_less"),
-        GREATER_THAN(">", 10, "get_ordering", "is_greater"),
-        LESS_EQUAL("<=", 10, "get_ordering", "is_less_or_equals"),
-        GREATER_EQUAL(">=", 10, "get_ordering", "is_greater_or_equals"),
+        LESS_THAN(
+            "<", 10, "get_ordering", "is_less", mapOf(
+                "Int" to "less_than_signed",
+                "Float" to "less_than",
+            )
+        ),
+        GREATER_THAN(
+            ">", 10, "get_ordering", "is_greater", mapOf(
+                "Int" to "greater_than_signed",
+                "Float" to "greater_than",
+            )
+        ),
+        LESS_EQUAL(
+            "<=", 10, "get_ordering", "is_less_or_equals", mapOf(
+                "Int" to "less_equal_signed",
+                "Float" to "less_equal",
+            )
+        ),
+        GREATER_EQUAL(
+            ">=", 10, "get_ordering", "is_greater_or_equals", mapOf(
+                "Int" to "greater_equal_signed",
+                "Float" to "greater_equal",
+            )
+        ),
         COMPARE("<=>", 11, "get_ordering"),
-        EQUAL("==", 12, "get_ordering", "is_equals"),
-        NOT_EQUAL("!=", 12, "get_ordering", "is_not_equals"),
+        EQUAL(
+            "==", 12, "get_ordering", "is_equals", mapOf(
+                "Int" to "is_equal",
+                "Float" to "is_equal",
+                "String" to "is_equal",
+            )
+        ),
+        NOT_EQUAL(
+            "!=", 12, "get_ordering", "is_not_equals", mapOf(
+                "Int" to "is_not_equal",
+                "Float" to "is_not_equal",
+                "String" to "is_not_equal",
+            )
+        ),
 
         // TODO: short-circuit
         BOOL_AND("&&", 13, "logical_and"),

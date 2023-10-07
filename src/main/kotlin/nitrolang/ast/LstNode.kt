@@ -571,6 +571,7 @@ class LstFunCall(
 ) : LstExpression(ref, span, block) {
     val concreteArgTypes = mutableListOf<TypeBox>()
     val typeParamsTypes = mutableListOf<TypeBox>()
+    var posibleOptimizations = emptyMap<String, String>()
     val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String {

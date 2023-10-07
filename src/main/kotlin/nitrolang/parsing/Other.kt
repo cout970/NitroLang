@@ -4,7 +4,6 @@ import nitrolang.ast.ExpressionTree
 import nitrolang.ast.LstAnnotation
 import nitrolang.ast.Ref
 import nitrolang.backend.wasm.ConstValue
-import nitrolang.gen.MainParser
 import nitrolang.gen.MainParser.*
 import nitrolang.util.Span
 import org.antlr.v4.runtime.ParserRuleContext

@@ -280,6 +280,49 @@ private fun ParserCtx.visitCode(code: LstCode) {
             else -> Unit
         }
     }
+
+    // Optimice binary operators if possible
+    var i = 0
+    while (i < code.nodes.size) {
+        val call = code.nodes[i]
+        i++
+
+        if (call !is LstFunCall) continue
+        if (call.posibleOptimizations.isEmpty()) continue
+        if (call.concreteArgTypes.size != 2) continue
+        if (call.concreteArgTypes[0].type != call.concreteArgTypes[1].type) continue
+
+        val nextCall = code.nodes[i] as LstFunCall
+
+        val ty = call.concreteArgTypes[0].type
+        val tyName = ((ty as? TComposite)?.base as? TStruct)?.instance?.fullName ?: continue
+
+        val funcName = call.posibleOptimizations[tyName] ?: continue
+        val matches = findBestFunctionMatch(funcName, call.concreteArgTypes.map { it.type })
+        if (matches.size != 1) continue
+        val match = matches[0]
+
+        // Marge 2 function calls into 1
+        val newNode = LstFunCall(
+            ref = nextCall.ref,
+            span = nextCall.span,
+            block = nextCall.block,
+            name = funcName,
+            path = "",
+            arguments = call.arguments,
+            funRef = match.ref,
+            function = match,
+            explicitTypeParams = call.explicitTypeParams,
+        )
+
+        newNode.concreteArgTypes += call.concreteArgTypes
+        newNode.typeParamsTypes += call.typeParamsTypes
+        newNode.typeBox = nextCall.typeBox
+
+        // 'i' was moved to the next node in the beginning of the loop
+        code.nodes[i - 1] = newNode
+        code.nodes.removeAt(i)
+    }
 }
 
 fun ParserCtx.bindVariables(code: LstCode) {

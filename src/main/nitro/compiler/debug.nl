@@ -73,6 +73,9 @@ fun Box.to_string(): String {
 }
 
 fun debug() {
+
+    42 > 23
+
     println(true)
     println(3.1434)
     println("Hello world")

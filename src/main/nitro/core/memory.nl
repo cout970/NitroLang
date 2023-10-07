@@ -9,12 +9,17 @@ struct MemoryArena {
 @Extern $[lib: "core", name: "memory_get_memory"]
 fun get_memory(): MemoryArena {}
 
+@Extern $[lib: "core", name: "debug_alloc_bytes"]
+fun debug_alloc_bytes(amount: Int, ptr: Int) {}
+
 fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let next = this.len
     let ptr_size = size_of<Ptr<Byte>>
 
     let pad = (ptr_size - next) % ptr_size;
     next = next + (if pad.less_than_signed(0) { pad + ptr_size } else { pad })
+
+    debug_alloc_bytes(bytes, next)
 
     this.len = next + bytes
     return this.bytes.get_ptr(next)

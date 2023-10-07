@@ -24,7 +24,6 @@ Intended for the developers
 
 ### Other features to implement
 - Enums
-- Comparison operators optimization
 - Vec, Set and Map implementations
 - Get annotations of type
 - Arena allocators
@@ -32,3 +31,4 @@ Intended for the developers
 - Runtime reflection
 - Consts only accept simple values right now
 - Thousands of other ideas...
+- && and || short-circuit

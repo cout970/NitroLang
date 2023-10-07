@@ -376,7 +376,7 @@ class LstCode : Dumpable {
     private var counter = 0
     private var lastBlock = 0
 
-    val nodes: MutableList<LstNode> = mutableListOf()
+    val nodes: MutableList<LstNode> = ArrayDeque()
 
     var returnTypeBox: TypeBox? = null
     var returnType: TType

@@ -39,6 +39,12 @@ fun String.concat(other: String): String {}
 @Extern $[lib: "core", name: "string_concat_char"]
 fun String.concat(char: Char): String {}
 
+@Extern $[lib: "core", name: "string_is_equal"]
+fun String.is_equal(other: String): Boolean {}
+
+@Extern $[lib: "core", name: "string_is_not_equal"]
+fun String.is_not_equal(other: String): Boolean {}
+
 fun String.get_hash(): Int {
     let hash: Int = 0
 

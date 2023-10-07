@@ -17,13 +17,13 @@ fun create_string_map(): StringMap<#Value> {
 }
 
 fun StringMap<#Value>.set(key: String, value: #Value) {
-    println("set");
 
     // Grow table
     if this.len.to_float() >= this.table.len().to_float() * 0.75 {
         let old_table = this.table
         let new_size = (old_table.len() * 2).max(16)
 
+        println("StringMap.resize($new_size)")
         this.clear()
 
         repeat new_size {
@@ -67,8 +67,6 @@ fun StringMap<#Value>.set(key: String, value: #Value) {
 
         index = index + 1
     }
-
-    println("set-end");
 
     crash("No empty entry in table!")
 }

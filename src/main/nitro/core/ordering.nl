@@ -18,10 +18,10 @@ fun Ordering.is_greater_or_equals(): Boolean = this is Ordering::Greater || this
 fun Ordering.is_greater(): Boolean = this is Ordering::Greater
 
 fun Int.get_ordering(other: Int): Ordering {
-    if this.is_equal(other) {
+    if this == other {
         ret Ordering::Equals $[]
     } else {
-        if this.greater_than_signed(other) {
+        if this > other {
             ret Ordering::Greater $[]
         } else {
             ret Ordering::Less $[]
@@ -30,10 +30,10 @@ fun Int.get_ordering(other: Int): Ordering {
 }
 
 fun Float.get_ordering(other: Float): Ordering {
-    if this.is_equal(other) {
+    if this == other {
         ret Ordering::Equals $[]
     } else {
-        if this.greater_than(other) {
+        if this > other {
             ret Ordering::Greater $[]
         } else {
             ret Ordering::Less $[]

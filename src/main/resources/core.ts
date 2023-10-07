@@ -86,6 +86,10 @@ export function memory_get_memory(): number {
     return 4;
 }
 
+export function debug_alloc_bytes(amount: number, ptr: number) {
+    console.debug(`Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
+}
+
 export function memory_alloc(amount: number): number {
     return alloc(amount);
 }
@@ -174,6 +178,18 @@ export function string_concat_string(a: number, b: number): number {
 
 export function string_concat_char(a: number, b: number): number {
     return createString(getString(a) + String.fromCodePoint(b))
+}
+
+export function string_is_equal(a: number, b: number): boolean {
+    assert(a);
+    assert(b);
+    return getString(a) == getString(b)
+}
+
+export function string_is_not_equal(a: number, b: number): boolean {
+    assert(a);
+    assert(b);
+    return getString(a) != getString(b)
 }
 
 export function string_replace(a: number, b: number, c: number): number {
