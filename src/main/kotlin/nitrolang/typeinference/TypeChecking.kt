@@ -3,8 +3,10 @@ package nitrolang.typeinference
 import nitrolang.ast.*
 import nitrolang.backend.wasm.replaceGenerics
 import nitrolang.parsing.ParserCtx
+import nitrolang.util.Prof
 
 fun ParserCtx.doAllTypeChecking() {
+    Prof.start("check_const")
     program.consts.values.forEach { const ->
         if (const.checked) return@forEach
         const.checked = true
@@ -12,6 +14,7 @@ fun ParserCtx.doAllTypeChecking() {
         const.body.returnTypeBox = const.typeBox
     }
 
+    Prof.next("check_structs")
     program.structs.values.forEach { struct ->
         if (struct.checked) return@forEach
         struct.checked = true
@@ -25,6 +28,7 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
+    Prof.next("check_functions")
     program.functions.values.forEach { func ->
         if (func.checked) return@forEach
         func.checked = true
@@ -42,6 +46,7 @@ fun ParserCtx.doAllTypeChecking() {
         currentTag = null
     }
 
+    Prof.next("check_tags")
     val matchMap = mutableMapOf<String, MutableList<Pair<LstTag, LstFunction>>>()
 
     program.tags.values.forEach { tag ->
@@ -76,19 +81,19 @@ fun ParserCtx.doAllTypeChecking() {
 
         val possibleTags = matchMap[func.fullName] ?: emptyList()
 
-        possibleTags.forEach { (tag, header) ->
-            val matchType = functionMatchesTagHeader(func, header) ?: return
+        possibleTags.forEach inner@{ (tag, header) ->
+            val matchType = functionMatchesTagHeader(func, header) ?: return@inner
             tag.addPosibleImpl(func.fullName, matchType, func)
         }
     }
 
-    program.tags.values.forEach { tag ->
+    program.tags.values.forEach i@{ tag ->
         tag.posibleImplementation.forEach { (implementer, impls) ->
-            if (tag.headers.size != impls.size) return
+            if (tag.headers.size != impls.size) return@forEach
 
             // Check all headers have an implementation
             for (name in tag.headers.keys) {
-                if (name !in impls) return
+                if (name !in impls) return@forEach
             }
 
             for (name in tag.headers.keys) {
@@ -99,6 +104,7 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
+    Prof.next("check_func_bodies")
     program.functions.values.forEach { func ->
         if (func.codeChecked) return@forEach
         func.codeChecked = true
@@ -152,6 +158,7 @@ fun ParserCtx.doAllTypeChecking() {
         typeEnv.addAssignableConstraint(func.returnType, lastNode.type, lastNode.span)
     }
 
+    Prof.next("check_const_bodies")
     program.consts.values.forEach { const ->
         if (const.codeChecked) return@forEach
         const.codeChecked = true
@@ -180,8 +187,11 @@ fun ParserCtx.doAllTypeChecking() {
         typeEnv.addAssignableConstraint(const.type, lastNode.type, lastNode.span)
     }
 
+    Prof.next("solve_inference")
     typeEnv.solveConstraints()
+    Prof.next("finish")
     typeEnv.finish()
+    Prof.end()
 }
 
 private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
@@ -253,6 +263,7 @@ private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
 private fun ParserCtx.visitCode(code: LstCode) {
     this.code = code
 
+    Prof.start("variables")
     // Resolve specified types in let expressions
     code.variables.values.forEach { variable ->
         variable.typeUsage?.let {
@@ -260,9 +271,11 @@ private fun ParserCtx.visitCode(code: LstCode) {
         }
     }
 
+    Prof.next("bind_variables")
     // Link variable usage with the corresponding variable in scope
     bindVariables(code)
 
+    Prof.next("nodes")
     // Resolve the type of every expression and check other requirements
     code.nodes.forEach { node ->
         when (node) {
@@ -273,14 +286,18 @@ private fun ParserCtx.visitCode(code: LstCode) {
             }
 
             is LstExpression -> {
+                Prof.start("visit_expr")
                 visitExpression(node, code)
+                Prof.next("solve")
                 typeEnv.solveConstraints()
+                Prof.end()
             }
 
             else -> Unit
         }
     }
 
+    Prof.next("opt")
     // Optimice binary operators if possible
     var i = 0
     while (i < code.nodes.size) {
@@ -323,6 +340,8 @@ private fun ParserCtx.visitCode(code: LstCode) {
         code.nodes[i - 1] = newNode
         code.nodes.removeAt(i)
     }
+
+    Prof.end()
 }
 
 fun ParserCtx.bindVariables(code: LstCode) {
@@ -356,7 +375,8 @@ fun ParserCtx.bindVariables(code: LstCode) {
             return
         }
 
-        collector.report("Variable not found: ${node.name}", node.span)
+        val kind = if (node.path.isEmpty()) "Constant" else "Variable"
+        collector.report("$kind not found: ${node.name}", node.span)
     }
 
     code.nodes.filterIsInstance<LstLoadVar>().forEach { if (it.varRef == null) linkVariable(it, code) }
@@ -639,11 +659,9 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                     if (options.isEmpty()) {
                         collector.report("Function '${node.fullName}' not found", node.span)
                         node.type = typeEnv.invalid(node.span, "Function not found '${node.fullName}'")
-                    }
-
-                    if (options.size != 1) {
+                    } else {
                         collector.report(
-                            "Function resolution ambiguity options: [${options.joinToString(", ") { it.span.toString() }}]",
+                            "Function resolution ambiguity '${node.fullName}':\n  - ${options.joinToString("\n  - ") { it.span.toString() }}",
                             node.span
                         )
                         node.type = typeEnv.invalid(node.span, "Function resolution ambiguity '${node.fullName}'")
@@ -755,14 +773,16 @@ private fun ParserCtx.functionMatchesTagHeader(origFunc: LstFunction, headerFunc
 }
 
 private fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): List<LstFunction> {
-    val choices = program.functions.values.filter { it.name == name }
+    val choices = program.functions.values.filter { it.fullName == name }
 
     if (choices.isEmpty()) {
         return emptyList()
     }
 
     val scored = choices.map {
-        functionDiffScore(it.params.map { param -> param.type }, args) to it
+        var score = if (it.tag != null) 1f else 0f
+        score += functionDiffScore(it.params.map { param -> param.type }, args)
+        score to it
     }
 
     val sortedChoices = scored.sortedBy { (score, _) ->
@@ -843,7 +863,7 @@ fun ParserCtx.typeDiffScore(param: TType, arg: TType): Float {
 
     if (arg is TGeneric && param is TGeneric) {
         val req = param.instance.requiredTags.toMutableSet()
-        req.removeAll(param.instance.requiredTags.toSet())
+        req.removeAll(arg.instance.requiredTags.toSet())
         return req.size * 10f + 1f
     }
 

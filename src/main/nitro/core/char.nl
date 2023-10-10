@@ -1,4 +1,5 @@
 
+@StackValue
 struct Char {
     unicode_code_point: Int
 }

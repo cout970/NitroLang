@@ -8,6 +8,7 @@ import nitrolang.gen.MainParserBaseListener
 import nitrolang.typeinference.TypeEnv
 import nitrolang.typeinference.doAllTypeChecking
 import nitrolang.util.ErrorCollector
+import nitrolang.util.Prof
 import nitrolang.util.SourceFile
 import nitrolang.util.Span
 import org.antlr.v4.runtime.*
@@ -16,7 +17,6 @@ import java.io.File
 
 const val SELF_NAME = "this"
 const val ANNOTATION_EXTERN = "Extern"
-const val ANNOTATION_EXPORT = "Export"
 const val ANNOTATION_REQUIRED = "Required"
 const val ANNOTATION_WASM_NAME = "WasmName"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
@@ -100,18 +100,23 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
             program: LstProgram,
             finalize: Boolean = true
         ): Boolean {
+            Prof.start("create_parser")
             val parser = createParser(source, program.collector)
+            Prof.next("parse_file")
             val fileCtx = parser.parseFile()
 
             if (program.collector.isNotEmpty()) {
+                Prof.end()
                 return false
             }
 
             if (fileCtx.exception != null) {
                 program.collector.report("Parse exception: ${fileCtx.exception}", Span.internal())
+                Prof.end()
                 return false
             }
 
+            Prof.next("walk_tree")
             val ctx = ParserCtx(
                 source = source,
                 program = program,
@@ -124,8 +129,10 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
             ParseTreeWalker().walk(astParser, fileCtx)
 
             if (finalize) {
+                Prof.next("type_checking")
                 astParser.parserCtx.doAllTypeChecking()
             }
+            Prof.end()
             return true
         }
 

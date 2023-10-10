@@ -18,6 +18,22 @@ fun Boolean.logical_and(other: Boolean): Boolean {}
 @WasmInline $[opcode: "i32.xor"]
 fun Boolean.logical_xor(other: Boolean): Boolean {}
 
+@Extern $[lib: "core", name: "boolean_is_equal"]
+@WasmInline $[opcode: "i32.eq"]
+fun Boolean.is_equal(other: Boolean): Boolean {}
+
+@Extern $[lib: "core", name: "boolean_is_not_equal"]
+@WasmInline $[opcode: "i32.ne"]
+fun Boolean.is_not_equal(other: Boolean): Boolean {}
+
+fun Boolean.get_ordering(other: Boolean): Ordering {
+    ret when {
+        this && not other -> Ordering::Greater $[]
+        not this && other -> Ordering::Less $[]
+        else -> Ordering::Equals $[]
+    }
+}
+
 fun Boolean.to_string(): String {
-    ret (if this { "true" } else { "false" })
+    ret if this { "true" } else { "false" }
 }

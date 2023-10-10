@@ -6,11 +6,11 @@ struct Lexer {
     cursor: Int
 }
 
-fun create_lexer(source: String): Lexer {
+fun Lexer::new(source: String): Lexer {
     ret Lexer $[
         source: source,
         token_count: 0,
-        tokens: create_list<Int>(),
+        tokens: List::new<Int>(),
         cursor: 0,
     ]
 }
@@ -58,7 +58,7 @@ fun Lexer.process() {
             ret nothing
         }
 
-        let byte: Int = this.source.get_byte(this.cursor)
+        let byte: Int = this.source.get_byte(this.cursor).to_int()
 
         while byte == 32 {
             this.cursor = this.cursor + 1
@@ -67,7 +67,7 @@ fun Lexer.process() {
                 ret nothing
             }
 
-            byte = this.source.get_byte(this.cursor)
+            byte = this.source.get_byte(this.cursor).to_int()
         }
 
         when(byte) {
@@ -170,7 +170,7 @@ fun Lexer.process() {
     }
 }
 
-fun Lexer.debug() {
+fun Lexer.debug_print() {
     println("Lexer \$[token_count: ${this.token_count}, cursor: ${this.cursor}]")
     repeat this.token_count {
         println(" - ${this.get_token_offset(it)}: ${this.get_token_type(it)}")

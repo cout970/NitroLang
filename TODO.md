@@ -23,12 +23,16 @@ Intended for the developers
 
 
 ### Other features to implement
-- Enums
+- Lambdas
 - Vec, Set and Map implementations
 - Get annotations of type
 - Arena allocators
+- Smart casts
+- for statement
 - Unary prefix minus and plus `+5`, `-7`
 - Runtime reflection
+- Enums
 - Consts only accept simple values right now
 - Thousands of other ideas...
 - && and || short-circuit
+- Assert type has tag `assert tag ToString for List<#Item>`

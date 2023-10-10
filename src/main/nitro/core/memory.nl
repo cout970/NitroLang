@@ -32,31 +32,23 @@ fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
 @Extern $[lib: "core", name: "memory_dump"]
 fun MemoryArena.dump() {}
 
-//
-
-@Extern $[lib: "core", name: "memory_copy"]
-fun memory_copy(src: Int, dst: Int, byte_len: Int) {}
-
-@Extern $[lib: "core", name: "memory_write_byte"]
-fun memory_write_byte(ptr: Int, value: Int) {}
-
-@Extern $[lib: "core", name: "memory_write_int"]
-fun memory_write_int(ptr: Int, value: Int) {}
-
-@Extern $[lib: "core", name: "memory_write_float"]
-fun memory_write_float(ptr: Int, value: Float): Float {}
-
-@Extern $[lib: "core", name: "memory_write_boolean"]
-fun memory_write_boolean(ptr: Int, value: Boolean) {}
+@Extern $[lib: "core", name: "memory_copy_within"]
+fun MemoryArena.copy_within(src_offset: Int, dst_offset: Int, byte_len: Int) {}
 
 @Extern $[lib: "core", name: "memory_read_byte"]
-fun memory_read_byte(ptr: Int): Int {}
+fun MemoryArena.read_byte(offset: Int): Byte {}
+
+@Extern $[lib: "core", name: "memory_write_byte"]
+fun MemoryArena.write_byte(offset: Int, value: Byte) {}
 
 @Extern $[lib: "core", name: "memory_read_int"]
-fun memory_read_int(ptr: Int): Int {}
+fun MemoryArena.read_int(offset: Int): Int {}
+
+@Extern $[lib: "core", name: "memory_write_int"]
+fun MemoryArena.write_int(offset: Int, value: Int) {}
 
 @Extern $[lib: "core", name: "memory_read_float"]
-fun memory_read_float(ptr: Int): Float {}
+fun MemoryArena.read_float(ptr: Int): Float {}
 
-@Extern $[lib: "core", name: "memory_read_boolean"]
-fun memory_read_boolean(ptr: Int): Boolean {}
+@Extern $[lib: "core", name: "memory_write_float"]
+fun MemoryArena.write_float(offset: Int, value: Float) {}

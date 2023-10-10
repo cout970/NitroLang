@@ -868,6 +868,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitNotExpr(MainParser.NotExprContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#minusExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterMinusExpr(MainParser.MinusExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#minusExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitMinusExpr(MainParser.MinusExprContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#ifExpr}.
 	 * @param ctx the parse tree
 	 */

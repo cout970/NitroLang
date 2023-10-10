@@ -8,6 +8,7 @@ import nitrolang.util.Span
 
 sealed interface TType {
     val id: Int
+    val indexKey: String
 
     fun isNothing(): Boolean = this.isNamed("Nothing")
 
@@ -21,28 +22,89 @@ sealed interface TType {
 
 // Map<String, T>
 data class TComposite(override val id: Int, val base: TTypeBase, val params: List<TType>) : TType {
+    override val indexKey: String = "C${base.id}<${params.joinToString(",") { it.indexKey }}>"
+
     override fun toString(): String =
         if (params.isNotEmpty()) "$base<${params.joinToString(", ")}>" else base.toString()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TComposite) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 // T
 data class TGeneric(override val id: Int, val instance: LstTypeParameterDef) : TType {
+    override val indexKey: String = "G${instance.ref.id}"
     override fun toString(): String = instance.toString()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TGeneric) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 // ?
 data class TUnresolved(override val id: Int, val span: Span) : TType {
+    override val indexKey: String = "?$id"
     override fun toString(): String = "Unresolved($id)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TUnresolved) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 // Int|Float
 data class TUnion(override val id: Int, val options: Set<TType>) : TType {
+    override val indexKey: String = "U<${options.sortedBy { it.indexKey }.joinToString(",") { it.indexKey }}>"
     override fun toString(): String = options.joinToString("|")
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TUnion) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 // <error>
 data class TInvalid(override val id: Int, val span: Span, val error: String) : TType {
+    override val indexKey: String = "E$id"
     override fun toString(): String = "Error($id, $error, $span)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TInvalid) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 sealed interface TTypeBase {
@@ -51,14 +113,47 @@ sealed interface TTypeBase {
 
 data class TStruct(override val id: Int, val instance: LstStruct) : TTypeBase {
     override fun toString(): String = instance.fullName
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TStruct) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 data class TOption(override val id: Int, val instance: LstOption) : TTypeBase {
     override fun toString(): String = instance.fullName
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TOption) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 data class TOptionItem(override val id: Int, val instance: LstStruct, val option: TOption) : TTypeBase {
     override fun toString(): String = instance.fullName
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TOptionItem) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
 }
 
 sealed interface TConstraint {

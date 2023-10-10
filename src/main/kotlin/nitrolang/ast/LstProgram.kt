@@ -259,7 +259,9 @@ class LstTag(
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 
-    override fun toString(): String {
+    override fun toString(): String = "tag $fullName"
+
+    fun toDebugString(): String {
         return "LstTag {\n" +
                 "  span=${formatItem(span)}\n" +
                 "  name=${formatItem(name)}\n" +

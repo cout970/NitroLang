@@ -87,7 +87,7 @@ export function memory_get_memory(): number {
 }
 
 export function debug_alloc_bytes(amount: number, ptr: number) {
-    console.debug(`Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
+    // console.debug(`Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
 }
 
 export function memory_alloc(amount: number): number {
@@ -216,6 +216,12 @@ export function any_to_string(ptr: number, ty: number): number {
     return createString("#" + ptr + ":" + ty);
 }
 
+// byte.nl
+
+export function byte_to_int(byte: number): number {
+    return byte & 0xFF;
+}
+
 // intrinsic.nl
 
 export function choose(cond: number, a: number, b: number): number {
@@ -255,7 +261,6 @@ export function eprintln_string(ptr: number) {
 }
 
 // ordering.nl
-
 export function string_get_ordering_internal(a: number, b: number): number {
     if (a === b) return 0;
 

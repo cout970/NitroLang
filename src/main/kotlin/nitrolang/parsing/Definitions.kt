@@ -173,12 +173,21 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
     }
 
     val typeParameters = endTypeParams()
-
     val annotations = resolveAnnotations(ctx)
+    var path = currentPath(ctx)
+
+    if (ctx.modulePath() != null) {
+        val subPath = ctx.modulePath()
+            .nameToken()
+            .joinToString(MODULE_SEPARATOR) { it.text }
+
+        path = if (path.isNotEmpty()) path + MODULE_SEPARATOR + subPath else subPath
+    }
+
     val func = LstFunction(
         span = ctx.declaredNameToken().span(),
         name = ctx.declaredNameToken().text,
-        path = currentPath(ctx),
+        path = path,
         hasReceiver = hasReceiver,
         params = params,
         returnTypeUsage = returnTypeUsage,

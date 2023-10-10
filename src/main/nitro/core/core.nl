@@ -1,3 +1,4 @@
+include "core:annotations.nl"
 include "core:intrinsic.nl"
 include "core:byte.nl"
 include "core:boolean.nl"

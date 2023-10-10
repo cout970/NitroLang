@@ -5,6 +5,7 @@ import nitrolang.ast.LstStruct
 import nitrolang.ast.LstTag
 import nitrolang.ast.LstTypeParameterDef
 import nitrolang.util.ErrorCollector
+import nitrolang.util.Prof
 import nitrolang.util.Span
 
 class TypeEnv(val collector: ErrorCollector) {
@@ -13,6 +14,9 @@ class TypeEnv(val collector: ErrorCollector) {
     private var nextConsId = 0
 
     private var allTypes = mutableMapOf<Int, TType>()
+    private var tComposite = mutableMapOf<String, TComposite>()
+    private var tGeneric = mutableMapOf<String, TGeneric>()
+    private var tUnion = mutableMapOf<String, TUnion>()
     private val allTypeBases = mutableMapOf<Int, TTypeBase>()
 
     private val constrains = mutableListOf<TConstraint>()
@@ -84,10 +88,10 @@ class TypeEnv(val collector: ErrorCollector) {
     }
 
     fun generic(instance: LstTypeParameterDef): TGeneric {
-        val existing = allTypes.values
-            .find { it is TGeneric && it.instance == instance } as? TGeneric
-
-        if (existing != null) return existing
+        val key = "G${instance.ref.id}"
+        if (key in tGeneric) {
+            return tGeneric[key]!!
+        }
 
         return type { TGeneric(it, instance) }
     }
@@ -95,11 +99,10 @@ class TypeEnv(val collector: ErrorCollector) {
     fun invalid(span: Span, reason: String = "") = type { TInvalid(it, span, reason) }
 
     fun composite(base: TTypeBase, params: List<TType>): TComposite {
-        val existing = allTypes.values
-            .find { it is TComposite && it.base == base && it.params == params } as? TComposite
-
-        if (existing != null) return existing
-
+        val key = "C${base.id}<${params.joinToString(",") { it.indexKey }}>"
+        if (key in tComposite) {
+            return tComposite[key]!!
+        }
         return type { TComposite(it, base, params) }
     }
 
@@ -141,10 +144,10 @@ class TypeEnv(val collector: ErrorCollector) {
     }
 
     fun union(options: Set<TType>): TType {
-        val existing = allTypes.values
-            .find { it is TUnion && it.options == options } as? TUnion
-
-        if (existing != null) return existing
+        val key = "U<${options.sortedBy { it.indexKey }.joinToString(",") { it.indexKey }}>"
+        if (key in tUnion) {
+            return tUnion[key]!!
+        }
 
         val flatOptions = flatten(options)
 
@@ -153,10 +156,7 @@ class TypeEnv(val collector: ErrorCollector) {
             return common
         }
 
-        val id = nextId()
-        val ty = TUnion(id, flatOptions)
-        allTypes[id] = ty
-        return ty
+        return type { TUnion(it, flatOptions) }
     }
 
     private fun flatten(options: Set<TType>): Set<TType> {
@@ -199,6 +199,15 @@ class TypeEnv(val collector: ErrorCollector) {
         val id = nextId()
         val ty = func(id)
         allTypes[id] = ty
+        if (ty is TComposite) {
+            tComposite[ty.indexKey] = ty
+        }
+        if (ty is TGeneric) {
+            tGeneric[ty.indexKey] = ty
+        }
+        if (ty is TUnion) {
+            tUnion[ty.indexKey] = ty
+        }
         return ty
     }
 
@@ -214,22 +223,46 @@ class TypeEnv(val collector: ErrorCollector) {
 
     fun TType.replace(find: TUnresolved, replacement: TType): TType = when (this) {
         is TUnresolved -> if (find.id == this.id) replacement else this
-        is TUnion -> union(options.map { it.replace(find, replacement) }.toSet())
-        is TComposite -> composite(base, params.map { it.replace(find, replacement) })
+        is TUnion -> {
+            val options = options.map { it.replace(find, replacement) }.toSet()
+            if (this.options != options) union(options) else this
+        }
+
+        is TComposite -> {
+            val params = params.map { it.replace(find, replacement) }
+            if (this.params != params) composite(base, params) else this
+        }
+
         else -> this
     }
 
     fun TType.replace(find: TGeneric, replacement: TType): TType = when (this) {
         is TGeneric -> if (find.id == this.id) replacement else this
-        is TUnion -> union(options.map { it.replace(find, replacement) }.toSet())
-        is TComposite -> composite(base, params.map { it.replace(find, replacement) })
+        is TUnion -> {
+            val options = options.map { it.replace(find, replacement) }.toSet()
+            if (this.options != options) union(options) else this
+        }
+
+        is TComposite -> {
+            val params = params.map { it.replace(find, replacement) }
+            if (this.params != params) composite(base, params) else this
+        }
+
         else -> this
     }
 
     fun TType.removeUnresolved(key: TUnresolved): TType {
         return when (this) {
-            is TUnion -> union(options - key)
-            is TComposite -> composite(base, params.map { it.removeUnresolved(key) })
+            is TUnion -> {
+                if (key in options) union(options - key) else this
+            }
+
+            is TComposite -> {
+                if (this.hasUnresolved())
+                    composite(base, params.map { it.removeUnresolved(key) })
+                else this
+            }
+
             else -> this
         }
     }
@@ -281,24 +314,30 @@ class TypeEnv(val collector: ErrorCollector) {
     fun solveConstraints() {
         val errors = mutableListOf<TypeError>()
         val substitutions = mutableMapOf<TUnresolved, TType>()
+        val remaining = ArrayDeque<Pair<TUnresolved, TType>>()
         var madeProgress: Boolean
         do {
+            Prof.start("loop")
             madeProgress = false
 
+            Prof.start("unify")
             // Unify
-            constrains.filterIsInstance<TUnify>().forEach { constraint ->
-                unify(
-                    constraint.left.type,
-                    constraint.right.type,
-                    substitutions,
-                    errors
-                )
-                errors.forEach { err -> err.constraint = constraint }
+            constrains.forEach { constraint ->
+                if (constraint is TUnify) {
+                    unify(
+                        constraint.left.type,
+                        constraint.right.type,
+                        substitutions,
+                        errors
+                    )
+                    errors.forEach { err -> err.constraint = constraint }
+                }
             }
 
+            Prof.next("replace")
             if (substitutions.isNotEmpty()) {
                 madeProgress = true
-                val remaining = ArrayDeque(substitutions.toList())
+                substitutions.forEach { (a, b) -> remaining.add(a to b) }
                 substitutions.clear()
 
                 while (remaining.isNotEmpty()) {
@@ -323,10 +362,15 @@ class TypeEnv(val collector: ErrorCollector) {
                 }
             }
 
+            Prof.next("bounds")
             // Bound
-            constrains.filterIsInstance<TBounds>().forEach { constraint ->
+            val iter = constrains.iterator()
+            while (iter.hasNext()) {
+                val constraint = iter.next()
+                if (constraint !is TBounds) continue
+
                 val ty = constraint.target.type
-                if (ty.hasUnresolved()) return@forEach
+                if (ty.hasUnresolved()) continue
 
                 constraint.requiredTags.forEach inner@{ tag ->
                     if (!matchesTag(ty, tag)) {
@@ -335,7 +379,7 @@ class TypeEnv(val collector: ErrorCollector) {
                 }
 
                 madeProgress = true
-                constrains.remove(constraint)
+                iter.remove()
             }
 
             errors.forEach { err ->
@@ -344,32 +388,34 @@ class TypeEnv(val collector: ErrorCollector) {
 
             errors.clear()
 
+            Prof.next("clean")
+
             // Remove useless constrains
-            constrains.filterIsInstance<TUnify>().forEach { constraint ->
-                if (constraint.left.type == constraint.right.type || (!constraint.left.type.hasUnresolved() && !constraint.right.type.hasUnresolved())) {
-                    constrains.remove(constraint)
+            constrains.toList().forEach { constraint ->
+                if (constraint is TUnify) {
+                    if (constraint.left.type == constraint.right.type || (!constraint.left.type.hasUnresolved() && !constraint.right.type.hasUnresolved())) {
+                        constrains.remove(constraint)
+                    }
+                }
+
+                if (constraint is TFindField) {
+                    if (constraint.dependency.type !is TUnresolved) {
+                        madeProgress = true
+                        constraint.callback(constraint.dependency.type)
+                        constrains.remove(constraint)
+                    }
+                }
+
+                if (constraint is TFindFunction) {
+                    if (constraint.dependencies.isEmpty() || constraint.dependencies.first().type !is TUnresolved) {
+                        madeProgress = true
+                        constraint.callback(constraint.dependencies.map { it.type })
+                        constrains.remove(constraint)
+                    }
                 }
             }
-
-            // Find field
-            constrains.filterIsInstance<TFindField>().forEach { constraint ->
-                if (constraint.dependency.type !is TUnresolved) {
-                    madeProgress = true
-                    constraint.callback(constraint.dependency.type)
-                    constrains.remove(constraint)
-                }
-            }
-
-            // Find function
-            constrains.filterIsInstance<TFindFunction>().forEach { constraint ->
-                if (constraint.dependencies.isEmpty() || constraint.dependencies.first().type !is TUnresolved) {
-                    madeProgress = true
-                    constraint.callback(constraint.dependencies.map { it.type })
-                    constrains.remove(constraint)
-                }
-            }
-
-//            print()
+            Prof.end()
+            Prof.end()
         } while (madeProgress)
     }
 
@@ -463,6 +509,8 @@ class TypeEnv(val collector: ErrorCollector) {
             type2 is TUnresolved -> {
                 addSubstitution(type2, type1, sub, errors)
             }
+
+            type1 is TInvalid || type2 is TInvalid -> return
 
             type1 is TComposite && type2 is TComposite -> {
                 type1.params.zip(type2.params)

@@ -5,6 +5,7 @@ import nitrolang.ast.LstProgram
 import nitrolang.backend.wasm.WasmBuilder
 import nitrolang.backend.wasm.compile
 import nitrolang.parsing.AstParser
+import nitrolang.util.Prof
 import nitrolang.util.SourceFile
 import java.io.File
 import java.nio.file.FileSystems
@@ -22,6 +23,7 @@ fun main() {
     val source = File("src/main/nitro/compiler/main.nl")
     val core = File("src/main/nitro/core")
     val res = File("src/main/resources")
+
     try {
         compile(source.path)
     } catch (e: Throwable) {
@@ -41,54 +43,63 @@ fun main() {
 }
 
 fun compile(path: String) {
-    val elapsed = measureNanoTime {
-        val program = LstProgram()
+    Prof.start("compile")
+    Prof.start("program")
+    val program = LstProgram()
 
-        AstParser.includeFile("core", "core.nl", program, null)
-        AstParser.parseFile(SourceFile.load(path), program)
+    Prof.next("parse_core")
+    AstParser.includeFile("core", "core.nl", program, null)
+    Prof.next("parse_source")
+    AstParser.parseFile(SourceFile.load(path), program)
 
-        program.functions.forEach { (_, func) ->
-            if (func.fullName !in setOf("main", "to_a", "convert")) return@forEach
+    Prof.next("print_main")
+    program.functions.forEach { (_, func) ->
+        if (func.fullName !in setOf("debug")) return@forEach
 
-            println("${func.fullName}:")
-            func.body.nodes.forEach {
-                println("   $it")
-            }
-            println()
+        println("${func.fullName}:")
+        func.body.nodes.forEach {
+            println("   $it")
         }
-
-        if (!program.collector.isEmpty()) {
-            System.err.println(program.collector.toString())
-            return
-        }
-
-        val assembly = File("src/main/resources/output/assembly.wat")
-        val compiled = File("src/main/resources/output/compiled.wasm")
-
-        DeadCodeAnalyzer.markDeadCode(program)
-
-        assembly.bufferedWriter().use {
-            WasmBuilder(program).compile(it)
-        }
-
-        println("------------------------------")
-        assembly.readLines().forEachIndexed { index, s ->
-            println("${(index + 1).toString().padStart(4)} |$s")
-        }
-        println("------------------------------")
-
-        if (!program.collector.isEmpty()) {
-            System.err.println(program.collector.toString())
-            return
-        }
-
-//        println("Calling wat2wasm")
-        ProcessBuilder("wat2wasm", assembly.path, "-o", compiled.path)
-            .inheritIO()
-            .start()
-            .waitFor()
+        println()
     }
-    println("[] Compiled in ${elapsed / 1_000_000} ms")
+
+    Prof.next("print_errors")
+    if (!program.collector.isEmpty()) {
+        System.err.println(program.collector.toString())
+        return
+    }
+
+    Prof.next("mark_code")
+    val assembly = File("src/main/resources/output/assembly.wat")
+    val compiled = File("src/main/resources/output/compiled.wasm")
+
+    DeadCodeAnalyzer.markDeadCode(program)
+
+    Prof.next("compile_wasm")
+    assembly.bufferedWriter().use {
+        WasmBuilder(program).compile(it)
+    }
+
+//    Prof.next("print_wasm")
+//    println("------------------------------")
+//    assembly.readLines().forEachIndexed { index, s ->
+//        println("${(index + 1).toString().padStart(4)} |$s")
+//    }
+//    println("------------------------------")
+
+    Prof.next("print_wasm_errors")
+    if (!program.collector.isEmpty()) {
+        System.err.println(program.collector.toString())
+        return
+    }
+
+    Prof.next("wat2wasm")
+    ProcessBuilder("wat2wasm", assembly.path, "-o", compiled.path)
+        .inheritIO()
+        .start()
+        .waitFor()
+    Prof.end()
+    Prof.end()
 
     val rtElapsed = measureNanoTime {
         println("--- Running output.wasm")

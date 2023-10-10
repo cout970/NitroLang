@@ -120,6 +120,26 @@ fun Int.greater_than_signed(other: Int): Boolean {}
 @WasmInline $[opcode: "i32.gt_u"]
 fun Int.greater_than_unsigned(other: Int): Boolean {}
 
+fun Int.unary_minus(): Int = 0 - this
+
+@Extern $[lib: "core", name: "int_to_string"]
+fun Int.to_string(): String {}
+
+@Extern $[lib: "core", name: "int_to_string_in_base"]
+fun Int.to_string_in_base(radix: Int): String {}
+
+fun Int.get_ordering(other: Int): Ordering {
+    if this == other {
+        ret Ordering::Equals $[]
+    } else {
+        if this > other {
+            ret Ordering::Greater $[]
+        } else {
+            ret Ordering::Less $[]
+        }
+    }
+}
+
 fun max(a: Int, b: Int): Int {
     ret if a > b { a } else { b }
 }
@@ -127,9 +147,3 @@ fun max(a: Int, b: Int): Int {
 fun min(a: Int, b: Int): Int {
     ret if a > b { b } else { a }
 }
-
-@Extern $[lib: "core", name: "int_to_string"]
-fun Int.to_string(): String {}
-
-@Extern $[lib: "core", name: "int_to_string_in_base"]
-fun Int.to_string_in_base(radix: Int): String {}

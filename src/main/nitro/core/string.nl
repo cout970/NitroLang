@@ -1,7 +1,11 @@
 
 struct String {
     byte_len: Int
-    ptr: Int
+    ptr: RawArray<Byte>
+}
+
+tag ToString {
+    fun This.to_string(): String
 }
 
 // Bytes
@@ -10,8 +14,8 @@ fun String.byte_len(): Int {
     ret this.byte_len
 }
 
-fun String.get_byte(index: Int): Int {
-    ret memory_read_byte(this.ptr + index)
+fun String.get_byte(index: Int): Byte {
+    ret this.ptr.get(index)
 }
 
 // Interface
@@ -49,7 +53,7 @@ fun String.get_hash(): Int {
     let hash: Int = 0
 
     repeat this.byte_len() {
-        hash = (31 * hash).bitwise_xor(this.get_byte(it))
+        hash = (31 * hash).bitwise_xor(this.get_byte(it).to_int())
     }
 
     ret hash

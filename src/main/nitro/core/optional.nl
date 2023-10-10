@@ -1,17 +1,23 @@
 
 option Optional<#Value> {
-    None {}
     Some { value: #Value }
+    None
 }
 
 fun Some(some: #Value): Optional<#Value> {
     ret Optional::Some<#Value> $[value: some]
 }
 
-fun None<#Value>(): Optional<#Value> = Optional::None<#Value> $[]
+fun None<#Value>(): Optional<#Value> {
+    ret Optional::None<#Value> $[]
+}
 
 fun Optional<#Value>.is_some(): Boolean = this is Optional::Some<#Value>
 fun Optional<#Value>.is_none(): Boolean = this is Optional::None<#Value>
+
+fun Optional<#Value>.get_or_default(default: #Value): #Value {
+    ret if this.is_some() { this.get_or_crash() } else { default }
+}
 
 fun Optional<#Value>.get_or_crash(): #Value {
     if this is Optional::Some<#Value> {
@@ -22,10 +28,8 @@ fun Optional<#Value>.get_or_crash(): #Value {
 }
 
 fun <#Value: ToString> Optional<#Value>.to_string(): String {
-    if this is Optional::Some<#Value> {
-        let value: #Value = (this as Optional::Some<#Value>).value
-        ret "Some($value)"
+    ret when {
+        this is Optional::Some<#Value> -> "Some(${(this as Optional::Some<#Value>).value})"
+        else -> "None"
     }
-
-    ret "None"
 }

@@ -128,9 +128,9 @@ functionDefinition
     : functionHeader NL* functionBody;
 
 functionHeader
-    : FUN NL* functionReceiver? declaredNameToken NL* typeParamsDef? NL*
+    : FUN NL* functionReceiver? modulePath? declaredNameToken NL* typeParamsDef? NL*
         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?
-    | FUN NL* typeParamsDef? NL* functionReceiver? declaredNameToken NL*
+    | FUN NL* typeParamsDef? NL* functionReceiver? modulePath? declaredNameToken NL*
         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?;
 
 // E.g. Int.
@@ -238,15 +238,13 @@ binaryOperator
 expression
     : expressionComplex ;
 
-// Ej. 1 + 2
-// Ej. if x > 5 { 1 } else { 0 }
-// Ej. ret 5
-// Ej. not true
+// E.g. 1 + 2
+// E.g. if x > 5 { 1 } else { 0 }
+// E.g. ret 5
 expressionComplex
     : expressionBinaryOp
     | ifExpr
     | returnExpr
-    | notExpr
     ;
 
 // E.g. 1.0 + math::PI * 4.0
@@ -258,6 +256,8 @@ expressionBinaryOp
 // E.g. var !is Int
 // E.g. var in %[1, 2, 3]
 // E.g. var !in %[1, 2, 3]
+// E.g. not var
+// E.g. -var
 expressionSimple
     : expressionWithSuffix AS typeUsage
     | expressionWithSuffix IS typeUsage
@@ -265,6 +265,8 @@ expressionSimple
     | expressionWithSuffix IN expressionWithSuffix
     | expressionWithSuffix NOT_IN expressionWithSuffix
     | expressionWithSuffix
+    | notExpr
+    | minusExpr
     ;
 
 // E.g. expr() #[]
@@ -432,6 +434,10 @@ sizeOfExpr
 // E.g. not true
 notExpr
     : NOT expressionBase ;
+
+// E.g. -x
+minusExpr
+    : SUB expressionBase ;
 
 ifExpr
     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;

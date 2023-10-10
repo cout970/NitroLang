@@ -14,20 +14,6 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
             processExpressionIfExpr(complex.ifExpr())
         }
 
-        complex.notExpr() != null -> {
-            val expr = processExpressionBase(complex.notExpr().expressionBase())
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = complex.notExpr().span(),
-                block = code.currentBlock,
-                name = "logical_not",
-                path = "",
-                arguments = listOf(expr),
-            )
-            code.nodes += call
-            call.ref
-        }
-
         complex.returnExpr() != null -> {
             val returnExpr = complex.returnExpr()
             val expr = if (returnExpr.expression() != null) {
@@ -159,6 +145,34 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
             )
             code.nodes += call2
             call2.ref
+        }
+
+        simple.notExpr() != null -> {
+            val expr = processExpressionBase(simple.notExpr().expressionBase())
+            val call = LstFunCall(
+                ref = code.nextRef(),
+                span = simple.notExpr().span(),
+                block = code.currentBlock,
+                name = "logical_not",
+                path = "",
+                arguments = listOf(expr),
+            )
+            code.nodes += call
+            call.ref
+        }
+
+        simple.minusExpr() != null -> {
+            val expr = processExpressionBase(simple.minusExpr().expressionBase())
+            val call = LstFunCall(
+                ref = code.nextRef(),
+                span = simple.minusExpr().span(),
+                block = code.currentBlock,
+                name = "unary_minus",
+                path = "",
+                arguments = listOf(expr),
+            )
+            code.nodes += call
+            call.ref
         }
 
         else -> {
@@ -923,7 +937,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 ref = code.nextRef(),
                 span = value.span(),
                 block = code.currentBlock,
-                name = "create_string_map",
+                name = "StringMap::new",
                 path = "",
                 arguments = emptyList(),
                 explicitTypeParams = listOf(TypeUsage.simple("Json")),
@@ -970,8 +984,8 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 ref = code.nextRef(),
                 span = value.span(),
                 block = code.currentBlock,
-                name = "create_list",
-                path = "",
+                name = "new",
+                path = "List",
                 arguments = emptyList(),
                 explicitTypeParams = listOf(TypeUsage.simple("Json")),
             )
@@ -1270,16 +1284,16 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
 
 fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
     val listType = program.nextUnresolvedTypeRef()
-    val list = LstFunCall(
+    val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        name = "create_list",
-        path = "",
+        name = "new",
+        path = "List",
         arguments = emptyList(),
         explicitTypeParams = listOf(TypeUsage.unresolved(listType)),
     )
-    code.nodes += list
+    code.nodes += value
 
     val expressions = mutableListOf<Ref>()
 
@@ -1288,32 +1302,35 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
 
         expressions += itemRef
 
-        val delayed = LstFunCall(
+        val add = LstFunCall(
             ref = code.nextRef(),
             span = item.expression().span(),
             block = code.currentBlock,
             name = "add",
             path = "",
-            arguments = listOf(list.ref, itemRef),
+            arguments = listOf(value.ref, itemRef),
         )
-        code.nodes += delayed
+        code.nodes += add
     }
 
-    return list.ref
+    return value.ref
 }
 
 fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
-    val value = LstAlloc(
+    val keyType = program.nextUnresolvedTypeRef()
+    val valueType = program.nextUnresolvedTypeRef()
+    val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        typeUsage = TypeUsage.map(
-            TypeUsage.unresolved(program.nextUnresolvedTypeRef()),
-            TypeUsage.unresolved(program.nextUnresolvedTypeRef())
-        )
+        name = "new",
+        path = "Map",
+        arguments = emptyList(),
+        explicitTypeParams = listOf(TypeUsage.unresolved(keyType), TypeUsage.unresolved(valueType)),
     )
+    code.nodes += value
 
-    ctx.mapEntry().map { entry ->
+    ctx.mapEntry().forEach { entry ->
         val keyCtx = entry.mapKey()
         val keyRef = when {
             keyCtx.nameToken() != null -> {
@@ -1341,14 +1358,12 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
         val valueRef = processExpression(entry.expression())
         val span = keyCtx.span()
 
-        Triple(span, keyRef, valueRef)
-    }.forEach { (spam, keyRef, valueRef) ->
         code.nodes += LstFunCall(
             ref = code.nextRef(),
-            span = spam,
+            span = span,
             block = code.currentBlock,
             name = "set",
-            path = "map",
+            path = "",
             arguments = listOf(value.ref, keyRef, valueRef)
         )
     }
@@ -1357,27 +1372,32 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
 }
 
 fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
-    val value = LstAlloc(
+    val setType = program.nextUnresolvedTypeRef()
+    val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        typeUsage = TypeUsage.set(TypeUsage.unresolved(program.nextUnresolvedTypeRef()))
+        name = "new",
+        path = "List",
+        arguments = emptyList(),
+        explicitTypeParams = listOf(TypeUsage.unresolved(setType)),
     )
+    code.nodes += value
 
     ctx.listEntry().map { item ->
         val itemRef = processExpression(item.expression())
         val span = item.expression().span()
 
-        span to itemRef
-    }.forEach { (spam, itemRef) ->
         code.nodes += LstFunCall(
             ref = code.nextRef(),
-            span = spam,
+            span = span,
             block = code.currentBlock,
             name = "add",
-            path = "set",
+            path = "",
             arguments = listOf(value.ref, itemRef),
         )
+
+        span to itemRef
     }
 
     return value.ref
@@ -1392,15 +1412,12 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         val def = ctx.lambdaDef()
 
         if (def.lambdaReceiver() != null) {
-            val receiver = resolveTypeUsage(def.lambdaReceiver().typeUsage())
-
             params += LstFunctionParam(
                 span = def.lambdaReceiver().span(),
                 name = SELF_NAME,
                 index = index++,
-                typeUsage = receiver,
+                typeUsage = resolveTypeUsage(def.lambdaReceiver().typeUsage()),
             )
-            // TODO this variable?
         }
 
         if (def.lambdaParams() != null) {
@@ -1411,7 +1428,6 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                     index = index++,
                     typeUsage = resolveTypeUsage(it.typeUsage()),
                 )
-                // TODO link variable
             }
         }
 

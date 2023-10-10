@@ -97,6 +97,27 @@ fun Float.greater_equal(other: Float): Boolean {}
 @WasmInline $[opcode: "f32.gt"]
 fun Float.greater_than(other: Float): Boolean {}
 
+fun Float.unary_minus(): Float = 0.0f - this
+
 @Extern $[lib: "core", name: "float_to_string"]
 fun Float.to_string(): String {}
 
+fun Float.get_ordering(other: Float): Ordering {
+    if this == other {
+        ret Ordering::Equals $[]
+    } else {
+        if this > other {
+            ret Ordering::Greater $[]
+        } else {
+            ret Ordering::Less $[]
+        }
+    }
+}
+
+fun max(a: Float, b: Float): Float {
+    ret if a > b { a } else { b }
+}
+
+fun min(a: Float, b: Float): Float {
+    ret if a > b { b } else { a }
+}

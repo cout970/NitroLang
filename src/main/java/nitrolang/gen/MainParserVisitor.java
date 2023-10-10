@@ -527,6 +527,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitNotExpr(MainParser.NotExprContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#minusExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMinusExpr(MainParser.MinusExprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#ifExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

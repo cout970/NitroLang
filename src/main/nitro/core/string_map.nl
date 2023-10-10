@@ -9,10 +9,10 @@ struct StringMapEntry<#Value> {
     value: #Value
 }
 
-fun create_string_map(): StringMap<#Value> {
+fun StringMap::new(): StringMap<#Value> {
     ret StringMap<#Value> $[
         len: 0
-        table: create_list<Optional<StringMapEntry<#Value>>>()
+        table: List::new<Optional<StringMapEntry<#Value>>>()
     ]
 }
 
@@ -23,7 +23,6 @@ fun StringMap<#Value>.set(key: String, value: #Value) {
         let old_table = this.table
         let new_size = (old_table.len() * 2).max(16)
 
-        println("StringMap.resize($new_size)")
         this.clear()
 
         repeat new_size {
@@ -115,7 +114,7 @@ fun StringMap<#Value>.get_entry(key: String): Optional<StringMapEntry<#Value>> {
 fun StringMap<#Value>.len(): Int { ret this.len }
 
 fun StringMap<#Value>.clear() {
-    this.table = create_list<Optional<StringMapEntry<#Value>>>()
+    this.table = List::new<Optional<StringMapEntry<#Value>>>()
     this.len = 0
 }
 
@@ -124,7 +123,7 @@ fun StringMap<#Value>.is_empty(): Boolean = this.len == 0
 fun StringMap<#Value>.is_not_empty(): Boolean = this.len != 0
 
 fun StringMap<#Value>.keys_as_list(): List<String> {
-    let res = create_list<String>()
+    let res = List::new<String>()
 
     repeat this.table.len() {
         let opt = this.table[it]

@@ -1050,11 +1050,11 @@ fun WasmBuilder.toMonoStructFields(struct: LstStruct, ctx: MonoCtx): List<MonoSt
 fun compileTypeToPtr(type: MonoType): WasmPrimitive {
     // Floats are inlined instead of passed by pointer
     if (type.isFloat()) {
-        WasmPrimitive.f32
+        return WasmPrimitive.f32
     }
     // Ints are also inlined, but they are represented the same as pointers
     if (type.isInt()) {
-        WasmPrimitive.i32
+        return WasmPrimitive.i32
     }
 
     return WasmPrimitive.i32

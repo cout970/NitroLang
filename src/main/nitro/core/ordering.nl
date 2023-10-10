@@ -1,8 +1,12 @@
 // Represents the result of comparing 2 values, determines the order of elements
 option Ordering {
-    Less    {}
-    Equals  {}
-    Greater {}
+    Less
+    Equals
+    Greater
+}
+
+tag GetOrdering {
+    fun This.get_ordering(other: This): Ordering
 }
 
 fun Ordering.is_less(): Boolean = this is Ordering::Less
@@ -17,28 +21,12 @@ fun Ordering.is_greater_or_equals(): Boolean = this is Ordering::Greater || this
 
 fun Ordering.is_greater(): Boolean = this is Ordering::Greater
 
-fun Int.get_ordering(other: Int): Ordering {
-    if this == other {
-        ret Ordering::Equals $[]
-    } else {
-        if this > other {
-            ret Ordering::Greater $[]
-        } else {
-            ret Ordering::Less $[]
-        }
-    }
+fun <#Value2: GetOrdering> max(a: #Value2, b: #Value2): #Value2 {
+    ret if a > b { a } else { b }
 }
 
-fun Float.get_ordering(other: Float): Ordering {
-    if this == other {
-        ret Ordering::Equals $[]
-    } else {
-        if this > other {
-            ret Ordering::Greater $[]
-        } else {
-            ret Ordering::Less $[]
-        }
-    }
+fun <#Value: GetOrdering> min(a: #Value, b: #Value): #Value {
+    ret if a > b { b } else { a }
 }
 
 @Extern $[lib: "core", name: "string_get_ordering_internal"]

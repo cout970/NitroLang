@@ -8,7 +8,7 @@
 @StackValue
 struct RawArray<#Item> {}
 
-fun create_raw_array<#Item>(len: Int): RawArray<#Item> {
+fun RawArray::new<#Item>(len: Int): RawArray<#Item> {
     let ptr: Ptr<Byte> = get_memory().alloc_bytes(size_of<#Item> * len)
     ret ptr.unsafe_cast().to_raw_array<#Item>()
 }

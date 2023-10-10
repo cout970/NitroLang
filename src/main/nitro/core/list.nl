@@ -7,7 +7,7 @@ struct List<#Item> {
 }
 
 // Creates an empty list
-fun create_list<#Item>(): List<#Item> {
+fun List::new<#Item>(): List<#Item> {
     ret List<#Item> $[
         capacity: 0
         len: 0
@@ -21,7 +21,7 @@ fun List<#Item>.add(item: #Item) {
     if this.len + 1 > this.capacity {
         // Double or initialize to 16
         let new_capacity: Int = max(this.capacity, 8) * 2
-        let new_items: RawArray<Ptr<#Item>> = create_raw_array<Ptr<#Item>>(new_capacity)
+        let new_items: RawArray<Ptr<#Item>> = RawArray::new<Ptr<#Item>>(new_capacity)
 
         if (this.len > 0) {
             this.items.copy_into(new_items, this.capacity)
