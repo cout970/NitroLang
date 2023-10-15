@@ -1,9 +1,32 @@
 
-// Hash map implemented with
+// This type represents a map, a.k.a a dictionary or an associative array
+// It is implemented as a hash table with open addressing and linear probing
+// Any type that has the functions Type.get_hash() and Type.get_ordering(Type) can be used as a key
+//
+// A map can be created using the `@[...]` syntax:
+// ```
+// let map = @[
+//     foo: 1,
+//     bar: 2,
+// ]
+// ```
+// If the keys are strings the " can be omitted is only ascii letters, numbers and _ are used
+// Any arbitrary expression can be used as a key by surrounding it with ()
+// ```
+// let map = @[
+//     regular_key: 0,
+//     "key with spaces": 1,
+//     "key with string templates $index => ${1 + 1}": 2,
+//     (123.to_string()): 3,
+//     (hash_of(item)): 4,
+// ]
+// ```
 @Extern $[lib: "core", name: "Map"]
 struct Map<#Key, #Value> {
     len: Int
     table: List<Optional<MapEntry<#Key, #Value>>>
+    // TODO: Use a raw array instead of a list of optionals to save memory
+    // table2: RawArray<Ptr<MapEntry<#Key, #Value>>>
 }
 
 // Slot in the map
@@ -20,7 +43,6 @@ tag MapKey {
 
 // Creates an empty map
 fun <#Key: MapKey> Map::new(): Map<#Key, #Value> {
-
     ret Map<#Key, #Value> $[
         len: 0
         table: List::new<Optional<MapEntry<#Key, #Value>>>()
@@ -49,10 +71,10 @@ fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(capacity: Int) {
     }
 
     repeat old_table.len() {
-        let opt = old_table[it]
+        let opt = old_table[it]!!
 
         if opt.is_some() {
-            let entry: MapEntry<#Key, #Value> = opt.get_or_crash()
+            let entry: MapEntry<#Key, #Value> = opt!!
             this.set_entry(entry)
         }
     }
@@ -66,11 +88,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.set(key: #Key, value: #Value) {
     let index = key.get_hash().modulo(this.table.len())
 
     repeat this.table.len() {
-        let slot = this.table[index]
+        let slot = this.table[index]!!
         let available = slot.is_none()
 
         if not available {
-            if slot.get_or_crash().key == key {
+            if slot!!.key == key {
                 available = true
             }
         }
@@ -105,7 +127,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.get(key: #Key): Optional<#Value> {
         ret None()
     }
 
-    ret Some(opt.get_or_crash().value)
+    ret Some(opt!!.value)
 }
 
 // Equivalent to `Map.get(key)` but returns a MapEntry
@@ -118,7 +140,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Ke
     let index = key.get_hash().modulo(this.table.len())
 
     repeat this.table.len() {
-        let slot = this.table[index]
+        let slot = this.table[index]!!
 
         // Not found
         if slot.is_none() {
@@ -126,7 +148,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Ke
         }
 
         // Found something
-        let entry: MapEntry<#Key, #Value> = slot.get_or_crash()
+        let entry: MapEntry<#Key, #Value> = slot!!
 
         // Found it
         if entry.key == key {
@@ -161,10 +183,10 @@ fun <#Key: MapKey> Map<#Key, #Value>.keys_as_list(): List<#Key> {
     let res = List::new<#Key>()
 
     repeat this.table.len() {
-        let slot = this.table[it]
+        let slot = this.table[it]!!
 
         if slot.is_some() {
-            res[] = slot.get_or_crash().key
+            res[] = slot!!.key
         }
     }
 
@@ -176,10 +198,10 @@ fun <#Key: MapKey> Map<#Key, #Value>.values_as_list(): List<#Value> {
     let res = List::new<#Value>()
 
     repeat this.table.len() {
-        let slot = this.table[it]
+        let slot = this.table[it]!!
 
         if slot.is_some() {
-            res[] = slot.get_or_crash().value
+            res[] = slot!!.value
         }
     }
 
@@ -191,27 +213,28 @@ fun <#Key: MapKey> Map<#Key, #Value>.entries_as_list(): List<MapEntry<#Key, #Val
     let res = List::new<MapEntry<#Key, #Value>>()
 
     repeat this.table.len() {
-        let slot = this.table[it]
+        let slot = this.table[it]!!
 
         if slot.is_some() {
-            res[] = slot.get_or_crash()
+            res[] = slot!!
         }
     }
 
     ret res
 }
 
+// Converts the map to a string
 fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
     let str = "@["
 
     repeat this.len {
-        let slot = this.table[it]
+        let slot = this.table[it]!!
 
         if slot.is_none() {
             continue
         }
 
-        let entry: MapEntry<#Key, #Value> = slot.get_or_crash()
+        let entry: MapEntry<#Key, #Value> = slot!!
 
         str = str.concat(entry.key.to_string())
         str = str.concat(" => ")

@@ -99,13 +99,22 @@ Lambdas:
 
 ```nitrolang
 fun main() {
-    html #{
-        head #{
-        
-        }
-        body #{
-        
-        }
+    // All 4 versions are equivalent
+    
+    #[1, 2, 3, 4].for_each #{ i: Int ->
+        println("- $i")
+    }
+
+    #[1, 2, 3, 4].for_each(#{ i: Int ->
+        println("- $i")
+    })
+
+    for_each(#[1, 2, 3, 4], #{ i: Int ->
+        println("- $i")
+    })
+
+    for_each(#[1, 2, 3, 4]) #{ i: Int ->
+        println("- $i")
     }
 }
 ```

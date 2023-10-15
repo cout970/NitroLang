@@ -17,6 +17,7 @@ import java.io.File
 
 const val SELF_NAME = "this"
 const val ANNOTATION_EXTERN = "Extern"
+const val ANNOTATION_INTRINSIC = "Intrinsic"
 const val ANNOTATION_REQUIRED = "Required"
 const val ANNOTATION_WASM_NAME = "WasmName"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
@@ -146,6 +147,8 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
             // create a parser that feeds off the tokens buffer
             val parser = MainParser(tokens2)
 
+            parser.removeErrorListeners()
+
             parser.addErrorListener(object : BaseErrorListener() {
                 override fun syntaxError(
                     recognizer: Recognizer<*, *>,
@@ -156,13 +159,27 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
                     e: RecognitionException?
                 ) {
                     recognizer as MainParser
-                    collector.report(
-                        "Syntax error: $msg", Span(
-                            recognizer.currentToken.startIndex,
-                            recognizer.currentToken.stopIndex,
+
+                    var errorMsg =  "Syntax error: $msg"
+                    var span = Span(
+                        recognizer.currentToken.startIndex,
+                        recognizer.currentToken.stopIndex,
+                        source
+                    )
+
+                    if (offendingSymbol is CommonToken) {
+                        if (msg.startsWith("no viable alternative at input")) {
+                            errorMsg = "Unexpected token '${offendingSymbol.text}'"
+                        }
+
+                        span = Span(
+                            offendingSymbol.startIndex,
+                            offendingSymbol.stopIndex,
                             source
                         )
-                    )
+                    }
+
+                    collector.report(errorMsg, span)
                 }
             })
 

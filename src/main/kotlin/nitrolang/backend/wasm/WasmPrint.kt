@@ -19,6 +19,15 @@ fun WasmPrint.module(module: WasmModule) {
         out.nl()
     }
 
+    out += "(table \$lambdas funcref (elem"
+    for (label in module.lambdaLabels) {
+        out.sep()
+        out += "$"
+        out += label
+    }
+    out += "))"
+    out.nl()
+
     out += "(memory (export"
     out.sep()
     out.string("memory")

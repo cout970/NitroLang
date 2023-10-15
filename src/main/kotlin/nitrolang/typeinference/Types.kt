@@ -1,9 +1,7 @@
 package nitrolang.typeinference
 
-import nitrolang.ast.LstOption
-import nitrolang.ast.LstStruct
-import nitrolang.ast.LstTag
-import nitrolang.ast.LstTypeParameterDef
+import nitrolang.ast.*
+import nitrolang.util.ErrorInfo
 import nitrolang.util.Span
 
 sealed interface TType {
@@ -109,9 +107,14 @@ data class TInvalid(override val id: Int, val span: Span, val error: String) : T
 
 sealed interface TTypeBase {
     val id: Int
+    val indexKey: String
 }
 
 data class TStruct(override val id: Int, val instance: LstStruct) : TTypeBase {
+    override val indexKey: String = "S${instance.ref.id}"
+
+    fun isFunction(): Boolean = instance.fullName == "Function" && instance.isIntrinsic
+
     override fun toString(): String = instance.fullName
 
     override fun equals(other: Any?): Boolean {
@@ -127,6 +130,8 @@ data class TStruct(override val id: Int, val instance: LstStruct) : TTypeBase {
 }
 
 data class TOption(override val id: Int, val instance: LstOption) : TTypeBase {
+    override val indexKey: String = "O${instance.ref.id}"
+
     override fun toString(): String = instance.fullName
 
     override fun equals(other: Any?): Boolean {
@@ -142,11 +147,31 @@ data class TOption(override val id: Int, val instance: LstOption) : TTypeBase {
 }
 
 data class TOptionItem(override val id: Int, val instance: LstStruct, val option: TOption) : TTypeBase {
+    override val indexKey: String = "I${instance.ref.id}"
+
     override fun toString(): String = instance.fullName
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is TOptionItem) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
+}
+
+// Lambda function
+data class TLambda(override val id: Int, val instance: LstLambdaFunction) : TTypeBase {
+    override val indexKey: String = "L${instance.ref.id}"
+
+    override fun toString(): String = instance.toString()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TLambda) return false
 
         if (id != other.id) return false
 
@@ -187,15 +212,20 @@ data class TypeBox(val env: TypeEnv, var type: TType, val span: Span) {
 }
 
 interface TypeError {
-    val msg: String
-    var constraint: TConstraint
+    val message: String
+    val constraint: TConstraint
 
     fun replace(env: TypeEnv, key: TUnresolved, replacement: TType)
 }
 
-class TypeMismatchError(var left: TType, var right: TType) : TypeError {
-    override val msg: String get() = "Type mismatch, expected '$left', found '$right'"
-    override lateinit var constraint: TConstraint
+class TypeMismatchError(
+    var left: TType,
+    var right: TType,
+    override val constraint: TConstraint,
+) : ErrorInfo(
+    message = "Type mismatch, expected '$left', found '$right'",
+    span = constraint.span,
+), TypeError {
 
     override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
         with(env) {
@@ -205,8 +235,14 @@ class TypeMismatchError(var left: TType, var right: TType) : TypeError {
     }
 }
 
-class TypeBoundsError(var left: TType, val tag: LstTag, override var constraint: TConstraint) : TypeError {
-    override val msg: String get() = "Unsatisfied type bounds, type '$left' is missing the tag '${tag.fullName}'"
+class TypeBoundsError(
+    var left: TType,
+    val tag: LstTag,
+    override val constraint: TConstraint
+) : ErrorInfo(
+    message = "Unsatisfied type bounds, type '$left' is missing the tag '${tag.fullName}'",
+    span = constraint.span
+), TypeError {
 
     override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
         with(env) {

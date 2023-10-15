@@ -53,7 +53,7 @@ fun compile(path: String) {
     AstParser.parseFile(SourceFile.load(path), program)
 
     Prof.next("print_main")
-    program.functions.forEach { (_, func) ->
+    program.functions.forEach { func ->
         if (func.fullName !in setOf("debug")) return@forEach
 
         println("${func.fullName}:")

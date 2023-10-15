@@ -23,16 +23,19 @@ Intended for the developers
 
 
 ### Other features to implement
-- Lambdas
-- Vec, Set and Map implementations
-- Get annotations of type
+- Vec, Set implementations
+- Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
-- for statement
-- Unary prefix minus and plus `+5`, `-7`
-- Runtime reflection
-- Enums
-- Consts only accept simple values right now
-- Thousands of other ideas...
-- && and || short-circuit
+- `for` statement with iterators
+- Runtime reflection of types
+- Enums, not like rust, like java, a list of constants that can be iterated
+- Consts only accept primitive values, it should allow lists, maps and sets
+- && and || should short-circuit
+- Fix external functions with Floats compressed as pointers
+- Lambdas as closures
+- Call lambdas without the `func.invoke(args)` syntax
 - Assert type has tag `assert tag ToString for List<#Item>`
+- Tags with parametric types
+- Finish stdlib
+- Self-hosted compiler

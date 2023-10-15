@@ -1,3 +1,5 @@
+// This is the main file of the core library, includes all the necessary components
+
 include "core:annotations.nl"
 include "core:intrinsic.nl"
 include "core:byte.nl"
@@ -17,6 +19,6 @@ include "core:string.nl"
 include "core:list.nl"
 include "core:set.nl"
 include "core:map.nl"
-include "core:string_map.nl"
+include "core:function.nl"
 include "core:json.nl"
 include "core:console.nl"

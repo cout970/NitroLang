@@ -36,7 +36,7 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
     }
 
     program.definedNames[struct.fullName] = struct.span
-    program.structs[struct.ref] = struct
+    program.structs += struct
 }
 
 fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
@@ -44,7 +44,6 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
 
     val mutableTypeParametersList = mutableListOf<LstTypeParameterDef>()
     val options = mutableListOf<LstStruct>()
-    val optionRef = program.nextOptionRef()
 
     ctx.optionDefinitionItem().forEach { opt ->
 
@@ -81,9 +80,8 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
             return
         }
 
-        struct.parentOption = optionRef
         program.definedNames[struct.fullName] = struct.span
-        program.structs[struct.ref] = struct
+        program.structs += struct
         options += struct
     }
 
@@ -98,8 +96,10 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         items = options,
         typeParameters = mutableTypeParametersList,
         annotations = resolveAnnotations(ctx),
-        ref = optionRef,
+        ref = program.nextOptionRef(),
     )
+
+    options.forEach { it.parentOption = option }
 
     if (option.fullName in program.definedNames) {
         val prev = program.definedNames[option.fullName]
@@ -108,7 +108,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     }
 
     program.definedNames[option.fullName] = option.span
-    program.options[option.ref] = option
+    program.options += option
 }
 
 fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstFunction {
@@ -120,27 +120,13 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
     var index = 0
 
     if (ctx.functionReceiver() != null) {
-        val param = LstFunctionParam(
+        params += LstFunctionParam(
             span = ctx.functionReceiver().typeUsage().span(),
             name = SELF_NAME,
             index = index++,
             typeUsage = resolveTypeUsage(ctx.functionReceiver().typeUsage()),
-        )
-        params += param
+        ).apply { createVariable(body) }
         hasReceiver = true
-
-        val variable = LstVar(
-            span = param.span,
-            name = param.name,
-            block = body.currentBlock,
-            typeUsage = param.typeUsage,
-            validAfter = body.currentRef(),
-            ref = body.nextVarRef()
-        )
-
-        variable.isParam = true
-        param.variable = variable
-        body.variables[variable.ref] = variable
     }
 
     val returnTypeUsage: TypeUsage = if (ctx.functionReturnType() != null) {
@@ -150,26 +136,12 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
     }
 
     ctx.functionParameter().forEach { rawParam ->
-        val param = LstFunctionParam(
+        params += LstFunctionParam(
             span = rawParam.nameToken().span(),
             name = rawParam.nameToken().text,
             index = index++,
             typeUsage = resolveTypeUsage(rawParam.typeUsage()),
-        )
-        params += param
-
-        val variable = LstVar(
-            span = param.span,
-            name = param.name,
-            block = body.currentBlock,
-            typeUsage = param.typeUsage,
-            validAfter = body.currentRef(),
-            ref = body.nextVarRef()
-        )
-
-        variable.isParam = true
-        param.variable = variable
-        body.variables[variable.ref] = variable
+        ).apply { createVariable(body) }
     }
 
     val typeParameters = endTypeParams()
@@ -197,7 +169,7 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
         ref = program.nextFunctionRef()
     )
 
-    program.functions[func.ref] = func
+    program.functions += func
     return func
 }
 
@@ -244,7 +216,7 @@ fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
     }
 
     program.definedNames[const.fullName] = const.span
-    program.consts[const.ref] = const
+    program.consts += const
 }
 
 fun ParserCtx.processIncludeDefinition(ctx: MainParser.IncludeDefinitionContext) {
@@ -293,5 +265,5 @@ fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
         return
     }
 
-    program.tags[tag.ref] = tag
+    program.tags += tag
 }

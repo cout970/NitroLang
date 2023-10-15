@@ -4,45 +4,68 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add optimization for get_ordering().is_equals() and other comparisons using a direct function if available">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Prof.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/annotations.nl" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Allow module path in function declaration&#10;Rename create_X for X::new&#10;Add docs for annotations&#10;Fix not and unary minus expressions&#10;Add profiling and improves type checking speed">
+      <change afterPath="$PROJECT_DIR$/.idea/discord.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/function.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example.nl" beforeDir="false" afterPath="$PROJECT_DIR$/example.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradlew.bat" beforeDir="false" afterPath="$PROJECT_DIR$/gradlew.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmModule.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Error.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Error.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/lexer.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/lexer.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/char.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/char.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/console.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/console.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/float.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/float.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/int.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/json.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/json.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/list.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/list.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/map.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/math.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/math.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/ordering.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/ordering.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/result.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/result.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/set.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/set.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/slice.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/slice.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/string.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/string_map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string_map.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/string_map.nl" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,27 +125,28 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Data/Dev/3D/custom&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settingsdialog.IDE.editor.colors.User-Defined File Types&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Downloaded.Files.Path.Enabled": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/home/cout970/Dev/Kotlin/NitroLang",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.20992167",
+    "project.structure.side.proportion": "0.44871795",
+    "settings.editor.selected.configurable": "preferences.rainbow.brackets.lite"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Markdown&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Markdown"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/tests/internal/expression" />
@@ -449,7 +473,15 @@
       <option name="project" value="LOCAL" />
       <updated>1696639344977</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Allow module path in function declaration&#10;Rename create_X for X::new&#10;Add docs for annotations&#10;Fix not and unary minus expressions&#10;Add profiling and improves type checking speed">
+      <option name="closed" value="true" />
+      <created>1696942362633</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1696942362633</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -477,33 +509,7 @@
     <MESSAGE value="Add README&#10;Add LICENSE" />
     <MESSAGE value="Add shorthand for fields with same name a vars in struct instance creations&#10;Add return without expression&#10;Fix tag implementation monomorphization&#10;Add better handling of conflicting implementations of the same function&#10;Add check for incorrect use of the implicit return type&#10;Fix recursive error resolving option size when it contains refs to itself" />
     <MESSAGE value="Add optimization for get_ordering().is_equals() and other comparisons using a direct function if available" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add optimization for get_ordering().is_equals() and other comparisons using a direct function if available" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt</url>
-          <line>939</line>
-          <option name="timeStamp" value="16" />
-        </line-breakpoint>
-        <line-breakpoint type="kotlin-line">
-          <condition expression="node.function == null" language="kotlin" />
-          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt</url>
-          <line>47</line>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt</url>
-          <line>108</line>
-          <option name="timeStamp" value="21" />
-        </line-breakpoint>
-        <line-breakpoint type="kotlin-line">
-          <url>file://$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt</url>
-          <line>114</line>
-          <option name="timeStamp" value="22" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="Allow module path in function declaration&#10;Rename create_X for X::new&#10;Add docs for annotations&#10;Fix not and unary minus expressions&#10;Add profiling and improves type checking speed" />
+    <option name="LAST_COMMIT_MESSAGE" value="Allow module path in function declaration&#10;Rename create_X for X::new&#10;Add docs for annotations&#10;Fix not and unary minus expressions&#10;Add profiling and improves type checking speed" />
   </component>
 </project>

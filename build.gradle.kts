@@ -13,7 +13,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.antlr:antlr4:4.12.0")
+    implementation("org.antlr:antlr4:4.13.1")
 }
 
 tasks.test {

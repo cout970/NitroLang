@@ -1,10 +1,8 @@
 package nitrolang.typeinference
 
-import nitrolang.ast.LstOption
-import nitrolang.ast.LstStruct
-import nitrolang.ast.LstTag
-import nitrolang.ast.LstTypeParameterDef
+import nitrolang.ast.*
 import nitrolang.util.ErrorCollector
+import nitrolang.util.ErrorInfo
 import nitrolang.util.Prof
 import nitrolang.util.Span
 
@@ -14,14 +12,20 @@ class TypeEnv(val collector: ErrorCollector) {
     private var nextConsId = 0
 
     private var allTypes = mutableMapOf<Int, TType>()
+    private val allTypeBases = mutableMapOf<Int, TTypeBase>()
     private var tComposite = mutableMapOf<String, TComposite>()
     private var tGeneric = mutableMapOf<String, TGeneric>()
     private var tUnion = mutableMapOf<String, TUnion>()
-    private val allTypeBases = mutableMapOf<Int, TTypeBase>()
+    private var tStruct = mutableMapOf<String, TStruct>()
+    private var tOption = mutableMapOf<String, TOption>()
+    private var tOptionItem = mutableMapOf<String, TOptionItem>()
+    private var tLambda = mutableMapOf<String, TLambda>()
 
     private val constrains = mutableListOf<TConstraint>()
     private val unresolved = mutableSetOf<TUnresolved>()
     private val boxes = mutableListOf<TypeBox>()
+
+    private var currentConstraint: TConstraint? = null
 
     fun print() {
         println("allTypes:\n - ${allTypes.values.joinToString("\n - ")}")
@@ -92,7 +96,6 @@ class TypeEnv(val collector: ErrorCollector) {
         if (key in tGeneric) {
             return tGeneric[key]!!
         }
-
         return type { TGeneric(it, instance) }
     }
 
@@ -106,41 +109,46 @@ class TypeEnv(val collector: ErrorCollector) {
         return type { TComposite(it, base, params) }
     }
 
+    fun typeLambda(lambda: LstLambdaFunction): TComposite {
+        val params = mutableListOf<TType>()
+        lambda.params.forEach { params += it.type }
+        params += lambda.returnType
+
+        val base = typeBaseLambda(lambda)
+        return composite(base, params)
+    }
+
     fun typeBaseStruct(instance: LstStruct): TStruct {
-        val existing = allTypeBases.values
-            .find { it is TStruct && it.instance == instance } as? TStruct
-
-        if (existing != null) return existing
-
-        val id = nextSubId()
-        val ty = TStruct(id, instance)
-        allTypeBases[id] = ty
-        return ty
+        val key = "S${instance.ref.id}"
+        if (key in tStruct) {
+            return tStruct[key]!!
+        }
+        return typeBase { TStruct(it, instance) }
     }
 
     fun typeBaseOption(instance: LstOption): TOption {
-        val existing = allTypeBases.values
-            .find { it is TOption && it.instance == instance } as? TOption
-
-        if (existing != null) return existing
-
-        val id = nextSubId()
-        val ty = TOption(id, instance)
-        allTypeBases[id] = ty
-        return ty
+        val key = "O${instance.ref.id}"
+        if (key in tOption) {
+            return tOption[key]!!
+        }
+        return typeBase { TOption(it, instance) }
     }
 
     fun typeBaseOptionItem(instance: LstStruct, optionInstance: LstOption): TOptionItem {
+        val key = "I${instance.ref.id}"
+        if (key in tOptionItem) {
+            return tOptionItem[key]!!
+        }
         val option = typeBaseOption(optionInstance)
-        val existing = allTypeBases.values
-            .find { it is TOptionItem && it.instance == instance && it.option == option } as? TOptionItem
+        return typeBase { TOptionItem(it, instance, option) }
+    }
 
-        if (existing != null) return existing
-
-        val id = nextSubId()
-        val ty = TOptionItem(id, instance, option)
-        allTypeBases[id] = ty
-        return ty
+    fun typeBaseLambda(instance: LstLambdaFunction): TLambda {
+        val key = "L${instance.ref.id}"
+        if (key in tLambda) {
+            return tLambda[key]!!
+        }
+        return typeBase { TLambda(it, instance) }
     }
 
     fun union(options: Set<TType>): TType {
@@ -155,7 +163,6 @@ class TypeEnv(val collector: ErrorCollector) {
         if (common != null) {
             return common
         }
-
         return type { TUnion(it, flatOptions) }
     }
 
@@ -199,14 +206,23 @@ class TypeEnv(val collector: ErrorCollector) {
         val id = nextId()
         val ty = func(id)
         allTypes[id] = ty
-        if (ty is TComposite) {
-            tComposite[ty.indexKey] = ty
+        when (ty) {
+            is TComposite -> tComposite[ty.indexKey] = ty
+            is TGeneric -> tGeneric[ty.indexKey] = ty
+            is TUnion -> tUnion[ty.indexKey] = ty
         }
-        if (ty is TGeneric) {
-            tGeneric[ty.indexKey] = ty
-        }
-        if (ty is TUnion) {
-            tUnion[ty.indexKey] = ty
+        return ty
+    }
+
+    private inline fun <T : TTypeBase> typeBase(func: (Int) -> T): T {
+        val id = nextSubId()
+        val ty = func(id)
+        allTypeBases[id] = ty
+        when (ty) {
+            is TLambda -> tLambda[ty.indexKey] = ty
+            is TStruct -> tStruct[ty.indexKey] = ty
+            is TOption -> tOption[ty.indexKey] = ty
+            is TOptionItem -> tOptionItem[ty.indexKey] = ty
         }
         return ty
     }
@@ -312,7 +328,7 @@ class TypeEnv(val collector: ErrorCollector) {
     }
 
     fun solveConstraints() {
-        val errors = mutableListOf<TypeError>()
+        val errors = mutableListOf<ErrorInfo>()
         val substitutions = mutableMapOf<TUnresolved, TType>()
         val remaining = ArrayDeque<Pair<TUnresolved, TType>>()
         var madeProgress: Boolean
@@ -324,13 +340,14 @@ class TypeEnv(val collector: ErrorCollector) {
             // Unify
             constrains.forEach { constraint ->
                 if (constraint is TUnify) {
+                    currentConstraint = constraint
                     unify(
                         constraint.left.type,
                         constraint.right.type,
                         substitutions,
                         errors
                     )
-                    errors.forEach { err -> err.constraint = constraint }
+                    currentConstraint = null
                 }
             }
 
@@ -349,7 +366,9 @@ class TypeEnv(val collector: ErrorCollector) {
 
                     // Replace `key` in errors previously detected
                     errors.forEach { err ->
-                        err.replace(this, key, replacement)
+                        if (err is TypeError) {
+                            err.replace(this, key, replacement)
+                        }
                     }
 
                     // Remove this replacement
@@ -383,7 +402,7 @@ class TypeEnv(val collector: ErrorCollector) {
             }
 
             errors.forEach { err ->
-                collector.report(err.msg, err.constraint.span)
+                collector.reportError(err)
             }
 
             errors.clear()
@@ -444,7 +463,7 @@ class TypeEnv(val collector: ErrorCollector) {
         key: TUnresolved,
         value: TType,
         sub: MutableMap<TUnresolved, TType>,
-        errors: MutableList<TypeError>
+        errors: MutableList<ErrorInfo>
     ) {
         if (key == value) return
 
@@ -476,7 +495,7 @@ class TypeEnv(val collector: ErrorCollector) {
         }
 
         if (!prev.hasUnresolved() && !next.hasUnresolved()) {
-            errors += TypeMismatchError(prev, next)
+            errors += TypeMismatchError(prev, next, currentConstraint!!)
             sub[key] = prev
             return
         }
@@ -499,7 +518,7 @@ class TypeEnv(val collector: ErrorCollector) {
         type1: TType,
         type2: TType,
         sub: MutableMap<TUnresolved, TType>,
-        errors: MutableList<TypeError>
+        errors: MutableList<ErrorInfo>
     ) {
         when {
             type1 is TUnresolved -> {
@@ -526,11 +545,11 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (type1.base != type2.base &&
                     commonBaseType(type1.base, type2.base) == null
                 ) {
-                    errors += TypeMismatchError(type1, type2)
+                    errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
 
                 if (type1.params.size != type2.params.size) {
-                    errors += TypeMismatchError(type1, type2)
+                    errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
             }
 
@@ -538,7 +557,7 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (type2.isNever()) return
 
                 if (type1 != type2) {
-                    errors += TypeMismatchError(type1, type2)
+                    errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
             }
 
@@ -546,7 +565,7 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (type1.isNever()) return
 
                 if (type1 != type2) {
-                    errors += TypeMismatchError(type1, type2)
+                    errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
             }
         }
@@ -609,6 +628,10 @@ class TypeEnv(val collector: ErrorCollector) {
 
         // Ordering::Less and Ordering::Equals => Ordering
         if (a is TOptionItem && b is TOptionItem && a.option == b.option) return a.option
+
+        // Function and Lambda => Function
+        if (a is TStruct && a.isFunction() && b is TLambda) return a
+        if (b is TStruct && b.isFunction() && a is TLambda) return b
 
         return null
     }

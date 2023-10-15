@@ -1,4 +1,4 @@
-// Generated from /Data/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.12.0
+// Generated from /home/cout970/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.13.1
 package nitrolang.gen;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -725,6 +725,18 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAssertSuffix(MainParser.AssertSuffixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAssertSuffix(MainParser.AssertSuffixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterCollectionIndexingSuffix(MainParser.CollectionIndexingSuffixContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1061,6 +1073,18 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterPlusExpr(MainParser.PlusExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPlusExpr(MainParser.PlusExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterIfExpr(MainParser.IfExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -1205,13 +1229,13 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRefModifier(MainParser.RefModifierContext ctx) { }
+	@Override public void enterVarModifier(MainParser.VarModifierContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitRefModifier(MainParser.RefModifierContext ctx) { }
+	@Override public void exitVarModifier(MainParser.VarModifierContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1236,6 +1260,42 @@ public class MainParserBaseListener implements MainParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitBaseTypeUsage(MainParser.BaseTypeUsageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunctionTypeUsage(MainParser.FunctionTypeUsageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunctionTypeUsage(MainParser.FunctionTypeUsageContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunctionTypeUsageParam(MainParser.FunctionTypeUsageParamContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunctionTypeUsageParam(MainParser.FunctionTypeUsageParamContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

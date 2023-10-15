@@ -175,6 +175,20 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
             call.ref
         }
 
+        simple.plusExpr() != null -> {
+            val expr = processExpressionBase(simple.plusExpr().expressionBase())
+            val call = LstFunCall(
+                ref = code.nextRef(),
+                span = simple.plusExpr().span(),
+                block = code.currentBlock,
+                name = "unary_plus",
+                path = "",
+                arguments = listOf(expr),
+            )
+            code.nodes += call
+            call.ref
+        }
+
         else -> {
             processExpressionWithSuffix(simple.expressionWithSuffix(0))
         }
@@ -183,6 +197,21 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
 
 fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixContext): Ref {
     return when {
+        ctx.assertSuffix() != null -> {
+            val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
+
+            val call = LstFunCall(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                name = "get_or_crash",
+                path = "",
+                arguments = listOf(prevRef),
+            )
+            code.nodes += call
+            call.ref
+        }
+
         ctx.collectionIndexingSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
             val indexRef = processExpression(ctx.collectionIndexingSuffix().expression())
@@ -1408,6 +1437,10 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     var returnType: TypeUsage = TypeUsage.nothing()
     var index = 0
 
+    val prevCode = this.code
+    val body = LstCode()
+    this.code = body
+
     if (ctx.lambdaDef() != null) {
         val def = ctx.lambdaDef()
 
@@ -1417,7 +1450,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                 name = SELF_NAME,
                 index = index++,
                 typeUsage = resolveTypeUsage(def.lambdaReceiver().typeUsage()),
-            )
+            ).apply { createVariable(body) }
         }
 
         if (def.lambdaParams() != null) {
@@ -1427,7 +1460,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                     name = it.nameToken().text,
                     index = index++,
                     typeUsage = resolveTypeUsage(it.typeUsage()),
-                )
+                ).apply { createVariable(body) }
             }
         }
 
@@ -1436,10 +1469,6 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         }
     }
 
-    val prevCode = this.code
-    val body = LstCode()
-
-    this.code = body
     ctx.statement().forEach { processStatement(it) }
     this.code = prevCode
 
@@ -1451,14 +1480,26 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         body = body
     )
 
-    val node = LstAlloc(
+    program.lambdaFunctions += lambda
+
+    val alloc = LstAlloc(
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
         typeUsage = TypeUsage.lambda(lambda)
     )
-    code.nodes += node
-    return node.ref
+    code.nodes += alloc
+
+    val init = LstLambdaInit(
+        ref = code.nextRef(),
+        span = ctx.span(),
+        block = code.currentBlock,
+        alloc = alloc.ref,
+        lambda = lambda,
+    )
+    code.nodes += init
+
+    return init.ref
 }
 
 fun ParserCtx.processExpressionIfExpr(ctx: MainParser.IfExprContext): Ref {
@@ -1534,7 +1575,6 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
             name = name,
             path = path,
             sub = typeParamArgs,
-            modifier = TypeUsage.Modifier.NONE,
             typeParameter = null,
             currentPath = currentPath(ctx)
         )

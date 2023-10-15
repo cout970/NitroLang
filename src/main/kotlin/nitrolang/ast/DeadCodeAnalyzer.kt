@@ -4,17 +4,18 @@ import nitrolang.parsing.ANNOTATION_REQUIRED
 import nitrolang.parsing.MAIN_FUNCTION_NAME
 
 class DeadCodeAnalyzer(val program: LstProgram) {
-    private val visited = mutableSetOf<LstFunction>()
+    private val visitedFunctions = mutableSetOf<LstFunction>()
+    private val visitedLambdas = mutableSetOf<LstLambdaFunction>()
 
     companion object {
         fun markDeadCode(program: LstProgram) {
-            val main = program.functions.values.find { it.fullName == MAIN_FUNCTION_NAME }
+            val main = program.functions.find { it.fullName == MAIN_FUNCTION_NAME }
                 ?: error("Missing $MAIN_FUNCTION_NAME function")
 
-            program.functions.values.forEach {
+            program.functions.forEach {
                 it.isDeadCode = it.getAnnotation(ANNOTATION_REQUIRED) == null
             }
-            program.consts.values.forEach {
+            program.consts.forEach {
                 it.isDeadCode = true
             }
 
@@ -24,30 +25,44 @@ class DeadCodeAnalyzer(val program: LstProgram) {
     }
 
     private fun visitFunction(func: LstFunction) {
-        visited += func
+        visitedFunctions += func
         func.isDeadCode = false
 
         func.tag?.functionImplementations?.values?.forEach { perType ->
             perType.values.forEach { newFunc ->
                 newFunc.isDeadCode = false
 
-                if (newFunc !in visited) {
+                if (newFunc !in visitedFunctions) {
                     visitFunction(newFunc)
                 }
             }
         }
 
-        func.body.nodes.filterIsInstance<LstLoadVar>().forEach {
-            if (it.varRef is ConstRef) program.consts[it.varRef]!!.isDeadCode = false
-        }
-        func.body.nodes.filterIsInstance<LstStoreVar>().forEach {
-            if (it.varRef is ConstRef) program.consts[it.varRef]!!.isDeadCode = false
-        }
+        visitInst(func.body)
+    }
 
-        func.body.nodes.filterIsInstance<LstFunCall>().forEach { node ->
+    private fun visitLambda(func: LstLambdaFunction) {
+        visitedLambdas += func
+        func.isDeadCode = false
+        visitInst(func.body)
+    }
+
+    private fun visitInst(body: LstCode) {
+        body.nodes.filterIsInstance<LstLoadVar>().forEach {
+            it.constant?.isDeadCode = false
+        }
+        body.nodes.filterIsInstance<LstStoreVar>().forEach {
+            it.constant?.isDeadCode = false
+        }
+        body.nodes.filterIsInstance<LstLambdaInit>().forEach {
+            if (it.lambda !in visitedLambdas) {
+                visitLambda(it.lambda)
+            }
+        }
+        body.nodes.filterIsInstance<LstFunCall>().forEach { node ->
             val newFunc = node.function ?: error("Function not resolved")
 
-            if (newFunc !in visited) {
+            if (newFunc !in visitedFunctions) {
                 visitFunction(newFunc)
             }
         }

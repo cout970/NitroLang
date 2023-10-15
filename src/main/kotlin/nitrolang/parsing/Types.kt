@@ -22,7 +22,6 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
                 name = currentTagName ?: error("Using `This` outside a tag definition"),
                 path = "",
                 sub = emptyList(),
-                modifier = TypeUsage.Modifier.NONE,
                 typeParameter = null,
                 currentPath = currentPath(ctx)
             )
@@ -40,7 +39,6 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             name = name,
             path = "",
             sub = emptyList(),
-            modifier = TypeUsage.Modifier.NONE,
             typeParameter = typeParameterDef,
             currentPath = currentPath(ctx)
         )
@@ -69,22 +67,44 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             name = name,
             path = "",
             sub = emptyList(),
-            modifier = TypeUsage.Modifier.NONE,
             typeParameter = typeParameterDef,
             currentPath = currentPath(ctx)
         )
     }
 
-    val base = ctx.baseTypeUsage()
+    if (ctx.functionTypeUsage() != null) {
+        val func = ctx.functionTypeUsage()
+        val sub = mutableListOf<TypeUsage>()
 
-    val modifier = if (base.refModifier() != null && base.refModifier().MUT() != null) {
-        TypeUsage.Modifier.MUT
-    } else if (base.refModifier() != null && base.refModifier().REF() != null) {
-        TypeUsage.Modifier.REF
-    } else {
-        TypeUsage.Modifier.NONE
+        // Receiver
+        if (ctx.baseTypeUsage() != null) {
+            sub += resolveBaseTypeUsage(ctx.baseTypeUsage())
+        }
+
+        // Arguments
+        func.functionTypeUsageParam().forEach {
+            sub += resolveTypeUsage(it.typeUsage())
+        }
+
+        // Return
+        sub += resolveTypeUsage(func.functionTypeUsageReturn().typeUsage())
+
+        return TypeUsage(
+            span = func.span(),
+            name = "Function",
+            path = "",
+            sub = sub,
+            typeParameter = null,
+            currentPath = currentPath(ctx)
+        ).also {
+            it.hasReceiver = ctx.baseTypeUsage() != null
+        }
     }
 
+    return resolveBaseTypeUsage(ctx.baseTypeUsage())
+}
+
+fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): TypeUsage {
     val name = base.nameToken().text
     var path = ""
 
@@ -103,9 +123,8 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
         name = name,
         path = path,
         sub = sub,
-        modifier = modifier,
         typeParameter = null,
-        currentPath = currentPath(ctx)
+        currentPath = currentPath(base)
     )
 }
 

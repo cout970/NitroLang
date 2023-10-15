@@ -1,36 +1,50 @@
 
+// This type is used to represent signed integers in the range of -2^31 to 2^31 - 1
 @Extern $[lib: "core", name: "Int"]
 @StackValue
 struct Int {}
 
+// Adds two integer values
 @Extern $[lib: "core", name: "int_plus"]
 @WasmInline $[opcode: "i32.add"]
 fun Int.plus(other: Int): Int {}
 
+// Subtracts two integer values
 @Extern $[lib: "core", name: "int_minus"]
 @WasmInline $[opcode: "i32.sub"]
 fun Int.minus(other: Int): Int {}
 
+// Multiplies two integer values
 @Extern $[lib: "core", name: "int_mul"]
 @WasmInline $[opcode: "i32.mul"]
 fun Int.mul(other: Int): Int {}
 
+// Divides two integer values
 @Extern $[lib: "core", name: "int_div"]
 @WasmInline $[opcode: "i32.div_s"]
 fun Int.div(other: Int): Int {}
 
+// Divides two unsigned integer values
+// This function treats the two integers as unsigned integers in the range of 0 to 2^32 - 1
 @Extern $[lib: "core", name: "int_unsigned_div"]
 @WasmInline $[opcode: "i32.div_u"]
 fun Int.unsigned_div(other: Int): Int {}
 
+// Calculates the remainder of the division of two integer values
+// Note: this is not the same as the modulo operator, the results are different for negative numbers
 @Extern $[lib: "core", name: "int_rem"]
 @WasmInline $[opcode: "i32.rem_s"]
 fun Int.rem(other: Int): Int {}
 
+// Calculates the remainder of the division of two unsigned integer values
+// This function treats the two integers as unsigned integers in the range of 0 to 2^32 - 1
 @Extern $[lib: "core", name: "int_unsigned_rem"]
 @WasmInline $[opcode: "i32.rem_u"]
 fun Int.unsigned_rem(other: Int): Int {}
 
+// Calculates the modulo of two integer values
+// The difference between modulo and remainder is that modulo always returns a positive number
+// e.g. -1.rem(3) = -1, but -1.modulo(3) = 2
 fun Int.modulo(other: Int): Int {
     let rem = this.rem(other)
     ret if rem < 0 { rem + other } else { rem }
@@ -38,96 +52,150 @@ fun Int.modulo(other: Int): Int {
 
 // Bits
 
+// Performs a bitwise AND operation on two integer values,
+// e.g. 0b1010.bitwise_and(0b1100) = 0b1000
 @Extern $[lib: "core", name: "int_bitwise_and"]
 @WasmInline $[opcode: "i32.and"]
 fun Int.bitwise_and(other: Int): Int {}
 
+// Performs a bitwise OR operation on two integer values,
+// e.g. 0b1010.bitwise_or(0b1100) = 0b1110
 @Extern $[lib: "core", name: "int_bitwise_or"]
 @WasmInline $[opcode: "i32.or"]
 fun Int.bitwise_or(other: Int): Int {}
 
+// Performs a bitwise XOR operation on two integer values,
+// e.g. 0b1010.bitwise_xor(0b1100) = 0b0110
 @Extern $[lib: "core", name: "int_bitwise_xor"]
 @WasmInline $[opcode: "i32.xor"]
 fun Int.bitwise_xor(other: Int): Int {}
 
+// Performs a bitwise shift left operation on two integer values,
+// this is equivalent to multiplying the integer by 2^[other]
+// e.g. 0b1010.bitwise_shift_left(2) = 0b101000
 @Extern $[lib: "core", name: "int_bitwise_shift_left"]
 @WasmInline $[opcode: "i32.shl"]
 fun Int.bitwise_shift_left(other: Int): Int {}
 
+// Performs a bitwise shift right operation on two integer values,
+// this is equivalent to dividing the integer by 2^[other]
+// The sign bit (the most significant bit) is copied to the new bits,
+// (-65281) 0b11111111111111110000000011111111.bitwise_shift_right(8) = 0b11111111111111111111111100000000
+// e.g. 0b1010.bitwise_shift_right(2) = 0b10
 @Extern $[lib: "core", name: "int_bitwise_shift_right"]
 @WasmInline $[opcode: "i32.shr_s"]
 fun Int.bitwise_shift_right(other: Int): Int {}
 
+// Performs a bitwise shift right operation on two unsigned integer values,
+// this is equivalent to dividing the integer by 2^[other]
+// Unsigned means that the sign bit (the most significant bit) is not copied to the new bits,
+// (-65281) 0b11111111111111110000000011111111.bitwise_shift_right_unsigned(8) = 0b00000000111111111111111100000000
+// e.g. 0b1010.bitwise_shift_right_unsigned(2) = 0b10
 @Extern $[lib: "core", name: "int_bitwise_shift_right_unsigned"]
 @WasmInline $[opcode: "i32.shr_u"]
 fun Int.bitwise_shift_right_unsigned(other: Int): Int {}
 
+// Counts the number of leading zeros in the binary representation of the integer
 @Extern $[lib: "core", name: "int_bitwise_count_leading_zeros"]
 @WasmInline $[opcode: "i32.clz"]
 fun Int.bitwise_count_leading_zeros(): Int {}
 
+// Counts the number of trailing zeros in the binary representation of the integer
 @Extern $[lib: "core", name: "int_bitwise_count_trailing_zeros"]
 @WasmInline $[opcode: "i32.ctz"]
 fun Int.bitwise_count_trailing_zeros(): Int {}
 
+// Counts the number of bits that are set to 1 in the binary representation of the integer
 @Extern $[lib: "core", name: "int_bitwise_count_nonzero_bits"]
 @WasmInline $[opcode: "i32.popcnt"]
 fun Int.bitwise_count_nonzero_bits(): Int {}
 
 // Comparisons
 
+// Compares two integer values for equality
 @Extern $[lib: "core", name: "int_is_equal_int"]
 @WasmInline $[opcode: "i32.eq"]
 fun Int.is_equal(other: Int): Boolean {}
 
+// Compares two integer values for inequality
 @Extern $[lib: "core", name: "int_is_not_equal_int"]
 @WasmInline $[opcode: "i32.ne"]
 fun Int.is_not_equal(other: Int): Boolean {}
 
+// Checks if the integer is equal to zero
 @Extern $[lib: "core", name: "int_is_equal_zero"]
 @WasmInline $[opcode: "i32.eqz"]
 fun Int.is_equal_zero(): Boolean {}
 
+// Checks if this integer value is strictly less than 'other'
 @Extern $[lib: "core", name: "int_less_than_signed"]
 @WasmInline $[opcode: "i32.lt_s"]
 fun Int.less_than_signed(other: Int): Boolean {}
 
+// Checks if this integer value is strictly less than 'other',
+// but treats the two integers as unsigned integers
+// e.g. -1, represented in 2's complement as 2^32 - 1, will be greater than 0
 @Extern $[lib: "core", name: "int_less_than_unsigned"]
 @WasmInline $[opcode: "i32.lt_u"]
 fun Int.less_than_unsigned(other: Int): Boolean {}
 
+// Checks if this integer value is less than or equal to 'other'
 @Extern $[lib: "core", name: "int_less_equal_signed"]
 @WasmInline $[opcode: "i32.le_s"]
 fun Int.less_equal_signed(other: Int): Boolean {}
 
+// Checks if this integer value is less than or equal to 'other',
+// but treats the two integers as unsigned integers
+// e.g. -1, represented in 2's complement as 2^32 - 1, will be greater than 0
 @Extern $[lib: "core", name: "int_less_equal_unsigned"]
 @WasmInline $[opcode: "i32.le_u"]
 fun Int.less_equal_unsigned(other: Int): Boolean {}
 
+// Checks if this integer value is greater than or equal to 'other'
 @Extern $[lib: "core", name: "int_greater_equal_signed"]
 @WasmInline $[opcode: "i32.ge_s"]
 fun Int.greater_equal_signed(other: Int): Boolean {}
 
+// Checks if this integer value is greater than or equal to 'other',
+// but treats the two integers as unsigned integers
 @Extern $[lib: "core", name: "int_greater_equal_unsigned"]
 @WasmInline $[opcode: "i32.ge_u"]
 fun Int.greater_equal_unsigned(other: Int): Boolean {}
 
+// Checks if this integer value is strictly greater than 'other'
 @Extern $[lib: "core", name: "int_greater_than_signed"]
 @WasmInline $[opcode: "i32.gt_s"]
 fun Int.greater_than_signed(other: Int): Boolean {}
 
+// Checks if this integer value is strictly greater than 'other',
+// but treats the two integers as unsigned integers
 @Extern $[lib: "core", name: "int_greater_than_unsigned"]
 @WasmInline $[opcode: "i32.gt_u"]
 fun Int.greater_than_unsigned(other: Int): Boolean {}
 
+// Function called when a unary minus is applied to a integer value, e.g. -(1.0)
+// Note: -1 is parsed as a negative number, so no operation is performed
 fun Int.unary_minus(): Int = 0 - this
 
+// Function called when a unary plus is applied to a integer value, e.g. +(1.0)
+// Note: +1 is parsed as a positive number, so no operation is performed
+fun Int.unary_plus(): Int = this
+
+// Converts this integer value to a string
 @Extern $[lib: "core", name: "int_to_string"]
 fun Int.to_string(): String {}
 
+// Converts this integer value to a string in the given base,
+// the base must be in the range of 2 to 36
+// e.g. 0x10.to_string_in_base(16) = "10"
+// e.g. 0x10.to_string_in_base(10) = "16"
+// e.g. 0x10.to_string_in_base(8) = "20"
+// e.g. 0x10.to_string_in_base(2) = "10000"
 @Extern $[lib: "core", name: "int_to_string_in_base"]
 fun Int.to_string_in_base(radix: Int): String {}
 
+// This function compares two integer values and returns an ordering value
+// that represents the sorting order of the values
 fun Int.get_ordering(other: Int): Ordering {
     if this == other {
         ret Ordering::Equals $[]
@@ -140,10 +208,16 @@ fun Int.get_ordering(other: Int): Ordering {
     }
 }
 
+// Optimized version of max() for integer values
 fun max(a: Int, b: Int): Int {
     ret if a > b { a } else { b }
 }
 
+// Optimized version of min() for integer values
 fun min(a: Int, b: Int): Int {
     ret if a > b { b } else { a }
 }
+
+// This function is used to calculate the hash value of an integer
+// to be used in hash tables and similar data structures
+fun Int.get_hash(): Int = this

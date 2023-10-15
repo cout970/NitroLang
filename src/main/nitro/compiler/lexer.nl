@@ -28,15 +28,15 @@ fun Lexer.add_single_token(ty: Int) {
 }
 
 fun Lexer.get_token_type(index: Int): Int {
-    ret this.tokens[index / 3]
+    ret this.tokens[index / 3]!!
 }
 
 fun Lexer.get_token_offset(index: Int): Int {
-    ret this.tokens[index / 3 + 1]
+    ret this.tokens[index / 3 + 1]!!
 }
 
 fun Lexer.get_token_extra(index: Int): Int {
-    ret this.tokens[index / 3 + 2]
+    ret this.tokens[index / 3 + 2]!!
 }
 
 fun Lexer.add_string() {

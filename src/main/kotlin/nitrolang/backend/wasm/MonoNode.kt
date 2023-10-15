@@ -17,21 +17,19 @@ data class MonoType(
     fun isInt() = isNamed("Int")
     fun isFloat() = isNamed("Float")
     fun isBoolean() = isNamed("Boolean")
+    fun isFunction() = isNamed("Function")
+    fun isLambda() = base is MonoLambda
 
     fun isStackBased() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_STACK_VALUE) != null
 
     fun isNamed(name: String) = base is MonoStruct && base.instance.fullName == name
 
-    fun stackSize(): Int {
-        return when (base) {
-            is MonoOption -> PTR_SIZE
-            is MonoStruct -> PTR_SIZE
-        }
-    }
+    fun stackSize(): Int = PTR_SIZE
 
     fun heapSize(): Int {
         return when (base) {
             is MonoOption -> base.size
+            is MonoLambda -> base.size
             is MonoStruct -> {
                 when (base.instance.fullName) {
                     "Never" -> 0
@@ -106,6 +104,14 @@ data class MonoOption(
     override fun toString(): String = instance.fullName
 }
 
+data class MonoLambda(
+    override val id: Int,
+    val instance: LstLambdaFunction,
+    val size: Int,
+) : MonoTypeBase() {
+    override fun toString(): String = "Lambda-$id"
+}
+
 data class MonoVar(
     val id: MonoRef,
     val name: String,
@@ -138,7 +144,7 @@ class MonoBoolean(
 
 class MonoInt(
     id: MonoRef, span: Span,
-    val value: Int,
+    var value: Int,
 ) : MonoNode(id, span)
 
 class MonoFloat(
@@ -261,7 +267,9 @@ class MonoFunction(val id: Int, val signature: MonoFuncSignature, val finalName:
     lateinit var name: String
     lateinit var params: List<MonoVar>
     lateinit var returnType: MonoType
-    lateinit var sourceFunction: LstFunction
+    var isLambda = false
+    var isExternal: Boolean = false
+    val annotations = mutableListOf<LstAnnotation>()
 
     val providers = mutableMapOf<Ref, MonoProvider>()
     val locals = mutableListOf<MonoVar>()
@@ -280,7 +288,7 @@ class MonoProvider(
 
 class MonoConsumer(
     id: MonoRef, span: Span,
-    val provider: MonoProvider
+    provider: MonoProvider
 ) : MonoNode(id, span) {
     var variable: MonoVar? = null
 

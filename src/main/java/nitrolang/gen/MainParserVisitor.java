@@ -1,4 +1,4 @@
-// Generated from /Data/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.12.0
+// Generated from /home/cout970/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.13.1
 package nitrolang.gen;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -365,6 +365,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionOrFunctionCall(MainParser.ExpressionOrFunctionCallContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#assertSuffix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAssertSuffix(MainParser.AssertSuffixContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#collectionIndexingSuffix}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -533,6 +539,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMinusExpr(MainParser.MinusExprContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#plusExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPlusExpr(MainParser.PlusExprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#ifExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -605,11 +617,11 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeParameter(MainParser.TypeParameterContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#refModifier}.
+	 * Visit a parse tree produced by {@link MainParser#varModifier}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitRefModifier(MainParser.RefModifierContext ctx);
+	T visitVarModifier(MainParser.VarModifierContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#typeUsage}.
 	 * @param ctx the parse tree
@@ -622,6 +634,24 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitBaseTypeUsage(MainParser.BaseTypeUsageContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#functionTypeUsage}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionTypeUsage(MainParser.FunctionTypeUsageContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#functionTypeUsageParam}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionTypeUsageParam(MainParser.FunctionTypeUsageParamContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#functionTypeUsageReturn}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#jsonValue}.
 	 * @param ctx the parse tree

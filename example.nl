@@ -5,13 +5,13 @@ struct BigStruct {
 }
 
 fun main() {
-    let list = create_list<Int>()
+    let list = List::new<Int>()
     list[] = 42
     list[] = 69
 
     println(list)
 
-    let list = create_list<BigStruct>()
+    let list = List::new<BigStruct>()
     let str = BigStruct $[a: 42, b: 2, c: 12]
     list[] = str
 

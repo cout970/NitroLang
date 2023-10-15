@@ -1,4 +1,4 @@
-// Generated from /Data/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.12.0
+// Generated from /home/cout970/Dev/Kotlin/NitroLang/MainParser.g4 by ANTLR 4.13.1
 package nitrolang.gen;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -598,6 +598,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitExpressionOrFunctionCall(MainParser.ExpressionOrFunctionCallContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#assertSuffix}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssertSuffix(MainParser.AssertSuffixContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#assertSuffix}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssertSuffix(MainParser.AssertSuffixContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#collectionIndexingSuffix}.
 	 * @param ctx the parse tree
 	 */
@@ -878,6 +888,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitMinusExpr(MainParser.MinusExprContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#plusExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterPlusExpr(MainParser.PlusExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#plusExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitPlusExpr(MainParser.PlusExprContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#ifExpr}.
 	 * @param ctx the parse tree
 	 */
@@ -998,15 +1018,15 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitTypeParameter(MainParser.TypeParameterContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#refModifier}.
+	 * Enter a parse tree produced by {@link MainParser#varModifier}.
 	 * @param ctx the parse tree
 	 */
-	void enterRefModifier(MainParser.RefModifierContext ctx);
+	void enterVarModifier(MainParser.VarModifierContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MainParser#refModifier}.
+	 * Exit a parse tree produced by {@link MainParser#varModifier}.
 	 * @param ctx the parse tree
 	 */
-	void exitRefModifier(MainParser.RefModifierContext ctx);
+	void exitVarModifier(MainParser.VarModifierContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#typeUsage}.
 	 * @param ctx the parse tree
@@ -1027,6 +1047,36 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitBaseTypeUsage(MainParser.BaseTypeUsageContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#functionTypeUsage}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionTypeUsage(MainParser.FunctionTypeUsageContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#functionTypeUsage}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionTypeUsage(MainParser.FunctionTypeUsageContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#functionTypeUsageParam}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionTypeUsageParam(MainParser.FunctionTypeUsageParamContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#functionTypeUsageParam}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionTypeUsageParam(MainParser.FunctionTypeUsageParamContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#functionTypeUsageReturn}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#functionTypeUsageReturn}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#jsonValue}.
 	 * @param ctx the parse tree

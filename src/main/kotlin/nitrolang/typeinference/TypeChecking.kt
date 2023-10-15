@@ -4,10 +4,11 @@ import nitrolang.ast.*
 import nitrolang.backend.wasm.replaceGenerics
 import nitrolang.parsing.ParserCtx
 import nitrolang.util.Prof
+import nitrolang.util.Span
 
 fun ParserCtx.doAllTypeChecking() {
     Prof.start("check_const")
-    program.consts.values.forEach { const ->
+    program.consts.forEach { const ->
         if (const.checked) return@forEach
         const.checked = true
         const.typeBox = typeEnv.box(typeUsage(const.typeUsage), const.span)
@@ -15,7 +16,7 @@ fun ParserCtx.doAllTypeChecking() {
     }
 
     Prof.next("check_structs")
-    program.structs.values.forEach { struct ->
+    program.structs.forEach { struct ->
         if (struct.checked) return@forEach
         struct.checked = true
 
@@ -28,8 +29,23 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
+    Prof.next("check_lambdas")
+    program.lambdaFunctions.forEach { lambda ->
+        if (lambda.checked) return@forEach
+        lambda.checked = true
+
+        lambda.params.forEach { param ->
+            param.typeBox = typeEnv.box(typeUsage(param.typeUsage), param.span)
+            param.variable!!.typeBox = param.typeBox
+        }
+        lambda.returnTypeBox = typeEnv.box(typeUsage(lambda.returnTypeUsage), lambda.span)
+        lambda.body.returnTypeBox = lambda.returnTypeBox
+
+        lambda.typeBox = typeEnv.box(typeEnv.typeLambda(lambda), lambda.span)
+    }
+
     Prof.next("check_functions")
-    program.functions.values.forEach { func ->
+    program.functions.forEach { func ->
         if (func.checked) return@forEach
         func.checked = true
 
@@ -49,7 +65,7 @@ fun ParserCtx.doAllTypeChecking() {
     Prof.next("check_tags")
     val matchMap = mutableMapOf<String, MutableList<Pair<LstTag, LstFunction>>>()
 
-    program.tags.values.forEach { tag ->
+    program.tags.forEach { tag ->
         if (tag.checked) return@forEach
         tag.checked = true
 
@@ -76,7 +92,7 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
-    program.functions.values.forEach { func ->
+    program.functions.forEach { func ->
         if (func.tag != null) return@forEach
 
         val possibleTags = matchMap[func.fullName] ?: emptyList()
@@ -87,7 +103,7 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
-    program.tags.values.forEach i@{ tag ->
+    program.tags.forEach i@{ tag ->
         tag.posibleImplementation.forEach { (implementer, impls) ->
             if (tag.headers.size != impls.size) return@forEach
 
@@ -105,12 +121,12 @@ fun ParserCtx.doAllTypeChecking() {
     }
 
     Prof.next("check_func_bodies")
-    program.functions.values.forEach { func ->
+    program.functions.forEach { func ->
         if (func.codeChecked) return@forEach
         func.codeChecked = true
 
         // Extern functions have empty body
-        if (func.isExternal) {
+        if (func.omitBody) {
             if (func.body.nodes.isNotEmpty()) {
                 collector.report("Extern function must have empty body", func.span)
             }
@@ -118,8 +134,6 @@ fun ParserCtx.doAllTypeChecking() {
         }
 
         currentTag = func.tag
-        func.body.returnTypeBox = func.returnTypeBox
-
         visitCode(func.body)
         currentTag = null
 
@@ -127,64 +141,40 @@ fun ParserCtx.doAllTypeChecking() {
             return@forEach
         }
 
-        val lastNode = func.body.lastExpression?.let { func.body.getNode(it) }
+        finishCode(func.body, func.returnType, "Function '${func.name}'", func.span)
 
-        // Return nothing
-        if (func.returnType.isNothing()) {
-            // `fun test() = 42` is valid, but clearly an error, it returns Nothing instead of 42
-            if (func.hasExpressionBody && func.returnTypeUsage.span.isInternal() && (lastNode as? LstExpression)?.type?.isNothing() != true) {
-                collector.report(
-                    "Function '${func.name}' has an expression body and implicit return type Nothing, please specify the correct return type",
-                    func.span
-                )
+        // `fun test() = 42` is valid, but clearly an error, it returns Nothing instead of 42
+        if (func.returnType.isNothing() && func.hasExpressionBody && func.returnTypeUsage.span.isInternal()) {
+            val lastNode = code.lastExpression?.let { code.getNode(it) }
+
+            if ((lastNode as? LstExpression)?.type?.isNothing() != true) {
+                val err =
+                    "Function '${func.name}' has an expression body and implicit return type Nothing, please specify the correct return type"
+
+                collector.report(err, func.span)
             }
-            return@forEach
         }
+    }
 
-        if (lastNode == null) {
-            collector.report("Function '${func.name}' must return a value but has empty body", func.span)
-            return@forEach
-        }
+    Prof.next("check_lambda_bodies")
+    program.lambdaFunctions.forEach { lambda ->
+        if (lambda.codeChecked) return@forEach
+        lambda.codeChecked = true
 
-        if (lastNode is LstReturn) {
-            return@forEach
-        }
-
-        if (lastNode !is LstExpression) {
-            collector.report("Function '${func.name}' must return '${func.returnType}'", func.span)
-            return@forEach
-        }
-
-        typeEnv.addAssignableConstraint(func.returnType, lastNode.type, lastNode.span)
+        currentTag = null
+        visitCode(lambda.body)
+        finishCode(lambda.body, lambda.returnType, "Lambda", lambda.span)
     }
 
     Prof.next("check_const_bodies")
-    program.consts.values.forEach { const ->
+    program.consts.forEach { const ->
         if (const.codeChecked) return@forEach
         const.codeChecked = true
 
         const.body.returnTypeBox = const.typeBox
 
         visitCode(const.body)
-
-        const.body.lastExpression
-        val lastNode = const.body.lastExpression?.let { const.body.getNode(it) }
-
-        if (lastNode == null) {
-            collector.report("Const '${const.name}' must return a value but has empty body", const.span)
-            return@forEach
-        }
-
-        if (lastNode is LstReturn) {
-            return@forEach
-        }
-
-        if (lastNode !is LstExpression) {
-            collector.report("Const '${const.name}' must return '${const.type}'", const.span)
-            return@forEach
-        }
-
-        typeEnv.addAssignableConstraint(const.type, lastNode.type, lastNode.span)
+        finishCode(const.body, const.type, "Const '${const.name}'", const.span)
     }
 
     Prof.next("solve_inference")
@@ -192,6 +182,30 @@ fun ParserCtx.doAllTypeChecking() {
     Prof.next("finish")
     typeEnv.finish()
     Prof.end()
+}
+
+private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String, span: Span) {
+    if (returnType.isNothing()) {
+        return
+    }
+
+    val lastNode = code.lastExpression?.let { code.getNode(it) }
+
+    if (lastNode == null) {
+        collector.report("$name must return a value but has empty body", span)
+        return
+    }
+
+    if (lastNode is LstReturn) {
+        return
+    }
+
+    if (lastNode !is LstExpression) {
+        collector.report("$name must return '${returnType}'", span)
+        return
+    }
+
+    typeEnv.addAssignableConstraint(returnType, lastNode.type, lastNode.span)
 }
 
 private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
@@ -209,26 +223,48 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
         return typeEnv.generic(tu.typeParameter)
     }
 
+    if (tu.lambda != null) {
+        if (tu.sub.isNotEmpty()) {
+            collector.report("Type parameters not allowed here", tu.span)
+        }
+        return typeEnv.typeLambda(tu.lambda)
+    }
+
     val params = tu.sub.map { typeUsage(it) }
 
-    // Search for struct/option/tag/etc
+    // Search for struct/option/tag/lambda/etc
 
     val segments = createPathSegments(tu.currentPath, tu.fullName)
 
     for (segment in segments) {
-        val option = program.options.values.find { it.fullName == segment }
+        val option = program.options.find { it.fullName == segment }
 
         if (option != null) {
             val base = typeEnv.typeBaseOption(option)
 
+            if (option.typeParameters.size != params.size) {
+                collector.report(
+                    "Incorrect number of type parameters, expected ${option.typeParameters.size}, found ${params.size}",
+                    tu.span
+                )
+            }
+
             return typeEnv.composite(base, params)
         }
 
-        val struct = program.structs.values.find { it.fullName == segment }
+        val struct = program.structs.find { it.fullName == segment }
 
         if (struct != null) {
+
+            if (!struct.isIntrinsic && struct.typeParameters.size != params.size) {
+                collector.report(
+                    "Incorrect number of type parameters, expected ${struct.typeParameters.size}, found ${params.size}",
+                    tu.span
+                )
+            }
+
             val base = if (struct.parentOption != null)
-                typeEnv.typeBaseOptionItem(struct, program.options[struct.parentOption]!!)
+                typeEnv.typeBaseOptionItem(struct, struct.parentOption!!)
             else
                 typeEnv.typeBaseStruct(struct)
 
@@ -249,7 +285,7 @@ private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
     val segments = createPathSegments(tu.currentPath, tu.fullName)
 
     for (segment in segments) {
-        val tag = program.tags.values.find { it.fullName == segment }
+        val tag = program.tags.find { it.fullName == segment }
 
         if (tag != null) {
             return tag
@@ -366,7 +402,7 @@ fun ParserCtx.bindVariables(code: LstCode) {
             return
         }
 
-        val found2 = program.consts.values.find { it.name == node.name }
+        val found2 = program.consts.find { it.name == node.name }
 
         if (found2 != null) {
             node.varRef = found2.ref
@@ -423,10 +459,25 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             val definedType = typeUsage(node.typeUsage)
             node.typeUsageBox = typeEnv.box(definedType, node.span)
 
+            if (definedType !is TComposite) {
+                val err = "Type '${definedType}' cannot be instantiated"
+                collector.report(err, node.span)
+                node.typeBox = typeEnv.box(typeEnv.invalid(node.span, err), node.span)
+                return
+            }
+
+            // Lambda types have a variable number of parameters
+            if (definedType.base is TLambda) {
+                val lambda = definedType.base.instance
+                node.typeBox = typeEnv.box(typeEnv.typeLambda(lambda), node.span)
+                return
+            }
+
             // Only structs can be allocated, options and traits are only for the type system
-            if (definedType !is TComposite || (definedType.base !is TStruct && definedType.base !is TOptionItem)) {
-                collector.report("Type '${definedType}' is not an struct", node.span)
-                node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
+            if (definedType.base !is TStruct && definedType.base !is TOptionItem) {
+                val err = "Type '${definedType}' is not an struct/option item"
+                collector.report(err, node.span)
+                node.typeBox = typeEnv.box(typeEnv.invalid(node.span, err), node.span)
                 return
             }
 
@@ -438,15 +489,21 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
             // The real type is unknown until we resolve al unresolved types
             // and can replace the struct type template with concrete types
-            val realParams =
-                List(struct.typeParameters.size) { definedType.params.getOrNull(it) ?: typeEnv.unresolved(node.span) }
+            val params = List(struct.typeParameters.size) {
+                definedType.params.getOrNull(it) ?: typeEnv.unresolved(node.span)
+            }
 
             val base = if (struct.parentOption != null)
-                typeEnv.typeBaseOptionItem(struct, program.options[struct.parentOption]!!)
+                typeEnv.typeBaseOptionItem(struct, struct.parentOption!!)
             else
                 typeEnv.typeBaseStruct(struct)
 
-            node.typeBox = typeEnv.box(typeEnv.composite(base, realParams), node.span)
+            node.typeBox = typeEnv.box(typeEnv.composite(base, params), node.span)
+        }
+
+        is LstLambdaInit -> {
+            val alloc = code.getNode(node.alloc).asExpr(node) ?: error("Missing lambda alloc")
+            node.typeBox = alloc.typeBox
         }
 
         is LstIfChoose -> {
@@ -482,8 +539,8 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            if (node.varRef in program.consts) {
-                val const = program.consts[node.varRef] ?: error("ConstRef not found!")
+            if (node.constant != null) {
+                val const = node.constant!!
 
                 node.typeBox = typeEnv.box(const.type, node.span)
                 return
@@ -508,8 +565,8 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            if (node.varRef in program.consts) {
-                val const = program.consts[node.varRef] ?: error("ConstRef not found!")
+            if (node.constant != null) {
+                val const = node.constant!!
                 node.varTypeBox = const.typeBox
                 typeEnv.addAssignableConstraint(const.type, value.type, node.span)
             } else {
@@ -773,7 +830,7 @@ private fun ParserCtx.functionMatchesTagHeader(origFunc: LstFunction, headerFunc
 }
 
 private fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): List<LstFunction> {
-    val choices = program.functions.values.filter { it.fullName == name }
+    val choices = program.functions.filter { it.fullName == name }
 
     if (choices.isEmpty()) {
         return emptyList()

@@ -8,6 +8,8 @@
 @StackValue
 struct RawArray<#Item> {}
 
+// Creates a new array of the given length
+// The length must be greater than zero
 fun RawArray::new<#Item>(len: Int): RawArray<#Item> {
     let ptr: Ptr<Byte> = get_memory().alloc_bytes(size_of<#Item> * len)
     ret ptr.unsafe_cast().to_raw_array<#Item>()

@@ -558,6 +558,24 @@ data class LstAlloc(
     }
 }
 
+data class LstLambdaInit(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstNodeBlock,
+    val alloc: Ref,
+    val lambda: LstLambdaFunction,
+) : LstExpression(ref, span, block) {
+
+    override fun toString(): String = "$ref = init $lambda [$typeBox]"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "LambdaInit".dump())
+        it.add("block", block.dump())
+        it.add("type", typeBox?.dump())
+    }
+}
+
 class LstFunCall(
     override val ref: Ref,
     override val span: Span,

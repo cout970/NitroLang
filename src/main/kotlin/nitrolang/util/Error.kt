@@ -5,8 +5,11 @@ class ErrorCollector {
     private val errors = mutableListOf<ErrorInfo>()
 
     fun report(message: String, span: Span) {
-        val caller = Thread.currentThread().stackTrace[2]
-        errors += ErrorInfo(message, span, caller.toString())
+        errors += ErrorInfo(message, span, Thread.currentThread().stackTrace[2].toString())
+    }
+
+    fun reportError(error: ErrorInfo) {
+        errors += error
     }
 
     fun isEmpty(): Boolean = errors.isEmpty()
@@ -17,11 +20,18 @@ class ErrorCollector {
     }
 }
 
-class ErrorInfo(
+open class ErrorInfo(
     val message: String,
-    val span: Span,
-    val source: String
+    var span: Span = Span.internal(),
+    val source: String = getErrorSource()
 ) {
+
+    companion object {
+        fun getErrorSource(): String {
+            return Thread.currentThread().stackTrace[4].toString()
+        }
+    }
+
     override fun toString(): String = buildString {
         if (span.file.path == "<internal>") {
             appendLine(message)

@@ -135,7 +135,7 @@ functionHeader
 
 // E.g. Int.
 functionReceiver
-    : typeUsage DOT ;
+    : varModifier typeUsage DOT ;
 
 // E.g. : Int
 functionReturnType
@@ -143,7 +143,7 @@ functionReturnType
 
 // E.g. count: Int,
 functionParameter
-    : nameToken NL* COLON NL* typeUsage;
+    : varModifier nameToken NL* COLON NL* typeUsage;
 
 // E.g. {}
 // E.g. = 3.14
@@ -177,7 +177,7 @@ statementChoice
 
 // E.g. let a: Int = 0
 letStatement
-    : LET nameToken (COLON typeUsage)? (ASSIGN NL* expression)? ;
+    : LET varModifier nameToken (COLON typeUsage)? (ASSIGN NL* expression)? ;
 
 // E.g. if true {} else {}
 ifStatement
@@ -267,6 +267,7 @@ expressionSimple
     | expressionWithSuffix
     | notExpr
     | minusExpr
+    | plusExpr
     ;
 
 // E.g. expr() #[]
@@ -278,7 +279,8 @@ expressionSimple
 // E.g. func()()
 // E.g. break()
 expressionWithSuffix
-    : expressionWithSuffix collectionIndexingSuffix
+    : expressionWithSuffix assertSuffix
+    | expressionWithSuffix collectionIndexingSuffix
     | expressionWithSuffix structFieldAccessSuffix
     | expressionWithSuffix NL? DOT nameToken functionCallParams functionCallEnd?
     | expressionWithSuffix NL? DOT nameToken functionCallEnd
@@ -296,6 +298,9 @@ expressionOrFunctionCall
     | THIS functionCallEnd
     | expressionBase
     ;
+
+assertSuffix
+    : BANGBANG ;
 
 collectionIndexingSuffix
     : LBRACKET NL* expression NL* RBRACKET ;
@@ -439,6 +444,10 @@ notExpr
 minusExpr
     : SUB expressionBase ;
 
+// E.g. +x
+plusExpr
+    : ADD expressionBase ;
+
 ifExpr
     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;
 
@@ -487,20 +496,34 @@ typeParamArg
 typeParameter
     : HASH nameToken ;
 
-refModifier
-    : REF
-    | MUT
-    ;
+// mut
+varModifier
+    : MUT? ;
 
 typeUsage
-    : typeParameter
-    | baseTypeUsage
-    | THIS_TYPE
+    : THIS_TYPE
     | LTH NL* typeUsage NL* GTH
+    | baseTypeUsage
+    | baseTypeUsage DOT functionTypeUsage
+    | functionTypeUsage
+    | typeParameter
     ;
 
 baseTypeUsage
-    : refModifier? modulePath? nameToken typeParamArg? ;
+    : modulePath? nameToken typeParamArg? ;
+
+functionTypeUsage
+    : LPAREN RPAREN ARROW functionTypeUsageReturn
+    | LPAREN functionTypeUsageParam (commaOrNl functionTypeUsageParam)* RPAREN ARROW functionTypeUsageReturn
+    ;
+
+functionTypeUsageParam
+    : typeUsage
+    | nameToken COLON typeUsage
+    ;
+
+functionTypeUsageReturn
+    : typeUsage ;
 
 // JSON value
 jsonValue

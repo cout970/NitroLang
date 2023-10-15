@@ -19,6 +19,7 @@ EQ                              : '==' ;
 NEQ                             : '!=' ;
 LEQ                             : '<=' ;
 GEQ                             : '>=' ;
+BANGBANG                        : '!!' ;
 DOT                             : '.' ;
 LPAREN                          : '(' ;
 RPAREN                          : ')' ;

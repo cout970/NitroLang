@@ -6,11 +6,9 @@ import com.google.gson.JsonObject
 import nitrolang.parsing.ANNOTATION_EXTERN
 import nitrolang.backend.wasm.ConstString
 import nitrolang.backend.wasm.ConstValue
-import nitrolang.backend.wasm.MonoFunction
-import nitrolang.backend.wasm.MonoType
+import nitrolang.parsing.ANNOTATION_INTRINSIC
 import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.typeinference.TType
-import nitrolang.typeinference.TTypeBase
 import nitrolang.typeinference.TypeBox
 import nitrolang.typeinference.TypeEnv
 import nitrolang.util.*
@@ -19,11 +17,12 @@ class LstProgram : Dumpable {
     val collector = ErrorCollector()
     val typeEnv = TypeEnv(collector)
 
-    val structs = mutableMapOf<StructRef, LstStruct>()
-    val options = mutableMapOf<OptionRef, LstOption>()
-    val consts = mutableMapOf<ConstRef, LstConst>()
-    val tags = mutableMapOf<TagRef, LstTag>()
-    val functions = mutableMapOf<FunRef, LstFunction>()
+    val structs = mutableListOf<LstStruct>()
+    val options = mutableListOf<LstOption>()
+    val consts = mutableListOf<LstConst>()
+    val tags = mutableListOf<LstTag>()
+    val functions = mutableListOf<LstFunction>()
+    val lambdaFunctions = mutableListOf<LstLambdaFunction>()
     val definedNames = mutableMapOf<Path, Span>()
 
     val includedFiles = mutableSetOf<String>()
@@ -38,23 +37,23 @@ class LstProgram : Dumpable {
     private var lastField = 0
 
     fun getFunction(fullName: String): LstFunction {
-        return functions.values.find { it.fullName == fullName } ?: error("Function '$fullName' not found")
+        return functions.find { it.fullName == fullName } ?: error("Function '$fullName' not found")
     }
 
     override fun toString(): String {
         return "LstProgram {\n" +
-                "  structs=${formatItem(structs.values)}\n" +
-                "  options=${formatItem(options.values)}\n" +
-                "  const=${formatItem(consts.values)}\n" +
-                "  functions=${formatItem(functions.values)}\n" +
+                "  structs=${formatItem(structs)}\n" +
+                "  options=${formatItem(options)}\n" +
+                "  const=${formatItem(consts)}\n" +
+                "  functions=${formatItem(functions)}\n" +
                 "}"
     }
 
     override fun dump(): JsonObject = JsonObject().apply {
-        add("structs", structs.values.filter { !it.isExternal && !it.isDeadCode }.dump())
-        add("options", options.values.filter { !it.isExternal && !it.isDeadCode }.dump())
-        add("consts", consts.values.filter { !it.isExternal && !it.isDeadCode }.dump())
-        add("functions", functions.values.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("structs", structs.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("options", options.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("consts", consts.filter { !it.isExternal && !it.isDeadCode }.dump())
+        add("functions", functions.filter { !it.isExternal && !it.isDeadCode }.dump())
     }
 
     fun nextStructRef(): StructRef = StructRef(lastStruct++)
@@ -98,10 +97,11 @@ class LstStruct(
     val ref: StructRef,
 ) : Dumpable {
     var checked: Boolean = false
-    var parentOption: OptionRef? = null
+    var parentOption: LstOption? = null
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
+    val isIntrinsic: Boolean get() = getAnnotation(ANNOTATION_INTRINSIC) != null
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 
@@ -306,7 +306,9 @@ class LstFunction(
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
+    val isIntrinsic: Boolean get() = getAnnotation(ANNOTATION_INTRINSIC) != null
     val isInline: Boolean get() = getAnnotation(ANNOTATION_WASM_INLINE) != null
+    val omitBody: Boolean get() = isExternal || isIntrinsic
 
     val finalName: String = ref.toString()
 
@@ -349,9 +351,36 @@ class LstLambdaFunction(
     val returnTypeUsage: TypeUsage,
     val body: LstCode,
     val ref: FunRef
-)
+) : Dumpable {
+    var checked = false
+    var codeChecked = false
+    var isDeadCode = false
 
-data class LstFunctionParam(
+    var typeBox: TypeBox? = null
+    var type: TType
+        get() = typeBox!!.type
+        set(v) {
+            typeBox!!.type = v
+        }
+
+    var returnTypeBox: TypeBox? = null
+    var returnType: TType
+        get() = returnTypeBox!!.type
+        set(v) {
+            returnTypeBox!!.type = v
+        }
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("params", params.dump())
+        it.add("returnTypeUsage", returnTypeUsage.dump())
+        it.add("body", body.dump())
+    }
+
+    override fun toString(): String = "Lambda-${ref.id}"
+}
+
+class LstFunctionParam(
     val span: Span,
     val name: String,
     val index: Int,
@@ -365,6 +394,20 @@ data class LstFunctionParam(
         }
 
     var variable: LstVar? = null
+
+    fun createVariable(body: LstCode) {
+        val variable = LstVar(
+            span = span,
+            name = name,
+            block = body.currentBlock,
+            typeUsage = typeUsage,
+            validAfter = body.currentRef(),
+            ref = body.nextVarRef()
+        )
+        variable.isParam = true
+        body.variables[variable.ref] = variable
+        this.variable = variable
+    }
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("name", name.dump())
@@ -470,18 +513,18 @@ data class TypeUsage(
     val name: String,
     val path: Path,
     val sub: List<TypeUsage>,
-    val modifier: Modifier,
     val currentPath: Path,
     val typeParameter: LstTypeParameterDef?,
     val unresolvedTypeRef: UnresolvedTypeRef? = null,
+    val lambda: LstLambdaFunction? = null,
 ) : Dumpable {
+    var hasReceiver: Boolean = false
     val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String {
         val prefix = if (path.isNotEmpty()) "$path::" else ""
-        val mod = if (modifier != Modifier.NONE) modifier.toString().lowercase() + " " else ""
         val children = if (sub.isNotEmpty()) "<${sub.joinToString(", ")}>" else ""
-        return "$mod$prefix$name$children"
+        return "$prefix$name$children"
     }
 
     override fun dump(): JsonElement = this.toString().dump()
@@ -492,7 +535,6 @@ data class TypeUsage(
             name = name,
             path = "",
             sub = mutableListOf(),
-            modifier = Modifier.NONE,
             typeParameter = null,
             currentPath = ""
         )
@@ -509,8 +551,7 @@ data class TypeUsage(
             span = Span.internal(),
             name = "<unresolved>",
             path = "",
-            sub = mutableListOf(),
-            modifier = Modifier.NONE,
+            sub = listOf(),
             typeParameter = null,
             currentPath = "",
             unresolvedTypeRef = unresolvedTypeRef,
@@ -520,8 +561,7 @@ data class TypeUsage(
             span = Span.internal(),
             name = param.name,
             path = "",
-            sub = mutableListOf(),
-            modifier = Modifier.NONE,
+            sub = listOf(),
             typeParameter = param,
             currentPath = ""
         )
@@ -530,8 +570,7 @@ data class TypeUsage(
             span = Span.internal(),
             name = "List",
             path = "",
-            sub = mutableListOf(other),
-            modifier = Modifier.NONE,
+            sub = listOf(other),
             typeParameter = null,
             currentPath = ""
         )
@@ -540,8 +579,7 @@ data class TypeUsage(
             span = Span.internal(),
             name = "Map",
             path = "",
-            sub = mutableListOf(key, value),
-            modifier = Modifier.NONE,
+            sub = listOf(key, value),
             typeParameter = null,
             currentPath = ""
         )
@@ -550,14 +588,20 @@ data class TypeUsage(
             span = Span.internal(),
             name = "Set",
             path = "",
-            sub = mutableListOf(other),
-            modifier = Modifier.NONE,
+            sub = listOf(other),
             typeParameter = null,
             currentPath = ""
         )
 
-        // TODO
-        fun lambda(@Suppress("UNUSED_PARAMETER") lambda: LstLambdaFunction) = nothing()
+        fun lambda(lambda: LstLambdaFunction) = TypeUsage(
+            span = lambda.span,
+            name = "Lambda",
+            path = "",
+            sub = listOf(),
+            typeParameter = null,
+            currentPath = "",
+            lambda = lambda,
+        )
     }
 
     enum class Modifier {
