@@ -1,5 +1,5 @@
 
-// This type represents a map, a.k.a a dictionary or an associative array
+// This type represents a unordered map, a.k.a a dictionary or an associative array
 // It is implemented as a hash table with open addressing and linear probing
 // Any type that has the functions Type.get_hash() and Type.get_ordering(Type) can be used as a key
 //
@@ -163,14 +163,71 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Ke
     ret None()
 }
 
-// Length/size of the map, a.k.a the number of items in the map
-fun <#Key: MapKey> Map<#Key, #Value>.len(): Int { ret this.len }
-
 // Removes all values from the map
 fun <#Key: MapKey> Map<#Key, #Value>.clear() {
     this.table = List::new<Optional<MapEntry<#Key, #Value>>>()
     this.len = 0
 }
+
+// Removes a value from the map by key
+fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
+    if this.len == 0 || this.table.len() == 0 {
+        ret false
+    }
+
+    // Index where to find the value, if present
+    let index = key.get_hash().modulo(this.table.len())
+
+    repeat this.table.len() {
+        let slot = this.table[index]!!
+
+        // Not found
+        if slot.is_none() {
+            ret false
+        }
+
+        // Found something
+        let entry: MapEntry<#Key, #Value> = slot!!
+
+        // Found it
+        if entry.key == key {
+            this.table[index] = None<MapEntry<#Key, #Value>>()
+            this.len = this.len - 1
+            ret true
+        }
+
+        // Check next slot
+        index = index + 1
+    }
+
+    // Not found
+    ret false
+}
+
+// Checks if the map contains a key
+fun <#Key: MapKey> Map<#Key, #Value>.contains_key(key: #Key): Boolean {
+    ret this.get(key).is_some()
+}
+
+// Checks if the map contains a value
+fun <#Value: GetOrdering> Map<#Key, #Value>.contains_value(value: #Value): Boolean {
+    repeat this.table.len() {
+        let slot = this.table[it]!!
+
+        if slot.is_some() {
+            let entry: MapEntry<#Key, #Value> = slot!!
+
+            if entry.value == value {
+                ret true
+            }
+        }
+    }
+
+    ret false
+}
+
+// Length/size of the map, a.k.a the number of items in the map
+fun <#Key: MapKey> Map<#Key, #Value>.len(): Int { ret this.len }
 
 // Checks if the map has no items
 fun <#Key: MapKey> Map<#Key, #Value>.is_empty(): Boolean = this.len == 0
@@ -178,8 +235,70 @@ fun <#Key: MapKey> Map<#Key, #Value>.is_empty(): Boolean = this.len == 0
 // Checks if the map has at least one item
 fun <#Key: MapKey> Map<#Key, #Value>.is_not_empty(): Boolean = this.len != 0
 
+// Returns the value for a key or inserts a new value if the key is not present
+fun <#Key: MapKey> Map<#Key, #Value>.get_or_insert(key: #Key, value: #Value): #Value {
+    if this.contains_key(key) {
+        ret this[key]!!
+    }
+
+    this[key] = value
+    ret value
+}
+
+// Returns the value for a key or computes and inserts a new value if the key is not present
+fun <#Key: MapKey> Map<#Key, #Value>.get_or_compute(key: #Key, func: () -> #Value): #Value {
+    if this.contains_key(key) {
+        ret this[key]!!
+    }
+
+    let value = func.invoke()
+    this[key] = value
+    ret value
+}
+
+// Convenience function to iterate over the each entry in the map
+fun <#Key: MapKey> Map<#Key, #Value>.for_each(func: (#Key, #Value) -> Nothing) {
+    this.for_each_entry(func)
+}
+
+// Iterates over the each entry in the map
+fun <#Key: MapKey> Map<#Key, #Value>.for_each_entry(func: (#Key, #Value) -> Nothing) {
+    repeat this.table.len() {
+        let slot = this.table[it]!!
+
+        if slot.is_some() {
+            let entry: MapEntry<#Key, #Value> = slot!!
+            func.invoke(entry.key, entry.value)
+        }
+    }
+}
+
+// Iterates over the each value in the map
+fun <#Key: MapKey> Map<#Key, #Value>.for_each_value(func: (#Value) -> Nothing) {
+    repeat this.table.len() {
+        let slot = this.table[it]!!
+
+        if slot.is_some() {
+            let entry: MapEntry<#Key, #Value> = slot!!
+            func.invoke(entry.value)
+        }
+    }
+}
+
+// Iterates over the each key in the map
+fun <#Key: MapKey> Map<#Key, #Value>.for_each_key(func: (#Key) -> Nothing) {
+    repeat this.table.len() {
+        let slot = this.table[it]!!
+
+        if slot.is_some() {
+            let entry: MapEntry<#Key, #Value> = slot!!
+            func.invoke(entry.key)
+        }
+    }
+}
+
 // Returns the list of keys in the map
-fun <#Key: MapKey> Map<#Key, #Value>.keys_as_list(): List<#Key> {
+fun <#Key: MapKey> Map<#Key, #Value>.keys_to_list(): List<#Key> {
     let res = List::new<#Key>()
 
     repeat this.table.len() {
@@ -194,7 +313,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.keys_as_list(): List<#Key> {
 }
 
 // Returns the list of values in the map
-fun <#Key: MapKey> Map<#Key, #Value>.values_as_list(): List<#Value> {
+fun <#Key: MapKey> Map<#Key, #Value>.values_to_list(): List<#Value> {
     let res = List::new<#Value>()
 
     repeat this.table.len() {
@@ -209,7 +328,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.values_as_list(): List<#Value> {
 }
 
 // Returns the list of entries in the map
-fun <#Key: MapKey> Map<#Key, #Value>.entries_as_list(): List<MapEntry<#Key, #Value>> {
+fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<MapEntry<#Key, #Value>> {
     let res = List::new<MapEntry<#Key, #Value>>()
 
     repeat this.table.len() {

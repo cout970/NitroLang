@@ -518,6 +518,7 @@ data class TypeUsage(
     val unresolvedTypeRef: UnresolvedTypeRef? = null,
     val lambda: LstLambdaFunction? = null,
 ) : Dumpable {
+    var resolvedType: TypeBox? = null
     var hasReceiver: Boolean = false
     val fullName: Path get() = createPath(path, name)
 
@@ -547,8 +548,8 @@ data class TypeUsage(
 
         fun string() = simple("String")
 
-        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef) = TypeUsage(
-            span = Span.internal(),
+        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef, span: Span? = null) = TypeUsage(
+            span = span ?: Span.internal(),
             name = "<unresolved>",
             path = "",
             sub = listOf(),

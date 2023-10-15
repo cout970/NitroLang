@@ -426,7 +426,9 @@ lambdaReturn
     : RETURN typeUsage;
 
 lambdaArgument
-    : nameToken COLON typeUsage ;
+    : nameToken (COLON typeUsage)?
+    | UNDERSCORE (COLON typeUsage)?
+    ;
 
 // E.g. ret 1
 returnExpr
@@ -438,15 +440,15 @@ sizeOfExpr
 
 // E.g. not true
 notExpr
-    : NOT expressionBase ;
+    : NOT expressionSimple ;
 
 // E.g. -x
 minusExpr
-    : SUB expressionBase ;
+    : SUB expressionSimple ;
 
 // E.g. +x
 plusExpr
-    : ADD expressionBase ;
+    : ADD expressionSimple ;
 
 ifExpr
     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;

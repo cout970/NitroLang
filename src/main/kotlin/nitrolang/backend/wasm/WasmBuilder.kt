@@ -72,7 +72,7 @@ class WasmBuilder(
 
     fun consumer(span: Span, ref: Ref) {
         val mono = current!!
-        val provider = mono.providers[ref] ?: error("Missing provider for ref $ref")
+        val provider = mono.providers[ref] ?: error("Missing provider for ref $ref, at ${mono.signature}")
         mono.instructions += MonoConsumer(mono.nextId(), span, provider)
     }
 

@@ -23,7 +23,7 @@ Intended for the developers
 
 
 ### Other features to implement
-- Vec, Set implementations
+- Vec implementation
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
@@ -39,3 +39,7 @@ Intended for the developers
 - Tags with parametric types
 - Finish stdlib
 - Self-hosted compiler
+
+### Bugs
+- `ret when { ... }` Missing provider for ref
+- 0 compressed as pointer causes null pointer exceptions

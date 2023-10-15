@@ -593,7 +593,7 @@ class LstFunCall(
     val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String {
-        return "$ref = call $name ($funRef, args: $arguments) " +
+        return "$ref = call $fullName ($funRef, args: $arguments) " +
                 "[(${concreteArgTypes.joinToString(", ")}) -> $typeBox]"
     }
 

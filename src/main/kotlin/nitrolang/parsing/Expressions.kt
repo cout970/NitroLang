@@ -148,7 +148,7 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
         }
 
         simple.notExpr() != null -> {
-            val expr = processExpressionBase(simple.notExpr().expressionBase())
+            val expr = processExpressionSimple(simple.notExpr().expressionSimple())
             val call = LstFunCall(
                 ref = code.nextRef(),
                 span = simple.notExpr().span(),
@@ -162,7 +162,7 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
         }
 
         simple.minusExpr() != null -> {
-            val expr = processExpressionBase(simple.minusExpr().expressionBase())
+            val expr = processExpressionSimple(simple.minusExpr().expressionSimple())
             val call = LstFunCall(
                 ref = code.nextRef(),
                 span = simple.minusExpr().span(),
@@ -176,7 +176,7 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
         }
 
         simple.plusExpr() != null -> {
-            val expr = processExpressionBase(simple.plusExpr().expressionBase())
+            val expr = processExpressionSimple(simple.plusExpr().expressionSimple())
             val call = LstFunCall(
                 ref = code.nextRef(),
                 span = simple.plusExpr().span(),
@@ -1320,7 +1320,7 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
         name = "new",
         path = "List",
         arguments = emptyList(),
-        explicitTypeParams = listOf(TypeUsage.unresolved(listType)),
+        explicitTypeParams = listOf(TypeUsage.unresolved(listType, ctx.span())),
     )
     code.nodes += value
 
@@ -1355,7 +1355,10 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
         name = "new",
         path = "Map",
         arguments = emptyList(),
-        explicitTypeParams = listOf(TypeUsage.unresolved(keyType), TypeUsage.unresolved(valueType)),
+        explicitTypeParams = listOf(
+            TypeUsage.unresolved(keyType, ctx.span()),
+            TypeUsage.unresolved(valueType, ctx.span())
+        ),
     )
     code.nodes += value
 
@@ -1409,7 +1412,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
         name = "new",
         path = "List",
         arguments = emptyList(),
-        explicitTypeParams = listOf(TypeUsage.unresolved(setType)),
+        explicitTypeParams = listOf(TypeUsage.unresolved(setType, ctx.span())),
     )
     code.nodes += value
 
@@ -1434,7 +1437,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
 
 fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Ref {
     val params: MutableList<LstFunctionParam> = mutableListOf()
-    var returnType: TypeUsage = TypeUsage.nothing()
+    var returnType: TypeUsage? = null
     var index = 0
 
     val prevCode = this.code
@@ -1455,11 +1458,28 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
 
         if (def.lambdaParams() != null) {
             def.lambdaParams().lambdaArgument().forEach {
+                val typeUsage = if (it.typeUsage() != null) {
+                    resolveTypeUsage(it.typeUsage())
+                } else {
+                    TypeUsage.unresolved(
+                        program.nextUnresolvedTypeRef(),
+                        it.span()
+                    )
+                }
+
+                val name = if (it.nameToken() != null) {
+                    it.nameToken().text
+                } else if (it.UNDERSCORE() != null) {
+                    "_ignored_${index}_"
+                } else {
+                    error("Grammar has been expanded and parser is outdated")
+                }
+
                 params += LstFunctionParam(
-                    span = it.nameToken().span(),
-                    name = it.nameToken().text,
+                    span = it.span(),
+                    name = name,
                     index = index++,
-                    typeUsage = resolveTypeUsage(it.typeUsage()),
+                    typeUsage = typeUsage,
                 ).apply { createVariable(body) }
             }
         }
@@ -1467,6 +1487,13 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         if (def.lambdaReturn() != null) {
             returnType = resolveTypeUsage(def.lambdaReturn().typeUsage())
         }
+    }
+
+    if (returnType == null) {
+        returnType = TypeUsage.unresolved(
+            program.nextUnresolvedTypeRef(),
+            ctx.span()
+        )
     }
 
     ctx.statement().forEach { processStatement(it) }

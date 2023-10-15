@@ -28,12 +28,16 @@ fun RawArray<#Item>.get_ptr(index: Int): Ptr<#Item> {
 // Gets a reference to a value in the array
 // The array bounds are not checked
 fun RawArray<#Item>.get(index: Int): #Item {
-    ret this.get_ptr(index).get_value()
+    ret this.get_ptr(index).as_ref()
 }
 
-// Returns the address of the array
+// Copy a number of items from one array into another
+fun RawArray<#Item>.copy_into(other: RawArray<#Item>, len: Int) {
+    this.copy_into_internal(other, size_of<#Item> * len)
+}
+
 @Extern $[lib: "core", name: "raw_array_copy_into"]
-fun RawArray<#Item>.copy_into(other: RawArray<#Item>, len: Int) {}
+fun RawArray<#Item>.copy_into_internal(other: RawArray<#Item>, byte_len: Int) {}
 
 // Returns the address of the array
 fun RawArray<#Item>.get_address(): Int {

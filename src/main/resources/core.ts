@@ -21,9 +21,9 @@ export function ptr_ptr_from_address(int: number): number {
     return int;
 }
 
-export function ptr_get_value(ptr: number): number {
+export function ptr_as_ref(ptr: number): number {
     // console.debug('ptr_get_value', {ptr});
-    assert(ptr);
+    assert(ptr); // this fails for integer 0 compressed as a pointer
     return ptr;
 }
 
@@ -55,6 +55,7 @@ export function ptr_unsafe_cast(ptr: number): number {
 // raw_array.nl
 
 export function raw_array_copy_into(self: number, other: number, len: number) {
+    // console.debug('raw_array_copy_into', {self, other, len});
     memcopy(other, self, len);
 }
 
@@ -113,7 +114,7 @@ export function memory_write_float(ptr: number, value: number) {
 export function memory_write_internal(ptr: number, value: number, size: number): number {
     assert(ptr);
     // console.debug({ptr, value, size});
-    memory_copy(value, ptr, size);
+    memory_copy_within(value, ptr, size);
     return 0;
 }
 
@@ -141,11 +142,11 @@ export function memory_read_float(ptr: number): number {
 export function memory_read_internal(ptr: number, size: number): number {
     assert(ptr);
     const value = memory_alloc(size);
-    memory_copy(ptr, value, size);
+    memory_copy_within(ptr, value, size);
     return value;
 }
 
-export function memory_copy(src: number, dst: number, len: number) {
+export function memory_copy_within(src: number, dst: number, len: number) {
     memcopy(src, dst, len);
 }
 
@@ -208,12 +209,26 @@ export function int_to_string_in_base(int: number, radix: number): number {
     return createString((int | 0).toString(radix));
 }
 
+// float.nl
+
 export function float_to_string(float: number): number {
     return createString(String(float));
 }
 
-export function any_to_string(ptr: number, ty: number): number {
-    return createString("#" + ptr + ":" + ty);
+export function float_is_nan(float: number): boolean {
+    return Number.isNan(float);
+}
+
+export function float_is_finite(float: number): boolean {
+    return Number.isFinite(float);
+}
+
+export function float_is_integer(float: number): boolean {
+    return Number.isInteger(float);
+}
+
+export function float_is_safe_integer(float: number): boolean {
+    return Number.isSafeInteger(float);
 }
 
 // byte.nl

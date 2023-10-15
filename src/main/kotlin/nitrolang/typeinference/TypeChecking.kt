@@ -209,25 +209,35 @@ private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String,
 }
 
 private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
+    if (tu.resolvedType != null) {
+        return tu.resolvedType!!.type
+    }
+
     if (tu.unresolvedTypeRef != null) {
         if (tu.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tu.span)
         }
-        return typeEnv.unresolved(tu.span)
+        val ty = typeEnv.unresolved(tu.span)
+        tu.resolvedType = typeEnv.box(ty, tu.span)
+        return ty
     }
 
     if (tu.typeParameter != null) {
         if (tu.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tu.span)
         }
-        return typeEnv.generic(tu.typeParameter)
+        val ty = typeEnv.generic(tu.typeParameter)
+        tu.resolvedType = typeEnv.box(ty, tu.span)
+        return ty
     }
 
     if (tu.lambda != null) {
         if (tu.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tu.span)
         }
-        return typeEnv.typeLambda(tu.lambda)
+        val ty = typeEnv.typeLambda(tu.lambda)
+        tu.resolvedType = typeEnv.box(ty, tu.span)
+        return ty
     }
 
     val params = tu.sub.map { typeUsage(it) }
@@ -268,12 +278,16 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
             else
                 typeEnv.typeBaseStruct(struct)
 
-            return typeEnv.composite(base, params)
+            val ty = typeEnv.composite(base, params)
+            tu.resolvedType = typeEnv.box(ty, tu.span)
+            return ty
         }
     }
 
     collector.report("Type '${tu.fullName}' not found", tu.span)
-    return typeEnv.invalid(tu.span)
+    val ty = typeEnv.invalid(tu.span)
+    tu.resolvedType = typeEnv.box(ty, tu.span)
+    return ty
 }
 
 private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
@@ -411,7 +425,7 @@ fun ParserCtx.bindVariables(code: LstCode) {
             return
         }
 
-        val kind = if (node.path.isEmpty()) "Constant" else "Variable"
+        val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
         collector.report("$kind not found: ${node.name}", node.span)
     }
 

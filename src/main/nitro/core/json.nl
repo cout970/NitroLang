@@ -128,7 +128,7 @@ fun Json::Object.to_string(): String {
         ret "{}"
     }
 
-    let keys: List<String> = map.keys_as_list()
+    let keys: List<String> = map.keys_to_list()
     let str = "{"
 
     str = str.concat("\n")

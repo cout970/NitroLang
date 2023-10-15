@@ -25,28 +25,29 @@ fun Ptr<#Value>.is_null(): Boolean {
 }
 
 // Converts the pointer to a reference to a value
-// if the pointer does not point to a valid instance of the value, the program will crash
-@Extern $[lib: "core", name: "ptr_get_value"]
-fun Ptr<#Value>.get_value(): #Value {}
+// if the pointer does not point to a valid instance of the value,
+// the program will crash to prevent further damage
+@Extern $[lib: "core", name: "ptr_as_ref"]
+fun Ptr<#Value>.as_ref(): #Value {}
 
 // Convert the pointer to a numerical address of memory
 @Extern $[lib: "core", name: "ptr_get_address"]
 fun Ptr<#Value>.get_address(): Int {}
 
 // Cast a pointer of one type to the pointer of another type
-// This operation is inherently unsafe and must be avoided
+// This operation is inherently unsafe and must be avoided as much as possible
 @Extern $[lib: "core", name: "ptr_unsafe_cast"]
 fun <#Value, #Target> Ptr<#Value>.unsafe_cast(): Ptr<#Target> {}
 
 // Override a pointer, given a pointer to the pointer
 // Same in C:
-// void write(int **this, int *ptr) { *this = ptr; }
+// `void write(int **this, int *ptr) { *this = ptr; }`
 @Extern $[lib: "core", name: "ptr_write"]
 fun Ptr<Ptr<#Value>>.write(value: Ptr<#Value>) {}
 
 // Read a pointer, given a pointer to the pointer
 // Same in C:
-// int * read(int **this) { return *this; }
+// `int * read(int **this) { return *this; }`
 @Extern $[lib: "core", name: "ptr_read"]
 fun Ptr<Ptr<#Value>>.read(): Ptr<#Value> {}
 

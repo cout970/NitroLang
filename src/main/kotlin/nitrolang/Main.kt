@@ -103,7 +103,7 @@ fun compile(path: String) {
 
     val rtElapsed = measureNanoTime {
         println("--- Running output.wasm")
-        ProcessBuilder("./src/main/resources/wrapper.ts")
+        ProcessBuilder("./src/main/resources/deno_wrapper.ts")
             .inheritIO()
             .start()
             .waitFor()

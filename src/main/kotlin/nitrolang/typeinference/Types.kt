@@ -22,8 +22,15 @@ sealed interface TType {
 data class TComposite(override val id: Int, val base: TTypeBase, val params: List<TType>) : TType {
     override val indexKey: String = "C${base.id}<${params.joinToString(",") { it.indexKey }}>"
 
-    override fun toString(): String =
-        if (params.isNotEmpty()) "$base<${params.joinToString(", ")}>" else base.toString()
+    override fun toString(): String {
+        if (base is TStruct && base.isFunction() && params.isNotEmpty()) {
+            return "(${params.dropLast(1).joinToString(", ")}) -> ${params.last()}"
+        }
+        if (base is TLambda && params.isNotEmpty()) {
+            return "lambda: (${params.dropLast(1).joinToString(", ")}) -> ${params.last()}"
+        }
+        return if (params.isNotEmpty()) "$base<${params.joinToString(", ")}>" else base.toString()
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -113,7 +120,7 @@ sealed interface TTypeBase {
 data class TStruct(override val id: Int, val instance: LstStruct) : TTypeBase {
     override val indexKey: String = "S${instance.ref.id}"
 
-    fun isFunction(): Boolean = instance.fullName == "Function" && instance.isIntrinsic
+    fun isFunction(): Boolean = instance.isIntrinsic && instance.fullName == "Function"
 
     override fun toString(): String = instance.fullName
 

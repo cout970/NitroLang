@@ -8,12 +8,12 @@ option Optional<#Value> {
 
 // Creates an instance of the Some variant of the Optional type
 fun Some(some: #Value): Optional<#Value> {
-    ret ptr_of(some).unsafe_cast().get_value<Optional<#Value>>()
+    ret ptr_of(some).unsafe_cast().as_ref<Optional<#Value>>()
 }
 
 // Creates an instance of the None variant of the Optional type
 fun None<#Value>(): Optional<#Value> {
-    ret null_ptr<Optional<#Value>>().get_value()
+    ret null_ptr<Optional<#Value>>().as_ref()
 }
 
 // Checks if the Optional is the Some variant
@@ -31,7 +31,7 @@ fun Optional<#Value>.get_or_default(default: #Value): #Value {
 // Can be called with the syntax `optional!!`
 fun Optional<#Value>.get_or_crash(): #Value {
     if this.is_some() {
-        ret ptr_of(this).unsafe_cast().get_value()
+        ret ptr_of(this).unsafe_cast().as_ref()
     }
 
     crash("Call to get_or_crash() on None variant")
@@ -39,8 +39,8 @@ fun Optional<#Value>.get_or_crash(): #Value {
 
 // Returns the value of the Some variant, or panics if the Optional is the None variant
 fun <#Value: ToString> Optional<#Value>.to_string(): String {
-    ret when {
-        this.is_some() -> "Some(${this!!})"
-        else -> "None"
+    if this.is_some() {
+        ret "Some(${this!!})"
     }
+    ret "None"
 }

@@ -20,6 +20,8 @@ NEQ                             : '!=' ;
 LEQ                             : '<=' ;
 GEQ                             : '>=' ;
 BANGBANG                        : '!!' ;
+QUESTION_MARK                   : '?' ;
+UNDERSCORE                      : '_' ;
 DOT                             : '.' ;
 LPAREN                          : '(' ;
 RPAREN                          : ')' ;

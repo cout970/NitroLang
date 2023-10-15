@@ -26,17 +26,35 @@ fun Result<#Ok, #Err>.is_err(): Boolean = this is Result::Err<#Ok, #Err>
 // Returns the value of the result if it is Ok, otherwise panics
 // Can be called with the syntax `result!!`
 fun Result<#Ok, #Err>.get_or_crash(): #Ok {
-    if this is Result::Ok<#Ok, #Err> {
+    if this.is_ok() {
         ret (this as Result::Ok<#Ok, #Err>).value
     }
 
-    panic()
+    crash("Called get_or_crash on Err result")
+}
+
+// Returns the value of the result if it is Ok, otherwise returns the given value
+fun Result<#Ok, #Err>.get_or_else(other: #Ok): #Ok {
+    if this.is_ok() {
+        ret this!!
+    }
+
+    ret other
+}
+
+// Returns the value of the result if it is Ok, otherwise computes a value with the given function
+fun Result<#Ok, #Err>.get_or_compute(func: () -> #Ok): #Ok {
+    if this.is_ok() {
+        ret this!!
+    }
+
+    ret func.invoke()
 }
 
 // Get the ok value of the result if it is Ok, otherwise None
 fun Result<#Ok, #Err>.get_ok(): Optional<#Ok> {
-    if this is Result::Ok<#Ok, #Err> {
-        ret Some((this as Result::Ok<#Ok, #Err>).value)
+    if this.is_ok() {
+        ret Some(this!!)
     }
 
     ret None()
@@ -52,8 +70,8 @@ fun Result<#Ok, #Err>.get_err(): Optional<#Err> {
 }
 
 fun <#Ok: ToString, #Err: ToString> Result<#Ok, #Err>.to_string(): String {
-    if this is Result::Ok<#Ok, #Err> {
-        ret "Ok(${(this as Result::Ok<#Ok, #Err>).value})"
+    if this.is_ok() {
+        ret "Ok(${this!!})"
     }
 
     ret "Err(${(this as Result::Err<#Ok, #Err>).value})"
