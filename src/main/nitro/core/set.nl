@@ -1,54 +1,54 @@
 // TODO implement Set in the core library
 @Extern $[lib: "core", name: "Set"]
 struct Set<#Item> {
-   map: Map<#Item, Nothing>
+   map: Map<#Item, Boolean>
 }
 
 // Create a new empty set
 fun <#Item: MapKey> Set::new(): Set<#Item> {
    ret Set<#Item> $[
-      map: Map::new<#Item, Nothing>()
+      map: Map::new<#Item, Boolean>()
    ]
 }
 
 // Adds an item to the set
 fun <#Item: MapKey> Set<#Item>.add(item: #Item) {
-   this.map[item] = nothing
+   map[item] = true
 }
 
 // Removes an item from the set
 fun <#Item: MapKey> Set<#Item>.remove(item: #Item) {
-   this.map.remove(item)
+   map.remove(item)
 }
 
 // Checks if the set contains an item
 fun <#Item: MapKey> Set<#Item>.contains(item: #Item): Boolean {
-   ret this.map.contains_key(item)
+   ret map.contains_key(item)
 }
 
 // Gets the length of the set, meaning the number of items in it
 fun <#Item: MapKey> Set<#Item>.len(): Int {
-   ret this.map.len()
+   ret map.len()
 }
 
 // Checks if the set is empty
 fun <#Item: MapKey> Set<#Item>.is_empty(): Boolean {
-   ret this.map.is_empty()
+   ret map.is_empty()
 }
 
 // Checks if the set is not empty
 fun <#Item: MapKey> Set<#Item>.is_not_empty(): Boolean {
-   ret this.map.is_not_empty()
+   ret map.is_not_empty()
 }
 
 // Converts the set to a list
 fun <#Item: MapKey> Set<#Item>.to_list(): List<#Item> {
-    ret this.map.keys_to_list()
+    ret map.keys_to_list()
 }
 
 // Iterates over each item in the set
 fun <#Item: MapKey> Set<#Item>.for_each(func: (#Item) -> Nothing) {
-    this.map.for_each_key(func)
+    map.for_each_key(func)
 }
 
 // Creates a new set from the union of this set and another set
@@ -142,7 +142,8 @@ fun <#Item: MapKey, ToString> Set<#Item>.to_string(): String {
    let list = this.to_list()
 
    repeat list.len() {
-      result = result.concat(list[it]!!.to_string())
+      let value = list[it]!!.to_string()
+      result = result.concat(value)
 
       if it < list.len() - 1 {
          result = result.concat(", ")

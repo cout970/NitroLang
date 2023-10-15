@@ -23,7 +23,7 @@ export function ptr_ptr_from_address(int: number): number {
 
 export function ptr_as_ref(ptr: number): number {
     // console.debug('ptr_get_value', {ptr});
-    assert(ptr); // this fails for integer 0 compressed as a pointer
+    // assert(ptr); // this fails for integer 0 compressed as a pointer
     return ptr;
 }
 

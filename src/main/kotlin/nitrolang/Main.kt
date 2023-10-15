@@ -54,9 +54,9 @@ fun compile(path: String) {
 
     Prof.next("print_main")
     program.functions.forEach { func ->
-        if (func.fullName !in setOf("debug")) return@forEach
+        if (func.fullName !in setOf("ensure_capacity")) return@forEach
 
-        println("${func.fullName}:")
+        println("${func.fullName}: $func")
         func.body.nodes.forEach {
             println("   $it")
         }

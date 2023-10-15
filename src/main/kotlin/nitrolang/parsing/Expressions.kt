@@ -1536,7 +1536,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
         span = ctx.span(),
         block = code.currentBlock,
         name = "new",
-        path = "List",
+        path = "Set",
         arguments = emptyList(),
         explicitTypeParams = listOf(TypeUsage.unresolved(setType, ctx.span())),
     )

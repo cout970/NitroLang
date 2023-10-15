@@ -3,6 +3,7 @@ package nitrolang.typeinference
 import nitrolang.ast.*
 import nitrolang.backend.wasm.replaceGenerics
 import nitrolang.parsing.ParserCtx
+import nitrolang.parsing.SELF_NAME
 import nitrolang.util.Prof
 import nitrolang.util.Span
 
@@ -424,13 +425,94 @@ fun ParserCtx.bindVariables(code: LstCode) {
             found2.referencedBy.add(node)
             return
         }
-
-        val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
-        collector.report("$kind not found: ${node.name}", node.span)
     }
 
     code.nodes.filterIsInstance<LstLoadVar>().forEach { if (it.varRef == null) linkVariable(it, code) }
     code.nodes.filterIsInstance<LstStoreVar>().forEach { if (it.varRef == null) linkVariable(it, code) }
+
+    // Replace missing variables with field access/store on 'this'
+    val thisVar = code.variables.values.find { it.name == SELF_NAME }
+    if (thisVar != null) {
+        var i = 0
+        while (i < code.nodes.size) {
+            val node = code.nodes[i]
+
+            // Replace load_var with missing variable with load_field on `this`
+            if (node is LstLoadVar && node.varRef == null) {
+                val found = findField(thisVar.type, node.name)
+
+                // Replace with LstLoadField
+                if (found != null) {
+                    val loadThis = LstLoadVar(
+                        ref = code.nextRef(),
+                        span = node.span,
+                        block = node.block,
+                        name = SELF_NAME,
+                        path = "",
+                        varRef = thisVar.ref,
+                        variable = thisVar,
+                    )
+                    code.nodes.add(i, loadThis)
+                    i++
+
+                    code.nodes[i] = LstLoadField(
+                        ref = node.ref,
+                        span = node.span,
+                        block = node.block,
+                        instance = loadThis.ref,
+                        name = node.name,
+                    )
+                    continue
+                }
+            }
+
+            // Replace store_var with missing variable with store_field on `this`
+            if (node is LstStoreVar && node.varRef == null) {
+                val found = findField(thisVar.type, node.name)
+
+                // Replace with LstStoreField
+                if (found != null) {
+                    val loadThis = LstLoadVar(
+                        ref = code.nextRef(),
+                        span = node.span,
+                        block = node.block,
+                        name = SELF_NAME,
+                        path = "",
+                        varRef = thisVar.ref,
+                        variable = thisVar,
+                    )
+                    code.nodes.add(i, loadThis)
+                    i++
+
+                    code.nodes[i] = LstStoreField(
+                        ref = node.ref,
+                        span = node.span,
+                        block = node.block,
+                        instance = loadThis.ref,
+                        name = node.name,
+                        expr = node.expr,
+                    )
+                    continue
+                }
+            }
+
+            i++
+        }
+    }
+
+    // Report errors
+    code.nodes.filterIsInstance<LstLoadVar>().forEach { node ->
+        if (node.varRef == null) {
+            val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
+            collector.report("$kind not found: ${node.name}", node.span)
+        }
+    }
+    code.nodes.filterIsInstance<LstStoreVar>().forEach { node ->
+        if (node.varRef == null) {
+            val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
+            collector.report("$kind not found: ${node.name}", node.span)
+        }
+    }
 }
 
 fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
@@ -616,18 +698,15 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                     return@addFindFieldConstraint
                 }
 
-                val struct = when (ty.base) {
-                    is TStruct -> ty.base.instance
-                    is TOptionItem -> ty.base.instance
-                    else -> error("Invalid type base: ${ty.base}")
-                }
-                val field = struct.fields.values.find { it.name == node.name }
+                val found = findField(ty, node.name)
 
-                if (field == null) {
+                if (found == null) {
                     collector.report("Type '${ty}' ha no field named '${node.name}'", node.span)
                     typeEnv.addEqualConstraint(node.type, typeEnv.invalid(node.span), node.span)
                     return@addFindFieldConstraint
                 }
+
+                val (struct, field) = found
 
                 node.struct = struct
                 node.field = field
@@ -798,6 +877,21 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             }
         }
     }
+}
+
+private fun findField(ty: TType, name: String): Pair<LstStruct, LstStructField>? {
+    if (ty !is TComposite || (ty.base !is TStruct && ty.base !is TOptionItem)) {
+        return null
+    }
+
+    val struct = when (ty.base) {
+        is TStruct -> ty.base.instance
+        is TOptionItem -> ty.base.instance
+        else -> error("Invalid type base: ${ty.base}")
+    }
+    val field = struct.fields.values.find { it.name == name } ?: return null
+
+    return struct to field
 }
 
 private fun ParserCtx.functionMatchesTagHeader(origFunc: LstFunction, headerFunc: LstFunction): TType? {

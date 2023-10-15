@@ -405,7 +405,7 @@ mapKey
 
 // %[1, 2, 3]
 setExpr
-    : SET_START NL* listEntry* RBRACKET ;
+    : SET_START NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
 
 // #{ a -> a + 1 }
 // #{}

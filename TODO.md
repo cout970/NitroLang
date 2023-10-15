@@ -27,6 +27,7 @@ Intended for the developers
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
+- Type alias
 - implicit this instead of writing `this.something` everywhere
 - `for` statement with iterators
 - Runtime reflection of types
@@ -43,3 +44,4 @@ Intended for the developers
 ### Bugs
 - `ret when { ... }` Missing provider for ref
 - 0 compressed as pointer causes null pointer exceptions
+- `Some(None<Int>)` returns `true` when calling `is_none()`
