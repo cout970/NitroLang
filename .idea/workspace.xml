@@ -4,35 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add working lambdas, but they are no closures yet&#10;Add !! syntax to call get_or_crash()&#10;Add infix + operator&#10;Add modifiers to variable declarations, for future use&#10;Add function types: Function&lt;Int, Int, Int&gt; and  (Int, Int)-&gt;Int&#10;Update antlr4 to 4.13.1&#10;Improve type related error messages&#10;Remove StringMap in flavor of Map&lt;String, #Type&gt;&#10;Update documentation of the core library">
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Improvements to lambda usage&#10;Fix precedence of infix operators +, - and !&#10;Add Set implementation&#10;Improve core library with a bunch of utility functions&#10;Rename Ptr.get_value to Ptr.as_ref&#10;Fix duplicated error messages on lambda type inference">
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/pair.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/ExpressionTree.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/ExpressionTree.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Other.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Other.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/json.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/json.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/list.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/list.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/map.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/result.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/result.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/set.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/set.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/wrapper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/deno_wrapper.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -456,7 +444,15 @@
       <option name="project" value="LOCAL" />
       <updated>1697333114034</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Improvements to lambda usage&#10;Fix precedence of infix operators +, - and !&#10;Add Set implementation&#10;Improve core library with a bunch of utility functions&#10;Rename Ptr.get_value to Ptr.as_ref&#10;Fix duplicated error messages on lambda type inference">
+      <option name="closed" value="true" />
+      <created>1697389836482</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1697389836483</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -486,6 +482,7 @@
     <MESSAGE value="Add optimization for get_ordering().is_equals() and other comparisons using a direct function if available" />
     <MESSAGE value="Allow module path in function declaration&#10;Rename create_X for X::new&#10;Add docs for annotations&#10;Fix not and unary minus expressions&#10;Add profiling and improves type checking speed" />
     <MESSAGE value="Add working lambdas, but they are no closures yet&#10;Add !! syntax to call get_or_crash()&#10;Add infix + operator&#10;Add modifiers to variable declarations, for future use&#10;Add function types: Function&lt;Int, Int, Int&gt; and  (Int, Int)-&gt;Int&#10;Update antlr4 to 4.13.1&#10;Improve type related error messages&#10;Remove StringMap in flavor of Map&lt;String, #Type&gt;&#10;Update documentation of the core library" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add working lambdas, but they are no closures yet&#10;Add !! syntax to call get_or_crash()&#10;Add infix + operator&#10;Add modifiers to variable declarations, for future use&#10;Add function types: Function&lt;Int, Int, Int&gt; and  (Int, Int)-&gt;Int&#10;Update antlr4 to 4.13.1&#10;Improve type related error messages&#10;Remove StringMap in flavor of Map&lt;String, #Type&gt;&#10;Update documentation of the core library" />
+    <MESSAGE value="Improvements to lambda usage&#10;Fix precedence of infix operators +, - and !&#10;Add Set implementation&#10;Improve core library with a bunch of utility functions&#10;Rename Ptr.get_value to Ptr.as_ref&#10;Fix duplicated error messages on lambda type inference" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improvements to lambda usage&#10;Fix precedence of infix operators +, - and !&#10;Add Set implementation&#10;Improve core library with a bunch of utility functions&#10;Rename Ptr.get_value to Ptr.as_ref&#10;Fix duplicated error messages on lambda type inference" />
   </component>
 </project>

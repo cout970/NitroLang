@@ -853,6 +853,10 @@ private fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): Li
     val scored = choices.map {
         var score = if (it.tag != null) 1f else 0f
         score += functionDiffScore(it.params.map { param -> param.type }, args)
+        // Prefer tags with fewer functions
+        if (it.tag != null) {
+            score += it.tag!!.headers.size * 0.01f
+        }
         score to it
     }
 

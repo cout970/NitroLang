@@ -153,8 +153,6 @@ fun ParserCtx.getBinaryOperator(ctx: BinaryOperatorContext): ExpressionTree.Oper
         ctx.COMPARE() != null -> ExpressionTree.Operator.COMPARE
         ctx.EQ() != null -> ExpressionTree.Operator.EQUAL
         ctx.NEQ() != null -> ExpressionTree.Operator.NOT_EQUAL
-        ctx.ANDAND() != null -> ExpressionTree.Operator.BOOL_AND
-        ctx.OROR() != null -> ExpressionTree.Operator.BOOL_OR
         ctx.XORXOR() != null -> ExpressionTree.Operator.BOOL_XOR
         else -> error("Grammar has been expanded and parser is outdated")
     }

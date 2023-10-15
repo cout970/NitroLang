@@ -341,6 +341,18 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionComplex(MainParser.ExpressionComplexContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#expressionOr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExpressionOr(MainParser.ExpressionOrContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#expressionAnd}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExpressionAnd(MainParser.ExpressionAndContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#expressionBinaryOp}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

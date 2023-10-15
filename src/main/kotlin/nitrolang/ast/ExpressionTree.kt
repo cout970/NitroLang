@@ -115,11 +115,7 @@ sealed class ExpressionTree {
                 "String" to "is_not_equal",
             )
         ),
-
-        // TODO: short-circuit
-        BOOL_AND("&&", 13, "logical_and"),
-        BOOL_XOR("^^", 14, "logical_xor"),
-        BOOL_OR("||", 15, "logical_or");
+        BOOL_XOR("^^", 14, "logical_xor");
 
         override fun toString(): String = text
     }

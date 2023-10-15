@@ -1,0 +1,51 @@
+
+// This type represents a pair of values
+struct Pair<#A, #B> {
+    first: #A
+    second: #B
+}
+
+// Create a new pair
+fun Pair::of(first: #A, second: #B): Pair<#A, #B> {
+    ret Pair<#A, #B> $[first, second]
+}
+
+// Return the first element of the pair
+fun Pair<#A, #B>.first(): #A {
+    ret this.first
+}
+
+// Return the second element of the pair
+fun Pair<#A, #B>.second(): #B {
+    ret this.second
+}
+
+// Swap the elements of the pair
+fun Pair<#A, #B>.swap(): Pair<#B, #A> {
+    ret Pair<#B, #A> $[first: this.second, second: this.first]
+}
+
+// Convert the pair to a map with 1 entry
+fun <#A: MapKey> Pair<#A, #B>.to_map(): Map<#A, #B> {
+    ret @[(this.first): this.second]
+}
+
+// Convert the pair to a list, if the values have the same type
+fun Pair<#A, #A>.to_list(): List<#A> {
+    ret #[this.first, this.second]
+}
+
+// Transform the first element of the pair
+fun Pair<#A, #B>.map_first<#C>(func: (#A) -> #C): Pair<#C, #B> {
+    ret Pair<#C, #B> $[first: func.invoke(this.first), second: this.second]
+}
+
+// Transform the second element of the pair
+fun Pair<#A, #B>.map_second<#C>(func: (#B) -> #C): Pair<#A, #C> {
+    ret Pair<#A, #C> $[first: this.first, second: func.invoke(this.second)]
+}
+
+// Convert the pair to a string
+fun <#A: ToString, #B: ToString> Pair<#A, #B>.to_string(): String {
+    ret "(${this.first}, ${this.second})"
+}

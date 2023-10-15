@@ -233,7 +233,7 @@ binopShr
 binopUshr
     : GTH GTH GTH;
 binaryOperator
-    : MUL | DIV | MOD | ADD | SUB | RANGE_IN | RANGE_EX | binopShl | binopShr | binopUshr | AND | XOR | OR | LTH | GTH | LEQ | GEQ | COMPARE | EQ | NEQ | ANDAND | OROR | XORXOR ;
+    : MUL | DIV | MOD | ADD | SUB | RANGE_IN | RANGE_EX | binopShl | binopShr | binopUshr | AND | XOR | OR | LTH | GTH | LEQ | GEQ | COMPARE | EQ | NEQ | XORXOR ;
 
 expression
     : expressionComplex ;
@@ -241,11 +241,20 @@ expression
 // E.g. 1 + 2
 // E.g. if x > 5 { 1 } else { 0 }
 // E.g. ret 5
+// E.g. 1 || 2 && 3
 expressionComplex
-    : expressionBinaryOp
+    : expressionOr
     | ifExpr
     | returnExpr
     ;
+
+// E.g. 1 || 2
+expressionOr
+    : expressionAnd (OROR expressionAnd)* ;
+
+// E.g. 1 && 2
+expressionAnd
+    : expressionBinaryOp (ANDAND expressionBinaryOp)* ;
 
 // E.g. 1.0 + math::PI * 4.0
 expressionBinaryOp

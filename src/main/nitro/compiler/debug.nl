@@ -1,23 +1,30 @@
 
-fun debug1(func: (Int) -> Nothing) {
-    println("Before")
-    func.invoke(42)
-    println("After")
+fun debug() {
+    let list: List<Int> = #[]
+
+    if list.is_not_empty() && list[0]!! == 1 {
+        println("list is not empty and first element is 1")
+    } else {
+        println("list is empty or first element is not 1")
+    }
 }
 
-fun debug() {
-    // Integers from 0 to 20 in random order, to sort later
-    let list = #[20, 18, 7, 11, 14, 10, 4, 16, 3, 5, 12, 15, 17, 6, 2, 8, 1, 9, 13, 19]
-    println("Before: $list")
-    list.sort_in_place()
+fun cond1(): Boolean {
+    println("cond1")
+    return true
+}
 
-    println("After: $list")
-    println("Item at 10 is ${list[10]!!}")
+fun cond2(): Boolean {
+    println("cond2")
+    return true
+}
 
-    let num = list
-                .map #{ n -> n * 2 }
-                .filter #{ n -> n % 2 == 0 }
-                .count #{ n -> n % 12 == 0 }
+fun cond3(): Boolean {
+    println("cond3")
+    return false
+}
 
-    println("Found $num matches")
+fun cond4(): Boolean {
+    println("cond4")
+    return false
 }

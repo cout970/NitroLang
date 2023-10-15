@@ -35,16 +35,142 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
                 expr = expr
             )
             code.nodes += node
-
             node.ref
         }
 
-        complex.expressionBinaryOp() != null -> {
-            processExpressionBinOp(complex.expressionBinaryOp())
+        complex.expressionOr() != null -> {
+            processExpressionOr(complex.expressionOr())
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
     }
+}
+
+fun ParserCtx.processExpressionOr(ctx: MainParser.ExpressionOrContext): Ref {
+    var left = processExpressionAnd(ctx.expressionAnd(0))
+
+    // Transform `a || b` into `if a { true } else { b }`
+    ctx.expressionAnd().drop(1).forEach { right ->
+        code.nodes += LstIfStart(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            cond = left,
+        )
+
+        val prevBlock = code.currentBlock
+        code.currentBlock = code.createBlock()
+
+        val ifTrue = LstBoolean(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            value = true,
+        )
+        code.nodes += ifTrue
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+        code.currentBlock = code.createBlock()
+
+        code.nodes += LstIfElse(
+            ref = code.nextRef(),
+            span = right.span(),
+            block = code.currentBlock
+        )
+
+        val ifFalse = processExpressionAnd(right)
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+
+        code.nodes += LstIfEnd(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock
+        )
+
+        val choose = LstIfChoose(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            cond = left,
+            ifTrue = ifTrue.ref,
+            ifFalse = ifFalse,
+        )
+
+        code.nodes += choose
+        left = choose.ref
+    }
+
+    return left
+}
+
+fun ParserCtx.processExpressionAnd(ctx: MainParser.ExpressionAndContext): Ref {
+    var left = processExpressionBinOp(ctx.expressionBinaryOp(0))
+
+    // Transform `a && b` into `if a { b } else { false }`
+    ctx.expressionBinaryOp().drop(1).forEach { right ->
+        code.nodes += LstIfStart(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            cond = left,
+        )
+
+        val prevBlock = code.currentBlock
+        code.currentBlock = code.createBlock()
+
+        val ifTrue = processExpressionBinOp(right)
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+        code.currentBlock = code.createBlock()
+
+        code.nodes += LstIfElse(
+            ref = code.nextRef(),
+            span = right.span(),
+            block = code.currentBlock
+        )
+
+        val ifFalse = LstBoolean(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            value = false,
+        )
+        code.nodes += ifFalse
+
+        // Restore prev block
+        code.currentBlock = prevBlock
+
+        code.nodes += LstIfEnd(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock
+        )
+
+        val choose = LstIfChoose(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            cond = left,
+            ifTrue = ifTrue,
+            ifFalse = ifFalse.ref,
+        )
+
+        code.nodes += choose
+        left = choose.ref
+    }
+
+    return left
+}
+
+fun ParserCtx.processExpressionBinOp(bin: MainParser.ExpressionBinaryOpContext): Ref {
+    val exprs = bin.expressionSimple()
+    val ops = bin.binaryOperator().map { it to it.span() }
+
+    return resolvePrecedence(exprs, ops) { processExpressionSimple(it) }
 }
 
 fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext): Ref {
@@ -1665,13 +1791,6 @@ fun ParserCtx.processExpressionSizeOf(ctx: MainParser.SizeOfExprContext): Ref {
     )
     code.nodes += node
     return node.ref
-}
-
-fun ParserCtx.processExpressionBinOp(bin: MainParser.ExpressionBinaryOpContext): Ref {
-    val exprs = bin.expressionSimple()
-    val ops = bin.binaryOperator().map { it to it.span() }
-
-    return resolvePrecedence(exprs, ops) { processExpressionSimple(it) }
 }
 
 private fun stringToInt(text: String): Int? {

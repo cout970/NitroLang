@@ -558,6 +558,26 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitExpressionComplex(MainParser.ExpressionComplexContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#expressionOr}.
+	 * @param ctx the parse tree
+	 */
+	void enterExpressionOr(MainParser.ExpressionOrContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#expressionOr}.
+	 * @param ctx the parse tree
+	 */
+	void exitExpressionOr(MainParser.ExpressionOrContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#expressionAnd}.
+	 * @param ctx the parse tree
+	 */
+	void enterExpressionAnd(MainParser.ExpressionAndContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#expressionAnd}.
+	 * @param ctx the parse tree
+	 */
+	void exitExpressionAnd(MainParser.ExpressionAndContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#expressionBinaryOp}.
 	 * @param ctx the parse tree
 	 */
