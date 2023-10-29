@@ -44,28 +44,28 @@ fun MemoryArena.dump() {}
 // Efficiently copies a number of bytes from one location to another
 // Must not overlap
 @Extern $[lib: "core", name: "memory_copy_within"]
-fun MemoryArena.copy_within(src_offset: Int, dst_offset: Int, byte_len: Int) {}
+fun MemoryArena.copy_within(src: Ptr<Byte>, dst: Ptr<Byte>, byte_len: Int) {}
 
 // Reads a single byte from the memory
 @Extern $[lib: "core", name: "memory_read_byte"]
-fun MemoryArena.read_byte(offset: Int): Byte {}
+fun MemoryArena.read_byte(ptr: Ptr<Byte>): Byte {}
 
 // Writes a single byte to the memory
 @Extern $[lib: "core", name: "memory_write_byte"]
-fun MemoryArena.write_byte(offset: Int, value: Byte) {}
+fun MemoryArena.write_byte(ptr: Ptr<Byte>, value: Byte) {}
 
 // Reads a single integer from the memory
 @Extern $[lib: "core", name: "memory_read_int"]
-fun MemoryArena.read_int(offset: Int): Int {}
+fun MemoryArena.read_int(ptr: Ptr<Int>): Int {}
 
 // Writes a single integer to the memory
 @Extern $[lib: "core", name: "memory_write_int"]
-fun MemoryArena.write_int(offset: Int, value: Int) {}
+fun MemoryArena.write_int(ptr: Ptr<Int>, value: Int) {}
 
 // Reads a single float from the memory
 @Extern $[lib: "core", name: "memory_read_float"]
-fun MemoryArena.read_float(ptr: Int): Float {}
+fun MemoryArena.read_float(ptr: Ptr<Float>): Float {}
 
 // Writes a single float to the memory
 @Extern $[lib: "core", name: "memory_write_float"]
-fun MemoryArena.write_float(offset: Int, value: Float) {}
+fun MemoryArena.write_float(ptr: Ptr<Float>, value: Float) {}

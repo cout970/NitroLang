@@ -4,57 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/resources/run.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/tsconfig.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/web_runtime.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/resources/web_wrapper.ts" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;">
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/math/random.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/DeadCodeAnalyzer.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/extern.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/extern.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/main.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/main.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/annotations.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/annotations.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/char.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/char.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/console.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/console.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/float.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/float.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/int.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/list.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/list.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/map.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/math.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/math/math.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/pair.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/pair.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/deno_wrapper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/deno_wrapper.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/internal.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/internal.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/memory_layout.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/memory_layout.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/kotlin/Utils.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -102,7 +62,7 @@
     <option name="stateVersion" value="1" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="CurrentFile" />
+    <option name="selectedTabId" value="DEPENDENCY_CHECKER_PROBLEMS_TAB" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
@@ -147,6 +107,7 @@
       <recent name="$PROJECT_DIR$/tests/internal" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/nitro/core/math" />
       <recent name="$PROJECT_DIR$/src/main/nitro/core" />
       <recent name="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing" />
       <recent name="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm" />
@@ -504,7 +465,23 @@
       <option name="project" value="LOCAL" />
       <updated>1697395240663</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;">
+      <option name="closed" value="true" />
+      <created>1698596597303</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1698596597303</updated>
+    </task>
+    <task id="LOCAL-00027" summary="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;">
+      <option name="closed" value="true" />
+      <created>1698596620181</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1698596620181</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -537,7 +514,8 @@
     <MESSAGE value="Improvements to lambda usage&#10;Fix precedence of infix operators +, - and !&#10;Add Set implementation&#10;Improve core library with a bunch of utility functions&#10;Rename Ptr.get_value to Ptr.as_ref&#10;Fix duplicated error messages on lambda type inference" />
     <MESSAGE value="Fix &amp;&amp; and || always computing both sides&#10;Add Pair to core library" />
     <MESSAGE value="Add implicit this.var when a variable is not found in a scope&#10;Fix set creation syntax" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add implicit this.var when a variable is not found in a scope&#10;Fix set creation syntax" />
+    <MESSAGE value="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

@@ -51,6 +51,14 @@ fun Int.modulo(other: Int): Int {
     ret if rem < 0 { rem + other } else { rem }
 }
 
+// Math
+
+// Returns the absolute value
+fun Int.abs(): Int = if this < 0 { -this } else { this }
+
+// Returns the negated value
+fun Int.neg(): Int = -this
+
 // Bits
 
 // Performs a bitwise AND operation on two integer values,
@@ -181,6 +189,11 @@ fun Int.unary_minus(): Int = 0 - this
 // Function called when a unary plus is applied to a integer value, e.g. +(1.0)
 // Note: +1 is parsed as a positive number, so no operation is performed
 fun Int.unary_plus(): Int = this
+
+// Converts an integer to a floating point number
+@Extern $[lib: "core", name: "int_to_float"]
+@WasmInline $[opcode: "f32.convert_i32_s"]
+fun Int.to_float(): Float {}
 
 // Converts this integer value to a string
 @Extern $[lib: "core", name: "int_to_string"]

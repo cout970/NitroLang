@@ -153,7 +153,6 @@ export function memory_read_internal(ptr: number, size: number): number {
     return value;
 }
 
-// TODO params are offsets, not pointers
 export function memory_copy_within(src: number, dst: number, len: number) {
     // console.debug('memory_copy_within', {src, dst, len});
     memcopy(dst, src, len);
@@ -300,3 +299,31 @@ export function string_get_ordering_internal(a: number, b: number): number {
     return aStr.localeCompare(bStr);
 }
 
+// math.nl
+
+export function math_acos(x: number): number             { return Math.acos(x);     }
+export function math_acosh(x: number): number            { return Math.acosh(x);    }
+export function math_asin(x: number): number             { return Math.asin(x);     }
+export function math_asinh(x: number): number            { return Math.asinh(x);    }
+export function math_atan(x: number): number             { return Math.atan(x);     }
+export function math_atanh(x: number): number            { return Math.atanh(x);    }
+export function math_atan2(x: number, y: number): number { return Math.atan2(x, y); }
+export function math_sqrt(x: number): number             { return Math.sqrt(x);     }
+export function math_cbrt(x: number): number             { return Math.cbrt(x);     }
+export function math_cos(x: number): number              { return Math.cos(x);      }
+export function math_cosh(x: number): number             { return Math.cosh(x);     }
+export function math_exp(x: number): number              { return Math.exp(x);      }
+export function math_expm1(x: number): number            { return Math.expm1(x);    }
+export function math_log(x: number): number              { return Math.log(x);      }
+export function math_log1p(x: number): number            { return Math.log1p(x);    }
+export function math_log10(x: number): number            { return Math.log10(x);    }
+export function math_log2(x: number): number             { return Math.log2(x);     }
+export function math_pow(x: number, y: number): number   { return Math.pow(x, y);   }
+export function math_sin(x: number): number              { return Math.sin(x);      }
+export function math_sinh(x: number): number             { return Math.sinh(x);     }
+export function math_tan(x: number): number              { return Math.tan(x);      }
+export function math_tanh(x: number): number             { return Math.tanh(x);     }
+
+// random.nl
+
+export function random_get_initial_seed(): number { return (Math.random() * 0x7FFFFFFF) | 0; }

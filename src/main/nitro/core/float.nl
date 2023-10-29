@@ -90,11 +90,6 @@ fun Float.nearest(): Float {}
 @WasmInline $[opcode: "i32.trunc_f32_s"]
 fun Float.to_int(): Int {}
 
-// Converts an integer to a floating point number
-@Extern $[lib: "core", name: "float_to_int"]
-@WasmInline $[opcode: "f32.convert_i32_s"]
-fun Int.to_float(): Float {}
-
 // Comparisons
 
 // This function compares two floating point numbers for equality
