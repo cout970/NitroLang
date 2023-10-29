@@ -11,6 +11,7 @@ import nitrolang.parsing.ANNOTATION_REQUIRED
 import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.typeinference.*
 import nitrolang.util.*
+import java.util.Deque
 
 class LstProgram : Dumpable {
     val collector = ErrorCollector()
@@ -434,7 +435,7 @@ class LstCode : Dumpable {
     var lastExpression: Ref? = null
 
     // Block nesting
-    val rootBlock: LstNodeBlock = LstNodeBlock(null, lastBlock++)
+    val rootBlock: LstNodeBlock = LstNodeBlock(null, lastBlock++, true)
     var currentBlock: LstNodeBlock = rootBlock
 
     // Let declarations
@@ -444,7 +445,12 @@ class LstCode : Dumpable {
     var breakNodes: MutableList<LstLoopJump> = mutableListOf()
     var continueNodes: MutableList<LstLoopJump> = mutableListOf()
 
-    fun createBlock(): LstNodeBlock = LstNodeBlock(currentBlock, lastBlock++)
+    val blockStack: Deque<LstNodeBlock> = java.util.ArrayDeque()
+    var jumpedOutOfBlock = false
+
+    fun createBlock(isJumpTarget: Boolean): LstNodeBlock {
+        return LstNodeBlock(currentBlock, lastBlock++, isJumpTarget)
+    }
 
     fun currentRef() = Ref(counter)
 
@@ -470,6 +476,33 @@ class LstCode : Dumpable {
         // Printing all the variables and nodes slows down the debugger
         return "LstCode ()"
     }
+
+    fun enterBlock(isJumpTarget: Boolean) {
+        blockStack.addLast(currentBlock)
+        currentBlock = createBlock(isJumpTarget)
+    }
+
+    fun exitBlock() {
+        if (!jumpedOutOfBlock && currentBlock.deferredActions.isNotEmpty()) {
+            currentBlock.deferredActions.reversed().forEach { it() }
+        }
+        jumpedOutOfBlock = false
+        currentBlock = blockStack.removeLast()
+    }
+
+    fun exitDeferBlock() {
+        currentBlock = blockStack.removeLast()
+    }
+
+    fun executeDeferredActions(block: LstNodeBlock = currentBlock) {
+        if (block.deferredActions.isNotEmpty()) {
+            block.deferredActions.reversed().forEach { it() }
+        }
+
+        if (block.parent != null && !block.isJumpTarget) {
+            executeDeferredActions(block.parent)
+        }
+    }
 }
 
 class LstVar(
@@ -492,12 +525,7 @@ class LstVar(
     val finalName: String get() = "$$ref"
 
     override fun toString(): String {
-        return "LstVar {\n" +
-                "  name=${formatItem(name)}\n" +
-                "  typeUsage=${formatItem(typeUsage)}\n" +
-                "  validAfter=${formatItem(validAfter)}\n" +
-                "  ref=${formatItem(ref)}\n" +
-                "}"
+        return "let $name: $typeUsage"
     }
 
     override fun dump(): JsonElement = JsonObject().also {
@@ -619,7 +647,7 @@ class TypePattern(
     val currentPath: Path,
     val typeParameter: LstTypeParameterDef?,
     val isAny: Boolean = false,
-){
+) {
     val fullName: Path get() = createPath(path, name)
     var base: TTypeBase? = null
     var generic: TGeneric? = null

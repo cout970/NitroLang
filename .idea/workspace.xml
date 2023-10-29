@@ -4,17 +4,29 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;">
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/math/random.nl" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Implement math functions&#10;Add 32bit Linear Congruential Generator (LCG) Random Number Generator">
+      <change beforePath="$PROJECT_DIR$/.idea/kotlinc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kotlinc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainLexer.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainLexer.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MainParser.g4" beforeDir="false" afterPath="$PROJECT_DIR$/MainParser.g4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainLexer.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.interp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParser.tokens" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserBaseVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/nitrolang/gen/MainParserVisitor.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/float.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/float.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/int.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/math.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/math/math.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,7 +74,7 @@
     <option name="stateVersion" value="1" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="DEPENDENCY_CHECKER_PROBLEMS_TAB" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
@@ -75,29 +87,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Downloaded.Files.Path.Enabled&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Annotations&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.JavaDocs&quot;: &quot;false&quot;,
-    &quot;Repository.Attach.Sources&quot;: &quot;false&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/cout970/Dev/Kotlin/NitroLang/src/main/resources&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.20992167&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.44871795&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Downloaded.Files.Path.Enabled": "false",
+    "KotlinPropertyFindUsagesOptions.isReadAccess": "false",
+    "Repository.Attach.Annotations": "false",
+    "Repository.Attach.JavaDocs": "false",
+    "Repository.Attach.Sources": "false",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/home/cout970/Dev/Kotlin/NitroLang/src/main/resources",
+    "project.structure.last.edited": "SDKs",
+    "project.structure.proportion": "0.20992167",
+    "project.structure.side.proportion": "0.44871795",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Markdown&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Markdown"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/main/resources" />
@@ -481,7 +494,15 @@
       <option name="project" value="LOCAL" />
       <updated>1698596620181</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Implement math functions&#10;Add 32bit Linear Congruential Generator (LCG) Random Number Generator">
+      <option name="closed" value="true" />
+      <created>1698601404114</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1698601404114</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -490,7 +511,6 @@
     <option featureType="dependencySupport" implementationName="executable:podman" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Initial Commit&#10;&#10;Add grammar/lexer&#10;Add parser&#10;Add linear syntax tree &#10;Add parser tests" />
     <MESSAGE value="Remove previous Parser TODOs&#10;&#10;Add local variable scoping and shadowing&#10;Add errors for name collisions" />
     <MESSAGE value="Add type checking and type inference&#10;&#10;Add more tests&#10;Add json compilation output for tests" />
     <MESSAGE value="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors" />
@@ -515,12 +535,13 @@
     <MESSAGE value="Fix &amp;&amp; and || always computing both sides&#10;Add Pair to core library" />
     <MESSAGE value="Add implicit this.var when a variable is not found in a scope&#10;Fix set creation syntax" />
     <MESSAGE value="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix DCE for all functions with @Require&#10;Replace TypeUsage for TypePattern in LstIsType to handle cases like `expr is Ptr&lt;*&gt;`&#10;Fix alignment of structs with unaligned fields&#10;Fix wasm table with 0 elements&#10;Add discriminator field to options&#10;Rename @StackValue to @ValueType&#10;Fix compilation errors in tests&#10;Remove runtime field with type id from structs&#10;Adds a web_wrapper.ts to test programs in browsers &#10;Rename Ptr.as_ref() to Ptr.unsafe_as_ref()&#10;Reimplements Map with a more efficient memory representation&#10;Remove null-pointer hack for Optional as it didn't account for the possibility of None&lt;None&lt;*&gt;&gt;" />
+    <MESSAGE value="Implement math functions&#10;Add 32bit Linear Congruential Generator (LCG) Random Number Generator" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implement math functions&#10;Add 32bit Linear Congruential Generator (LCG) Random Number Generator" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
       <configuration name="JetRunConfigurationType">
-        <watch expression="it.size" language="kotlin" />
+        <watch expression="this.code.blockStack" language="kotlin" />
       </configuration>
     </watches-manager>
   </component>

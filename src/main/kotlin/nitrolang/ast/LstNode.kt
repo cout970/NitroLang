@@ -2,6 +2,7 @@ package nitrolang.ast
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import nitrolang.parsing.ParserCtx
 import nitrolang.typeinference.TType
 import nitrolang.typeinference.TypeBox
 import nitrolang.util.Dumpable
@@ -14,8 +15,10 @@ import nitrolang.util.dump
 data class LstNodeBlock(
     val parent: LstNodeBlock? = null,
     val id: Int,
+    val isJumpTarget: Boolean,
 ) : Dumpable {
     val depth: Int get() = if (parent == null) 0 else parent.depth + 1
+    val deferredActions = mutableListOf<() -> Unit>()
 
     override fun toString(): String = "block#$id/$depth"
 

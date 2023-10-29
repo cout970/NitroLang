@@ -281,6 +281,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLoopStatement(MainParser.LoopStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#deferStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDeferStatement(MainParser.DeferStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#foreignBlockStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

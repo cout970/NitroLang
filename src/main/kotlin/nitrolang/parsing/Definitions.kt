@@ -200,6 +200,10 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
 
         else -> error("Grammar has been expanded and parser is outdated")
     }
+    if (code.blockStack.isNotEmpty()) {
+        error("Block stack is not empty, function: ${func.fullName}")
+    }
+    code.executeDeferredActions()
 
     return func
 }
@@ -208,6 +212,7 @@ fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
     val body = LstCode()
     code = body
     body.lastExpression = processExpression(ctx.expression())
+    code.executeDeferredActions()
 
     val const = LstConst(
         span = ctx.declaredNameToken().span(),

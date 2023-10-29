@@ -171,6 +171,7 @@ statementChoice
     | whileStatement
     | loopStatement
     | whenExpr
+    | deferStatement
     | expressionStatement
     | foreignBlockStatement
     ;
@@ -198,6 +199,11 @@ whileStatement
 // E.g. loop {}
 loopStatement
     : LOOP NL* statementBlock ;
+
+deferStatement
+    : DEFER expression
+    | DEFER statementBlock
+    ;
 
 foreignBlockStatement
     : BLOCK_START foreignBlockStatementPart* BLOCK_END ;

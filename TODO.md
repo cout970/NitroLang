@@ -23,13 +23,12 @@ Intended for the developers
 
 
 ### Other features to implement
-- `defer {}` statement
 - Vec<*> implementation
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
 - Type alias
-- implicit this instead of writing `this.something` everywhere
+- implicit this instead of writing `this.something()` everywhere
 - `for` statement with iterators
 - Runtime reflection of types
 - Enums, not like rust, like java, a list of constants that can be iterated

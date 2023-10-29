@@ -28,6 +28,8 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
                 node.ref
             }
 
+            code.executeDeferredActions()
+            code.jumpedOutOfBlock = true
             val node = LstReturn(
                 ref = code.nextRef(),
                 span = returnExpr.span(),
@@ -58,8 +60,7 @@ fun ParserCtx.processExpressionOr(ctx: MainParser.ExpressionOrContext): Ref {
             cond = left,
         )
 
-        val prevBlock = code.currentBlock
-        code.currentBlock = code.createBlock()
+        code.enterBlock(false)
 
         val ifTrue = LstBoolean(
             ref = code.nextRef(),
@@ -70,8 +71,8 @@ fun ParserCtx.processExpressionOr(ctx: MainParser.ExpressionOrContext): Ref {
         code.nodes += ifTrue
 
         // Restore prev block
-        code.currentBlock = prevBlock
-        code.currentBlock = code.createBlock()
+        code.exitBlock()
+        code.enterBlock(false)
 
         code.nodes += LstIfElse(
             ref = code.nextRef(),
@@ -82,7 +83,7 @@ fun ParserCtx.processExpressionOr(ctx: MainParser.ExpressionOrContext): Ref {
         val ifFalse = processExpressionAnd(right)
 
         // Restore prev block
-        code.currentBlock = prevBlock
+        code.exitBlock()
 
         code.nodes += LstIfEnd(
             ref = code.nextRef(),
@@ -118,14 +119,14 @@ fun ParserCtx.processExpressionAnd(ctx: MainParser.ExpressionAndContext): Ref {
             cond = left,
         )
 
-        val prevBlock = code.currentBlock
-        code.currentBlock = code.createBlock()
+
+        code.enterBlock(false)
 
         val ifTrue = processExpressionBinOp(right)
 
         // Restore prev block
-        code.currentBlock = prevBlock
-        code.currentBlock = code.createBlock()
+        code.exitBlock()
+        code.enterBlock(false)
 
         code.nodes += LstIfElse(
             ref = code.nextRef(),
@@ -142,7 +143,7 @@ fun ParserCtx.processExpressionAnd(ctx: MainParser.ExpressionAndContext): Ref {
         code.nodes += ifFalse
 
         // Restore prev block
-        code.currentBlock = prevBlock
+        code.exitBlock()
 
         code.nodes += LstIfEnd(
             ref = code.nextRef(),
@@ -613,6 +614,8 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
         }
 
         ctx.BREAK() != null -> {
+            code.executeDeferredActions()
+            code.jumpedOutOfBlock = true
             val node = LstLoopJump(
                 ref = code.nextRef(),
                 span = ctx.span(),
@@ -625,6 +628,8 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
         }
 
         ctx.CONTINUE() != null -> {
+            code.executeDeferredActions()
+            code.jumpedOutOfBlock = true
             val node = LstLoopJump(
                 ref = code.nextRef(),
                 span = ctx.span(),
@@ -1188,9 +1193,8 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
     )
     code.nodes += start
 
-    val prevBlock = code.currentBlock
-    val whenBlock = code.createBlock()
-    code.currentBlock = whenBlock
+    code.enterBlock(false)
+    val whenBlock = code.currentBlock
 
     val branchStores = mutableListOf<LstWhenStore>()
 
@@ -1222,8 +1226,9 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
                 cond = condRef,
             )
 
+
             val prevIfBlock = code.currentBlock
-            code.currentBlock = code.createBlock()
+            code.enterBlock(false)
 
             val (branchValue, span) = if (entry.expression() != null) {
                 processExpression(entry.expression()) to entry.expression().span()
@@ -1254,7 +1259,7 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
             )
 
             // Restore prev block
-            code.currentBlock = prevIfBlock
+            code.exitBlock()
 
             code.nodes += LstIfEnd(
                 ref = code.nextRef(),
@@ -1294,7 +1299,7 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
     }
 
     // Restore prev block
-    code.currentBlock = prevBlock
+    code.exitBlock()
 
     val end = LstWhenEnd(
         ref = code.nextRef(),
@@ -1345,9 +1350,8 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
     )
     code.nodes += start
 
-    val prevBlock = code.currentBlock
-    val whenBlock = code.createBlock()
-    code.currentBlock = whenBlock
+    code.enterBlock(false)
+    val whenBlock = code.currentBlock
 
     entries.forEachIndexed { index, entry ->
         val key = entry.whenKey()
@@ -1378,7 +1382,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
             )
 
             val prevIfBlock = code.currentBlock
-            code.currentBlock = code.createBlock()
+            code.enterBlock(false)
 
             if (entry.expression() != null) {
                 processExpression(entry.expression()) to entry.expression().span()
@@ -1398,7 +1402,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
             )
 
             // Restore prev block
-            code.currentBlock = prevIfBlock
+            code.exitBlock()
 
             code.nodes += LstIfEnd(
                 ref = code.nextRef(),
@@ -1426,7 +1430,7 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
     }
 
     // Restore prev block
-    code.currentBlock = prevBlock
+    code.exitBlock()
 
     code.nodes += LstWhenEnd(
         ref = code.nextRef(),
@@ -1665,15 +1669,14 @@ fun ParserCtx.processExpressionIfExpr(ctx: MainParser.IfExprContext): Ref {
         cond = cond,
     )
 
-    val prevBlock = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(false)
 
     ctx.statementBlock(0).statement().map { processStatement(it) }
     val ifTrue = code.lastExpression ?: error("Code block has no last expression")
 
     // Restore prev block
-    code.currentBlock = prevBlock
-    code.currentBlock = code.createBlock()
+    code.exitBlock()
+    code.enterBlock(false)
 
     code.nodes += LstIfElse(
         ref = code.nextRef(),
@@ -1685,7 +1688,7 @@ fun ParserCtx.processExpressionIfExpr(ctx: MainParser.IfExprContext): Ref {
     val ifFalse = code.lastExpression ?: error("Code block has no last expression")
 
     // Restore prev block
-    code.currentBlock = prevBlock
+    code.exitBlock()
 
     code.nodes += LstIfEnd(
         ref = code.nextRef(),

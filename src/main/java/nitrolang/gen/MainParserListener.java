@@ -458,6 +458,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitLoopStatement(MainParser.LoopStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#deferStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterDeferStatement(MainParser.DeferStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#deferStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitDeferStatement(MainParser.DeferStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#foreignBlockStatement}.
 	 * @param ctx the parse tree
 	 */

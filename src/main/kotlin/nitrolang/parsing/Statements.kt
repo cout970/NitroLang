@@ -102,6 +102,36 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
             }
         }
 
+
+        stm.deferStatement() != null -> {
+            if (!allowDefer) {
+                collector.report("Defer statements are not allowed here", stm.span())
+                return
+            }
+
+            val subCtx = stm.deferStatement()
+
+            val action: () -> Unit = when {
+                subCtx.expression() != null -> ({
+                    allowDefer = false
+                    processExpression(subCtx.expression())
+                    allowDefer = true
+                })
+
+                subCtx.statementBlock() != null -> ({
+                    code.enterBlock(true)
+                    allowDefer = false
+                    processStatementBlock(subCtx.statementBlock())
+                    allowDefer = true
+                    code.exitDeferBlock()
+                })
+
+                else -> error("Grammar has been expanded and parser is outdated")
+            }
+
+            code.currentBlock.deferredActions += action
+        }
+
         stm.foreignBlockStatement() != null -> {
             val subCtx = stm.foreignBlockStatement()
 
@@ -175,10 +205,10 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
 
     // loop {
     val prevBlock = code.currentBlock
-    val breakBlock = code.createBlock()
-    code.currentBlock = breakBlock
-    val continueBlock = code.createBlock()
-    code.currentBlock = continueBlock
+    code.enterBlock(true)
+    val breakBlock = code.currentBlock
+    code.enterBlock(false)
+    val continueBlock = code.currentBlock
 
     code.nodes += LstLoopStart(
         ref = code.nextRef(),
@@ -242,13 +272,14 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         cond = isSomeCall.ref,
     )
 
-    val prevBlock2 = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(false)
 
     // Code in loop...
     processStatementBlock(subCtx.statementBlock())
 
     // jump to start
+    code.executeDeferredActions()
+    code.jumpedOutOfBlock = true
     code.nodes += LstLoopJump(
         ref = code.nextRef(),
         span = subCtx.span(),
@@ -258,7 +289,7 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     )
 
     // Restore prev block
-    code.currentBlock = prevBlock2
+    code.exitBlock()
 
     // end-if
     code.nodes += LstIfEnd(
@@ -268,7 +299,8 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     )
 
     // } end-loop
-    code.currentBlock = prevBlock
+    code.exitBlock()
+    code.exitBlock()
 
     code.nodes += LstLoopEnd(
         ref = code.nextRef(),
@@ -291,14 +323,13 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     //   let it = 0
     //   loop: {
     //     if (it < limit) {
+    //       defer { it = it + 1 }
     //       code...
-    //       it = it + 1
     //       goto loop;
     //     }
     //   }
     // }
-    val prevBlockStart = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(true)
 
     // let limit = count
     val count = processExpression(subCtx.expression())
@@ -364,10 +395,10 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
 
     // loop {
     val prevBlock = code.currentBlock
-    val breakBlock = code.createBlock()
-    code.currentBlock = breakBlock
-    val continueBlock = code.createBlock()
-    code.currentBlock = continueBlock
+    code.enterBlock(true)
+    val breakBlock = code.currentBlock
+    code.enterBlock(false)
+    val continueBlock = code.currentBlock
 
     code.nodes += LstLoopStart(
         ref = code.nextRef(),
@@ -417,54 +448,59 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         cond = cond.ref,
     )
 
-    val prevBlock2 = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(false)
+
+    // This must be deferred otherwise `continue` will jump to the beginning without incrementing `it` causing an infinite loop
+    // defer { it = it + 1 }
+    code.currentBlock.deferredActions += {
+        // it = it + 1
+        val loadItInc = LstLoadVar(
+            ref = code.nextRef(),
+            span = subCtx.span(),
+            block = code.currentBlock,
+            name = "it",
+            path = "",
+            varRef = varIt.ref,
+            variable = varIt,
+        )
+        code.nodes += loadItInc
+
+        val one = LstInt(
+            ref = code.nextRef(),
+            span = subCtx.span(),
+            block = code.currentBlock,
+            value = 1,
+        )
+        code.nodes += one
+
+        val inc = LstFunCall(
+            ref = code.nextRef(),
+            span = subCtx.span(),
+            block = code.currentBlock,
+            name = "plus",
+            path = "",
+            arguments = listOf(loadItInc.ref, one.ref),
+        )
+        code.nodes += inc
+
+        code.nodes += LstStoreVar(
+            ref = code.nextRef(),
+            span = subCtx.span(),
+            block = code.currentBlock,
+            name = "it",
+            path = "",
+            varRef = varIt.ref,
+            variable = varIt,
+            expr = inc.ref,
+        )
+    }
 
     // Code in loop...
     processStatementBlock(subCtx.statementBlock())
 
-    // it = it + 1
-    val loadItInc = LstLoadVar(
-        ref = code.nextRef(),
-        span = subCtx.span(),
-        block = code.currentBlock,
-        name = "it",
-        path = "",
-        varRef = varIt.ref,
-        variable = varIt,
-    )
-    code.nodes += loadItInc
-
-    val one = LstInt(
-        ref = code.nextRef(),
-        span = subCtx.span(),
-        block = code.currentBlock,
-        value = 1,
-    )
-    code.nodes += one
-
-    val inc = LstFunCall(
-        ref = code.nextRef(),
-        span = subCtx.span(),
-        block = code.currentBlock,
-        name = "plus",
-        path = "",
-        arguments = listOf(loadItInc.ref, one.ref),
-    )
-    code.nodes += inc
-
-    code.nodes += LstStoreVar(
-        ref = code.nextRef(),
-        span = subCtx.span(),
-        block = code.currentBlock,
-        name = "repeat_aux",
-        path = "",
-        varRef = varIt.ref,
-        variable = varIt,
-        expr = inc.ref,
-    )
-
     // jump to start
+    code.executeDeferredActions()
+    code.jumpedOutOfBlock = true
     code.nodes += LstLoopJump(
         ref = code.nextRef(),
         span = subCtx.span(),
@@ -474,7 +510,7 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     )
 
     // Restore prev block
-    code.currentBlock = prevBlock2
+    code.exitBlock()
 
     // end-if
     code.nodes += LstIfEnd(
@@ -484,7 +520,8 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     )
 
     // } end-loop
-    code.currentBlock = prevBlock
+    code.exitBlock()
+    code.exitBlock()
 
     code.nodes += LstLoopEnd(
         ref = code.nextRef(),
@@ -499,7 +536,7 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     code.breakNodes = prevBreakNodes
     code.continueNodes = prevContinueNodes
 
-    code.currentBlock = prevBlockStart
+    code.exitBlock()
 }
 
 private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementContext) {
@@ -518,10 +555,10 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
 
     // loop {
     val prevBlock = code.currentBlock
-    val breakBlock = code.createBlock()
-    code.currentBlock = breakBlock
-    val continueBlock = code.createBlock()
-    code.currentBlock = continueBlock
+    code.enterBlock(true)
+    val breakBlock = code.currentBlock
+    code.enterBlock(false)
+    val continueBlock = code.currentBlock
 
     code.nodes += LstLoopStart(
         ref = code.nextRef(),
@@ -541,13 +578,14 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
         cond = cond,
     )
 
-    val prevBlock2 = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(false)
 
     // Code in loop...
     processStatementBlock(subCtx.statementBlock())
 
     // jump to start
+    code.executeDeferredActions()
+    code.jumpedOutOfBlock = true
     code.nodes += LstLoopJump(
         ref = code.nextRef(),
         span = subCtx.span(),
@@ -557,7 +595,7 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
     )
 
     // Restore prev block
-    code.currentBlock = prevBlock2
+    code.exitBlock()
 
     // end-if
     code.nodes += LstIfEnd(
@@ -567,7 +605,8 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
     )
 
     // } end-loop
-    code.currentBlock = prevBlock
+    code.exitBlock()
+    code.exitBlock()
 
     code.nodes += LstLoopEnd(
         ref = code.nextRef(),
@@ -592,10 +631,10 @@ private fun ParserCtx.processLoopStatement(subCtx: MainParser.LoopStatementConte
 
     // loop {
     val prevBlock = code.currentBlock
-    val breakBlock = code.createBlock()
-    code.currentBlock = breakBlock
-    val continueBlock = code.createBlock()
-    code.currentBlock = continueBlock
+    code.enterBlock(true)
+    val breakBlock = code.currentBlock
+    code.enterBlock(false)
+    val continueBlock = code.currentBlock
 
     code.nodes += LstLoopStart(
         ref = code.nextRef(),
@@ -609,6 +648,8 @@ private fun ParserCtx.processLoopStatement(subCtx: MainParser.LoopStatementConte
     processStatementBlock(subCtx.statementBlock())
 
     // jump to start
+    code.executeDeferredActions()
+    code.jumpedOutOfBlock = true
     code.nodes += LstLoopJump(
         ref = code.nextRef(),
         span = subCtx.span(),
@@ -618,7 +659,8 @@ private fun ParserCtx.processLoopStatement(subCtx: MainParser.LoopStatementConte
     )
 
     // } end-loop
-    code.currentBlock = prevBlock
+    code.exitBlock()
+    code.exitBlock()
 
     code.nodes += LstLoopEnd(
         ref = code.nextRef(),
@@ -644,16 +686,15 @@ private fun ParserCtx.processIfStatement(subCtx: MainParser.IfStatementContext) 
         cond = cond,
     )
 
-    val prevBlock = code.currentBlock
-    code.currentBlock = code.createBlock()
+    code.enterBlock(false)
 
     subCtx.statementBlock(0).statement().map { processStatement(it) }
 
     // Restore prev block
-    code.currentBlock = prevBlock
+    code.exitBlock()
 
     if (subCtx.statementBlock(1) != null) {
-        code.currentBlock = code.createBlock()
+        code.enterBlock(false)
 
         code.nodes += LstIfElse(
             ref = code.nextRef(),
@@ -664,7 +705,7 @@ private fun ParserCtx.processIfStatement(subCtx: MainParser.IfStatementContext) 
         subCtx.statementBlock(1).statement().map { processStatement(it) }
 
         // Restore prev block
-        code.currentBlock = prevBlock
+        code.exitBlock()
     }
 
     code.nodes += LstIfEnd(

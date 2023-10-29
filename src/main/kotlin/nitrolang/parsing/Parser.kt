@@ -36,6 +36,7 @@ data class ParserCtx(
 
     var currentTagName: String? = null
     var currentTag: LstTag? = null
+    var allowDefer: Boolean = true
 
     fun ParserRuleContext.span(): Span {
         return Span(start.startIndex, stop.stopIndex, this@ParserCtx.source)

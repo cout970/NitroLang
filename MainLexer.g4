@@ -56,6 +56,7 @@ SIZE_OF                         : 'size_of'     | 'sizeOf' ;
 OPTION                          : 'type'        | 'option';
 REC                             : 'rec'         | 'recv'        | 'receiver' ;
 TAG                             : 'interface'   | 'trait'       | 'tag' ;
+DEFER                           : 'defer' ;
 NOTHING                         : 'nothing' ;
 WHEN                            : 'when' ;
 MATCH                           : 'match' ;
