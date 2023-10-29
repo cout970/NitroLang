@@ -36,6 +36,7 @@ export function ptr_to_raw_array(ptr: number): number {
 }
 
 export function raw_array_to_ptr(ptr: number): number {
+    // console.debug('raw_array_to_ptr', {ptr});
     return ptr;
 }
 
@@ -50,6 +51,11 @@ export function ptr_read(value_ptr: number): number {
 
 export function ptr_unsafe_cast(ptr: number): number {
     return ptr;
+}
+
+export function ptr_copy_into(self: number, other: number, len: number) {
+    // console.debug('ptr_copy_into', {self, other, len});
+    memcopy(other, self, len);
 }
 
 // raw_array.nl
@@ -88,7 +94,8 @@ export function memory_get_memory(): number {
 }
 
 export function debug_alloc_bytes(amount: number, ptr: number) {
-    // console.debug(`Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
+    // console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
+    console.debug(`# Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
 }
 
 export function memory_alloc(amount: number): number {
@@ -146,12 +153,20 @@ export function memory_read_internal(ptr: number, size: number): number {
     return value;
 }
 
+// TODO params are offsets, not pointers
 export function memory_copy_within(src: number, dst: number, len: number) {
-    memcopy(src, dst, len);
+    // console.debug('memory_copy_within', {src, dst, len});
+    memcopy(dst, src, len);
+}
+
+export function memory_copy_internal(dst: number, src: number, len: number) {
+    // console.debug('memory_copy_internal', {src, dst, len});
+    memcopy(dst, src, len);
 }
 
 export function memory_dump(ptr: number) {
-    console.debug(dumpMemory(ptr + 16, getInt(ptr + 8)))
+    console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}, base = ${ptr}`)
+    console.debug(dumpMemory(getInt(12), getInt(8)));
 }
 
 // string.nl
@@ -216,7 +231,7 @@ export function float_to_string(float: number): number {
 }
 
 export function float_is_nan(float: number): boolean {
-    return Number.isNan(float);
+    return Number.isNaN(float);
 }
 
 export function float_is_finite(float: number): boolean {

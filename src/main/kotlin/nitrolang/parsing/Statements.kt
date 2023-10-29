@@ -291,7 +291,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     //   let it = 0
     //   loop: {
     //     if (it < limit) {
-    //       let it = _repeat_index_
     //       code...
     //       it = it + 1
     //       goto loop;

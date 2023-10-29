@@ -65,19 +65,18 @@ export function alloc(bytes: number): number {
 
 export function createString(value: string): number {
     // Heap:
-    // - 4 byte: Struct type
     // - 4 byte: String len in bytes
     // - 4 byte: Pointer to string characters in heap or data section
-    const ptr = alloc(PTR * 3);
-    const type_ptr = ptr;
-    const len_ptr = ptr + PTR;
-    const bytes_ptr = ptr + PTR * 2;
+    const ptr = alloc(PTR * 2);
+    const len_ptr = ptr;
+    const bytes_ptr = ptr + PTR;
+
+    //console.debug(`createString(${value}) => 0x${ptr.toString(16).padStart(4, '0')}`);
 
     const uint8array = (new TextEncoder()).encode(value);
     const data_ptr = alloc(uint8array.length);
     mem.u8.set(uint8array, data_ptr);
 
-    setInt(type_ptr, /* string type id */ 3);
     setInt(len_ptr, uint8array.length);
     setInt(bytes_ptr, data_ptr);
     return ptr;
@@ -86,13 +85,12 @@ export function createString(value: string): number {
 export function getString(ptr: number): string {
     assert(ptr);
     // Heap:
-    // - 4 byte: Struct type
     // - 4 byte: String len in bytes
     // - 4 byte: Pointer to string characters in heap or data section
-    const len = getInt(ptr + PTR);
-    const bytes = getInt(ptr + PTR * 2);
+    const len = getInt(ptr);
+    const bytes = getInt(ptr + PTR);
 
-    // console.log('getString', {ptr, type: getInt(ptr), len, bytes})
+    // console.log('getString', {ptr, len, bytes})
     // dumpMemory(bytes, len);
 
     const contents = mem.u8.subarray(bytes, bytes + len);
@@ -105,6 +103,10 @@ export function memcopy(dst: number, src: number, len: number) {
     assert(dst);
     assert(src);
     mem.u8.copyWithin(dst, src, src + len);
+}
+
+function byteToString(byte: number): string {
+    return byte < 32 ? '.' : String.fromCharCode(byte);
 }
 
 export function dumpMemory(ptr: number, len: number): string {
@@ -122,8 +124,13 @@ export function dumpMemory(ptr: number, len: number): string {
         str += `${mem.u8[i + 1].toString(16).padStart(2, '0')} `;
         str += `${mem.u8[i + 2].toString(16).padStart(2, '0')} `;
         str += `${mem.u8[i + 3].toString(16).padStart(2, '0')} `;
-        str += `(0x${mem.u32[(i / 4) | 0].toString(16).padStart(8, '0')}, `;
-        str += `i32: ${mem.i32[(i / 4) | 0].toString().padStart(10, ' ')})`;
+        str += byteToString(mem.u8[i]);
+        str += byteToString(mem.u8[i + 1]);
+        str += byteToString(mem.u8[i + 2]);
+        str += byteToString(mem.u8[i + 3]);
+        // str += ` 0x${mem.u32[(i / 4) | 0].toString(16).padStart(8, '0')}, `;
+        str += ` i32: ${mem.i32[(i / 4) | 0].toString().padStart(10, ' ')},`;
+        str += ` f32: ${mem.f32[(i / 4) | 0]}`;
         str += '\n';
     }
     return str;

@@ -269,8 +269,8 @@ expressionBinaryOp
 // E.g. -var
 expressionSimple
     : expressionWithSuffix AS typeUsage
-    | expressionWithSuffix IS typeUsage
-    | expressionWithSuffix NOT_IS typeUsage
+    | expressionWithSuffix IS typePattern
+    | expressionWithSuffix NOT_IS typePattern
     | expressionWithSuffix IN expressionWithSuffix
     | expressionWithSuffix NOT_IN expressionWithSuffix
     | expressionWithSuffix
@@ -503,13 +503,11 @@ typeParamDef
 typeParamArg
     : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;
 
-// #T, #A, #B, List<#A>
-typeParameter
-    : HASH nameToken ;
-
 // mut
 varModifier
     : MUT? ;
+
+// Types
 
 typeUsage
     : THIS_TYPE
@@ -520,23 +518,52 @@ typeUsage
     | typeParameter
     ;
 
+// #T, #A, #B, List<#A>
+typeParameter
+    : HASH nameToken ;
+
+// Int, List<Int>
 baseTypeUsage
     : modulePath? nameToken typeParamArg? ;
 
+// (Int) -> Int
 functionTypeUsage
     : LPAREN RPAREN ARROW functionTypeUsageReturn
     | LPAREN functionTypeUsageParam (commaOrNl functionTypeUsageParam)* RPAREN ARROW functionTypeUsageReturn
     ;
 
+// a, a: Int
 functionTypeUsageParam
     : typeUsage
     | nameToken COLON typeUsage
     ;
 
+// Int
 functionTypeUsageReturn
     : typeUsage ;
 
+// Patterns
+
+typePattern
+    : THIS_TYPE
+    | LTH NL* typePattern NL* GTH
+    | baseTypePattern
+    | typeParameter
+    ;
+
+baseTypePattern
+    : modulePath? nameToken typePatternArgs? ;
+
+typePatternArgs
+    : LTH NL* typePatternArg (commaOrNl typePatternArg)* COMMA? NL* GTH ;
+
+typePatternArg
+    : typePattern
+    | MUL
+    ;
+
 // JSON value
+
 jsonValue
    : string
    | INT_NUMBER

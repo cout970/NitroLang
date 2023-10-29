@@ -1,5 +1,6 @@
 
 // This type represents a pair of values
+@ValueType
 struct Pair<#A, #B> {
     first: #A
     second: #B

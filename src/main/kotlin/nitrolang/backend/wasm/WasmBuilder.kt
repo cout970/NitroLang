@@ -7,6 +7,7 @@ import nitrolang.parsing.ANNOTATION_WASM_NAME
 import nitrolang.typeinference.*
 import nitrolang.util.Span
 import java.lang.Appendable
+import kotlin.math.min
 
 class WasmBuilder(
     val program: LstProgram,
@@ -34,6 +35,11 @@ class WasmBuilder(
         val lstFunc = program.getFunction(function)
         val monoFunction = getMonoFunction(lstFunc, ctx)
         mono.instructions += MonoFunCall(mono.nextId(), span, monoFunction)
+    }
+
+    fun drop(span: Span, type: MonoType) {
+        val mono = current!!
+        mono.instructions += MonoDrop(mono.nextId(), span, type)
     }
 
     fun dup(span: Span, type: MonoType) {
@@ -124,7 +130,7 @@ fun WasmBuilder.compile(out: Appendable) {
     // Memory instance
     val memoryAddr = module.sectionOffset
     module.sections += module.sectionOffset to ""
-    module.sectionOffset += 16
+    module.sectionOffset += 12
 
     compileImports()
     compileConsts()
@@ -134,7 +140,6 @@ fun WasmBuilder.compile(out: Appendable) {
     // @formatter:off
     padOffset()
     val memoryInstance =
-        /* type_id  */ intToWasmHex(0) +
         /* capacity */ intToWasmHex(16 * 64 * 1024 - module.sectionOffset) +
         /* len      */ intToWasmHex(0) +
         /* bytes    */ intToWasmHex(module.sectionOffset)
@@ -211,7 +216,9 @@ fun WasmBuilder.compileConsts() {
 }
 
 fun WasmBuilder.compileFunctions() {
-    getMonoFunction(program.getFunction("memory_alloc_internal"), MonoCtx())
+    program.functions.filter { it.isRequired }.forEach {
+        getMonoFunction(it, MonoCtx())
+    }
     getMonoFunction(program.getFunction("main"), MonoCtx())
 
     for (it in funcCache.values) {
@@ -241,7 +248,7 @@ fun WasmBuilder.getOrCreateMonoFunction(key: MonoFuncSignature, onInit: (MonoFun
     funcCache[key] = mono
     try {
         onInit(mono)
-    } catch (e: UnresolvedGenericError) {
+    } catch (e: UnresolvedGenericTypeError) {
         throw RuntimeException(e)
     }
     return mono
@@ -458,6 +465,7 @@ fun WasmBuilder.processNode(
     helperVars: MutableMap<Ref, MonoVar>,
     varMap: MutableMap<LstVar, MonoVar>
 ) {
+    comment(inst.span, inst.toString())
     when (inst) {
         is LstFunCall -> {
             val function = inst.function ?: error("Function not bound: $inst")
@@ -513,10 +521,16 @@ fun WasmBuilder.processNode(
             int(inst.span, type.heapSize())
             call(inst.span, "memory_alloc_internal", ctx)
 
-            // *$1 = type_id_of<Type>
-            dup(inst.span, type)
-            int(inst.span, type.id)
-            opcode(inst.span, "i32.store")
+            val option = (type.base as? MonoStruct)?.instance?.parentOption
+            if (option != null) {
+                val index = option.items.indexOf(type.base.instance)
+                check(index != -1)
+
+                // $1.variant = index
+                dup(inst.span, type)
+                int(inst.span, index + 1)
+                opcode(inst.span, "i32.store")
+            }
 
             provider(inst.span, inst.ref, type)
         }
@@ -525,8 +539,6 @@ fun WasmBuilder.processNode(
             val type = typeToMonoType(inst.type, ctx)
             consumer(inst.span, inst.alloc)
             dup(inst.span, type)
-            int(inst.span, PTR_SIZE)
-            opcode(inst.span, "i32.add")
 
             val monoLambda = getMonoLambdaFunction(inst.lambda, ctx)
             val index = module.lambdaLabels.indexOf(monoLambda.name)
@@ -539,18 +551,33 @@ fun WasmBuilder.processNode(
 
         is LstIsType -> {
             val type = typeToMonoType(inst.type, ctx)
-            val typeParam = typeToMonoType(inst.typeUsageBox!!.type, ctx)
+            val typePattern = patternToMonoTypePattern(inst.typePattern, ctx)
             val expr = code.getNode(inst.expr) as LstExpression
             val exprType = typeToMonoType(expr.type, ctx)
 
-            if (typeParam.isStackBased() || exprType.isStackBased()) {
-                int(inst.span, if (exprType == typeParam) 1 else 0)
-            } else {
+            if (!typePattern.isOptionOrOptionItem() || !exprType.isOptionOrOptionItem()) {
+                // Compile type check
+                int(inst.span, if (typePattern.match(exprType)) 1 else 0)
+                provider(inst.span, inst.ref, type)
+            } else if (typePattern.isOptionItem() && exprType.isOptionOrOptionItem()) {
+                // Runtime check
+                val struct = (typePattern.base as MonoTypeBasePattern.PatternStruct).instance
+                val index = struct.parentOption!!.items.indexOf(typePattern.base.instance)
+                check(index != -1)
+
                 consumer(inst.span, inst.expr)
-                int(inst.span, typeParam.id)
+                int(inst.span, index + 1)
                 call(inst.span, "is_type_internal", ctx)
+                provider(inst.span, inst.ref, type)
+            } else {
+                // Invalid check
+                this.program.collector.report(
+                    "Invalid type check, types must be known at compile type or be options",
+                    inst.span
+                )
+                opcode(inst.span, "unreachable")
+                provider(inst.span, inst.ref, type)
             }
-            provider(inst.span, inst.ref, type)
         }
 
         is LstAsType -> {
@@ -559,18 +586,29 @@ fun WasmBuilder.processNode(
             val expr = code.getNode(inst.expr) as LstExpression
             val exprType = typeToMonoType(expr.type, ctx)
 
-            if (typeParam.isStackBased() || exprType.isStackBased()) {
+            if (typeParam.isValueType() || exprType.isValueType()) {
+                // Compile type cast
                 if (exprType == typeParam) {
                     consumer(inst.span, inst.expr)
-                } else {
-                    call(inst.span, "panic", ctx)
+                    provider(inst.span, inst.ref, type)
+                    return
                 }
-            } else {
+            } else if (typeParam.isOptionItem() && (exprType.isOptionItem() || exprType.isOption())) {
+                // Runtime cast
+                val struct = (typeParam.base as MonoStruct).instance
+                val index = struct.parentOption!!.items.indexOf(typeParam.base.instance)
+                check(index != -1)
+
                 consumer(inst.span, inst.expr)
-                int(inst.span, type.id)
+                int(inst.span, index + 1)
                 call(inst.span, "as_type_internal", ctx)
+                provider(inst.span, inst.ref, type)
+            } else {
+                // Invalid cast
+                this.program.collector.report("Invalid type cast", inst.span)
+                opcode(inst.span, "unreachable")
+                provider(inst.span, inst.ref, type)
             }
-            provider(inst.span, inst.ref, type)
         }
 
         is LstIfChoose -> {
@@ -626,8 +664,14 @@ fun WasmBuilder.processNode(
             int(inst.span, field.offset)
             opcode(inst.span, "i32.add")
 
-            mono.instructions += MonoLoadField(mono.nextId(), inst.span, instanceType, field)
-            provider(inst.span, inst.ref, type)
+            if (field.type.isValueType() && !field.type.isIntrinsic()) {
+                // Field offset is already the pointer to the struct
+                provider(inst.span, inst.ref, type)
+            } else {
+                // Load value from pointer
+                mono.instructions += MonoLoadField(mono.nextId(), inst.span, instanceType, field)
+                provider(inst.span, inst.ref, type)
+            }
         }
 
         is LstStoreField -> {
@@ -636,14 +680,30 @@ fun WasmBuilder.processNode(
 
             val struct = instanceType.base as MonoStruct
             val field = struct.fields[inst.field!!.index]
+            val fieldType = field.type
+
+            if (fieldType.heapSize() == 0) {
+                return
+            }
 
             consumer(inst.span, inst.instance)
+
             // Field offset
             int(inst.span, field.offset)
             opcode(inst.span, "i32.add")
 
+            // Value
             consumer(inst.span, inst.expr)
-            mono.instructions += MonoStoreField(mono.nextId(), inst.span, instanceType, field)
+
+            if (fieldType.isValueType() && !fieldType.isIntrinsic()) {
+                // Copy value
+                int(inst.span, fieldType.heapSize())
+                call(inst.span, "memory_copy_internal", ctx)
+                drop(inst.span, fieldType)
+            } else {
+                // Copy pointer
+                mono.instructions += MonoStoreField(mono.nextId(), inst.span, instanceType, field)
+            }
         }
 
         is LstIfStart -> {
@@ -781,6 +841,10 @@ fun WasmBuilder.processFunctionCall(mono: MonoFunction, function: LstFunction, i
     inst.arguments.forEach { ref -> consumer(inst.span, ref) }
     mono.instructions += MonoFunCall(mono.nextId(), inst.span, monoFunction)
     provider(inst.span, inst.ref, finalType)
+
+    if (monoFunction.returnType.isNever()) {
+        opcode(inst.span, "unreachable")
+    }
 }
 
 fun findTagImplementation(tag: LstTag, paramType: MonoType, fullName: String): Pair<TType, LstFunction>? {
@@ -853,7 +917,7 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
         definition = WasmFunctionDefinition(
             name = func.finalName,
             params = params,
-            results = listOf(compileTypeToPtr(func.returnType)),
+            results = monoTypeToPrimitive(func.returnType),
             comment = func.signature.toString(),
             exportName = exportName
         )
@@ -924,8 +988,6 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
 
                 val bytes = inst.value.encodeToByteArray()
                 val start = module.sectionOffset
-                // type
-                module.sectionOffset += PTR_SIZE
                 // size
                 module.sectionOffset += PTR_SIZE
                 // pointer to string characters in heap or data section
@@ -935,20 +997,16 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
                 val contentStart = module.sectionOffset
                 module.sectionOffset += bytes.size
 
-                val type = intToWasmHex(inst.type.id)
                 val size = intToWasmHex(bytes.size)
                 val contentsPtr = intToWasmHex(contentStart)
                 val contents = bytes.joinToString("") {
                     "\\" + it.toUByte().toString(16).padStart(2, '0')
                 }
 
-                module.sections += start to "$type$size$contentsPtr$contents"
+                module.sections += start to "$size$contentsPtr$contents"
 
                 wasmFunc.instructions += WasmInst("i32.const $start")
             }
-
-            is MonoAsType -> TODO()
-            is MonoIsType -> TODO()
 
             is MonoFunCall -> {
                 wasmFunc.instructions += WasmInst("call ${inst.function.finalName}")
@@ -997,9 +1055,30 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
                 if (instancePrim.size != 1 || instancePrim.first() !== WasmPrimitive.i32) {
                     error("Instance is not a pointer!")
                 }
-                val fieldPrim = monoTypeToPrimitive(inst.field.type)
-                fieldPrim.forEach {
-                    wasmFunc.instructions += WasmInst("$it.load")
+
+                val fieldType = inst.field.type
+                val fieldPrim = monoTypeToPrimitive(fieldType)
+                if (fieldPrim.size != 1) error("Handle multi value fields")
+
+                fieldPrim.forEach { prim ->
+                    when (inst.field.size) {
+                        0 -> {
+                            wasmFunc.instructions += WasmInst("drop")
+                            wasmFunc.instructions += WasmInst("i32.const 0")
+                        }
+
+                        1 -> {
+                            wasmFunc.instructions += WasmInst("i32.load8_s")
+                        }
+
+                        2 -> {
+                            wasmFunc.instructions += WasmInst("i32.load16_s")
+                        }
+
+                        else -> {
+                            wasmFunc.instructions += WasmInst("$prim.load")
+                        }
+                    }
                 }
             }
 
@@ -1009,11 +1088,29 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
                     error("Instance is not a pointer!")
                 }
 
-                val fieldPrim = monoTypeToPrimitive(inst.field.type)
+                val fieldType = inst.field.type
+                val fieldPrim = monoTypeToPrimitive(fieldType)
                 if (fieldPrim.size != 1) TODO("Handle multi value fields")
 
                 fieldPrim.forEach { prim ->
-                    wasmFunc.instructions += WasmInst("$prim.store").also { it.needsWrapping = false }
+                    when (inst.field.size) {
+                        0 -> {
+                            wasmFunc.instructions += WasmInst("drop")
+                            wasmFunc.instructions += WasmInst("drop")
+                        }
+
+                        1 -> {
+                            wasmFunc.instructions += WasmInst("i32.store8").also { it.needsWrapping = false }
+                        }
+
+                        2 -> {
+                            wasmFunc.instructions += WasmInst("i32.store16").also { it.needsWrapping = false }
+                        }
+
+                        else -> {
+                            wasmFunc.instructions += WasmInst("$prim.store").also { it.needsWrapping = false }
+                        }
+                    }
                 }
             }
 
@@ -1111,7 +1208,7 @@ fun LstProgram.replaceGenerics(type: TType, replacements: Map<LstTypeParameterDe
     )
 }
 
-data class UnresolvedGenericError(
+data class UnresolvedGenericTypeError(
     val msg: String,
     val type: TType,
 ) : RuntimeException()
@@ -1125,11 +1222,11 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
             return typeToMonoType(type, ctx.parent)
         }
 
-        throw UnresolvedGenericError("No valid replacement for generic: $type", type)
+        throw UnresolvedGenericTypeError("No valid replacement for generic: $type", type)
     }
 
     if (type !is TComposite) {
-        throw UnresolvedGenericError("Unable to convert type $type to MonoType", type)
+        throw UnresolvedGenericTypeError("Unable to convert type $type to MonoType", type)
     }
 
     val params = mutableListOf<MonoType>()
@@ -1138,27 +1235,18 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
         params += typeToMonoType(param, ctx)
     }
 
-    val kind: Int
+    val kind: Int = when (type.base) {
+        is TOption -> 0
+        is TOptionItem -> 1
+        is TStruct -> 2
+        is TLambda -> 3
+    }
+
     val base = when (type.base) {
-        is TOption -> {
-            kind = 0
-            getOptionType(type.base.instance, params, ctx)
-        }
-
-        is TOptionItem -> {
-            kind = 1
-            getStructType(type.base.instance, params, ctx)
-        }
-
-        is TStruct -> {
-            kind = 2
-            getStructType(type.base.instance, params, ctx)
-        }
-
-        is TLambda -> {
-            kind = 3
-            getLambdaType(type.base.instance, params)
-        }
+        is TOption -> getOptionType(type.base.instance, params, ctx)
+        is TOptionItem -> getStructType(type.base.instance, params, ctx)
+        is TStruct -> getStructType(type.base.instance, params, ctx)
+        is TLambda -> getLambdaType(type.base.instance, params)
     }
 
     val typeSign = mutableListOf(kind, base.id)
@@ -1172,10 +1260,52 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
     return typeIds[typeSign]!!
 }
 
+fun WasmBuilder.monoTypeToPattern(ty: MonoType): MonoTypePattern {
+    val params = ty.params.map { monoTypeToPattern(it) }
+    return MonoTypePattern(monoTypeBaseToBasePattern(ty.base), params)
+}
+
+fun WasmBuilder.monoTypeBaseToBasePattern(ty: MonoTypeBase?): MonoTypeBasePattern {
+    if (ty == null) return MonoTypeBasePattern.PatternAny
+
+    if (ty is MonoStruct) {
+        return MonoTypeBasePattern.PatternStruct(ty.instance)
+    }
+
+    if (ty is MonoOption) {
+        return MonoTypeBasePattern.PatternOption(ty.instance)
+    }
+
+    error("Invalid type: $ty")
+}
+
+fun WasmBuilder.patternToMonoTypePattern(pattern: TypePattern, ctx: MonoCtx): MonoTypePattern {
+    if (pattern.generic != null) {
+        val ty = typeToMonoType(pattern.generic!!, ctx)
+        return monoTypeToPattern(ty)
+    }
+
+    val params = pattern.sub.map { patternToMonoTypePattern(it, ctx) }
+
+    val patternBase = when (val base = pattern.base) {
+        null -> MonoTypeBasePattern.PatternAny
+        is TOption -> MonoTypeBasePattern.PatternOption(base.instance)
+        is TStruct -> MonoTypeBasePattern.PatternStruct(base.instance)
+        else -> error("Invalid type: $base")
+    }
+
+    return MonoTypePattern(patternBase, params)
+}
+
 fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: MonoCtx): MonoStruct {
 
     val generics = mutableMapOf<LstTypeParameterDef, MonoType>()
-    repeat(struct.typeParameters.size) {
+
+    if (struct.typeParameters.size != params.size && !struct.isIntrinsic) {
+        error("Invalid number of type parameters for type ${struct.fullName}")
+    }
+
+    repeat(min(struct.typeParameters.size, params.size)) {
         generics[struct.typeParameters[it]] = params[it]
     }
 
@@ -1186,12 +1316,17 @@ fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: Mo
         val newCtx = MonoCtx(generics, ctx)
         val fields = toMonoStructFields(struct, newCtx)
 
-        var size = PTR_SIZE
-        if (struct.parentOption != null) {
-            size += PTR_SIZE
+        var size = 0
+        fields.forEach {
+            if (it.size >= 4) {
+                size = pad(size)
+            }
+            size += it.size
         }
 
-        fields.forEach { size += it.size }
+        if (size > 4) {
+            size = pad(size)
+        }
 
         structIds[sign] = MonoStruct(structIds.size + 1, struct, fields, size)
     }
@@ -1219,7 +1354,7 @@ fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: Mo
         }
 
         monoOption.items = items
-        monoOption.size = PTR_SIZE + items.maxOf { it.size }
+        monoOption.size = pad(items.maxOf { it.size })
         items.forEach { it.option = monoOption }
     }
 
@@ -1231,7 +1366,7 @@ fun WasmBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>)
     params.forEach { sign += it.id }
 
     if (sign !in lambdaIds) {
-        val size = PTR_SIZE * 2
+        val size = PTR_SIZE
         lambdaIds[sign] = MonoLambda(lambdaIds.size + 1, lambda, size)
     }
 
@@ -1240,29 +1375,23 @@ fun WasmBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>)
 
 fun WasmBuilder.toMonoStructFields(struct: LstStruct, ctx: MonoCtx): List<MonoStructField> {
     val fields = mutableListOf<MonoStructField>()
-    var offset = PTR_SIZE
+    var offset = 0
 
     struct.fields.values.forEach { field ->
         val fieldType = typeToMonoType(field.type, ctx)
-        val stackSize = fieldType.stackSize()
-        fields += MonoStructField(field.name, fieldType, stackSize, offset)
-        offset += stackSize
+
+        val size: Int = if (fieldType.isValueType()) fieldType.heapSize() else fieldType.stackSize()
+
+        // Pad to 4 bytes
+        if (size >= PTR_SIZE) {
+            offset = pad(offset)
+        }
+
+        fields += MonoStructField(field.name, fieldType, size, offset)
+        offset += size
     }
 
     return fields
-}
-
-fun compileTypeToPtr(type: MonoType): WasmPrimitive {
-    // Floats are inlined instead of passed by pointer
-    if (type.isFloat()) {
-        return WasmPrimitive.f32
-    }
-    // Ints are also inlined, but they are represented the same as pointers
-    if (type.isInt()) {
-        return WasmPrimitive.i32
-    }
-
-    return WasmPrimitive.i32
 }
 
 fun TType.isPolymorphic(): Boolean {
@@ -1271,4 +1400,11 @@ fun TType.isPolymorphic(): Boolean {
         if (!param.isPolymorphic()) return false
     }
     return true
+}
+
+fun pad(value: Int, alignment: Int = PTR_SIZE): Int {
+    if (value % alignment != 0) {
+        return value + value % alignment
+    }
+    return value
 }

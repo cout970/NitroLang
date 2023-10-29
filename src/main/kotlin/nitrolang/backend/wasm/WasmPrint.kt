@@ -19,14 +19,19 @@ fun WasmPrint.module(module: WasmModule) {
         out.nl()
     }
 
-    out += "(table \$lambdas funcref (elem"
-    for (label in module.lambdaLabels) {
+    if (module.lambdaLabels.isNotEmpty()) {
+        out += "(table \$lambdas funcref"
         out.sep()
-        out += "$"
-        out += label
+        out += "(elem"
+        for (label in module.lambdaLabels) {
+            out.sep()
+            out += "$"
+            out += label
+        }
+        out += ")"
+        out += ")"
+        out.nl()
     }
-    out += "))"
-    out.nl()
 
     out += "(memory (export"
     out.sep()

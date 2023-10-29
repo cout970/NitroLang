@@ -1,8 +1,9 @@
 
 // Pointer to a single value stored in heap,
-// if the value is a @StackValue, the pointer itself will be the value
+// if the value is a @ValueType, the pointer itself will be the value
 @Extern $[lib: "core", name: "Ptr"]
-@StackValue
+@ValueType
+@Intrinsic
 struct Ptr<#Value> {}
 
 // Converts a reference to a value into a Pointer to the value
@@ -24,11 +25,10 @@ fun Ptr<#Value>.is_null(): Boolean {
     ret this.get_address() == 0
 }
 
-// Converts the pointer to a reference to a value
-// if the pointer does not point to a valid instance of the value,
-// the program will crash to prevent further damage
+// Converts the pointer into a reference
+// if the pointer is null, the program will crash
 @Extern $[lib: "core", name: "ptr_as_ref"]
-fun Ptr<#Value>.as_ref(): #Value {}
+fun Ptr<#Value>.unsafe_as_ref(): #Value {}
 
 // Convert the pointer to a numerical address of memory
 @Extern $[lib: "core", name: "ptr_get_address"]
@@ -44,6 +44,18 @@ fun <#Value, #Target> Ptr<#Value>.unsafe_cast(): Ptr<#Target> {}
 // `void write(int **this, int *ptr) { *this = ptr; }`
 @Extern $[lib: "core", name: "ptr_write"]
 fun Ptr<Ptr<#Value>>.write(value: Ptr<#Value>) {}
+
+// Writes a copy of the value provided into the memory pointed to by this pointer
+fun Ptr<#Value>.write_copy(value: #Value) {
+    if is_encoded_in_ref(value) {
+        this.unsafe_cast().write(ptr_of(value))
+    } else {
+        ptr_of(value).copy_into_internal(this, size_of<#Value>)
+    }
+}
+
+@Extern $[lib: "core", name: "ptr_copy_into"]
+fun Ptr<#Item>.copy_into_internal(other: Ptr<#Item>, byte_len: Int) {}
 
 // Read a pointer, given a pointer to the pointer
 // Same in C:
@@ -61,6 +73,6 @@ fun Ptr<#Value>.offset_in_bytes(num_bytes: Int): Ptr<#Value> {
 fun Ptr<#Value>.to_raw_array(): RawArray<#Value> {}
 
 // Debug representation of the pointer
-fun Ptr<#Value>.to_debug_string(): String {
+fun Ptr<#Value>.to_string(): String {
     ret "0x".concat(this.get_address().to_string_in_base(16))
 }

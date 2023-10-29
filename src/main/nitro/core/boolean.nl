@@ -2,7 +2,8 @@
 // This type is used to represent boolean values in the language
 // The posible values are 'true' and 'false'
 @Extern $[lib: "core", name: "Boolean"]
-@StackValue
+@ValueType
+@Intrinsic
 struct Boolean {}
 
 // This function returns the logical negation of a boolean value

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WASM</title>
+</head>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body {
+        background-color: #333;
+        color: #eee;
+        display: flex;
+        justify-content: stretch;
+        align-items: start;
+    }
+    pre {
+        flex-basis: 50%;
+        height: 100vh;
+        overflow-y: auto;
+        border: 1px solid #111;
+        font-family: monospace;
+        padding: 10px;
+    }
+    ::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    ::-webkit-scrollbar-button {
+      width: 0px;
+      height: 0px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #444;
+      border: none;
+      border-radius: 0;
+    }
+    ::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active {
+      background: #898989;
+    }
+    ::-webkit-scrollbar-track {
+      background: #333;
+      border: none;
+      border-radius: 0;
+    }
+    ::-webkit-scrollbar-track:hover {
+      background: #333;
+    }
+    ::-webkit-scrollbar-track:active {
+      background: #333;
+    }
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+</style>
+<body>
+
+<pre id="console_pre"></pre>
+<pre id="code_pre"></pre>
+
+<script>
+    fetch('/output/assembly.wat')
+        .then(response => response.text())
+        .then(text => {
+            const pre = document.getElementById("code_pre");
+            pre.textContent = text;
+            pre.scrollTo(0, pre.scrollHeight);
+        });
+
+    const old_log = console.log;
+    console.log = function (message) {
+        document.getElementById("console_pre").textContent += `  [LOG] ${message}\n`;
+        old_log(message);
+    };
+    const old_error = console.error;
+    console.error = function (message) {
+        document.getElementById("console_pre").textContent += `[ERROR] ${message}\n`;
+        old_error(message);
+    };
+    const old_warn = console.warn;
+    console.warn = function (message) {
+        document.getElementById("console_pre").textContent += ` [WARN] ${message}\n`;
+        old_warn(message);
+    };
+    const old_info = console.info;
+    console.info = function (message) {
+        document.getElementById("console_pre").textContent += ` [INFO] ${message}\n`;
+        old_info(message);
+    };
+    const old_debug = console.debug;
+    console.debug = function (message) {
+        document.getElementById("console_pre").textContent += `[DEBUG] ${message}\n`;
+        old_debug(message);
+    };
+</script>
+
+<script src="./output/build.js" type="module"></script>
+
+</body>
+</html>

@@ -23,16 +23,9 @@
 // ```
 @Extern $[lib: "core", name: "Map"]
 struct Map<#Key, #Value> {
+    capacity: Int
     len: Int
-    table: List<Optional<MapEntry<#Key, #Value>>>
-    // TODO: Use a raw array instead of a list of optionals to save memory
-    // table2: RawArray<Ptr<MapEntry<#Key, #Value>>>
-}
-
-// Slot in the map
-struct MapEntry<#Key, #Value> {
-    key: #Key
-    value: #Value
+    table: RawArray<Optional<Pair<#Key, #Value>>>
 }
 
 // Functions required for keys
@@ -44,38 +37,42 @@ tag MapKey {
 // Creates an empty map
 fun <#Key: MapKey> Map::new(): Map<#Key, #Value> {
     ret Map<#Key, #Value> $[
+        capacity: 0
         len: 0
-        table: List::new<Optional<MapEntry<#Key, #Value>>>()
+        table: RawArray::new<Optional<Pair<#Key, #Value>>>(0)
     ]
 }
 
 // Makes sure the map has capacity for the requested number of items
 fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(capacity: Int) {
-    if max(this.len, capacity).to_float() < this.table.len().to_float() * 0.75 {
+    if max(this.len, capacity).to_float() < this.capacity.to_float() * 0.75 {
         // No resize needed
         ret
     }
 
-    let new_size = (this.table.len() * 2).max(16)
+    let new_size = max(this.capacity * 2, 8)
 
-    while new_size.to_float() < this.table.len().to_float() * 0.75 {
+    while new_size.to_float() < this.capacity.to_float() * 0.75 {
         new_size = new_size * 2
     }
 
+
     // Keep old table to move items later
     let old_table = this.table
+    let old_capacity = this.capacity
+
+    let new_table = RawArray::new<Optional<Pair<#Key, #Value>>>(new_size)
+    this.capacity = new_size
+    this.table = new_table
+
     this.clear()
 
-    repeat new_size {
-        this.table.add(None<MapEntry<#Key, #Value>>())
-    }
-
-    repeat old_table.len() {
-        let opt = old_table[it]!!
+    // Move items to the new table
+    repeat old_capacity {
+        let opt: Optional<Pair<#Key, #Value>> = old_table[it]
 
         if opt.is_some() {
-            let entry: MapEntry<#Key, #Value> = opt!!
-            this.set_entry(entry)
+           this.set_entry(opt!!)
         }
     }
 }
@@ -85,26 +82,25 @@ fun <#Key: MapKey> Map<#Key, #Value>.set(key: #Key, value: #Value) {
     this.ensure_capacity(this.len + 1)
 
     // Index where to insert the value, if available
-    let index = key.get_hash().modulo(this.table.len())
+    let index = key.get_hash().modulo(this.capacity)
 
-    repeat this.table.len() {
-        let slot = this.table[index]!!
+    repeat this.capacity {
+        let slot = this.table[index]
         let available = slot.is_none()
 
         if not available {
-            if slot!!.key == key {
+            if slot!!.first == key {
                 available = true
             }
         }
 
         if available {
-            this.table[index] = Some(MapEntry<#Key, #Value> $[key, value])
-
             // Increment the length if the slot was empty before the modification
             if slot.is_none() {
                 this.len = this.len + 1
             }
 
+            this.table[index] = Some(Pair::of(key, value))
             ret
         }
 
@@ -114,9 +110,9 @@ fun <#Key: MapKey> Map<#Key, #Value>.set(key: #Key, value: #Value) {
     unreachable()
 }
 
-// Equivalent to `Map.set(key, value)` but with a MapEntry
-fun <#Key: MapKey> Map<#Key, #Value>.set_entry(entry: MapEntry<#Key, #Value>) {
-    this.set(entry.key, entry.value)
+// Equivalent to `Map.set(key, value)` but with a Pair
+fun <#Key: MapKey> Map<#Key, #Value>.set_entry(entry: Pair<#Key, #Value>) {
+    this.set(entry.first, entry.second)
 }
 
 // Finds a value in the map by key
@@ -127,20 +123,20 @@ fun <#Key: MapKey> Map<#Key, #Value>.get(key: #Key): Optional<#Value> {
         ret None()
     }
 
-    ret Some(opt!!.value)
+    ret Some(opt!!.second)
 }
 
-// Equivalent to `Map.get(key)` but returns a MapEntry
-fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Key, #Value>> {
-    if this.len == 0 || this.table.len() == 0 {
+// Equivalent to `Map.get(key)` but returns a Pair
+fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<Pair<#Key, #Value>> {
+    if this.len == 0 || this.capacity == 0 {
         ret None()
     }
 
     // Index where to find the value, if present
-    let index = key.get_hash().modulo(this.table.len())
+    let index = key.get_hash().modulo(this.capacity)
 
-    repeat this.table.len() {
-        let slot = this.table[index]!!
+    repeat this.capacity {
+        let slot = this.table[index]
 
         // Not found
         if slot.is_none() {
@@ -148,10 +144,10 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Ke
         }
 
         // Found something
-        let entry: MapEntry<#Key, #Value> = slot!!
+        let entry: Pair<#Key, #Value> = slot!!
 
         // Found it
-        if entry.key == key {
+        if entry.first == key {
             ret Some(entry)
         }
 
@@ -165,21 +161,24 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<MapEntry<#Ke
 
 // Removes all values from the map
 fun <#Key: MapKey> Map<#Key, #Value>.clear() {
-    this.table = List::new<Optional<MapEntry<#Key, #Value>>>()
     this.len = 0
+
+    repeat this.capacity {
+        this.table[it] = None<Pair<#Key, #Value>>()
+    }
 }
 
 // Removes a value from the map by key
 fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
-    if this.len == 0 || this.table.len() == 0 {
+    if this.len == 0 || this.capacity == 0 {
         ret false
     }
 
     // Index where to find the value, if present
-    let index = key.get_hash().modulo(this.table.len())
+    let index = key.get_hash().modulo(this.capacity)
 
-    repeat this.table.len() {
-        let slot = this.table[index]!!
+    repeat this.capacity {
+        let slot = this.table[index]
 
         // Not found
         if slot.is_none() {
@@ -187,11 +186,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
         }
 
         // Found something
-        let entry: MapEntry<#Key, #Value> = slot!!
+        let entry: Pair<#Key, #Value> = slot!!
 
         // Found it
-        if entry.key == key {
-            this.table[index] = None<MapEntry<#Key, #Value>>()
+        if entry.first == key {
+            this.table[index] = None<Pair<#Key, #Value>>()
             this.len = this.len - 1
             ret true
         }
@@ -211,13 +210,13 @@ fun <#Key: MapKey> Map<#Key, #Value>.contains_key(key: #Key): Boolean {
 
 // Checks if the map contains a value
 fun <#Value: GetOrdering> Map<#Key, #Value>.contains_value(value: #Value): Boolean {
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            let entry: MapEntry<#Key, #Value> = slot!!
+            let entry: Pair<#Key, #Value> = slot!!
 
-            if entry.value == value {
+            if entry.second == value {
                 ret true
             }
         }
@@ -263,36 +262,36 @@ fun <#Key: MapKey> Map<#Key, #Value>.for_each(func: (#Key, #Value) -> Nothing) {
 
 // Iterates over the each entry in the map
 fun <#Key: MapKey> Map<#Key, #Value>.for_each_entry(func: (#Key, #Value) -> Nothing) {
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            let entry: MapEntry<#Key, #Value> = slot!!
-            func.invoke(entry.key, entry.value)
+            let entry: Pair<#Key, #Value> = slot!!
+            func.invoke(entry.first, entry.second)
         }
     }
 }
 
 // Iterates over the each value in the map
 fun <#Key: MapKey> Map<#Key, #Value>.for_each_value(func: (#Value) -> Nothing) {
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            let entry: MapEntry<#Key, #Value> = slot!!
-            func.invoke(entry.value)
+            let entry: Pair<#Key, #Value> = slot!!
+            func.invoke(entry.second)
         }
     }
 }
 
 // Iterates over the each key in the map
 fun <#Key: MapKey> Map<#Key, #Value>.for_each_key(func: (#Key) -> Nothing) {
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            let entry: MapEntry<#Key, #Value> = slot!!
-            func.invoke(entry.key)
+            let entry: Pair<#Key, #Value> = slot!!
+            func.invoke(entry.first)
         }
     }
 }
@@ -301,11 +300,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.for_each_key(func: (#Key) -> Nothing) {
 fun <#Key: MapKey> Map<#Key, #Value>.keys_to_list(): List<#Key> {
     let res = List::new<#Key>()
 
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            res[] = slot!!.key
+            res[] = slot!!.first
         }
     }
 
@@ -316,11 +315,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.keys_to_list(): List<#Key> {
 fun <#Key: MapKey> Map<#Key, #Value>.values_to_list(): List<#Value> {
     let res = List::new<#Value>()
 
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
-            res[] = slot!!.value
+            res[] = slot!!.second
         }
     }
 
@@ -328,11 +327,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.values_to_list(): List<#Value> {
 }
 
 // Returns the list of entries in the map
-fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<MapEntry<#Key, #Value>> {
-    let res = List::new<MapEntry<#Key, #Value>>()
+fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<Pair<#Key, #Value>> {
+    let res = List::new<Pair<#Key, #Value>>()
 
-    repeat this.table.len() {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        let slot = this.table[it]
 
         if slot.is_some() {
             res[] = slot!!
@@ -344,23 +343,24 @@ fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<MapEntry<#Key, #Val
 
 // Converts the map to a string
 fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
-    let str = "@["
+    let mut str = "@["
+    let mut count = 0
 
-    repeat this.len {
-        let slot = this.table[it]!!
+    repeat this.capacity {
+        println("it: $it")
+        let slot = this.table[it]
 
-        if slot.is_none() {
-            continue
-        }
+        if slot.is_some() {
+            let entry: Pair<#Key, #Value> = slot!!
 
-        let entry: MapEntry<#Key, #Value> = slot!!
+            str = str.concat(entry.first.to_string())
+            str = str.concat(" => ")
+            str = str.concat(entry.second.to_string())
 
-        str = str.concat(entry.key.to_string())
-        str = str.concat(" => ")
-        str = str.concat(entry.value.to_string())
-
-        if it != limit - 1 {
-            str = str.concat(", ")
+            if count != this.len - 1 {
+                str = str.concat(", ")
+            }
+            count = count + 1
         }
     }
 

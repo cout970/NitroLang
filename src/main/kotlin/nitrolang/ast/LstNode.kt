@@ -347,11 +347,10 @@ data class LstIsType(
     override val span: Span,
     override val block: LstNodeBlock,
     val expr: Ref,
-    val typeUsage: TypeUsage
+    val typePattern: TypePattern
 ) : LstExpression(ref, span, block) {
-    var typeUsageBox: TypeBox? = null
 
-    override fun toString(): String = "$ref = $expr is $typeUsage ($typeUsageBox) [$typeBox]"
+    override fun toString(): String = "$ref = $expr is $typePattern [$typeBox]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -359,7 +358,6 @@ data class LstIsType(
         it.add("block", block.dump())
         it.add("type", typeBox?.dump())
         it.add("expr", expr.dump())
-        it.add("is_type", typeUsageBox?.dump())
     }
 }
 

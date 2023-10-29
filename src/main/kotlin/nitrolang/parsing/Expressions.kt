@@ -191,7 +191,7 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
         }
 
         simple.IS() != null -> {
-            val typeUsage = resolveTypeUsage(simple.typeUsage())
+            val typePattern = resolveTypePattern(simple.typePattern())
             val expr = processExpressionWithSuffix(simple.expressionWithSuffix(0))
 
             val node = LstIsType(
@@ -199,14 +199,14 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
                 span = simple.span(),
                 block = code.currentBlock,
                 expr = expr,
-                typeUsage = typeUsage,
+                typePattern = typePattern,
             )
             code.nodes += node
             node.ref
         }
 
         simple.NOT_IS() != null -> {
-            val typeUsage = resolveTypeUsage(simple.typeUsage())
+            val typePattern = resolveTypePattern(simple.typePattern())
             val expr = processExpressionWithSuffix(simple.expressionWithSuffix(0))
 
             val node = LstIsType(
@@ -214,7 +214,7 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
                 span = simple.span(),
                 block = code.currentBlock,
                 expr = expr,
-                typeUsage = typeUsage,
+                typePattern = typePattern,
             )
             code.nodes += node
 

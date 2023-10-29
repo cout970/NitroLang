@@ -2,3 +2,5 @@
 output.wasm
 /output/assembly.wat
 /output/compiled.wasm
+*.map
+*.js

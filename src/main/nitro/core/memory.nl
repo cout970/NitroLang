@@ -14,16 +14,22 @@ fun debug_alloc_bytes(amount: Int, ptr: Int) {}
 
 // Allocates a number of bytes on the heap, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
-    let next = this.len
     let ptr_size = size_of<Ptr<Byte>>
+
+    if ptr_size == 0 {
+        ret null_ptr()
+    }
+
+    let next = this.len
 
     let pad = (ptr_size - next) % ptr_size;
     next = next + (if pad.less_than_signed(0) { pad + ptr_size } else { pad })
 
-    debug_alloc_bytes(bytes, next)
-
     this.len = next + bytes
-    return this.bytes.get_ptr(next)
+    let result = this.bytes.get_ptr(next)
+
+    debug_alloc_bytes(bytes, result.get_address())
+    ret result
 }
 
 // Allocates a value on the heap, using the size of the value to determine the number of bytes to allocate

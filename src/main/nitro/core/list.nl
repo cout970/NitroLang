@@ -44,7 +44,7 @@ fun List<#Item>.ensure_capacity(capacity: Int) {
        ret
     }
 
-    let new_capacity = (this.capacity * 2).max(16)
+    let new_capacity = max(this.capacity * 2, 16)
 
     while new_capacity < capacity {
         new_capacity = new_capacity * 2
@@ -83,7 +83,7 @@ fun List<#Item>.get(index: Int): Optional<#Item> {
     }
 
     let item_ptr: Ptr<#Item> = this.items.get_ptr(index).read()
-    ret Some(item_ptr.as_ref())
+    ret Some(item_ptr.unsafe_as_ref())
 }
 
 // Set the item at the given index, if the index is out of bounds, the program crashes
@@ -303,7 +303,7 @@ fun <#Item: GetOrdering> List<#Item>.find_index(predicate: (#Item) -> Boolean): 
 
 // Generates a string with debug information about the list internals
 fun List<#Item>.to_debug_string(): String {
-    ret "List \$[capacity: ${this.capacity}, len: ${this.len}, data: ${this.items.to_debug_string()}]"
+    ret "List \$[capacity: ${this.capacity}, len: ${this.len}, data: ${this.items}]"
 }
 
 // Converts the list to a string
@@ -330,9 +330,9 @@ fun <#Item: ToString> List<#Item>.to_string(): String {
 //     println(item)
 // }
 // ```
-fun for_each(list: List<#Item>, func: (#Item) -> Nothing) {
-    repeat list.len() {
-        func.invoke(list[it]!!)
+fun List<#Item>.for_each(func: (#Item) -> Nothing) {
+    repeat this.len() {
+        func.invoke(this[it]!!)
     }
 }
 
@@ -342,10 +342,25 @@ fun for_each(list: List<#Item>, func: (#Item) -> Nothing) {
 // #[1, 2, 3].for_each_entry #{ index: Int, item: Int ->
 //     println("Item at index $index is $item")
 // }
-fun for_each_entry(list: List<#Item>, func: (Int, #Item) -> Nothing) {
-    repeat list.len() {
-        func.invoke(it, list[it]!!)
+fun List<#Item>.for_each_entry(func: (Int, #Item) -> Nothing) {
+    repeat this.len() {
+        func.invoke(it, this[it]!!)
     }
+}
+
+// Concatenates all the items in the list into a string, separated by the given separator
+fun <#Item: ToString> List<#Item>.join(separator: String): String {
+    let str = ""
+
+    repeat this.len {
+        str = str.concat(this[it]!!.to_string())
+
+        if it != this.len - 1 {
+            str = str.concat(separator)
+        }
+    }
+
+    ret str
 }
 
 // Creates a new list with items between the given start and end indexes

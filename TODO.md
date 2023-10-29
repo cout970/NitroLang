@@ -23,6 +23,7 @@ Intended for the developers
 
 
 ### Other features to implement
+- `defer {}` statement
 - Vec implementation
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators

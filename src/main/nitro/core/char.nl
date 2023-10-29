@@ -1,6 +1,6 @@
 
 // This type represents a single character encoded as a unicode code point
-@StackValue
+@ValueType
 struct Char {
     unicode_code_point: Int
 }

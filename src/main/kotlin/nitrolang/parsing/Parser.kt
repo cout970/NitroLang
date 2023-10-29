@@ -21,7 +21,7 @@ const val ANNOTATION_INTRINSIC = "Intrinsic"
 const val ANNOTATION_REQUIRED = "Required"
 const val ANNOTATION_WASM_NAME = "WasmName"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
-const val ANNOTATION_STACK_VALUE = "StackValue"
+const val ANNOTATION_VALUE_TYPE = "ValueType"
 const val MAIN_FUNCTION_NAME = "main"
 
 data class ParserCtx(

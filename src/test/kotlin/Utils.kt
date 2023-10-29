@@ -14,9 +14,9 @@ fun assertCompilationSuccess(path: String): LstProgram {
     val errors = ErrorCollector()
     val file = SourceFile.load(path)
     val program = LstProgram()
-    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), program)
     program.resetCounters(10000)
-    AstParser.parseFile(file, errors, program)
+    AstParser.parseFile(file, program)
 
     assertEquals("", errors.toString(), "Parsing errors")
     assertCompilerOutput(program, path)
@@ -27,9 +27,9 @@ fun assertCompilationError(path: String) {
     val errors = ErrorCollector()
     val file = SourceFile.load(path)
     val program = LstProgram()
-    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), errors, program)
+    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), program)
     program.resetCounters(10000)
-    AstParser.parseFile(file, errors, program)
+    AstParser.parseFile(file, program)
 
     println(errors.toString())
     assertNotEquals("", errors.toString(), "Parsed without the expected errors")

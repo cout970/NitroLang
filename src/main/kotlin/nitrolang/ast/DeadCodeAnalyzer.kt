@@ -19,7 +19,9 @@ class DeadCodeAnalyzer(val program: LstProgram) {
                 it.isDeadCode = true
             }
 
-            DeadCodeAnalyzer(program).visitFunction(program.getFunction("memory_alloc_internal"))
+            program.functions.filter { it.isRequired }.forEach {
+                DeadCodeAnalyzer(program).visitFunction(it)
+            }
             DeadCodeAnalyzer(program).visitFunction(main)
         }
     }

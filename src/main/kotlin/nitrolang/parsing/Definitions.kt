@@ -48,15 +48,25 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     ctx.optionDefinitionItem().forEach { opt ->
 
         var index = 0
-        val fields = opt.structBody()?.structField()?.map { fieldCtx ->
-            LstStructField(
+        val fields = mutableListOf<LstStructField>()
+        // Field to discriminate between the option's items
+        fields += LstStructField(
+            span = opt.declaredNameToken().span(),
+            name = "variant",
+            index = index++,
+            typeUsage = TypeUsage.int(),
+            ref = program.nextFieldRef()
+        )
+
+        opt.structBody()?.structField()?.forEach { fieldCtx ->
+            fields += LstStructField(
                 span = fieldCtx.nameToken().span(),
                 name = fieldCtx.nameToken().text,
                 index = index++,
                 typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
                 ref = program.nextFieldRef()
             )
-        } ?: emptyList()
+        }
 
         var path = currentPath(ctx)
 

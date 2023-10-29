@@ -1,7 +1,8 @@
 
 // This type is used to represent signed integers in the range of -2^31 to 2^31 - 1
 @Extern $[lib: "core", name: "Int"]
-@StackValue
+@ValueType
+@Intrinsic
 struct Int {}
 
 // Adds two integer values

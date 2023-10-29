@@ -1,8 +1,8 @@
 include "lexer.nl"
 include "debug.nl"
 
-@Extern $[lib: "compiler", name: "read_all_source_code"]
-fun read_all_source_code(): String {}
+//@Extern $[lib: "compiler", name: "read_all_source_code"]
+//fun read_all_source_code(): String {}
 
 fun main() {
     debug()

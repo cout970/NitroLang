@@ -311,6 +311,67 @@ private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
     return null
 }
 
+private fun ParserCtx.processTypePattern(tp: TypePattern) {
+    if (tp.typeParameter != null) {
+        if (tp.sub.isNotEmpty()) {
+            collector.report("Type parameters not allowed here", tp.span)
+        }
+        tp.generic = typeEnv.generic(tp.typeParameter)
+        return
+    }
+
+    if (tp.isAny) {
+        return
+    }
+
+    tp.sub.forEach { processTypePattern(it) }
+
+    // Search for struct/option/tag/lambda/etc
+
+    val segments = createPathSegments(tp.currentPath, tp.fullName)
+
+    for (segment in segments) {
+        val option = program.options.find { it.fullName == segment }
+
+        if (option != null) {
+            val base = typeEnv.typeBaseOption(option)
+
+            if (option.typeParameters.size != tp.sub.size) {
+                collector.report(
+                    "Incorrect number of type parameters, expected ${option.typeParameters.size}, found ${tp.sub.size}",
+                    tp.span
+                )
+            }
+
+            tp.base = base
+            return
+        }
+
+        val struct = program.structs.find { it.fullName == segment }
+
+        if (struct != null) {
+
+            if (!struct.isIntrinsic && struct.typeParameters.size != tp.sub.size) {
+                collector.report(
+                    "Incorrect number of type parameters, expected ${struct.typeParameters.size}, found ${tp.sub.size}",
+                    tp.span
+                )
+            }
+
+            val base = if (struct.parentOption != null)
+                typeEnv.typeBaseOptionItem(struct, struct.parentOption!!)
+            else
+                typeEnv.typeBaseStruct(struct)
+
+            tp.base = base
+            return
+        }
+    }
+
+    collector.report("Type '${tp.fullName}' not found", tp.span)
+    return
+}
+
 private fun ParserCtx.visitCode(code: LstCode) {
     this.code = code
 
@@ -621,7 +682,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
         is LstIsType -> {
             node.typeBox = typeEnv.box(typeEnv.find("Boolean"), node.span)
-            node.typeUsageBox = typeEnv.box(typeUsage(node.typeUsage), node.span)
+            processTypePattern(node.typePattern)
         }
 
         is LstAsType -> {

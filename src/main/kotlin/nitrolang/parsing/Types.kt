@@ -2,6 +2,7 @@ package nitrolang.parsing
 
 import nitrolang.ast.MODULE_SEPARATOR
 import nitrolang.ast.LstTypeParameterDef
+import nitrolang.ast.TypePattern
 import nitrolang.ast.TypeUsage
 import nitrolang.gen.MainParser
 
@@ -12,7 +13,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
         val typeParameterDef = typeParamMap.getOrPut(name) {
             if (!allowTypeParamCollection) {
                 collector.report(
-                    "Found undefined type parameter '${name}'",
+                    "Found undefined type parameter '$name'",
                     ctx.typeParameter().span()
                 )
             }
@@ -158,4 +159,113 @@ fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamsDefContext?) {
 fun ParserCtx.endTypeParams(): List<LstTypeParameterDef> {
     allowTypeParamCollection = false
     return typeParamMap.values.toList()
+}
+
+fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePattern {
+    if (ctx.THIS_TYPE() != null) {
+        val name = "This"
+        val typeParameterDef = typeParamMap.getOrPut(name) {
+            if (!allowTypeParamCollection) {
+                collector.report(
+                    "Found undefined type parameter '$name'",
+                    ctx.typeParameter().span()
+                )
+            }
+
+            val typeBound = TypeUsage(
+                span = ctx.span(),
+                name = currentTagName ?: error("Using `This` outside a tag definition"),
+                path = "",
+                sub = emptyList(),
+                typeParameter = null,
+                currentPath = currentPath(ctx)
+            )
+
+            LstTypeParameterDef(
+                span = ctx.span(),
+                name = name,
+                ref = program.nextTypeParamRef(),
+                bounds = listOf(typeBound)
+            )
+        }
+
+        return TypePattern(
+            span = ctx.span(),
+            name = name,
+            path = "",
+            sub = emptyList(),
+            typeParameter = typeParameterDef,
+            currentPath = currentPath(ctx)
+        )
+    }
+
+    if (ctx.typeParameter() != null) {
+        val name = ctx.typeParameter().nameToken().text
+        val typeParameterDef = typeParamMap.getOrPut(name) {
+            if (!allowTypeParamCollection) {
+                collector.report(
+                    "Found undefined type parameter '${name}'",
+                    ctx.typeParameter().span()
+                )
+            }
+
+            LstTypeParameterDef(
+                span = ctx.typeParameter().nameToken().span(),
+                name = name,
+                ref = program.nextTypeParamRef(),
+                bounds = emptyList()
+            )
+        }
+
+        return TypePattern(
+            span = ctx.typeParameter().nameToken().span(),
+            name = name,
+            path = "",
+            sub = emptyList(),
+            typeParameter = typeParameterDef,
+            currentPath = currentPath(ctx)
+        )
+    }
+
+    return resolveBaseTypePattern(ctx.baseTypePattern())
+}
+
+fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): TypePattern {
+    val name = base.nameToken().text
+    var path = ""
+
+    if (base.modulePath() != null) {
+        path = base.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+    }
+
+    val sub = if (base.typePatternArgs() != null) {
+        base.typePatternArgs().typePatternArg().map {
+            when {
+                it.typePattern() != null -> resolveTypePattern(it.typePattern())
+                it.MUL() != null -> {
+                    TypePattern(
+                        span = it.span(),
+                        name = "*",
+                        path = "",
+                        sub = emptyList(),
+                        typeParameter = null,
+                        currentPath = currentPath(base),
+                        isAny = true,
+                    )
+                }
+                else -> error("Grammar has been expanded and parser is outdated")
+            }
+        }
+    } else {
+        listOf()
+    }
+
+    return TypePattern(
+        span = base.nameToken().span(),
+        name = name,
+        path = path,
+        sub = sub,
+        typeParameter = null,
+        currentPath = currentPath(base)
+    )
 }

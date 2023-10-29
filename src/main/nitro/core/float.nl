@@ -1,7 +1,8 @@
 
 // This type is used to represent floating point numbers defined in the IEEE 754 standard
 @Extern $[lib: "core", name: "Float"]
-@StackValue
+@ValueType
+@Intrinsic
 struct Float {}
 
 // Adds two floating point numbers

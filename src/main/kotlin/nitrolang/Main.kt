@@ -54,7 +54,7 @@ fun compile(path: String) {
 
     Prof.next("print_main")
     program.functions.forEach { func ->
-        if (func.fullName !in setOf("ensure_capacity")) return@forEach
+        if (func.fullName !in setOf("debug")) return@forEach
 
         println("${func.fullName}: $func")
         func.body.nodes.forEach {
@@ -94,7 +94,7 @@ fun compile(path: String) {
     }
 
     Prof.next("wat2wasm")
-    ProcessBuilder("wat2wasm", assembly.path, "-o", compiled.path)
+    ProcessBuilder("wat2wasm", "--enable-code-metadata", assembly.path, "-o", compiled.path)
         .inheritIO()
         .start()
         .waitFor()

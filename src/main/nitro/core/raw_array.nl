@@ -5,7 +5,8 @@
 // It's recommended to use List<#Item> instead of this low level representation
 //
 @Extern $[lib: "core", name: "RawArray"]
-@StackValue
+@ValueType
+@Intrinsic
 struct RawArray<#Item> {}
 
 // Creates a new array of the given length
@@ -28,7 +29,13 @@ fun RawArray<#Item>.get_ptr(index: Int): Ptr<#Item> {
 // Gets a reference to a value in the array
 // The array bounds are not checked
 fun RawArray<#Item>.get(index: Int): #Item {
-    ret this.get_ptr(index).as_ref()
+    ret this.get_ptr(index).unsafe_as_ref()
+}
+
+// Sets a value in the array at the given index
+// The array bounds are not checked
+fun RawArray<#Item>.set(index: Int, value: #Item) {
+    this.get_ptr(index).write_copy(value)
 }
 
 // Copy a number of items from one array into another
@@ -45,6 +52,6 @@ fun RawArray<#Item>.get_address(): Int {
 }
 
 // Debug representation of the pointer to the array
-fun RawArray<#Item>.to_debug_string(): String {
-    ret this.to_ptr().to_debug_string()
+fun RawArray<#Item>.to_string(): String {
+    ret this.to_ptr().to_string()
 }

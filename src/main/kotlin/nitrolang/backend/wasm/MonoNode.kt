@@ -1,7 +1,8 @@
 package nitrolang.backend.wasm
 
 import nitrolang.ast.*
-import nitrolang.parsing.ANNOTATION_STACK_VALUE
+import nitrolang.parsing.ANNOTATION_INTRINSIC
+import nitrolang.parsing.ANNOTATION_VALUE_TYPE
 import nitrolang.util.Span
 
 const val PTR_SIZE: Int = 4
@@ -19,8 +20,11 @@ data class MonoType(
     fun isBoolean() = isNamed("Boolean")
     fun isFunction() = isNamed("Function")
     fun isLambda() = base is MonoLambda
-
-    fun isStackBased() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_STACK_VALUE) != null
+    fun isOption() = base is MonoOption
+    fun isOptionItem() = base is MonoStruct && base.instance.parentOption != null
+    fun isOptionOrOptionItem() = isOption() || isOptionItem()
+    fun isValueType() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_VALUE_TYPE) != null
+    fun isIntrinsic() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_INTRINSIC) != null
 
     fun isNamed(name: String) = base is MonoStruct && base.instance.fullName == name
 
@@ -40,6 +44,8 @@ data class MonoType(
                     "Char" -> 4
                     "Int" -> 4
                     "Float" -> 4
+                    "Ptr" -> 4
+                    "RawArray" -> 4
                     else -> base.size
                 }
             }
@@ -64,17 +70,63 @@ data class MonoType(
     }
 }
 
-sealed class MonoTypeBase {
-    abstract val id: Int
+data class MonoTypePattern(
+    val base: MonoTypeBasePattern,
+    val params: List<MonoTypePattern>
+) {
+
+    fun match(ty: MonoType): Boolean {
+        // Match base
+        when (base) {
+            is MonoTypeBasePattern.PatternStruct -> {
+                if (ty.isFunction() || ty.isLambda()) {
+                    if (base.instance.fullName != "Function") return false
+                } else {
+                    if (ty.base !is MonoStruct) return false
+                    if (base.instance != ty.base.instance) return false
+                }
+            }
+            is MonoTypeBasePattern.PatternOption -> {
+                if (ty.base !is MonoOption) return false
+                if (base.instance != ty.base.instance) return false
+            }
+            is MonoTypeBasePattern.PatternAny -> {
+                return true
+            }
+        }
+
+        // Match params
+        if (params.size != ty.params.size) return false
+
+        return params.zip(ty.params).all { (p1, p2) -> p1.match(p2) }
+    }
+
+    fun isOptionItem(): Boolean = base is MonoTypeBasePattern.PatternStruct && base.instance.parentOption != null
+    fun isOption(): Boolean = base is MonoTypeBasePattern.PatternOption
+    fun isAny(): Boolean = base is MonoTypeBasePattern.PatternAny
+    fun isOptionOrOptionItem(): Boolean = isOption() || isOptionItem()
+
+    override fun toString(): String {
+        return if (params.isNotEmpty()) "$base<${params.joinToString(", ")}>" else base.toString()
+    }
 }
 
-data class MonoConst(
-    val instance: LstConst,
-    val type: MonoType,
-) {
-    var offset: Int = 0
-    var size: Int = 0
-    override fun toString(): String = instance.fullName
+sealed class MonoTypeBasePattern {
+    data object PatternAny : MonoTypeBasePattern()
+    data class PatternStruct(val instance: LstStruct) : MonoTypeBasePattern()
+    data class PatternOption(val instance: LstOption) : MonoTypeBasePattern()
+
+    override fun toString(): String {
+        return when (this) {
+            is PatternAny -> "*"
+            is PatternStruct -> instance.fullName
+            is PatternOption -> instance.fullName
+        }
+    }
+}
+
+sealed class MonoTypeBase {
+    abstract val id: Int
 }
 
 data class MonoStruct(
@@ -110,6 +162,15 @@ data class MonoLambda(
     val size: Int,
 ) : MonoTypeBase() {
     override fun toString(): String = "Lambda-$id"
+}
+
+data class MonoConst(
+    val instance: LstConst,
+    val type: MonoType,
+) {
+    var offset: Int = 0
+    var size: Int = 0
+    override fun toString(): String = instance.fullName
 }
 
 data class MonoVar(
@@ -190,19 +251,6 @@ class MonoLoopStart(
 class MonoJump(
     id: MonoRef, span: Span,
     val depth: Int,
-) : MonoNode(id, span)
-
-
-class MonoIsType(
-    id: MonoRef, span: Span,
-    val expr: MonoRef,
-    val type: MonoType,
-) : MonoNode(id, span)
-
-class MonoAsType(
-    id: MonoRef, span: Span,
-    val expr: MonoRef,
-    val type: MonoType,
 ) : MonoNode(id, span)
 
 class MonoReturn(

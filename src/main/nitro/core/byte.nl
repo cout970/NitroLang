@@ -1,7 +1,8 @@
 
 // This type is used to represent a byte, a sequence of 8 bits, the minimal addressable unit of memory
 @Extern $[lib: "core", name: "Byte"]
-@StackValue
+@ValueType
+@Intrinsic
 struct Byte {}
 
 // This function converts a byte to an integer

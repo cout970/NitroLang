@@ -7,10 +7,9 @@ import nitrolang.parsing.ANNOTATION_EXTERN
 import nitrolang.backend.wasm.ConstString
 import nitrolang.backend.wasm.ConstValue
 import nitrolang.parsing.ANNOTATION_INTRINSIC
+import nitrolang.parsing.ANNOTATION_REQUIRED
 import nitrolang.parsing.ANNOTATION_WASM_INLINE
-import nitrolang.typeinference.TType
-import nitrolang.typeinference.TypeBox
-import nitrolang.typeinference.TypeEnv
+import nitrolang.typeinference.*
 import nitrolang.util.*
 
 class LstProgram : Dumpable {
@@ -211,6 +210,7 @@ class LstConst(
     val referencedBy = mutableListOf<LstExpression>()
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = annotations.any { it.name == ANNOTATION_EXTERN }
+    val isRequired: Boolean get() = annotations.any { it.name == ANNOTATION_REQUIRED }
 
     override fun toString(): String {
         return "LstConst {\n" +
@@ -306,6 +306,7 @@ class LstFunction(
     var isDeadCode: Boolean = false
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
+    val isRequired: Boolean get() = getAnnotation(ANNOTATION_REQUIRED) != null
     val isIntrinsic: Boolean get() = getAnnotation(ANNOTATION_INTRINSIC) != null
     val isInline: Boolean get() = getAnnotation(ANNOTATION_WASM_INLINE) != null
     val omitBody: Boolean get() = isExternal || isIntrinsic
@@ -607,6 +608,26 @@ data class TypeUsage(
 
     enum class Modifier {
         MUT, REF, NONE
+    }
+}
+
+class TypePattern(
+    val span: Span,
+    val name: String,
+    val path: Path,
+    val sub: List<TypePattern>,
+    val currentPath: Path,
+    val typeParameter: LstTypeParameterDef?,
+    val isAny: Boolean = false,
+){
+    val fullName: Path get() = createPath(path, name)
+    var base: TTypeBase? = null
+    var generic: TGeneric? = null
+
+    override fun toString(): String {
+        val prefix = if (path.isNotEmpty()) "$path::" else ""
+        val children = if (sub.isNotEmpty()) "<${sub.joinToString(", ")}>" else ""
+        return "$prefix$name$children"
     }
 }
 

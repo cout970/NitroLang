@@ -1028,16 +1028,6 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitTypeParamArg(MainParser.TypeParamArgContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#typeParameter}.
-	 * @param ctx the parse tree
-	 */
-	void enterTypeParameter(MainParser.TypeParameterContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MainParser#typeParameter}.
-	 * @param ctx the parse tree
-	 */
-	void exitTypeParameter(MainParser.TypeParameterContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link MainParser#varModifier}.
 	 * @param ctx the parse tree
 	 */
@@ -1057,6 +1047,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitTypeUsage(MainParser.TypeUsageContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#typeParameter}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypeParameter(MainParser.TypeParameterContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typeParameter}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypeParameter(MainParser.TypeParameterContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#baseTypeUsage}.
 	 * @param ctx the parse tree
@@ -1097,6 +1097,46 @@ public interface MainParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#typePattern}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypePattern(MainParser.TypePatternContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typePattern}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypePattern(MainParser.TypePatternContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#baseTypePattern}.
+	 * @param ctx the parse tree
+	 */
+	void enterBaseTypePattern(MainParser.BaseTypePatternContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#baseTypePattern}.
+	 * @param ctx the parse tree
+	 */
+	void exitBaseTypePattern(MainParser.BaseTypePatternContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#typePatternArgs}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypePatternArgs(MainParser.TypePatternArgsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typePatternArgs}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypePatternArgs(MainParser.TypePatternArgsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#typePatternArg}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypePatternArg(MainParser.TypePatternArgContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typePatternArg}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypePatternArg(MainParser.TypePatternArgContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#jsonValue}.
 	 * @param ctx the parse tree

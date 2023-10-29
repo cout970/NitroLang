@@ -623,12 +623,6 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeParamArg(MainParser.TypeParamArgContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#typeParameter}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitTypeParameter(MainParser.TypeParameterContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link MainParser#varModifier}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -640,6 +634,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTypeUsage(MainParser.TypeUsageContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#typeParameter}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeParameter(MainParser.TypeParameterContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#baseTypeUsage}.
 	 * @param ctx the parse tree
@@ -664,6 +664,30 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitFunctionTypeUsageReturn(MainParser.FunctionTypeUsageReturnContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#typePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypePattern(MainParser.TypePatternContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#baseTypePattern}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBaseTypePattern(MainParser.BaseTypePatternContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#typePatternArgs}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypePatternArgs(MainParser.TypePatternArgsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#typePatternArg}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypePatternArg(MainParser.TypePatternArgContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#jsonValue}.
 	 * @param ctx the parse tree
