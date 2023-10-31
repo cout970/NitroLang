@@ -19,6 +19,7 @@ class LstProgram : Dumpable {
 
     val structs = mutableListOf<LstStruct>()
     val options = mutableListOf<LstOption>()
+    val typeAliases = mutableListOf<LstTypeAlias>()
     val consts = mutableListOf<LstConst>()
     val tags = mutableListOf<LstTag>()
     val functions = mutableListOf<LstFunction>()
@@ -74,6 +75,19 @@ class LstProgram : Dumpable {
         lastTypeParam = offset
         lastUnresolvedType = offset
         lastField = offset
+    }
+
+    fun replaceGenerics(type: TType, replacements: Map<LstTypeParameterDef, TType>): TType {
+        if (type is TGeneric) {
+            return replacements[type.instance] ?: type
+        }
+
+        if (type !is TComposite) return type
+
+        return typeEnv.composite(
+            type.base,
+            type.params.map { replaceGenerics(it, replacements) }
+        )
     }
 
     companion object {
@@ -187,6 +201,18 @@ class LstOption(
         it.add("items", itemsRef.dump())
         it.add("type_params", typeParameters.map { p -> p.ref }.dump())
     }
+}
+
+class LstTypeAlias(
+    val span: Span,
+    val name: String,
+    val path: Path,
+    val typeParameters: List<LstTypeParameterDef>,
+    val typeUsage: TypeUsage,
+    val annotations: List<LstAnnotation>
+) {
+    var type: TType? = null
+    val fullName: Path get() = createPath(path, name)
 }
 
 class LstConst(

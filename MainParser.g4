@@ -58,6 +58,7 @@ definitionChoice
     | moduleDefinition
     | constDefinition
     | tagDefinition
+    | typeAliasDefinition
     ;
 
 // E.g. include "core:optional.nl"
@@ -117,15 +118,23 @@ optionDefinition
 optionDefinitionItem
     : declaredNameToken structBody?;
 
+// E.g. tag ToString { fun to_string(): String }
 tagDefinition
     : TAG declaredNameToken LBRACE NL* (tagDefinitionFunction (NL+ tagDefinitionFunction)*)? NL* RBRACE ;
 
 tagDefinitionFunction
     : annotation* functionHeader;
 
+// E.g. type_alias Meters = Float
+// E.g. type_alias MultiMap<#Key, #Value> = Map<#Key, List<#Value>>
+typeAliasDefinition
+    : TYPE_ALIAS declaredNameToken typeParamsDef? ASSIGN NL* typeUsage ;
+
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition
-    : functionHeader NL* functionBody;
+    : functionHeader NL* functionBody
+    | functionHeader
+    ;
 
 functionHeader
     : FUN NL* functionReceiver? modulePath? declaredNameToken NL* typeParamsDef? NL*
@@ -449,9 +458,11 @@ lambdaArgument
 returnExpr
     : RETURN expression? ;
 
-// E.g. size_of<Int>
+// E.g. size_of<Int>()
 sizeOfExpr
-    : SIZE_OF LTH NL* typeUsage NL* GTH ;
+    : SIZE_OF LTH NL* typeUsage NL* GTH
+    | SIZE_OF LTH NL* typeUsage NL* GTH LPAREN RPAREN
+    ;
 
 // E.g. not true
 notExpr

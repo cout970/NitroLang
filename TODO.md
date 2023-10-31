@@ -27,7 +27,6 @@ Intended for the developers
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
-- Type alias
 - implicit this instead of writing `this.something()` everywhere
 - `for` statement with iterators
 - Runtime reflection of types
@@ -40,6 +39,7 @@ Intended for the developers
 - Tags with parametric types
 - Improve core library
 - Self-hosted compiler
+- Check for read of uninitialized variables
 
 ### Bugs
 - `ret when { ... }` Missing provider for ref

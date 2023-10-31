@@ -1,14 +1,19 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.*
-import nitrolang.backend.wasm.replaceGenerics
 import nitrolang.parsing.ParserCtx
 import nitrolang.parsing.SELF_NAME
 import nitrolang.util.Prof
 import nitrolang.util.Span
+import kotlin.math.min
 
 fun ParserCtx.doAllTypeChecking() {
-    Prof.start("check_const")
+    Prof.start("check_type_alias")
+    program.typeAliases.forEach { alias ->
+        alias.type = typeUsage(alias.typeUsage)
+    }
+
+    Prof.next("check_const")
     program.consts.forEach { const ->
         if (const.checked) return@forEach
         const.checked = true
@@ -248,6 +253,25 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
     val segments = createPathSegments(tu.currentPath, tu.fullName)
 
     for (segment in segments) {
+        val alias = program.typeAliases.find { it.fullName == segment }
+
+        if (alias != null) {
+            if (alias.typeParameters.size != params.size) {
+                collector.report(
+                    "Incorrect number of type parameters, expected ${alias.typeParameters.size}, found ${params.size}",
+                    tu.span
+                )
+            }
+
+            val map = mutableMapOf<LstTypeParameterDef, TType>()
+
+            repeat(min(alias.typeParameters.size, params.size)) {
+                map[alias.typeParameters[it]] = params[it]
+            }
+
+            return program.replaceGenerics(alias.type!!, map)
+        }
+
         val option = program.options.find { it.fullName == segment }
 
         if (option != null) {

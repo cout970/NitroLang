@@ -208,6 +208,10 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         parserCtx.processTagDefinition(ctx)
     }
 
+    override fun enterTypeAliasDefinition(ctx: TypeAliasDefinitionContext) {
+        parserCtx.processTypeAliasDefinition(ctx)
+    }
+
     override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {
         parserCtx.processIncludeDefinition(ctx)
     }

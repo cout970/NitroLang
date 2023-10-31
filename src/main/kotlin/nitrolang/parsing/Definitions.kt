@@ -189,6 +189,8 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
 
     code = func.body
     when {
+        ctx.functionBody() == null -> Unit
+
         ctx.functionBody().statementBlock() != null -> {
             processStatementBlock(ctx.functionBody().statementBlock())
         }
@@ -204,7 +206,6 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
         error("Block stack is not empty, function: ${func.fullName}")
     }
     code.executeDeferredActions()
-
     return func
 }
 
@@ -281,4 +282,29 @@ fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
     }
 
     program.tags += tag
+}
+
+fun ParserCtx.processTypeAliasDefinition(ctx: MainParser.TypeAliasDefinitionContext) {
+
+    startTypeParams(ctx.typeParamsDef())
+    val typeUsage = resolveTypeUsage(ctx.typeUsage())
+    val typeParameters = endTypeParams()
+
+    val alias = LstTypeAlias(
+        span = ctx.declaredNameToken().span(),
+        name = ctx.declaredNameToken().text,
+        path = currentPath(ctx),
+        typeParameters = typeParameters,
+        typeUsage = typeUsage,
+        annotations = resolveAnnotations(ctx)
+    )
+
+    if (alias.fullName in program.definedNames) {
+        val prev = program.definedNames[alias.fullName]
+        collector.report("Redeclaration of ${alias.fullName}, previously defined at $prev", alias.span)
+        return
+    }
+
+    program.definedNames[alias.fullName] = alias.span
+    program.typeAliases += alias
 }

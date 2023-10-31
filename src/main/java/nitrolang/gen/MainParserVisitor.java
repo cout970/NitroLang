@@ -191,6 +191,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#typeAliasDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

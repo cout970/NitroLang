@@ -377,6 +377,18 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterFunctionDefinition(MainParser.FunctionDefinitionContext ctx) { }
 	/**
 	 * {@inheritDoc}

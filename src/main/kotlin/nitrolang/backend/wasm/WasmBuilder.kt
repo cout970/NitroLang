@@ -1195,19 +1195,6 @@ fun funcTypeToWasm(mono: MonoType): String {
     }
 }
 
-fun LstProgram.replaceGenerics(type: TType, replacements: Map<LstTypeParameterDef, TType>): TType {
-    if (type is TGeneric) {
-        return replacements[type.instance] ?: type
-    }
-
-    if (type !is TComposite) return type
-
-    return typeEnv.composite(
-        type.base,
-        type.params.map { replaceGenerics(it, replacements) }
-    )
-}
-
 data class UnresolvedGenericTypeError(
     val msg: String,
     val type: TType,

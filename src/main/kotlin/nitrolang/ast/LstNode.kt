@@ -50,7 +50,7 @@ data class LstBoolean(
     override val block: LstNodeBlock,
     val value: Boolean
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Boolean [$typeBox]"
+    override fun toString(): String = "$ref = $value [$typeBox]"
 
     override fun toRawString(): String = "$value"
 
@@ -69,7 +69,7 @@ data class LstInt(
     override val block: LstNodeBlock,
     val value: Int
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Int [$typeBox]"
+    override fun toString(): String = "$ref = $value [$typeBox]"
 
     override fun toRawString(): String = "$value"
 
@@ -88,7 +88,7 @@ data class LstFloat(
     override val block: LstNodeBlock,
     val value: Float
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = $value as Float [$typeBox]"
+    override fun toString(): String = "$ref = $value [$typeBox]"
 
     override fun toRawString(): String = "$value"
 
@@ -107,7 +107,7 @@ data class LstString(
     override val block: LstNodeBlock,
     val value: String
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = \"${value.replace("\n", "\\n")}\" as String [$typeBox]"
+    override fun toString(): String = "$ref = \"${value.replace("\n", "\\n")}\" [$typeBox]"
 
     override fun toRawString(): String = value
 
@@ -125,7 +125,7 @@ data class LstNothing(
     override val span: Span,
     override val block: LstNodeBlock,
 ) : LstConstant(ref, span, block) {
-    override fun toString(): String = "$ref = Nothing [$typeBox]"
+    override fun toString(): String = "$ref = nothing [$typeBox]"
 
     override fun toRawString(): String = "()"
 
@@ -469,7 +469,7 @@ data class LstStoreVar(
     val finalName: Path get() = "$" + varRef.toString()
 
     val fullName: Path get() = createPath(path, name)
-    override fun toString(): String = "$ref store_var $name: $varTypeBox ($varRef) = $expr [$typeBox]"
+    override fun toString(): String = "$ref store_var $name: $varTypeBox ($varRef) = $expr"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -594,8 +594,8 @@ class LstFunCall(
     val fullName: Path get() = createPath(path, name)
 
     override fun toString(): String {
-        return "$ref = call $fullName ($funRef, args: $arguments) " +
-                "[(${concreteArgTypes.joinToString(", ")}) -> $typeBox]"
+        val args = if (arguments.isNotEmpty()) arguments.joinToString(", ") else "<none>"
+        return "$ref = call $fullName: (${concreteArgTypes.joinToString(", ")}) -> $typeBox [args: $args]"
     }
 
     override fun dump(): JsonElement = JsonObject().also {

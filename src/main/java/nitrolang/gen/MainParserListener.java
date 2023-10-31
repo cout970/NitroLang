@@ -308,6 +308,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitTagDefinitionFunction(MainParser.TagDefinitionFunctionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#typeAliasDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void enterTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#typeAliasDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void exitTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 */
