@@ -1,3 +1,4 @@
+
 // Represents and area on the heap where the user can allocate instances
 struct MemoryArena {
     capacity: Int
@@ -5,14 +6,7 @@ struct MemoryArena {
     bytes: RawArray<Byte>
 }
 
-// Gets a reference to the global memory used as a heap, located after the data section on the wasm memory
-@Extern $[lib: "core", name: "memory_get_memory"]
-fun get_memory(): MemoryArena {}
-
-@Extern $[lib: "core", name: "debug_alloc_bytes"]
-fun debug_alloc_bytes(amount: Int, ptr: Int) {}
-
-// Allocates a number of bytes on the heap, returning a pointer to the start of the allocation
+// Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let ptr_size = size_of<Ptr<Byte>>
 
@@ -28,7 +22,7 @@ fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     this.len = next + bytes
     let result = this.bytes.get_ptr(next)
 
-    debug_alloc_bytes(bytes, result.get_address())
+    memory_alloc_trace(bytes, result.get_address())
     ret result
 }
 
@@ -37,12 +31,8 @@ fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
     ret this.alloc_bytes(size_of<#Value>).unsafe_cast()
 }
 
-// Prints the contents of the heap to the console, for debugging purposes
-@Extern $[lib: "core", name: "memory_dump"]
-fun MemoryArena.dump() {}
-
 // Efficiently copies a number of bytes from one location to another
-// Must not overlap
+// Must not overlap and all bytes must be within the arena
 @Extern $[lib: "core", name: "memory_copy_within"]
 fun MemoryArena.copy_within(src: Ptr<Byte>, dst: Ptr<Byte>, byte_len: Int) {}
 
@@ -69,3 +59,7 @@ fun MemoryArena.read_float(ptr: Ptr<Float>): Float {}
 // Writes a single float to the memory
 @Extern $[lib: "core", name: "memory_write_float"]
 fun MemoryArena.write_float(ptr: Ptr<Float>, value: Float) {}
+
+// Prints the contents of the heap to the console, for debugging purposes
+@Extern $[lib: "core", name: "memory_dump"]
+fun MemoryArena.dump() {}

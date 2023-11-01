@@ -1,5 +1,6 @@
+
 // Pointer to an array of values stored sequentially in heap
-// The size of the array must be keep separately and proper check must be used to avoid crashes
+// The size of the array must be keep separately and proper checks must be used to avoid crashes
 // Note: the array *can* be a null pointer
 //
 // It's recommended to use List<#Item> instead of this low level representation

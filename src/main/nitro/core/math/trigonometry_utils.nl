@@ -1,0 +1,52 @@
+
+// Math.sin(x): Returns the sine of x (where x is in radians).
+@Extern $[lib: "core", name: "math_sin"]
+fun Math::sin(x: Float): Float {}
+
+// Math.sinh(x): Returns the hyperbolic sine of x.
+@Extern $[lib: "core", name: "math_sinh"]
+fun Math::sinh(x: Float): Float {}
+
+// Math.asin(x): Returns the arcsine of x in radians.
+@Extern $[lib: "core", name: "math_asin"]
+fun Math::asin(x: Float): Float {}
+
+// Math.asinh(x): Returns the hyperbolic arcsine of x.
+@Extern $[lib: "core", name: "math_asinh"]
+fun Math::asinh(x: Float): Float {}
+
+// Math.cos(x): Returns the cosine of x (where x is in radians).
+@Extern $[lib: "core", name: "math_cos"]
+fun Math::cos(x: Float): Float {}
+
+// Math.cosh(x): Returns the hyperbolic cosine of x.
+@Extern $[lib: "core", name: "math_cosh"]
+fun Math::cosh(x: Float): Float {}
+
+// Math.acos(x): Returns the arccosine of x in radians.
+@Extern $[lib: "core", name: "math_acos"]
+fun Math::acos(x: Float): Float {}
+
+// Math.acosh(x): Returns the hyperbolic arccosine of x.
+@Extern $[lib: "core", name: "math_acosh"]
+fun Math::acosh(x: Float): Float {}
+
+// Math.tan(x): Returns the tangent of x (where x is in radians).
+@Extern $[lib: "core", name: "math_tan"]
+fun Math::tan(x: Float): Float {}
+
+// Math.tanh(x): Returns the hyperbolic tangent of x.
+@Extern $[lib: "core", name: "math_tanh"]
+fun Math::tanh(x: Float): Float {}
+
+// Math.atan(x): Returns the arctangent of x in radians.
+@Extern $[lib: "core", name: "math_atan"]
+fun Math::atan(x: Float): Float {}
+
+// Math.atanh(x): Returns the hyperbolic arctangent of x.
+@Extern $[lib: "core", name: "math_atanh"]
+fun Math::atanh(x: Float): Float {}
+
+// Math.atan2(y, x): Returns the arctangent of the quotient of its arguments.
+@Extern $[lib: "core", name: "math_atan2"]
+fun Math::atan2(y: Float, x: Float): Float {}

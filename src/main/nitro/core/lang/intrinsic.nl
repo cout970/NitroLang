@@ -1,0 +1,29 @@
+
+// Given a value of type T, returns the size of T in bytes
+fun size_of_value(value: #Value): Int {
+    ret size_of<#Value>()
+}
+
+// Internal function called by the compiler validate type casts in runtime
+@Extern $[lib: "core", name: "as_type_internal"]
+@Required
+fun as_type_internal(ptr_to_value: Int, type_id: Int): Int {}
+
+// Internal function called by the compiler check the type of a value in runtime
+@Extern $[lib: "core", name: "is_type_internal"]
+@Required
+fun is_type_internal(ptr_to_value: Int, type_id: Int): Boolean {}
+
+// fun is_encoded_in_ref(v: #Type): Boolean
+// Returns true if the given type is 4 bytes or smaller and
+// instead of being stored in the heap, it is stored in the reference itself
+fun is_encoded_in_ref(v: #Type): Boolean {
+    if v is Int         { ret true }
+    if v is Float       { ret true }
+    if v is Nothing     { ret true }
+    if v is Never       { ret true }
+    if v is Byte        { ret true }
+    if v is Ptr<*>      { ret true }
+    if v is RawArray<*> { ret true }
+    ret false
+}

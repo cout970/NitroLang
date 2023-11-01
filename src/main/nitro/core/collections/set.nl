@@ -1,4 +1,16 @@
-// TODO implement Set in the core library
+
+// Represents a set of unique items, no duplicates are allowed.
+// Internally uses a map to store the value as keys.
+//
+// A set can be created using the `%[...]` syntax:
+// ```
+// let set = %[
+//     1
+//     2
+//     3
+//     2 // The 2 will not be added to the set twice, since it already exists
+// ]
+// ```
 @Extern $[lib: "core", name: "Set"]
 struct Set<#Item> {
    map: Map<#Item, Boolean>

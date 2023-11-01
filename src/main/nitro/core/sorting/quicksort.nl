@@ -1,0 +1,85 @@
+
+// Sorts the list using the quicksort algorithm
+fun <#Item: GetOrdering> List<#Item>.quicksort_in_place() {
+    this.quicksort_rec(0, this.len - 1, false)
+}
+
+// Recursive quicksort function, the partition parameter is used to toggle between finding the partition index and
+// sorting the two sublists
+fun <#Item: GetOrdering> List<#Item>.quicksort_rec(low: Int, high: Int, partition: Boolean): Int {
+    // Find the partition index
+    if partition {
+        let pivot = this[high]!!
+        let i = low - 1
+        let j = low
+
+        while j < high {
+            if this[j]!! <= pivot {
+                i = i + 1
+                this.swap(i, j)
+            }
+            j = j + 1
+        }
+
+        this.swap(i + 1, high)
+
+        ret i + 1
+    }
+
+    // Sort sublists
+    if low >= high {
+        ret 0
+    }
+
+    // Number of items to sort
+    let len = high - low
+
+    // fast path to reduce recursion depth
+    if len == 2 {
+        if this[low]!! > this[high]!! {
+            this.swap(low, high)
+        }
+        ret 0
+    }
+
+    // fast path to reduce recursion depth
+    if len == 3 {
+        if this[low]!! > this[high]!! {
+            this.swap(low, high)
+        }
+        if this[low]!! > this[low + 1]!! {
+            this.swap(low, low + 1)
+        }
+        if this[low + 1]!! > this[high]!! {
+            this.swap(low + 1, high)
+        }
+        ret 0
+    }
+
+    // fast path to reduce recursion depth
+    if len == 4 {
+        if this[low]!! > this[high]!! {
+            this.swap(low, high)
+        }
+        if this[low]!! > this[low + 1]!! {
+            this.swap(low, low + 1)
+        }
+        if this[low + 1]!! > this[high]!! {
+            this.swap(low + 1, high)
+        }
+        if this[low + 1]!! > this[low + 2]!! {
+            this.swap(low + 1, low + 2)
+        }
+        if this[low + 2]!! > this[high]!! {
+            this.swap(low + 2, high)
+        }
+        ret 0
+    }
+
+    // regular recursive quicksort
+    let pivot = this.quicksort_rec(low, high, true)
+
+    this.quicksort_rec(low, pivot - 1, false)
+    this.quicksort_rec(pivot + 1, high, false)
+    ret 0
+}

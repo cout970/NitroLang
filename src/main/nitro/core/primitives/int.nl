@@ -195,6 +195,10 @@ fun Int.unary_plus(): Int = this
 @WasmInline $[opcode: "f32.convert_i32_s"]
 fun Int.to_float(): Float {}
 
+// Converts this 32 bit integer into a 8 bit integer
+@Extern $[lib: "core", name: "int_to_byte"]
+fun Int.to_byte(): Byte {}
+
 // Converts this integer value to a string
 @Extern $[lib: "core", name: "int_to_string"]
 fun Int.to_string(): String {}

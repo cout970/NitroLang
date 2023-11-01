@@ -93,7 +93,7 @@ export function memory_get_memory(): number {
     return 4;
 }
 
-export function debug_alloc_bytes(amount: number, ptr: number) {
+export function memory_alloc_trace(amount: number, ptr: number) {
     // console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
     console.debug(`# Alloc ${amount.toString().padStart(10, ' ')} at ${ptr.toString().padStart(10, ' ')} (0x${ptr.toString(16).padStart(8, '0')})`)
 }
@@ -249,6 +249,12 @@ export function float_is_safe_integer(float: number): boolean {
 
 export function byte_to_int(byte: number): number {
     return byte & 0xFF;
+}
+
+// int.nl
+
+export function int_to_byte(int: number): number {
+   return int & 0xFF;
 }
 
 // intrinsic.nl

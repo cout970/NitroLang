@@ -14,3 +14,8 @@ fun Char.to_int(): Int {
 fun Int.to_char(): Char {
     ret Char $[unicode_code_point: this]
 }
+
+// Creates an string with only this character
+fun Char.to_string(): String {
+    return "".concat(this)
+}

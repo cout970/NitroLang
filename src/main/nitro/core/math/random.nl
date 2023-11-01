@@ -1,15 +1,16 @@
 
+// Intrinsics function to ask the system for a random value to use as seed for the Random Number Generators
 @Extern $[lib: "core", name: "random_get_initial_seed"]
-fun get_initial_seed(): Int {}
+fun random_get_initial_seed(): Int {}
 
-// Implementation of RngPcg32
+// Random Number Generator based on a Permuted congruential generator (PCG) with 32-bit output
 struct RngPcg32 {
     seed: Int
 }
 
 // Creates a new RngPcg32 with a random seed
 fun RngPcg32::new(): RngPcg32 {
-    ret RngPcg32 $[seed: get_initial_seed()]
+    ret RngPcg32 $[seed: random_get_initial_seed()]
 }
 
 // Generates a random integer in the range -2^31..2^31-1

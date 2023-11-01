@@ -1,3 +1,4 @@
+
 // Represents the result of a comparison between two values
 //
 // The ordering is defined as follows:

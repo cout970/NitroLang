@@ -1,0 +1,11 @@
+
+// This type is used for functions that don't return anything
+// There is only a single instance, and can be obtained by using the literal 'nothing'
+// for example: `fun foo(): Nothing = nothing` or `return nothing`
+@Extern $[lib: "core", name: "Nothing"]
+@ValueType
+@Intrinsic
+struct Nothing {}
+
+// Converts this instance to a string
+fun Nothing.to_string(): String = "nothing"
