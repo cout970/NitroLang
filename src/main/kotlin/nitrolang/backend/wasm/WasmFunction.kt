@@ -4,7 +4,7 @@ package nitrolang.backend.wasm
 data class WasmFunction(
     val name: String,
     val params: List<WasmVar>,
-    val results: List<WasmPrimitive>,
+    val result: WasmPrimitive,
     val comment: String = "",
     val exportName: String = "",
 ) {

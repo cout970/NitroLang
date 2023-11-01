@@ -4,77 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Add type_alias to rename types">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstAnnotation.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstBlock.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstCode.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstConst.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstFunction.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstFunctionParam.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstLambdaFunction.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstOption.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstStruct.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstStructField.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstTag.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstTypeAlias.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstTypeParameter.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstTypePattern.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstTypeUsage.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstVar.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/ConstValue.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoConst.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoFuncSignature.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoFunction.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoInstruction.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoStructField.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoType.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoTypeBase.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoTypeBasePattern.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoTypePattern.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoVar.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/InstShorthands.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoCtx.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/Monomorphization.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/Utils.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmConversions.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmFunction.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmImport.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmInst.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrimitive.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmUnresolvedGenericTypeError.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmVar.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmVarKind.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/AstParser.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/ParserCtx.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/FunctionBinding.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TConstraint.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TType.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TTypeBase.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeBox.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeError.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Utils.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/HasSpan.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/SourceFile.kt" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Big refactor to split huge files&#10;Rename Node for Inst and Instruction">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstNode.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstInstruction.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstProgram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/MonoNode.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoVar.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/MonoVar.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmBuilder.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrint.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrinter.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Definitions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Expressions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Other.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Other.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Parser.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Types.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeChecking.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/TypeEnv.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/typeinference/Types.kt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Dumpable.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Dumpable.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Prof.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Prof.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Span.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/util/Span.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmConversions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmConversions.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmFunction.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmFunction.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrinter.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmPrinter.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -576,7 +512,15 @@
       <option name="project" value="LOCAL" />
       <updated>1698796187757</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="Big refactor to split huge files&#10;Rename Node for Inst and Instruction">
+      <option name="closed" value="true" />
+      <created>1698803838801</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1698803838801</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -585,7 +529,6 @@
     <option featureType="dependencySupport" implementationName="executable:podman" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improve type checking and type inference&#10;&#10;Check function returns and body last expression&#10;Improve type conflict errors" />
     <MESSAGE value="Add definitions to the core library&#10;&#10;Update kotlin to 1.8.21&#10;Update antlr4 to 4.12.0&#10;Add base implementation for wasm compiler WIP&#10;Add annotation parameters&#10;Add dead code elimination&#10;Add dup instruction&#10;Add base offset to auto-generated ids in tests" />
     <MESSAGE value="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically" />
     <MESSAGE value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
@@ -610,7 +553,8 @@
     <MESSAGE value="Implement math functions&#10;Add 32bit Linear Congruential Generator (LCG) Random Number Generator" />
     <MESSAGE value="Add `defer {}` to the language&#10;Fix continue in loops&#10;Update to kotlin 1.9.10" />
     <MESSAGE value="Add type_alias to rename types" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add type_alias to rename types" />
+    <MESSAGE value="Big refactor to split huge files&#10;Rename Node for Inst and Instruction" />
+    <option name="LAST_COMMIT_MESSAGE" value="Big refactor to split huge files&#10;Rename Node for Inst and Instruction" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

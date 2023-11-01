@@ -189,12 +189,10 @@ fun WasmPrinter.functionDef(def: WasmFunction, end: Boolean) {
         sep()
     }
 
-    for (result in def.results) {
-        +"(result "
-        +result.toString()
-        +")"
-        sep()
-    }
+    +"(result "
+    +def.result.toString()
+    +")"
+    sep()
 
     if (end) {
         deIndent()

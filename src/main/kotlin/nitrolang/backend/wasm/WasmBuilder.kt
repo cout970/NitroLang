@@ -71,23 +71,17 @@ fun WasmBuilder.compileImports() {
         val mono = getMonoFunction(func, MonoCtx())
 
         for (param in mono.params) {
-            val prims = monoTypeToPrimitive(param.type)
-
-            prims.forEachIndexed { i, prim ->
-                params += WasmVar(
-                    kind = WasmVarKind.Param,
-                    name = param.finalName(i),
-                    type = prim
-                )
-            }
+            params += WasmVar(
+                kind = WasmVarKind.Param,
+                name = param.finalName(),
+                type = monoTypeToPrimitive(param.type)
+            )
         }
-
-        val results = monoTypeToPrimitive(mono.returnType)
 
         val def = WasmFunction(
             name = mono.finalName,
             params = params,
-            results = results,
+            result = monoTypeToPrimitive(mono.returnType),
             comment = func.toString()
         )
 
@@ -143,15 +137,11 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
     val params = mutableListOf<WasmVar>()
 
     func.params.map { variable ->
-        val prim = monoTypeToPrimitive(variable.type)
-
-        prim.forEachIndexed { index, primitive ->
-            params += WasmVar(
-                kind = WasmVarKind.Param,
-                name = variable.finalName(index),
-                type = primitive
-            )
-        }
+        params += WasmVar(
+            kind = WasmVarKind.Param,
+            name = variable.finalName(),
+            type = monoTypeToPrimitive(variable.type)
+        )
     }
 
     val main = if (func.name == "main") "main" else null
@@ -167,21 +157,17 @@ fun WasmBuilder.compileMonoFunction(func: MonoFunction) {
     val wasmFunc = WasmFunction(
         name = func.finalName,
         params = params,
-        results = monoTypeToPrimitive(func.returnType),
+        result = monoTypeToPrimitive(func.returnType),
         comment = func.signature.toString(),
         exportName = exportName
     )
 
     func.variables.forEach { variable ->
-        val prim = monoTypeToPrimitive(variable.type)
-
-        prim.forEachIndexed { index, primitive ->
-            wasmFunc.locals += WasmVar(
-                kind = WasmVarKind.Local,
-                name = variable.finalName(index),
-                type = primitive
-            )
-        }
+        wasmFunc.locals += WasmVar(
+            kind = WasmVarKind.Local,
+            name = variable.finalName(),
+            type = monoTypeToPrimitive(variable.type)
+        )
     }
 
     for (inst in func.instructions) {
@@ -197,25 +183,19 @@ fun WasmBuilder.compileMonoInstruction(inst: MonoInstruction, wasmFunc: WasmFunc
         is MonoProvider -> error("MonoProvider")
         is MonoNoop -> Unit
         is MonoDrop -> {
-            val prim = monoTypeToPrimitive(inst.type)
-            repeat(prim.size) {
-                wasmFunc.instructions += WasmInst("drop")
-            }
+            wasmFunc.instructions += WasmInst("drop")
         }
 
         is MonoDup -> {
-            val prim = monoTypeToPrimitive(inst.type)
-            if (prim.size != 1) error("Dup only works with 1 value")
-
-            wasmFunc.instructions += WasmInst("local.tee ${inst.auxLocal.finalName(0)}")
-            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal.finalName(0)}")
+            wasmFunc.instructions += WasmInst("local.tee ${inst.auxLocal.finalName()}")
+            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal.finalName()}")
         }
 
         is MonoSwap -> {
-            wasmFunc.instructions += WasmInst("local.set ${inst.auxLocal0.finalName(0)}")
-            wasmFunc.instructions += WasmInst("local.set ${inst.auxLocal1.finalName(0)}")
-            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal0.finalName(0)}")
-            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal1.finalName(0)}")
+            wasmFunc.instructions += WasmInst("local.set ${inst.auxLocal0.finalName()}")
+            wasmFunc.instructions += WasmInst("local.set ${inst.auxLocal1.finalName()}")
+            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal0.finalName()}")
+            wasmFunc.instructions += WasmInst("local.get ${inst.auxLocal1.finalName()}")
         }
 
         is MonoComment -> {
@@ -290,87 +270,73 @@ fun WasmBuilder.compileMonoInstruction(inst: MonoInstruction, wasmFunc: WasmFunc
         }
 
         is MonoLoadConst -> {
-            val prims = monoTypeToPrimitive(inst.const.type)
-            prims.forEachIndexed { index, prim ->
-                wasmFunc.instructions += WasmInst("i32.const ${inst.const.offset + index}")
-                wasmFunc.instructions += WasmInst("$prim.load")
-            }
+            val prim = monoTypeToPrimitive(inst.const.type)
+            wasmFunc.instructions += WasmInst("i32.const ${inst.const.offset}")
+            wasmFunc.instructions += WasmInst("$prim.load")
         }
 
         is MonoLoadVar -> {
-            val prim = monoTypeToPrimitive(inst.variable.type)
-            repeat(prim.size) {
-                wasmFunc.instructions += WasmInst("local.get ${inst.variable.finalName(it)}")
-            }
+            wasmFunc.instructions += WasmInst("local.get ${inst.variable.finalName()}")
         }
 
         is MonoStoreVar -> {
-            val prim = monoTypeToPrimitive(inst.variable.type)
-            repeat(prim.size) {
-                wasmFunc.instructions += WasmInst("local.set ${inst.variable.finalName(it)}")
-            }
+            wasmFunc.instructions += WasmInst("local.set ${inst.variable.finalName()}")
         }
 
         is MonoLoadField -> {
             val instancePrim = monoTypeToPrimitive(inst.instanceType)
-            if (instancePrim.size != 1 || instancePrim.first() !== WasmPrimitive.i32) {
+            if (instancePrim !== WasmPrimitive.i32) {
                 error("Instance is not a pointer!")
             }
 
             val fieldType = inst.field.type
-            val fieldPrim = monoTypeToPrimitive(fieldType)
-            if (fieldPrim.size != 1) error("Handle multi value fields")
+            val prim = monoTypeToPrimitive(fieldType)
 
-            fieldPrim.forEach { prim ->
-                when (inst.field.size) {
-                    0 -> {
-                        wasmFunc.instructions += WasmInst("drop")
-                        wasmFunc.instructions += WasmInst("i32.const 0")
-                    }
+            when (inst.field.size) {
+                0 -> {
+                    wasmFunc.instructions += WasmInst("drop")
+                    wasmFunc.instructions += WasmInst("i32.const 0")
+                }
 
-                    1 -> {
-                        wasmFunc.instructions += WasmInst("i32.load8_s")
-                    }
+                1 -> {
+                    wasmFunc.instructions += WasmInst("i32.load8_s")
+                }
 
-                    2 -> {
-                        wasmFunc.instructions += WasmInst("i32.load16_s")
-                    }
+                2 -> {
+                    wasmFunc.instructions += WasmInst("i32.load16_s")
+                }
 
-                    else -> {
-                        wasmFunc.instructions += WasmInst("$prim.load")
-                    }
+                else -> {
+                    wasmFunc.instructions += WasmInst("$prim.load")
                 }
             }
         }
 
         is MonoStoreField -> {
             val instancePrim = monoTypeToPrimitive(inst.instanceType)
-            if (instancePrim.size != 1 || instancePrim.first() !== WasmPrimitive.i32) {
+            if (instancePrim !== WasmPrimitive.i32) {
                 error("Instance is not a pointer!")
             }
 
             val fieldType = inst.field.type
-            val fieldPrim = monoTypeToPrimitive(fieldType)
-            if (fieldPrim.size != 1) TODO("Handle multi value fields")
+            val prim = monoTypeToPrimitive(fieldType)
 
-            fieldPrim.forEach { prim ->
-                when (inst.field.size) {
-                    0 -> {
-                        wasmFunc.instructions += WasmInst("drop")
-                        wasmFunc.instructions += WasmInst("drop")
-                    }
+            when (inst.field.size) {
+                0 -> {
+                    wasmFunc.instructions += WasmInst("drop")
+                    wasmFunc.instructions += WasmInst("drop")
+                }
 
-                    1 -> {
-                        wasmFunc.instructions += WasmInst("i32.store8", needsWrapping = false)
-                    }
+                1 -> {
+                    wasmFunc.instructions += WasmInst("i32.store8", needsWrapping = false)
+                }
 
-                    2 -> {
-                        wasmFunc.instructions += WasmInst("i32.store16", needsWrapping = false)
-                    }
+                2 -> {
+                    wasmFunc.instructions += WasmInst("i32.store16", needsWrapping = false)
+                }
 
-                    else -> {
-                        wasmFunc.instructions += WasmInst("$prim.store", needsWrapping = false)
-                    }
+                else -> {
+                    wasmFunc.instructions += WasmInst("$prim.store", needsWrapping = false)
                 }
             }
         }

@@ -89,15 +89,8 @@ fun WasmBuilder.patternToMonoTypePattern(pattern: LstTypePattern, ctx: MonoCtx):
     return MonoTypePattern(patternBase, params)
 }
 
-fun monoTypeToPrimitive(mono: MonoType): List<WasmPrimitive> {
-    return when (mono.base) {
-        is MonoOption -> listOf(WasmPrimitive.i32)
-        is MonoLambda -> listOf(WasmPrimitive.i32)
-        is MonoStruct -> {
-            val prim = if (mono.base.instance.fullName == "Float") WasmPrimitive.f32 else WasmPrimitive.i32
-            listOf(prim)
-        }
-    }
+fun monoTypeToPrimitive(mono: MonoType): WasmPrimitive {
+    return if (mono.isFloat()) WasmPrimitive.f32 else WasmPrimitive.i32
 }
 
 fun WasmBuilder.funcTypeToWasm(mono: MonoType): String {
@@ -105,22 +98,14 @@ fun WasmBuilder.funcTypeToWasm(mono: MonoType): String {
 
     return buildString {
         mono.params.dropLast(1).forEach { p ->
-            val prim = monoTypeToPrimitive(p)
             append("(param ")
-            prim.forEachIndexed { index, it ->
-                append(it)
-                if (index != prim.size - 1) append(" ")
-            }
+            append(monoTypeToPrimitive(p))
             append(")")
             append(" ")
         }
 
-        val prim = monoTypeToPrimitive(mono.params.last())
         append("(result ")
-        prim.forEachIndexed { index, it ->
-            append(it)
-            if (index != prim.size - 1) append(" ")
-        }
+        append(monoTypeToPrimitive(mono.params.last()))
         append(")")
     }
 }

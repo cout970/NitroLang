@@ -7,7 +7,5 @@ data class MonoVar(
     val type: MonoType
 ) {
 
-    fun finalName(index: Int): String {
-        return if (index == 0) "$$name-$id" else "$$name-$id-$index"
-    }
+    fun finalName(): String = "$$name-$id"
 }
