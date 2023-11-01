@@ -40,3 +40,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# The intellij folder, keeps adding changes to every commit
+.idea
