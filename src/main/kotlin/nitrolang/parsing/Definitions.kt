@@ -42,7 +42,7 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
 fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     startTypeParams(ctx.typeParamsDef())
 
-    val mutableTypeParametersList = mutableListOf<LstTypeParameterDef>()
+    val mutableTypeParametersList = mutableListOf<LstTypeParameter>()
     val options = mutableListOf<LstStruct>()
 
     ctx.optionDefinitionItem().forEach { opt ->
@@ -54,7 +54,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
             span = opt.declaredNameToken().span(),
             name = "variant",
             index = index++,
-            typeUsage = TypeUsage.int(),
+            typeUsage = LstTypeUsage.int(),
             ref = program.nextFieldRef()
         )
 
@@ -139,10 +139,10 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
         hasReceiver = true
     }
 
-    val returnTypeUsage: TypeUsage = if (ctx.functionReturnType() != null) {
+    val returnTypeUsage: LstTypeUsage = if (ctx.functionReturnType() != null) {
         resolveTypeUsage(ctx.functionReturnType().typeUsage())
     } else {
-        TypeUsage.nothing()
+        LstTypeUsage.nothing()
     }
 
     ctx.functionParameter().forEach { rawParam ->

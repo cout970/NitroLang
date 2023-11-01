@@ -3,7 +3,7 @@ package nitrolang.parsing
 import nitrolang.ast.ExpressionTree
 import nitrolang.ast.LstAnnotation
 import nitrolang.ast.Ref
-import nitrolang.backend.wasm.ConstValue
+import nitrolang.backend.ConstValue
 import nitrolang.gen.MainParser.*
 import nitrolang.util.Span
 import org.antlr.v4.runtime.ParserRuleContext
@@ -88,14 +88,14 @@ private fun resolvePrecedence(
     val exprStack = ArrayDeque<ExpressionTree>()
     val opStack = ArrayDeque<Pair<ExpressionTree.Operator, Span>>()
 
-    exprStack.addLast(exprs.first())
+    exprStack.add(exprs.first())
 
     fun fold() {
         val e0 = exprStack.removeLast()
         val e1 = exprStack.removeLast()
         val op = opStack.removeLast()
 
-        exprStack.addLast(
+        exprStack.add(
             ExpressionTree.Operation(
                 left = e1,
                 right = e0,
@@ -111,8 +111,8 @@ private fun resolvePrecedence(
             fold()
         }
 
-        exprStack.addLast(exprs[index + 1])
-        opStack.addLast(operator)
+        exprStack.add(exprs[index + 1])
+        opStack.add(operator)
     }
 
     // Left fold

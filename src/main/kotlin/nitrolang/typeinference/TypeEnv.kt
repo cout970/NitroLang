@@ -91,7 +91,7 @@ class TypeEnv(val collector: ErrorCollector) {
         TUnresolved(it, span).also { self -> unresolved += self }
     }
 
-    fun generic(instance: LstTypeParameterDef): TGeneric {
+    fun generic(instance: LstTypeParameter): TGeneric {
         val key = "G${instance.ref.id}"
         if (key in tGeneric) {
             return tGeneric[key]!!

@@ -184,11 +184,11 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     //     goto loop;
     //   }
     // }
-    val prevBreakNodes = code.breakNodes
-    val prevContinueNodes = code.continueNodes
+    val prevBreaks = code.breaks
+    val prevContinues = code.continues
 
-    code.breakNodes = mutableListOf()
-    code.continueNodes = mutableListOf()
+    code.breaks = mutableListOf()
+    code.continues = mutableListOf()
 
     val iterable = processExpression(subCtx.expression())
 
@@ -309,11 +309,11 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     )
 
     // Link jumps inside this block
-    code.breakNodes.forEach { it.loopBlock = breakBlock }
-    code.continueNodes.forEach { it.loopBlock = continueBlock }
+    code.breaks.forEach { it.loopBlock = breakBlock }
+    code.continues.forEach { it.loopBlock = continueBlock }
 
-    code.breakNodes = prevBreakNodes
-    code.continueNodes = prevContinueNodes
+    code.breaks = prevBreaks
+    code.continues = prevContinues
 }
 
 private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementContext) {
@@ -338,7 +338,7 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         span = subCtx.expression().span(),
         block = code.currentBlock,
         name = "limit",
-        typeUsage = TypeUsage.int(),
+        typeUsage = LstTypeUsage.int(),
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
     )
@@ -361,7 +361,7 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         span = subCtx.expression().span(),
         block = code.currentBlock,
         name = "it",
-        typeUsage = TypeUsage.int(),
+        typeUsage = LstTypeUsage.int(),
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
     )
@@ -387,11 +387,11 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         variable = varIt,
     )
 
-    val prevBreakNodes = code.breakNodes
-    val prevContinueNodes = code.continueNodes
+    val prevBreaks = code.breaks
+    val prevContinues = code.continues
 
-    code.breakNodes = mutableListOf()
-    code.continueNodes = mutableListOf()
+    code.breaks = mutableListOf()
+    code.continues = mutableListOf()
 
     // loop {
     val prevBlock = code.currentBlock
@@ -530,11 +530,11 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     )
 
     // Link jumps inside this block
-    code.breakNodes.forEach { it.loopBlock = breakBlock }
-    code.continueNodes.forEach { it.loopBlock = continueBlock }
+    code.breaks.forEach { it.loopBlock = breakBlock }
+    code.continues.forEach { it.loopBlock = continueBlock }
 
-    code.breakNodes = prevBreakNodes
-    code.continueNodes = prevContinueNodes
+    code.breaks = prevBreaks
+    code.continues = prevContinues
 
     code.exitBlock()
 }
@@ -547,11 +547,11 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
     //     goto loop;
     //   }
     // }
-    val prevBreakNodes = code.breakNodes
-    val prevContinueNodes = code.continueNodes
+    val prevBreaks = code.breaks
+    val prevContinues = code.continues
 
-    code.breakNodes = mutableListOf()
-    code.continueNodes = mutableListOf()
+    code.breaks = mutableListOf()
+    code.continues = mutableListOf()
 
     // loop {
     val prevBlock = code.currentBlock
@@ -615,19 +615,19 @@ private fun ParserCtx.processWhileStatement(subCtx: MainParser.WhileStatementCon
     )
 
     // Link jumps inside this block
-    code.breakNodes.forEach { it.loopBlock = breakBlock }
-    code.continueNodes.forEach { it.loopBlock = continueBlock }
+    code.breaks.forEach { it.loopBlock = breakBlock }
+    code.continues.forEach { it.loopBlock = continueBlock }
 
-    code.breakNodes = prevBreakNodes
-    code.continueNodes = prevContinueNodes
+    code.breaks = prevBreaks
+    code.continues = prevContinues
 }
 
 private fun ParserCtx.processLoopStatement(subCtx: MainParser.LoopStatementContext) {
-    val prevBreakNodes = code.breakNodes
-    val prevContinueNodes = code.continueNodes
+    val prevBreaks = code.breaks
+    val prevContinues = code.continues
 
-    code.breakNodes = mutableListOf()
-    code.continueNodes = mutableListOf()
+    code.breaks = mutableListOf()
+    code.continues = mutableListOf()
 
     // loop {
     val prevBlock = code.currentBlock
@@ -669,11 +669,11 @@ private fun ParserCtx.processLoopStatement(subCtx: MainParser.LoopStatementConte
     )
 
     // Link jumps inside this block
-    code.breakNodes.forEach { it.loopBlock = breakBlock }
-    code.continueNodes.forEach { it.loopBlock = continueBlock }
+    code.breaks.forEach { it.loopBlock = breakBlock }
+    code.continues.forEach { it.loopBlock = continueBlock }
 
-    code.breakNodes = prevBreakNodes
-    code.continueNodes = prevContinueNodes
+    code.breaks = prevBreaks
+    code.continues = prevContinues
 }
 
 private fun ParserCtx.processIfStatement(subCtx: MainParser.IfStatementContext) {

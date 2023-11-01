@@ -3,7 +3,6 @@ package nitrolang
 import nitrolang.ast.DeadCodeAnalyzer
 import nitrolang.ast.LstProgram
 import nitrolang.backend.wasm.WasmBuilder
-import nitrolang.backend.wasm.compile
 import nitrolang.parsing.AstParser
 import nitrolang.util.Prof
 import nitrolang.util.SourceFile
@@ -76,8 +75,8 @@ fun compile(path: String) {
     DeadCodeAnalyzer.markDeadCode(program)
 
     Prof.next("compile_wasm")
-    assembly.bufferedWriter().use {
-        WasmBuilder(program).compile(it)
+    assembly.bufferedWriter().use { out ->
+        WasmBuilder.compile(program, out)
     }
 
 //    Prof.next("print_wasm")

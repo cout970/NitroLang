@@ -1,7 +1,7 @@
 package nitrolang.parsing
 
 import nitrolang.ast.*
-import nitrolang.backend.wasm.*
+import nitrolang.backend.*
 import nitrolang.gen.MainParser
 import nitrolang.util.Span
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -507,7 +507,7 @@ fun ParserCtx.processFunctionCall(
     code: LstCode
 ): Ref {
     val args = mutableListOf<Ref>()
-    val specifiedTypeParams = mutableListOf<TypeUsage>()
+    val specifiedTypeParams = mutableListOf<LstTypeUsage>()
 
     if (receiver != null) {
         args += receiver
@@ -622,7 +622,7 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
                 block = code.currentBlock,
                 backwards = false,
             )
-            code.breakNodes += node
+            code.breaks += node
             code.nodes += node
             node.ref
         }
@@ -636,7 +636,7 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
                 block = code.currentBlock,
                 backwards = true,
             )
-            code.continueNodes += node
+            code.continues += node
             code.nodes += node
             node.ref
         }
@@ -958,7 +958,7 @@ fun ParserCtx.unescapeStringLiteral(tokenText: String): String {
     return text
 }
 
-fun ParserCtx.createStructInstance(type: TypeUsage, fields: List<Pair<String, Ref>>, code: LstCode, span: Span): Ref {
+fun ParserCtx.createStructInstance(type: LstTypeUsage, fields: List<Pair<String, Ref>>, code: LstCode, span: Span): Ref {
     val alloc = LstAlloc(
         ref = code.nextRef(),
         span = span,
@@ -992,7 +992,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             val string = processString(value.string())
 
             createStructInstance(
-                type = TypeUsage.simple("Json::String"),
+                type = LstTypeUsage.simple("Json::String"),
                 fields = listOf("value" to string),
                 code = code,
                 span = value.span(),
@@ -1017,7 +1017,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             code.nodes += const
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Number"),
+                type = LstTypeUsage.simple("Json::Number"),
                 fields = listOf("value" to const.ref),
                 code = code,
                 span = value.span(),
@@ -1042,7 +1042,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             code.nodes += const
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Number"),
+                type = LstTypeUsage.simple("Json::Number"),
                 fields = listOf("value" to const.ref),
                 code = code,
                 span = value.span(),
@@ -1059,7 +1059,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             code.nodes += const
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Boolean"),
+                type = LstTypeUsage.simple("Json::Boolean"),
                 fields = listOf("value" to const.ref),
                 code = code,
                 span = value.span(),
@@ -1076,7 +1076,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             code.nodes += const
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Boolean"),
+                type = LstTypeUsage.simple("Json::Boolean"),
                 fields = listOf("value" to const.ref),
                 code = code,
                 span = value.span(),
@@ -1085,7 +1085,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
 
         value.NULL() != null -> {
             createStructInstance(
-                type = TypeUsage.simple("Json::Null"),
+                type = LstTypeUsage.simple("Json::Null"),
                 fields = listOf(),
                 code = code,
                 span = value.span(),
@@ -1100,7 +1100,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 name = "StringMap::new",
                 path = "",
                 arguments = emptyList(),
-                explicitTypeParams = listOf(TypeUsage.simple("Json")),
+                explicitTypeParams = listOf(LstTypeUsage.simple("Json")),
             )
             code.nodes += map
 
@@ -1132,7 +1132,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             }
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Object"),
+                type = LstTypeUsage.simple("Json::Object"),
                 fields = listOf("value" to map.ref),
                 code = code,
                 span = value.span(),
@@ -1147,7 +1147,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 name = "new",
                 path = "List",
                 arguments = emptyList(),
-                explicitTypeParams = listOf(TypeUsage.simple("Json")),
+                explicitTypeParams = listOf(LstTypeUsage.simple("Json")),
             )
             code.nodes += list
 
@@ -1166,7 +1166,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
             }
 
             createStructInstance(
-                type = TypeUsage.simple("Json::Array"),
+                type = LstTypeUsage.simple("Json::Array"),
                 fields = listOf("value" to list.ref),
                 code = code,
                 span = value.span(),
@@ -1450,7 +1450,7 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
         name = "new",
         path = "List",
         arguments = emptyList(),
-        explicitTypeParams = listOf(TypeUsage.unresolved(listType, ctx.span())),
+        explicitTypeParams = listOf(LstTypeUsage.unresolved(listType, ctx.span())),
     )
     code.nodes += value
 
@@ -1486,8 +1486,8 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
         path = "Map",
         arguments = emptyList(),
         explicitTypeParams = listOf(
-            TypeUsage.unresolved(keyType, ctx.span()),
-            TypeUsage.unresolved(valueType, ctx.span())
+            LstTypeUsage.unresolved(keyType, ctx.span()),
+            LstTypeUsage.unresolved(valueType, ctx.span())
         ),
     )
     code.nodes += value
@@ -1542,7 +1542,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
         name = "new",
         path = "Set",
         arguments = emptyList(),
-        explicitTypeParams = listOf(TypeUsage.unresolved(setType, ctx.span())),
+        explicitTypeParams = listOf(LstTypeUsage.unresolved(setType, ctx.span())),
     )
     code.nodes += value
 
@@ -1567,7 +1567,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
 
 fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Ref {
     val params: MutableList<LstFunctionParam> = mutableListOf()
-    var returnType: TypeUsage? = null
+    var returnType: LstTypeUsage? = null
     var index = 0
 
     val prevCode = this.code
@@ -1591,7 +1591,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                 val typeUsage = if (it.typeUsage() != null) {
                     resolveTypeUsage(it.typeUsage())
                 } else {
-                    TypeUsage.unresolved(
+                    LstTypeUsage.unresolved(
                         program.nextUnresolvedTypeRef(),
                         it.span()
                     )
@@ -1620,7 +1620,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     }
 
     if (returnType == null) {
-        returnType = TypeUsage.unresolved(
+        returnType = LstTypeUsage.unresolved(
             program.nextUnresolvedTypeRef(),
             ctx.span()
         )
@@ -1643,7 +1643,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        typeUsage = TypeUsage.lambda(lambda)
+        typeUsage = LstTypeUsage.lambda(lambda)
     )
     code.nodes += alloc
 
@@ -1716,7 +1716,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
         path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
     }
 
-    var typeParamArgs = listOf<TypeUsage>()
+    var typeParamArgs = listOf<LstTypeUsage>()
 
     if (ctx.typeParamArg() != null) {
         typeParamArgs = ctx.typeParamArg().typeUsage().map { resolveTypeUsage(it) }
@@ -1726,7 +1726,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        typeUsage = TypeUsage(
+        typeUsage = LstTypeUsage(
             span = ctx.nameToken().span(),
             name = name,
             path = path,

@@ -24,6 +24,9 @@ fun <T : Dumpable> Set<T>.dump(): JsonArray = JsonArray().also { obj ->
 fun TypeBox.dump(): JsonElement = JsonPrimitive(type.toString())
 
 fun String.dump(): JsonElement = JsonPrimitive(this)
+
 fun Int.dump(): JsonElement = JsonPrimitive(this)
+
 fun Float.dump(): JsonElement = JsonPrimitive(this)
+
 fun Boolean.dump(): JsonElement = JsonPrimitive(this)

@@ -1,11 +1,10 @@
 package nitrolang.parsing
 
-import nitrolang.ast.*
+import nitrolang.ast.LstCode
+import nitrolang.ast.LstProgram
 import nitrolang.gen.MainLexer
 import nitrolang.gen.MainParser
-import nitrolang.gen.MainParser.*
 import nitrolang.gen.MainParserBaseListener
-import nitrolang.typeinference.TypeEnv
 import nitrolang.typeinference.doAllTypeChecking
 import nitrolang.util.ErrorCollector
 import nitrolang.util.Prof
@@ -14,66 +13,6 @@ import nitrolang.util.Span
 import org.antlr.v4.runtime.*
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 import java.io.File
-
-const val SELF_NAME = "this"
-const val ANNOTATION_EXTERN = "Extern"
-const val ANNOTATION_INTRINSIC = "Intrinsic"
-const val ANNOTATION_REQUIRED = "Required"
-const val ANNOTATION_WASM_NAME = "WasmName"
-const val ANNOTATION_WASM_INLINE = "WasmInline"
-const val ANNOTATION_VALUE_TYPE = "ValueType"
-const val MAIN_FUNCTION_NAME = "main"
-
-data class ParserCtx(
-    val source: SourceFile,
-    val program: LstProgram,
-    val typeParamMap: MutableMap<String, LstTypeParameterDef>,
-    var allowTypeParamCollection: Boolean,
-    var code: LstCode,
-) {
-    val collector: ErrorCollector = program.collector
-    val typeEnv: TypeEnv = program.typeEnv
-
-    var currentTagName: String? = null
-    var currentTag: LstTag? = null
-    var allowDefer: Boolean = true
-
-    fun ParserRuleContext.span(): Span {
-        return Span(start.startIndex, stop.stopIndex, this@ParserCtx.source)
-    }
-
-    fun LstNode.asExpr(ctx: LstNode): LstExpression? {
-        if (this !is LstExpression) {
-            collector.report("Invalid ref: not an expression $this", ctx.span)
-            return null
-        }
-        return this
-    }
-
-    fun currentPath(ctx: ParserRuleContext): String {
-        val pathComponents = mutableListOf<String>()
-        var parent = ctx.getParent()
-
-        while (parent != null) {
-            if (parent is ModuleDefinitionContext) {
-                pathComponents += parent.declaredNameToken().text
-
-                parent.modulePath()?.nameToken()?.forEach { name ->
-                    pathComponents += name.text
-                }
-            }
-            parent = parent.getParent()
-        }
-
-        pathComponents.reverse()
-        return pathComponents.joinToString(MODULE_SEPARATOR)
-    }
-
-    override fun toString(): String {
-        // This function is slowing down debugging with the huge generated strings
-        return "ParserCtx()"
-    }
-}
 
 class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
     companion object {
@@ -188,35 +127,35 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         }
     }
 
-    override fun enterStructDefinition(ctx: StructDefinitionContext) {
+    override fun enterStructDefinition(ctx: MainParser.StructDefinitionContext) {
         parserCtx.processStructDefinition(ctx)
     }
 
-    override fun enterOptionDefinition(ctx: OptionDefinitionContext) {
+    override fun enterOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         parserCtx.processOptionDefinition(ctx)
     }
 
-    override fun enterFunctionDefinition(ctx: FunctionDefinitionContext) {
+    override fun enterFunctionDefinition(ctx: MainParser.FunctionDefinitionContext) {
         parserCtx.processFunctionDefinition(ctx)
     }
 
-    override fun enterConstDefinition(ctx: ConstDefinitionContext) {
+    override fun enterConstDefinition(ctx: MainParser.ConstDefinitionContext) {
         parserCtx.processConstDefinition(ctx)
     }
 
-    override fun enterTagDefinition(ctx: TagDefinitionContext) {
+    override fun enterTagDefinition(ctx: MainParser.TagDefinitionContext) {
         parserCtx.processTagDefinition(ctx)
     }
 
-    override fun enterTypeAliasDefinition(ctx: TypeAliasDefinitionContext) {
+    override fun enterTypeAliasDefinition(ctx: MainParser.TypeAliasDefinitionContext) {
         parserCtx.processTypeAliasDefinition(ctx)
     }
 
-    override fun enterIncludeDefinition(ctx: IncludeDefinitionContext) {
+    override fun enterIncludeDefinition(ctx: MainParser.IncludeDefinitionContext) {
         parserCtx.processIncludeDefinition(ctx)
     }
 
-    override fun enterUseDefinition(ctx: UseDefinitionContext) {
+    override fun enterUseDefinition(ctx: MainParser.UseDefinitionContext) {
         TODO("Use-declarations")
     }
 }

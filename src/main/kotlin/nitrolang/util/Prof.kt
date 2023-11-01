@@ -8,7 +8,7 @@ object Prof {
     private val stack = ArrayDeque<Pair<String, Instant>>()
 
     fun start(name: String) {
-        if (ENABLE) stack.addLast(name to Instant.now())
+        if (ENABLE) stack.add(name to Instant.now())
     }
 
     fun next(name: String) {

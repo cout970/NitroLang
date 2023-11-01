@@ -1,12 +1,12 @@
 package nitrolang.parsing
 
 import nitrolang.ast.MODULE_SEPARATOR
-import nitrolang.ast.LstTypeParameterDef
-import nitrolang.ast.TypePattern
-import nitrolang.ast.TypeUsage
+import nitrolang.ast.LstTypeParameter
+import nitrolang.ast.LstTypePattern
+import nitrolang.ast.LstTypeUsage
 import nitrolang.gen.MainParser
 
-fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
+fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): LstTypeUsage {
 
     if (ctx.THIS_TYPE() != null) {
         val name = "This"
@@ -18,7 +18,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
                 )
             }
 
-            val typeBound = TypeUsage(
+            val typeBound = LstTypeUsage(
                 span = ctx.span(),
                 name = currentTagName ?: error("Using `This` outside a tag definition"),
                 path = "",
@@ -27,7 +27,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
                 currentPath = currentPath(ctx)
             )
 
-            LstTypeParameterDef(
+            LstTypeParameter(
                 span = ctx.span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
@@ -35,7 +35,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             )
         }
 
-        return TypeUsage(
+        return LstTypeUsage(
             span = ctx.span(),
             name = name,
             path = "",
@@ -55,7 +55,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
                 )
             }
 
-            LstTypeParameterDef(
+            LstTypeParameter(
                 span = ctx.typeParameter().nameToken().span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
@@ -63,7 +63,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
             )
         }
 
-        return TypeUsage(
+        return LstTypeUsage(
             span = ctx.typeParameter().nameToken().span(),
             name = name,
             path = "",
@@ -75,7 +75,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
 
     if (ctx.functionTypeUsage() != null) {
         val func = ctx.functionTypeUsage()
-        val sub = mutableListOf<TypeUsage>()
+        val sub = mutableListOf<LstTypeUsage>()
 
         // Receiver
         if (ctx.baseTypeUsage() != null) {
@@ -90,7 +90,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
         // Return
         sub += resolveTypeUsage(func.functionTypeUsageReturn().typeUsage())
 
-        return TypeUsage(
+        return LstTypeUsage(
             span = func.span(),
             name = "Function",
             path = "",
@@ -105,7 +105,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): TypeUsage {
     return resolveBaseTypeUsage(ctx.baseTypeUsage())
 }
 
-fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): TypeUsage {
+fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): LstTypeUsage {
     val name = base.nameToken().text
     var path = ""
 
@@ -119,7 +119,7 @@ fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): TypeU
         listOf()
     }
 
-    return TypeUsage(
+    return LstTypeUsage(
         span = base.nameToken().span(),
         name = name,
         path = path,
@@ -137,7 +137,7 @@ fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamsDefContext?) {
         val typeParam = def.typeParameter()
         val bounds = def.typeUsage().map { resolveTypeUsage(it) }
 
-        val td = LstTypeParameterDef(
+        val td = LstTypeParameter(
             span = typeParam.nameToken().span(),
             name = typeParam.nameToken().text,
             ref = program.nextTypeParamRef(),
@@ -156,12 +156,12 @@ fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamsDefContext?) {
     }
 }
 
-fun ParserCtx.endTypeParams(): List<LstTypeParameterDef> {
+fun ParserCtx.endTypeParams(): List<LstTypeParameter> {
     allowTypeParamCollection = false
     return typeParamMap.values.toList()
 }
 
-fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePattern {
+fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): LstTypePattern {
     if (ctx.THIS_TYPE() != null) {
         val name = "This"
         val typeParameterDef = typeParamMap.getOrPut(name) {
@@ -172,7 +172,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
                 )
             }
 
-            val typeBound = TypeUsage(
+            val typeBound = LstTypeUsage(
                 span = ctx.span(),
                 name = currentTagName ?: error("Using `This` outside a tag definition"),
                 path = "",
@@ -181,7 +181,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
                 currentPath = currentPath(ctx)
             )
 
-            LstTypeParameterDef(
+            LstTypeParameter(
                 span = ctx.span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
@@ -189,7 +189,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
             )
         }
 
-        return TypePattern(
+        return LstTypePattern(
             span = ctx.span(),
             name = name,
             path = "",
@@ -209,7 +209,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
                 )
             }
 
-            LstTypeParameterDef(
+            LstTypeParameter(
                 span = ctx.typeParameter().nameToken().span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
@@ -217,7 +217,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
             )
         }
 
-        return TypePattern(
+        return LstTypePattern(
             span = ctx.typeParameter().nameToken().span(),
             name = name,
             path = "",
@@ -230,7 +230,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): TypePatter
     return resolveBaseTypePattern(ctx.baseTypePattern())
 }
 
-fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): TypePattern {
+fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): LstTypePattern {
     val name = base.nameToken().text
     var path = ""
 
@@ -243,7 +243,7 @@ fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): T
             when {
                 it.typePattern() != null -> resolveTypePattern(it.typePattern())
                 it.MUL() != null -> {
-                    TypePattern(
+                    LstTypePattern(
                         span = it.span(),
                         name = "*",
                         path = "",
@@ -253,6 +253,7 @@ fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): T
                         isAny = true,
                     )
                 }
+
                 else -> error("Grammar has been expanded and parser is outdated")
             }
         }
@@ -260,7 +261,7 @@ fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): T
         listOf()
     }
 
-    return TypePattern(
+    return LstTypePattern(
         span = base.nameToken().span(),
         name = name,
         path = path,

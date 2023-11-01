@@ -10,14 +10,14 @@ import kotlin.math.min
 fun ParserCtx.doAllTypeChecking() {
     Prof.start("check_type_alias")
     program.typeAliases.forEach { alias ->
-        alias.type = typeUsage(alias.typeUsage)
+        alias.type = getTypeFromUsage(alias.typeUsage)
     }
 
     Prof.next("check_const")
     program.consts.forEach { const ->
         if (const.checked) return@forEach
         const.checked = true
-        const.typeBox = typeEnv.box(typeUsage(const.typeUsage), const.span)
+        const.typeBox = typeEnv.box(getTypeFromUsage(const.typeUsage), const.span)
         const.body.returnTypeBox = const.typeBox
     }
 
@@ -27,7 +27,7 @@ fun ParserCtx.doAllTypeChecking() {
         struct.checked = true
 
         struct.fields.values.forEach { field ->
-            field.typeBox = typeEnv.box(typeUsage(field.typeUsage), field.span)
+            field.typeBox = typeEnv.box(getTypeFromUsage(field.typeUsage), field.span)
         }
 
         struct.typeParameters.forEach { tp ->
@@ -41,10 +41,10 @@ fun ParserCtx.doAllTypeChecking() {
         lambda.checked = true
 
         lambda.params.forEach { param ->
-            param.typeBox = typeEnv.box(typeUsage(param.typeUsage), param.span)
+            param.typeBox = typeEnv.box(getTypeFromUsage(param.typeUsage), param.span)
             param.variable!!.typeBox = param.typeBox
         }
-        lambda.returnTypeBox = typeEnv.box(typeUsage(lambda.returnTypeUsage), lambda.span)
+        lambda.returnTypeBox = typeEnv.box(getTypeFromUsage(lambda.returnTypeUsage), lambda.span)
         lambda.body.returnTypeBox = lambda.returnTypeBox
 
         lambda.typeBox = typeEnv.box(typeEnv.typeLambda(lambda), lambda.span)
@@ -57,10 +57,10 @@ fun ParserCtx.doAllTypeChecking() {
 
         currentTag = func.tag
         func.params.forEach { param ->
-            param.typeBox = typeEnv.box(typeUsage(param.typeUsage), param.span)
+            param.typeBox = typeEnv.box(getTypeFromUsage(param.typeUsage), param.span)
             param.variable!!.typeBox = param.typeBox
         }
-        func.returnTypeBox = typeEnv.box(typeUsage(func.returnTypeUsage), func.span)
+        func.returnTypeBox = typeEnv.box(getTypeFromUsage(func.returnTypeUsage), func.span)
         func.body.returnTypeBox = func.returnTypeBox
         func.typeParameters.forEach { tp ->
             tp.requiredTags += tp.bounds.mapNotNull { findTag(it) }
@@ -151,9 +151,9 @@ fun ParserCtx.doAllTypeChecking() {
 
         // `fun test() = 42` is valid, but clearly an error, it returns Nothing instead of 42
         if (func.returnType.isNothing() && func.hasExpressionBody && func.returnTypeUsage.span.isInternal()) {
-            val lastNode = code.lastExpression?.let { code.getNode(it) }
+            val lastInst = code.lastExpression?.let { code.getInst(it) }
 
-            if ((lastNode as? LstExpression)?.type?.isNothing() != true) {
+            if ((lastInst as? LstExpression)?.type?.isNothing() != true) {
                 val err =
                     "Function '${func.name}' has an expression body and implicit return type Nothing, please specify the correct return type"
 
@@ -195,26 +195,26 @@ private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String,
         return
     }
 
-    val lastNode = code.lastExpression?.let { code.getNode(it) }
+    val lastInst = code.lastExpression?.let { code.getInst(it) }
 
-    if (lastNode == null) {
+    if (lastInst == null) {
         collector.report("$name must return a value but has empty body", span)
         return
     }
 
-    if (lastNode is LstReturn) {
+    if (lastInst is LstReturn) {
         return
     }
 
-    if (lastNode !is LstExpression) {
+    if (lastInst !is LstExpression) {
         collector.report("$name must return '${returnType}'", span)
         return
     }
 
-    typeEnv.addAssignableConstraint(returnType, lastNode.type, lastNode.span)
+    typeEnv.addAssignableConstraint(returnType, lastInst.type, lastInst.span)
 }
 
-private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
+private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage): TType {
     if (tu.resolvedType != null) {
         return tu.resolvedType!!.type
     }
@@ -246,7 +246,7 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
         return ty
     }
 
-    val params = tu.sub.map { typeUsage(it) }
+    val params = tu.sub.map { getTypeFromUsage(it) }
 
     // Search for struct/option/tag/lambda/etc
 
@@ -263,7 +263,7 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
                 )
             }
 
-            val map = mutableMapOf<LstTypeParameterDef, TType>()
+            val map = mutableMapOf<LstTypeParameter, TType>()
 
             repeat(min(alias.typeParameters.size, params.size)) {
                 map[alias.typeParameters[it]] = params[it]
@@ -315,27 +315,7 @@ private fun ParserCtx.typeUsage(tu: TypeUsage): TType {
     return ty
 }
 
-private fun ParserCtx.findTag(tu: TypeUsage): LstTag? {
-    if (tu.sub.isNotEmpty()) {
-        collector.report("Type parameters not allowed here", tu.span)
-    }
-
-    // Search for tag
-    val segments = createPathSegments(tu.currentPath, tu.fullName)
-
-    for (segment in segments) {
-        val tag = program.tags.find { it.fullName == segment }
-
-        if (tag != null) {
-            return tag
-        }
-    }
-
-    collector.report("Tag '${tu.fullName}' not found", tu.span)
-    return null
-}
-
-private fun ParserCtx.processTypePattern(tp: TypePattern) {
+private fun ParserCtx.processTypePattern(tp: LstTypePattern) {
     if (tp.typeParameter != null) {
         if (tp.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tp.span)
@@ -403,7 +383,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
     // Resolve specified types in let expressions
     code.variables.values.forEach { variable ->
         variable.typeUsage?.let {
-            variable.typeBox = typeEnv.box(typeUsage(it), variable.span)
+            variable.typeBox = typeEnv.box(getTypeFromUsage(it), variable.span)
         }
     }
 
@@ -416,7 +396,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
     code.nodes.forEach { node ->
         when (node) {
             is LstIfStart -> {
-                val cond = code.getNode(node.cond).asExpr(node) ?: return
+                val cond = code.getInst(node.cond).asExpr(node) ?: return
 
                 typeEnv.addEqualConstraint(cond.type, typeEnv.find("Boolean"), cond.span)
             }
@@ -456,7 +436,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
         val match = matches[0]
 
         // Marge 2 function calls into 1
-        val newNode = LstFunCall(
+        val newInst = LstFunCall(
             ref = nextCall.ref,
             span = nextCall.span,
             block = nextCall.block,
@@ -468,12 +448,12 @@ private fun ParserCtx.visitCode(code: LstCode) {
             explicitTypeParams = call.explicitTypeParams,
         )
 
-        newNode.concreteArgTypes += call.concreteArgTypes
-        newNode.typeParamsTypes += call.typeParamsTypes
-        newNode.typeBox = nextCall.typeBox
+        newInst.concreteArgTypes += call.concreteArgTypes
+        newInst.typeParamsTypes += call.typeParamsTypes
+        newInst.typeBox = nextCall.typeBox
 
         // 'i' was moved to the next node in the beginning of the loop
-        code.nodes[i - 1] = newNode
+        code.nodes[i - 1] = newInst
         code.nodes.removeAt(i)
     }
 
@@ -483,7 +463,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
 fun ParserCtx.bindVariables(code: LstCode) {
     fun <T> ParserCtx.linkVariable(node: T, code: LstCode) where T : LstExpression, T : HasVarRef {
         var found: LstVar? = null
-        var block: LstNodeBlock? = node.block
+        var block: LstBlock? = node.block
 
         while (block != null && found == null) {
             found = code.variables.values
@@ -623,21 +603,21 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstSizeOf -> {
-            node.typeUsageBox = typeEnv.box(typeUsage(node.typeUsage), node.span)
+            node.typeUsageBox = typeEnv.box(getTypeFromUsage(node.typeUsage), node.span)
             node.typeBox = typeEnv.box(typeEnv.find("Int"), node.span)
         }
 
         is LstReturn -> {
             node.typeBox = typeEnv.box(typeEnv.find("Never"), node.span)
 
-            val expr = code.getNode(node.expr).asExpr(node) ?: error("Return requires an expression")
+            val expr = code.getInst(node.expr).asExpr(node) ?: error("Return requires an expression")
 
             typeEnv.addEqualConstraint(code.returnTypeBox!!.type, expr.type, expr.span)
         }
 
         is LstAlloc -> {
             // Declared type, ej. List<*>, Map<*, *>, Struct<Int>
-            val definedType = typeUsage(node.typeUsage)
+            val definedType = getTypeFromUsage(node.typeUsage)
             node.typeUsageBox = typeEnv.box(definedType, node.span)
 
             if (definedType !is TComposite) {
@@ -683,13 +663,13 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstLambdaInit -> {
-            val alloc = code.getNode(node.alloc).asExpr(node) ?: error("Missing lambda alloc")
+            val alloc = code.getInst(node.alloc).asExpr(node) ?: error("Missing lambda alloc")
             node.typeBox = alloc.typeBox
         }
 
         is LstIfChoose -> {
-            val ifTrue = code.getNode(node.ifTrue).asExpr(node)
-            val ifFalse = code.getNode(node.ifFalse).asExpr(node)
+            val ifTrue = code.getInst(node.ifTrue).asExpr(node)
+            val ifFalse = code.getInst(node.ifFalse).asExpr(node)
 
             if (ifTrue == null || ifFalse == null) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
@@ -710,7 +690,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstAsType -> {
-            node.typeUsageBox = typeEnv.box(typeUsage(node.typeUsage), node.span)
+            node.typeUsageBox = typeEnv.box(getTypeFromUsage(node.typeUsage), node.span)
             node.typeBox = node.typeUsageBox
         }
 
@@ -739,7 +719,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstStoreVar -> {
-            val value = code.getNode(node.expr).asExpr(node)
+            val value = code.getInst(node.expr).asExpr(node)
 
             if (node.varRef == null || value == null) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
@@ -766,7 +746,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstLoadField -> {
-            val instance = code.getNode(node.instance).asExpr(node)
+            val instance = code.getInst(node.instance).asExpr(node)
 
             if (instance == null) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
@@ -810,8 +790,8 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstStoreField -> {
-            val instance = code.getNode(node.instance).asExpr(node)
-            val value = code.getNode(node.expr).asExpr(node)
+            val instance = code.getInst(node.instance).asExpr(node)
+            val value = code.getInst(node.expr).asExpr(node)
 
             if (instance == null || value == null) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
@@ -868,7 +848,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
             node.branchStores.forEach { branch ->
                 branch.typeBox = node.typeBox
-                val value = code.getNode(branch.expr).asExpr(node) ?: return@forEach
+                val value = code.getInst(branch.expr).asExpr(node) ?: return@forEach
 
                 typeEnv.addAssignableConstraint(resultType, value.type, branch.span)
             }
@@ -881,7 +861,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             val argTypes = mutableListOf<TType>()
 
             for (arg in node.arguments) {
-                val expr = code.getNode(arg).asExpr(node) ?: error("Missing argument expression")
+                val expr = code.getInst(arg).asExpr(node) ?: error("Missing argument expression")
                 argTypes += expr.type
             }
 
@@ -951,7 +931,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         return@forEachIndexed
                     }
 
-                    typeEnv.addEqualConstraint(typeUsage(typeUsage), node.typeParamsTypes[index].type, typeUsage.span)
+                    typeEnv.addEqualConstraint(getTypeFromUsage(typeUsage), node.typeParamsTypes[index].type, typeUsage.span)
                 }
 
                 paramTypes.zip(args).forEach { (param, arg) ->
@@ -964,7 +944,27 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
     }
 }
 
-private fun findField(ty: TType, name: String): Pair<LstStruct, LstStructField>? {
+private fun ParserCtx.findTag(tu: LstTypeUsage): LstTag? {
+    if (tu.sub.isNotEmpty()) {
+        collector.report("Type parameters not allowed here", tu.span)
+    }
+
+    // Search for tag
+    val segments = createPathSegments(tu.currentPath, tu.fullName)
+
+    for (segment in segments) {
+        val tag = program.tags.find { it.fullName == segment }
+
+        if (tag != null) {
+            return tag
+        }
+    }
+
+    collector.report("Tag '${tu.fullName}' not found", tu.span)
+    return null
+}
+
+private fun ParserCtx.findField(ty: TType, name: String): Pair<LstStruct, LstStructField>? {
     if (ty !is TComposite || (ty.base !is TStruct && ty.base !is TOptionItem)) {
         return null
     }
@@ -1020,118 +1020,4 @@ private fun ParserCtx.functionMatchesTagHeader(origFunc: LstFunction, headerFunc
     if (baseT != headerT) return null
 
     return tagImplementer
-}
-
-private fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): List<LstFunction> {
-    val choices = program.functions.filter { it.fullName == name }
-
-    if (choices.isEmpty()) {
-        return emptyList()
-    }
-
-    val scored = choices.map {
-        var score = if (it.tag != null) 1f else 0f
-        score += functionDiffScore(it.params.map { param -> param.type }, args)
-        // Prefer tags with fewer functions
-        if (it.tag != null) {
-            score += it.tag!!.headers.size * 0.01f
-        }
-        score to it
-    }
-
-    val sortedChoices = scored.sortedBy { (score, _) ->
-        score
-    }
-
-    val bestScore = sortedChoices.first().first
-    val conflicts = mutableListOf<LstFunction>()
-
-    for ((score, func) in sortedChoices) {
-        if (score == bestScore) {
-            conflicts += func
-        } else {
-            break
-        }
-    }
-
-    // Best match
-    return conflicts
-}
-
-private fun deepCompareTypes(a: List<TType>, b: List<TType>, diff: MutableList<Pair<TType, TType>>) {
-    for ((aT, bT) in a.zip(b)) {
-        deepCompareTypes(aT, bT, diff)
-    }
-}
-
-private fun deepCompareTypes(a: TType, b: TType, diff: MutableList<Pair<TType, TType>>) {
-    if (a == b) return
-
-    if (a is TComposite && b is TComposite) {
-        if (a.base == b.base) {
-            deepCompareTypes(a.params, b.params, diff)
-            return
-        }
-    }
-
-    diff += a to b
-}
-
-fun ParserCtx.functionDiffScore(params: List<TType>, args: List<TType>): Float {
-    var diff = 0f
-
-    if (params.size != args.size) {
-        diff += 100000f
-    }
-
-    for ((param, arg) in params.zip(args)) {
-        diff += typeDiffScore(param, arg)
-    }
-
-    return diff
-}
-
-
-fun ParserCtx.typeDiffScore(param: TType, arg: TType): Float {
-    if (param == arg) {
-        return 0f
-    }
-
-    if (param is TComposite && arg is TComposite) {
-        if (param.base != arg.base) {
-            return 1000f
-        }
-
-        var diff = 0f
-
-        if (param.params.size != arg.params.size) {
-            diff += 100f
-        }
-
-        param.params.zip(arg.params).forEach { (p, a) ->
-            diff += typeDiffScore(p, a) * 0.1f
-        }
-
-        return diff
-    }
-
-    if (arg is TGeneric && param is TGeneric) {
-        val req = param.instance.requiredTags.toMutableSet()
-        req.removeAll(arg.instance.requiredTags.toSet())
-        return req.size * 10f + 1f
-    }
-
-    if (arg is TComposite && param is TGeneric) {
-        var missingTags = 0
-
-        param.instance.requiredTags.forEach { tag ->
-            if (arg !in tag.implementers) {
-                missingTags += 1
-            }
-        }
-
-        return missingTags * 10f + 1f
-    }
-
-    return 1000f
 }
