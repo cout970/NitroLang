@@ -176,10 +176,11 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
 
 private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext) {
     // Converts a for in while+iter.next()
-    // let aux = iterable.to_iterator()
+    // let iter = iterable.to_iterator()
     // loop: {
-    //   let i = aux.next()
-    //   if (i.is_some()) {
+    //   let next_item = iter.next()
+    //   if (next_item.is_some()) {
+    //     let i = next_item.get_or_crash()
     //     code...
     //     goto loop;
     //   }
@@ -218,7 +219,7 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         continueBlock = continueBlock,
     )
 
-    // aux.next()
+    // iter.next()
     val iteratorNext = LstFunCall(
         ref = code.nextRef(),
         span = subCtx.expression().span(),
@@ -229,19 +230,19 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     )
     code.nodes += iteratorNext
 
-    // let i
-    val variable = LstVar(
-        span = subCtx.nameToken().span(),
-        name = subCtx.nameToken().text,
+    // let next_item: Optional<#Item>
+    val nextItem = LstVar(
+        span = subCtx.span(),
+        name = "next_item",
         block = code.currentBlock,
         typeUsage = null,
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
     )
 
-    code.variables[variable.ref] = variable
+    code.variables[nextItem.ref] = nextItem
 
-    // i = aux.next()
+    // next_item = iter.next()
     code.nodes += LstStoreVar(
         ref = code.nextRef(),
         span = subCtx.nameToken().span(),
@@ -249,11 +250,11 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         name = subCtx.nameToken().text,
         path = "",
         expr = iteratorNext.ref,
-        varRef = variable.ref,
-        variable = variable,
+        varRef = nextItem.ref,
+        variable = nextItem,
     )
 
-    // i.is_some()
+    // next_item.is_some()
     val isSomeCall = LstFunCall(
         ref = code.nextRef(),
         span = subCtx.nameToken().span(),
@@ -273,6 +274,41 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     )
 
     code.enterBlock(false)
+
+    // next_item.get_or_crash()
+    val getOrCrashCall = LstFunCall(
+        ref = code.nextRef(),
+        span = subCtx.nameToken().span(),
+        block = code.currentBlock,
+        name = "get_or_crash",
+        path = "",
+        arguments = listOf(iteratorNext.ref),
+    )
+    code.nodes += getOrCrashCall
+
+    // let i
+    val forVar = LstVar(
+        span = subCtx.nameToken().span(),
+        name = subCtx.nameToken().text,
+        block = code.currentBlock,
+        typeUsage = null,
+        validAfter = code.currentRef(),
+        ref = code.nextVarRef(),
+    )
+
+    code.variables[forVar.ref] = forVar
+
+    // i = next_item.get_or_crash()
+    code.nodes += LstStoreVar(
+        ref = code.nextRef(),
+        span = subCtx.nameToken().span(),
+        block = code.currentBlock,
+        name = subCtx.nameToken().text,
+        path = "",
+        expr = getOrCrashCall.ref,
+        varRef = forVar.ref,
+        variable = forVar,
+    )
 
     // Code in loop...
     processStatementBlock(subCtx.statementBlock())

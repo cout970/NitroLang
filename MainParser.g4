@@ -317,7 +317,6 @@ expressionOrFunctionCall
     | parenthesizedExpression functionCallParams functionCallEnd?
     | expressionLiteral functionCallParams functionCallEnd?
     | structInstanceExpr functionCallParams functionCallEnd?
-    | sizeOfExpr functionCallParams functionCallEnd?
     | THIS functionCallParams functionCallEnd?
     | THIS functionCallEnd
     | expressionBase

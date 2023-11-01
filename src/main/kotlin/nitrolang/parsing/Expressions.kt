@@ -455,20 +455,6 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
             )
         }
 
-        ctx.sizeOfExpr() != null -> {
-            val prev = processExpressionSizeOf(ctx.sizeOfExpr())
-
-            processFunctionCall(
-                span = ctx.sizeOfExpr().span(),
-                receiver = prev,
-                path = "",
-                name = "invoke",
-                params = ctx.functionCallParams(),
-                end = ctx.functionCallEnd(),
-                code = code
-            )
-        }
-
         ctx.THIS() != null -> {
             val load = LstLoadVar(
                 ref = code.nextRef(),

@@ -290,7 +290,7 @@ data class LstLoopStart(
     val breakBlock: LstBlock,
     val continueBlock: LstBlock,
 ) : LstInstruction(ref, span, block) {
-    override fun toString(): String = "$ref loop"
+    override fun toString(): String = "$ref loop :$continueBlock"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -304,7 +304,7 @@ data class LstLoopEnd(
     override val span: Span,
     override val block: LstBlock
 ) : LstInstruction(ref, span, block) {
-    override fun toString(): String = "$ref end-loop"
+    override fun toString(): String = "$ref end-loop :$block"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())

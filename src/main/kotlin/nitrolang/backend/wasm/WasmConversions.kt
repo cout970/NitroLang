@@ -81,8 +81,9 @@ fun WasmBuilder.patternToMonoTypePattern(pattern: LstTypePattern, ctx: MonoCtx):
 
     val patternBase = when (val base = pattern.base) {
         null -> MonoTypeBasePattern.PatternAny
-        is TOption -> MonoTypeBasePattern.PatternOption(base.instance)
         is TStruct -> MonoTypeBasePattern.PatternStruct(base.instance)
+        is TOption -> MonoTypeBasePattern.PatternOption(base.instance)
+        is TOptionItem -> MonoTypeBasePattern.PatternStruct(base.instance)
         else -> error("Invalid type: $base")
     }
 

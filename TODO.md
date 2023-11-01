@@ -27,19 +27,21 @@ Intended for the developers
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
+- Question mark operator `?` at the end of an expression
 - implicit this instead of writing `this.something()` everywhere
 - `for` statement with iterators
 - Runtime reflection of types
-- Enums, not like rust, like java, a list of constants that can be iterated
+- Enums, not like rust, but like java, a list of constants that can be iterated
 - Consts only accept primitive values, it should allow lists, maps and sets
 - Fix external functions with Floats compressed as pointers
-- Lambdas as closures
+- Lambdas as closures, implement upvalues
 - Call lambdas without the `func.invoke(args)` syntax
 - Assert type has tag `assert tag ToString for List<#Item>`
 - Tags with parametric types
 - Improve core library
 - Self-hosted compiler
 - Check for read of uninitialized variables
+- Implement interface for runtime function call indirection
 
 ### Bugs
 - `ret when { ... }` Missing provider for ref
