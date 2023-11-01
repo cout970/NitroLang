@@ -28,6 +28,8 @@ Intended for the developers
 - Arena allocators
 - Smart casts
 - Question mark operator `?` at the end of an expression
+- Optional function arguments
+- Variadic function arguments
 - implicit this instead of writing `this.something()` everywhere
 - `for` statement with iterators
 - Runtime reflection of types

@@ -111,10 +111,22 @@ fun compile(path: String) {
     println("[] Executed in ${rtElapsed / 1_000_000} ms")
 }
 
+fun getAbsDirsRec(dirs: List<Path>, result: MutableList<Path>) {
+    for (dir in dirs) {
+        result.add(dir.absolute())
+        dir.toFile().listFiles()?.forEach {
+            if (it.isDirectory) {
+                getAbsDirsRec(listOf(it.toPath()), result)
+            }
+        }
+    }
+}
+
 fun watchFolderForChanges(dirs: List<Path>, callback: (Path) -> Unit) {
     val watchService = FileSystems.getDefault().newWatchService()
 
-    val absDirs = dirs.map { it.absolute() }
+    val absDirs = mutableListOf<Path>()
+    getAbsDirsRec(dirs, absDirs)
     absDirs.forEach {
         val dir = if (it.isRegularFile()) it.parent else it
         dir.register(

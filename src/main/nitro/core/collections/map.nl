@@ -347,7 +347,6 @@ fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): St
     let mut count = 0
 
     repeat this.capacity {
-        println("it: $it")
         let slot = this.table[it]
 
         if slot.is_some() {

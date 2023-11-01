@@ -171,9 +171,9 @@ fun Lexer.process() {
 }
 
 fun Lexer.debug_print() {
-    println("Lexer \$[token_count: ${this.token_count}, cursor: ${this.cursor}]")
+    Log::info("Lexer \$[token_count: ${this.token_count}, cursor: ${this.cursor}]")
     repeat this.token_count {
-        println(" - ${this.get_token_offset(it)}: ${this.get_token_type(it)}")
+        Log::info(" - ${this.get_token_offset(it)}: ${this.get_token_type(it)}")
     }
 }
 

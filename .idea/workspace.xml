@@ -4,47 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Changes monoTypeToPrimitive to return a single value">
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/iterator.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/lang/crash.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/math/constants.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/math/exponential_utils.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/math/trigonometry_utils.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/memory/intrinsic.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/memory/memory_arena.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/never.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/nothing.nl" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/sorting/quicksort.nl" afterDir="false" />
+    <list default="true" id="b2471768-eb88-4e93-9bd1-ef754bbc99fd" name="Changes" comment="Reestructure core library files into sub-folders">
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/debug/debug.nl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/debug/log.nl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/nitro/core/debug/logger.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TODO.md" beforeDir="false" afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstInstruction.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/ast/LstInstruction.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmConversions.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/WasmConversions.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/parsing/Statements.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/nitrolang/backend/wasm/Utils.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/debug.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/boolean.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/boolean.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/byte.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/byte.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/char.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string/char.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/console.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/debug/console.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/compiler/lexer.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/compiler/lexer.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/collections/iterator.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/iterator.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/collections/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/map.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/nitro/core/core.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/core.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/float.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/float.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/function.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/function.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/int.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/primitives/int.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/intrinsic.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/lang/intrinsic.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/json.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/json.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/list.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/list.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/map.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/map.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/math/math.nl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/math/random.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/math/random.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/memory.nl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/optional.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/optional.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/ordering.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/sorting/ordering.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/pair.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/pair.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/ptr.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory/ptr.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/raw_array.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/memory/raw_array.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/result.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/result.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/set.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/set.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/slice.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/collections/slice.nl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/string.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/string/string.nl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/debug/console.nl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/nitro/core/debug/crash.nl" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/nitro/core/debug/crash.nl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/resources/core.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/core.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -139,11 +113,11 @@
       <recent name="$PROJECT_DIR$/tests/internal" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/src/main/nitro/core/primitives" />
+      <recent name="$PROJECT_DIR$/src/main/nitro/core/lang" />
       <recent name="$PROJECT_DIR$/src/main/nitro/core/debug" />
+      <recent name="$PROJECT_DIR$/src/main/nitro/core/primitives" />
       <recent name="$PROJECT_DIR$/src/main/nitro/core/data_structure" />
       <recent name="$PROJECT_DIR$/src/main/nitro/core/sort" />
-      <recent name="$PROJECT_DIR$/src/main/nitro/core/string" />
     </key>
     <key name="CopyKotlinDeclarationDialog.RECENTS_KEY">
       <recent name="" />
@@ -563,7 +537,23 @@
       <option name="project" value="LOCAL" />
       <updated>1698804448035</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Fix missing variant TOptionItem in patternToMonoTypePattern()&#10;Fix size_of&lt;T&gt; with parens&#10;Fix for loops using Optional&lt;T&gt; instead of T for the declared variable">
+      <option name="closed" value="true" />
+      <created>1698865616098</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1698865616099</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Reestructure core library files into sub-folders">
+      <option name="closed" value="true" />
+      <created>1698865925058</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1698865925058</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="UnknownFeatures">
@@ -572,8 +562,6 @@
     <option featureType="dependencySupport" implementationName="executable:podman" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Continue implementing the wasm compilation backend&#10;&#10;Remove unnecessary Unit return type&#10;Add watcher for file changes to recompile automatically" />
-    <MESSAGE value="Add stack machine IR as intermediary step for WASM compilation&#10;&#10;Add compilation for if-else, loops, return, break, continue, etc.&#10;Not yet is/as expressions&#10;Remove LstMarker, LstDup, etc." />
     <MESSAGE value="Add inline json notation&#10;WIP string interpolation&#10;Fix weird bug with spaces as delimiters on the same line&#10;Split core lib in several files&#10;Add native implementation of List and StringMap" />
     <MESSAGE value="Add string interpolation&#10;Rename alloc() to memory_alloc()" />
     <MESSAGE value="Rename Unit to Nothing" />
@@ -597,12 +585,14 @@
     <MESSAGE value="Add type_alias to rename types" />
     <MESSAGE value="Big refactor to split huge files&#10;Rename Node for Inst and Instruction" />
     <MESSAGE value="Changes monoTypeToPrimitive to return a single value" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changes monoTypeToPrimitive to return a single value" />
+    <MESSAGE value="Fix missing variant TOptionItem in patternToMonoTypePattern()&#10;Fix size_of&lt;T&gt; with parens&#10;Fix for loops using Optional&lt;T&gt; instead of T for the declared variable" />
+    <MESSAGE value="Reestructure core library files into sub-folders" />
+    <option name="LAST_COMMIT_MESSAGE" value="Reestructure core library files into sub-folders" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
       <configuration name="JetRunConfigurationType">
-        <watch expression="this.code.blockStack" language="kotlin" />
+        <watch expression="module.sectionOffset" language="kotlin" />
       </configuration>
     </watches-manager>
   </component>

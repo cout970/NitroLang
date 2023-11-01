@@ -165,7 +165,7 @@ export function memory_copy_internal(dst: number, src: number, len: number) {
 
 export function memory_dump(ptr: number) {
     console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}, base = ${ptr}`)
-    console.debug(dumpMemory(getInt(12), getInt(8)));
+    console.debug('Memory dump:\n' + dumpMemory(getInt(12), getInt(8)));
 }
 
 // string.nl
@@ -271,28 +271,24 @@ export function float_rem(a: number, b: number): number {
 
 // console.nl
 
-export function println_unit(_: number) {
-    console.log('()');
-}
-
-export function println_boolean(val: number) {
+export function println_boolean(val: number): number {
     console.log(val !== 0);
+    return val;
 }
 
-export function println_int(val: number) {
+export function println_int(val: number): number {
     console.log(val);
+    return val;
 }
 
-export function println_float(val: number) {
+export function println_float(val: number): number {
     console.log(val);
+    return val;
 }
 
-export function println_string(ptr: number) {
+export function println_string(ptr: number): number {
     console.log(getString(ptr));
-}
-
-export function eprintln_string(ptr: number) {
-    console.error(getString(ptr));
+    return ptr;
 }
 
 // ordering.nl
@@ -333,3 +329,28 @@ export function math_tanh(x: number): number             { return Math.tanh(x); 
 // random.nl
 
 export function random_get_initial_seed(): number { return (Math.random() * 0x7FFFFFFF) | 0; }
+
+// logger.nl
+
+export function logger_get_logger(): number { return 0; }
+
+export function logger_log(logger: number, level: number, msg: number) {
+    const levelStr = getString(level);
+    const msgStr = getString(msg);
+
+    if (levelStr == "trace") {
+        console.debug(msgStr);
+    } else if (levelStr == "debug") {
+        console.debug(msgStr);
+    } else if (levelStr == "info") {
+        console.log(msgStr);
+    } else if (levelStr == "warn") {
+        console.warn(msgStr);
+    } else if (levelStr == "error") {
+        console.error(msgStr);
+    } else if (levelStr == "fatal") {
+        console.error(msgStr);
+    } else {
+        console.log(msgStr);
+    }
+}

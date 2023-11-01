@@ -1,7 +1,7 @@
 
 // Crashes the program with an error message
 fun crash(msg: String): Never {
-    eprintln(msg);
+    Log::fatal(msg);
     panic()
 }
 

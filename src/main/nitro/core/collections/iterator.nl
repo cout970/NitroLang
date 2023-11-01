@@ -21,7 +21,7 @@ fun List<#Item>.to_iterator(): ListIterator<#Item> {
 }
 
 fun ListIterator<#Item>.next(): Optional<#Item> {
-    if this.index >= this.list.len {
+    if this.index >= this.list.len() {
         ret None()
     }
 

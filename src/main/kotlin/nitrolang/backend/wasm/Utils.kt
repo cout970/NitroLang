@@ -106,8 +106,9 @@ fun findReplacements(a: TType, b: MonoType, map: MutableMap<LstTypeParameter, Mo
 }
 
 fun pad(value: Int, alignment: Int = PTR_SIZE): Int {
-    if (value % alignment != 0) {
-        return value + value % alignment
+    val extra = value % alignment
+    if (extra != 0) {
+        return value + (alignment - extra)
     }
     return value
 }
