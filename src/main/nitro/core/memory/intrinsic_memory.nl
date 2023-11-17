@@ -14,7 +14,7 @@ fun memory_alloc_internal(bytes: Int): Int {
 // Intrinsic function that copies a chunk of memory to another location
 @Extern $[lib: "core", name: "memory_copy_internal"]
 @Required
-fun memory_copy_internal(target: Int, value: Int, len: Int) {}
+fun memory_copy_internal(target: Int, source: Int, len: Int) {}
 
 // Intrinsic function that tracks the memory allocated
 @Extern $[lib: "core", name: "memory_alloc_trace"]

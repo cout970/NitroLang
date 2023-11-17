@@ -85,6 +85,14 @@ class LstProgram : Dumpable {
         )
     }
 
+    fun removeAllGenerics(type: TType): TType {
+        return when (type) {
+            is TGeneric -> typeEnv.find("Int")
+            is TComposite -> typeEnv.composite(type.base, type.params.map(::removeAllGenerics))
+            else -> type
+        }
+    }
+
     companion object {
         private val GSON = GsonBuilder()
             .setPrettyPrinting()

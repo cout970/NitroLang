@@ -59,6 +59,7 @@ definitionChoice
     | constDefinition
     | tagDefinition
     | typeAliasDefinition
+    | enumDefinition
     ;
 
 // E.g. include "core:optional.nl"
@@ -129,6 +130,30 @@ tagDefinitionFunction
 // E.g. type_alias MultiMap<#Key, #Value> = Map<#Key, List<#Value>>
 typeAliasDefinition
     : TYPE_ALIAS declaredNameToken typeParamsDef? ASSIGN NL* typeUsage ;
+
+// E.g. enum Direction { Up, Down, Left, Right, Front, Back }
+enumDefinition
+    : ENUM declaredNameToken NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
+    | ENUM declaredNameToken NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
+    ;
+
+enumFields
+    : enumField (commaOrNl enumField)* COMMA? ;
+
+// E.g. let name: String = "John"
+enumField
+    : LET declaredNameToken COLON typeUsage (ASSIGN NL* constExpr)? ;
+
+// E.g. Up, Down, Left, Right, Front, Back
+// E.g. Red $[rgb: 0xFF0000], Green $[rgb: 0x00FF00], Blue $[rgb: 0x0000FF
+enumValue
+    : declaredNameToken
+    | declaredNameToken STRUCT_START NL* (enumValueInit (commaOrNl enumValueInit)* COMMA?)? NL* RBRACKET
+    ;
+
+// E.g. rgb: 0xFF0000
+enumValueInit
+    : nameToken COLON NL* expression ;
 
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition

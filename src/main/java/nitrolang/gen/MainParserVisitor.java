@@ -197,6 +197,36 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#enumDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEnumDefinition(MainParser.EnumDefinitionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#enumFields}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEnumFields(MainParser.EnumFieldsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#enumField}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEnumField(MainParser.EnumFieldContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#enumValue}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEnumValue(MainParser.EnumValueContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MainParser#enumValueInit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEnumValueInit(MainParser.EnumValueInitContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

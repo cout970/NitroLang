@@ -15,8 +15,7 @@ fun main() {
     let str = BigStruct $[a: 42, b: 2, c: 12]
     list[] = str
 
-    println(list.get(0).a)
-    println(list.get(0).b)
-    println(list.get(0).c)
+    println(list[0]!!.a)
+    println(list[0]!!.b)
+    println(list[0]!!.c)
 }
-// 1234567

@@ -58,6 +58,7 @@ REC                             : 'rec'         | 'recv'        | 'receiver' ;
 TAG                             : 'interface'   | 'trait'       | 'tag' ;
 DEFER                           : 'defer' ;
 TYPE_ALIAS                      : 'type_alias'  | 'typeAlias'   | 'typealias' ;
+ENUM                            : 'enum' ;
 NOTHING                         : 'nothing' ;
 WHEN                            : 'when' ;
 MATCH                           : 'match' ;

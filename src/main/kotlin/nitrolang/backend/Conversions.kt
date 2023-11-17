@@ -1,11 +1,12 @@
-package nitrolang.backend.wasm
+package nitrolang.backend
 
 import nitrolang.ast.*
-import nitrolang.backend.*
+import nitrolang.backend.wasm.PTR_SIZE
+import nitrolang.backend.wasm.heapSize
 import nitrolang.typeinference.*
 import kotlin.math.min
 
-fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
+fun MonoBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
     if (type is TGeneric) {
         val replacement = ctx.generics[type.instance]
         if (replacement != null) return replacement
@@ -14,11 +15,11 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
             return typeToMonoType(type, ctx.parent)
         }
 
-        throw WasmUnresolvedGenericTypeError("No valid replacement for generic: $type", type)
+        throw UnresolvedGenericTypeError("No valid replacement for generic: $type", type)
     }
 
     if (type !is TComposite) {
-        throw WasmUnresolvedGenericTypeError("Unable to convert type $type to MonoType", type)
+        throw UnresolvedGenericTypeError("Unable to convert type $type to MonoType", type)
     }
 
     val params = mutableListOf<MonoType>()
@@ -52,26 +53,27 @@ fun WasmBuilder.typeToMonoType(type: TType, ctx: MonoCtx): MonoType {
     return typeIds[typeSign]!!
 }
 
-fun WasmBuilder.monoTypeToPattern(ty: MonoType): MonoTypePattern {
+fun MonoBuilder.monoTypeToPattern(ty: MonoType): MonoTypePattern {
     val params = ty.params.map { monoTypeToPattern(it) }
+
+    fun monoTypeBaseToBasePattern(ty: MonoTypeBase?): MonoTypeBasePattern {
+        if (ty == null) return MonoTypeBasePattern.PatternAny
+
+        if (ty is MonoStruct) {
+            return MonoTypeBasePattern.PatternStruct(ty.instance)
+        }
+
+        if (ty is MonoOption) {
+            return MonoTypeBasePattern.PatternOption(ty.instance)
+        }
+
+        error("Invalid type: $ty")
+    }
+
     return MonoTypePattern(monoTypeBaseToBasePattern(ty.base), params)
 }
 
-fun WasmBuilder.monoTypeBaseToBasePattern(ty: MonoTypeBase?): MonoTypeBasePattern {
-    if (ty == null) return MonoTypeBasePattern.PatternAny
-
-    if (ty is MonoStruct) {
-        return MonoTypeBasePattern.PatternStruct(ty.instance)
-    }
-
-    if (ty is MonoOption) {
-        return MonoTypeBasePattern.PatternOption(ty.instance)
-    }
-
-    error("Invalid type: $ty")
-}
-
-fun WasmBuilder.patternToMonoTypePattern(pattern: LstTypePattern, ctx: MonoCtx): MonoTypePattern {
+fun MonoBuilder.patternToMonoTypePattern(pattern: LstTypePattern, ctx: MonoCtx): MonoTypePattern {
     if (pattern.generic != null) {
         val ty = typeToMonoType(pattern.generic!!, ctx)
         return monoTypeToPattern(ty)
@@ -90,28 +92,7 @@ fun WasmBuilder.patternToMonoTypePattern(pattern: LstTypePattern, ctx: MonoCtx):
     return MonoTypePattern(patternBase, params)
 }
 
-fun monoTypeToPrimitive(mono: MonoType): WasmPrimitive {
-    return if (mono.isFloat()) WasmPrimitive.f32 else WasmPrimitive.i32
-}
-
-fun WasmBuilder.funcTypeToWasm(mono: MonoType): String {
-    if (!mono.isFunction() && !mono.isLambda()) error("Invalid type $mono")
-
-    return buildString {
-        mono.params.dropLast(1).forEach { p ->
-            append("(param ")
-            append(monoTypeToPrimitive(p))
-            append(")")
-            append(" ")
-        }
-
-        append("(result ")
-        append(monoTypeToPrimitive(mono.params.last()))
-        append(")")
-    }
-}
-
-fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: MonoCtx): MonoStruct {
+fun MonoBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: MonoCtx): MonoStruct {
 
     val generics = mutableMapOf<LstTypeParameter, MonoType>()
 
@@ -148,7 +129,7 @@ fun WasmBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: Mo
     return structIds[sign]!!
 }
 
-fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: MonoCtx): MonoOption {
+fun MonoBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: MonoCtx): MonoOption {
     val generics = mutableMapOf<LstTypeParameter, MonoType>()
     repeat(option.typeParameters.size) {
         generics[option.typeParameters[it]] = params[it]
@@ -175,7 +156,7 @@ fun WasmBuilder.getOptionType(option: LstOption, params: List<MonoType>, ctx: Mo
     return optionIds[optionSign]!!
 }
 
-fun WasmBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>): MonoLambda {
+fun MonoBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>): MonoLambda {
     val sign = mutableListOf(lambda.ref.id)
     params.forEach { sign += it.id }
 
@@ -187,14 +168,14 @@ fun WasmBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>)
     return lambdaIds[sign]!!
 }
 
-fun WasmBuilder.toMonoStructFields(struct: LstStruct, ctx: MonoCtx): List<MonoStructField> {
+fun MonoBuilder.toMonoStructFields(struct: LstStruct, ctx: MonoCtx): List<MonoStructField> {
     val fields = mutableListOf<MonoStructField>()
     var offset = 0
 
     struct.fields.values.forEach { field ->
         val fieldType = typeToMonoType(field.type, ctx)
 
-        val size: Int = if (fieldType.isValueType()) fieldType.heapSize() else fieldType.stackSize()
+        val size: Int = if (fieldType.isValueType()) fieldType.heapSize() else PTR_SIZE
 
         // Pad to 4 bytes
         if (size >= PTR_SIZE) {

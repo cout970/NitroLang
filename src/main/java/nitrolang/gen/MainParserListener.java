@@ -318,6 +318,56 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitTypeAliasDefinition(MainParser.TypeAliasDefinitionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#enumDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnumDefinition(MainParser.EnumDefinitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#enumDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnumDefinition(MainParser.EnumDefinitionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#enumFields}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnumFields(MainParser.EnumFieldsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#enumFields}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnumFields(MainParser.EnumFieldsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#enumField}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnumField(MainParser.EnumFieldContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#enumField}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnumField(MainParser.EnumFieldContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#enumValue}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnumValue(MainParser.EnumValueContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#enumValue}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnumValue(MainParser.EnumValueContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MainParser#enumValueInit}.
+	 * @param ctx the parse tree
+	 */
+	void enterEnumValueInit(MainParser.EnumValueInitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#enumValueInit}.
+	 * @param ctx the parse tree
+	 */
+	void exitEnumValueInit(MainParser.EnumValueInitContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 */

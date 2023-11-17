@@ -70,6 +70,7 @@ class MonoStartLoop(
 // Ends a block
 class MonoEndBlock(
     id: MonoRef, span: Span,
+    val type: String
 ) : MonoInstruction(id, span)
 
 // Jump to the beginning or the end of block, depending on the type of the block.
@@ -77,6 +78,7 @@ class MonoEndBlock(
 class MonoJump(
     id: MonoRef, span: Span,
     val depth: Int,
+    val backwards: Boolean,
 ) : MonoInstruction(id, span)
 
 // Return from the current function
@@ -129,15 +131,34 @@ class MonoFunCall(
 ) : MonoInstruction(id, span)
 
 // Ejecute a wasm native opcode
-class MonoOpcode(
+class MonoLambdaInit(
     id: MonoRef, span: Span,
-    val opcode: String,
+    val lambda: MonoFunction,
 ) : MonoInstruction(id, span)
 
-// Ejecute a wasm native opcode
-class MonoIndirectCall(
+// Appends inline assembly code
+class MonoInline(
+    id: MonoRef, span: Span,
+    val inline: String,
+) : MonoInstruction(id, span)
+
+// Given an address to a struct, returns the address of a field inside the struct
+class MonoGetFieldAddress(
+    id: MonoRef, span: Span,
+    val struct: MonoStruct,
+    val field: MonoStructField,
+) : MonoInstruction(id, span)
+
+// Crashes the program
+class MonoUnreachable(
+    id: MonoRef, span: Span,
+) : MonoInstruction(id, span)
+
+// Call a lambda function
+class MonoLambdaCall(
     id: MonoRef, span: Span,
     val functionType: MonoType,
+    val args: Int,
 ) : MonoInstruction(id, span)
 
 // Duplicate the top of the stack

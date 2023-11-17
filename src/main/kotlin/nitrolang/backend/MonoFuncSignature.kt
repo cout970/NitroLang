@@ -1,6 +1,8 @@
 package nitrolang.backend
 
 import nitrolang.ast.FunRef
+import nitrolang.ast.LstFunction
+import nitrolang.ast.LstLambdaFunction
 
 // Signature of a monomorphized function, uniquely identifies a wasm function
 class MonoFuncSignature(
@@ -9,6 +11,9 @@ class MonoFuncSignature(
     val paramTypes: List<MonoType>,
     val returnType: MonoType
 ) {
+    var function: LstFunction? = null
+    var lambda: LstLambdaFunction? = null
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is MonoFuncSignature) return false

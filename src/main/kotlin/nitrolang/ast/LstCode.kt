@@ -50,7 +50,16 @@ class LstCode : Dumpable {
 
     fun nextVarRef() = LocalVarRef(counter++)
 
-    fun getInst(ref: Ref): LstInstruction = nodes.find { it.ref == ref } ?: error("Ref not found!")
+    fun getInst(ref: Ref): LstInstruction {
+        val instruction = nodes.find { it.ref == ref }
+        if (instruction == null) {
+            println("Ref not found: $ref")
+            println("Nodes: $nodes")
+            println("Last node: $lastExpression")
+            error("Ref not found!")
+        }
+        return instruction
+    }
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("variables", variables.dump())

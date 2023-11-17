@@ -18,7 +18,7 @@ export async function run(url: string) {
     internal.mem.u8 = new Uint8Array(memory.buffer);
     internal.mem.program = wasmExports;
 
-    const main = wasmExports.main as CallableFunction
+    const main = wasmExports._start_main as CallableFunction
 
     main();
 }

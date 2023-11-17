@@ -6,6 +6,7 @@ data class MonoVar(
     val name: String,
     val type: MonoType
 ) {
+    var auxName: String? = null
 
     fun finalName(): String = "$$name-$id"
 }

@@ -1,14 +1,13 @@
-package nitrolang.backend.wasm
+package nitrolang.backend
 
 import nitrolang.ast.*
-import nitrolang.backend.*
+import nitrolang.backend.wasm.heapSize
 import nitrolang.parsing.ANNOTATION_EXTERN
-import nitrolang.parsing.ANNOTATION_WASM_INLINE
 import nitrolang.typeinference.TType
 import nitrolang.util.Span
 
 // Search if a given function signature matches an already converted MonoFunction, if not, create a new one and return it
-fun WasmBuilder.getOrCreateMonoFunction(key: MonoFuncSignature, onInit: (MonoFunction) -> Unit): MonoFunction {
+fun MonoBuilder.getOrCreateMonoFunction(key: MonoFuncSignature, onInit: (MonoFunction) -> Unit): MonoFunction {
     if (key in funcCache) return funcCache[key]!!
 
     val nameIndex = globalNames.getOrDefault(key.fullName, 0)
@@ -19,14 +18,14 @@ fun WasmBuilder.getOrCreateMonoFunction(key: MonoFuncSignature, onInit: (MonoFun
     funcCache[key] = mono
     try {
         onInit(mono)
-    } catch (e: WasmUnresolvedGenericTypeError) {
+    } catch (e: UnresolvedGenericTypeError) {
         throw RuntimeException(e)
     }
     return mono
 }
 
 // Given a function and a context return the corresponding MonoFunction, if it doesn't exist, we create it
-fun WasmBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
+fun MonoBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
     if (func.tag != null) {
         error("Calling invalid function!")
     }
@@ -34,9 +33,9 @@ fun WasmBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
     // External functions cannot be duplicated, generics become plain pointers, represented with Int
     val key = if (func.isExternal) {
         val params = func.params.map {
-            typeToMonoType(removeAllGenerics(it.type), ctx)
+            typeToMonoType(program.removeAllGenerics(it.type), ctx)
         }
-        val returnType = typeToMonoType(removeAllGenerics(func.returnType), ctx)
+        val returnType = typeToMonoType(program.removeAllGenerics(func.returnType), ctx)
 
         MonoFuncSignature(func.ref, func.fullName, params, returnType)
     } else {
@@ -47,18 +46,21 @@ fun WasmBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
         )
     }
 
+    key.function = func
+
     return getOrCreateMonoFunction(key) { mono ->
         createMonoFunction(mono, func, key, ctx)
     }
 }
 
 // Given a lambda function and a context return the corresponding MonoFunction, if it doesn't exist, we create it
-fun WasmBuilder.getMonoLambdaFunction(lambda: LstLambdaFunction, ctx: MonoCtx): MonoFunction {
+fun MonoBuilder.getMonoLambdaFunction(lambda: LstLambdaFunction, ctx: MonoCtx): MonoFunction {
     val key = MonoFuncSignature(
         lambda.ref, "lambda-${lambda.ref.id}",
         lambda.params.map { typeToMonoType(it.type, ctx) },
-        typeToMonoType(lambda.returnType, ctx)
+        typeToMonoType(lambda.returnType, ctx),
     )
+    key.lambda = lambda
 
     return getOrCreateMonoFunction(key) { mono ->
         createMonoLambdaFunction(mono, lambda, key, ctx)
@@ -66,179 +68,122 @@ fun WasmBuilder.getMonoLambdaFunction(lambda: LstLambdaFunction, ctx: MonoCtx): 
 }
 
 // Fills a MonoFunction with the necessary components from the original LstFunction and the given context
-fun WasmBuilder.createMonoFunction(
+fun MonoBuilder.createMonoFunction(
     mono: MonoFunction,
     function: LstFunction,
     signature: MonoFuncSignature,
     ctx: MonoCtx
 ) {
     val prev = current
-    current = mono
-    val varMap = mutableMapOf<LstVar, MonoVar>()
-    val code = function.body
-
-    for (variable in code.variables.values) {
-        val type = typeToMonoType(
-            if (function.isExternal) removeAllGenerics(variable.type) else variable.type,
-            ctx
-        )
-
-        val monoVar = MonoVar(mono.variables.size, variable.name, type)
-        varMap[variable] = monoVar
-
-        if (!variable.isParam) {
-            mono.variables += monoVar
-        }
-    }
-
+    mono.code = MonoCode(function.body)
     mono.name = signature.fullName
-    mono.params = function.params.map { varMap[it.variable]!! }
     mono.returnType = signature.returnType
-    mono.isExternal = function.isExternal
     mono.annotations += function.annotations
+    mono.code.isExternal = function.isExternal
 
-    if (function.isExternal) {
-        current = prev
-        return
+    current = mono.code
+    processCode(mono.code, ctx)
+
+    function.params.forEach {
+        mono.params += mono.code.varMap[it.variable]!!
     }
-
-    val providers = mono.providers
-    val helperVars = mutableMapOf<Ref, MonoVar>()
-
-    for (inst in code.nodes) {
-        processInst(inst, mono, code, ctx, providers, helperVars, varMap)
-    }
-
-    for ((index, inst) in mono.instructions.toList().withIndex()) {
-        if (inst is MonoProvider) {
-            if (inst.consumers.isEmpty()) {
-                if (index != mono.instructions.lastIndex || signature.returnType.isNothing()) {
-                    mono.instructions[index] = MonoDrop(mono.nextId(), inst.span, inst.type)
-                } else {
-                    mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
-                }
-                continue
-            }
-
-            if (inst.consumers.size == 1 && inst.consumers.first().id == inst.id + 1) {
-                mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
-                continue
-            }
-
-            val variable = MonoVar(mono.variables.size, "tmp${inst.id}", inst.type)
-            mono.variables += variable
-            mono.instructions[index] = MonoStoreVar(mono.nextId(), inst.span, variable)
-            inst.consumers.forEach { it.variable = variable }
-        }
-
-        if (inst is MonoConsumer) {
-            if (inst.variable == null) {
-                mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
-                continue
-            }
-
-            mono.instructions[index] = MonoLoadVar(mono.nextId(), inst.span, inst.variable!!)
-        }
-    }
-
-    if (signature.returnType.isNothing()) {
-        mono.instructions += MonoInt(mono.nextId(), Span.internal(), 0)
-    } else if (mono.instructions.lastOrNull() is MonoEndBlock) {
-        val msg = "Added to suppress error, 'end' returns nothing"
-        mono.instructions += MonoComment(mono.nextId(), Span.internal(), msg)
-        mono.instructions += MonoInt(mono.nextId(), Span.internal(), 0)
-    }
-
     current = prev
 }
 
 // Fills a MonoFunction with the necessary components from the original LstLambdaFunction and the given context
-fun WasmBuilder.createMonoLambdaFunction(
+fun MonoBuilder.createMonoLambdaFunction(
     mono: MonoFunction,
     function: LstLambdaFunction,
     signature: MonoFuncSignature,
     ctx: MonoCtx
 ) {
+    mono.name = signature.fullName
+    mono.returnType = signature.returnType
+    mono.isLambda = true
+    mono.code = MonoCode(function.body)
+
     val prev = current
-    current = mono
-    val varMap = mutableMapOf<LstVar, MonoVar>()
-    val code = function.body
+    current = mono.code
+    processCode(mono.code, ctx)
 
-    for (variable in code.variables.values) {
-        val type = typeToMonoType(variable.type, ctx)
+    function.params.forEach {
+        mono.params += mono.code.varMap[it.variable]!!
+    }
 
-        val monoVar = MonoVar(mono.variables.size, variable.name, type)
-        varMap[variable] = monoVar
+    builder.onCompileLambda(mono)
+    current = prev
+}
+
+fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
+    var varIndex = 0
+    for (variable in monoCode.code.variables.values) {
+        val type = typeToMonoType(
+            if (monoCode.isExternal) program.removeAllGenerics(variable.type) else variable.type,
+            ctx
+        )
+
+        val monoVar = MonoVar(varIndex, variable.name, type)
+        monoCode.varMap[variable] = monoVar
 
         if (!variable.isParam) {
-            mono.variables += monoVar
+            varIndex++
+            monoCode.variables += monoVar
         }
     }
 
-    mono.name = signature.fullName
-    mono.params = function.params.map { varMap[it.variable]!! }
-    mono.returnType = signature.returnType
-    mono.isLambda = true
-    module.lambdaLabels += mono.name
-
-    val providers = mono.providers
-    val helperVars = mutableMapOf<Ref, MonoVar>()
-
-    for (inst in code.nodes) {
-        processInst(inst, mono, code, ctx, providers, helperVars, varMap)
+    if (monoCode.isExternal) {
+        return
     }
 
-    for ((index, inst) in mono.instructions.toList().withIndex()) {
+    for (inst in monoCode.code.nodes) {
+        processInst(inst, monoCode, ctx)
+    }
+
+    for ((index, inst) in monoCode.instructions.toList().withIndex()) {
         if (inst is MonoProvider) {
             if (inst.consumers.isEmpty()) {
-                if (index != mono.instructions.lastIndex || signature.returnType.isNothing()) {
-                    mono.instructions[index] = MonoDrop(mono.nextId(), inst.span, inst.type)
+                if (index != monoCode.instructions.lastIndex || monoCode.code.returnType.isNothing()) {
+                    monoCode.instructions[index] = MonoDrop(monoCode.nextId(), inst.span, inst.type)
                 } else {
-                    mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
+                    monoCode.instructions[index] = MonoNoop(monoCode.nextId(), inst.span)
                 }
                 continue
             }
 
             if (inst.consumers.size == 1 && inst.consumers.first().id == inst.id + 1) {
-                mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
+                monoCode.instructions[index] = MonoNoop(monoCode.nextId(), inst.span)
                 continue
             }
 
-            val variable = MonoVar(mono.variables.size, "tmp${inst.id}", inst.type)
-            mono.variables += variable
-            mono.instructions[index] = MonoStoreVar(mono.nextId(), inst.span, variable)
+            val variable = MonoVar(monoCode.variables.size, "tmp${inst.id}", inst.type)
+            monoCode.variables += variable
+            monoCode.instructions[index] = MonoStoreVar(monoCode.nextId(), inst.span, variable)
             inst.consumers.forEach { it.variable = variable }
         }
 
         if (inst is MonoConsumer) {
             if (inst.variable == null) {
-                mono.instructions[index] = MonoNoop(mono.nextId(), inst.span)
+                monoCode.instructions[index] = MonoNoop(monoCode.nextId(), inst.span)
                 continue
             }
 
-            mono.instructions[index] = MonoLoadVar(mono.nextId(), inst.span, inst.variable!!)
+            monoCode.instructions[index] = MonoLoadVar(monoCode.nextId(), inst.span, inst.variable!!)
         }
     }
 
-    if (signature.returnType.isNothing()) {
-        mono.instructions += MonoInt(mono.nextId(), Span.internal(), 0)
-    } else if (mono.instructions.lastOrNull() is MonoEndBlock) {
+    if (monoCode.code.returnType.isNothing()) {
+        monoCode.instructions += MonoInt(monoCode.nextId(), Span.internal(), 0)
+    } else if (monoCode.instructions.lastOrNull() is MonoEndBlock) {
         val msg = "Added to suppress error, 'end' returns nothing"
-        mono.instructions += MonoComment(mono.nextId(), Span.internal(), msg)
-        mono.instructions += MonoInt(mono.nextId(), Span.internal(), 0)
+        monoCode.instructions += MonoComment(monoCode.nextId(), Span.internal(), msg)
+        monoCode.instructions += MonoInt(monoCode.nextId(), Span.internal(), 0)
     }
-
-    current = prev
 }
 
-fun WasmBuilder.processInst(
+fun MonoBuilder.processInst(
     inst: LstInstruction,
-    mono: MonoFunction,
-    code: LstCode,
+    code: MonoCode,
     ctx: MonoCtx,
-    providers: MutableMap<Ref, MonoProvider>,
-    helperVars: MutableMap<Ref, MonoVar>,
-    varMap: MutableMap<LstVar, MonoVar>
 ) {
     comment(inst.span, inst.toString())
 
@@ -246,47 +191,47 @@ fun WasmBuilder.processInst(
         is LstFunCall -> {
             val function = inst.function ?: error("Function not bound: $inst")
 
-            processFunctionCall(mono, function, inst, ctx)
+            processFunctionCall(code, function, inst, ctx)
         }
 
         is LstComment -> {
-            mono.instructions += MonoComment(mono.nextId(), inst.span, inst.comment)
+            code.instructions += MonoComment(code.nextId(), inst.span, inst.comment)
         }
 
         is LstBoolean -> {
             val type = typeToMonoType(inst.type, ctx)
-            mono.instructions += MonoBoolean(mono.nextId(), inst.span, inst.value)
+            code.instructions += MonoBoolean(code.nextId(), inst.span, inst.value)
             provider(inst.span, inst.ref, type)
         }
 
         is LstFloat -> {
             val type = typeToMonoType(inst.type, ctx)
-            mono.instructions += MonoFloat(mono.nextId(), inst.span, inst.value)
+            code.instructions += MonoFloat(code.nextId(), inst.span, inst.value)
             provider(inst.span, inst.ref, type)
         }
 
         is LstInt -> {
             val type = typeToMonoType(inst.type, ctx)
-            mono.instructions += MonoInt(mono.nextId(), inst.span, inst.value)
+            code.instructions += MonoInt(code.nextId(), inst.span, inst.value)
             provider(inst.span, inst.ref, type)
         }
 
         is LstNothing -> {
             val type = typeToMonoType(inst.type, ctx)
-            mono.instructions += MonoNothing(mono.nextId(), inst.span)
+            code.instructions += MonoNothing(code.nextId(), inst.span)
             provider(inst.span, inst.ref, type)
         }
 
         is LstString -> {
             val type = typeToMonoType(inst.type, ctx)
-            mono.instructions += MonoString(mono.nextId(), inst.span, inst.value, type)
+            code.instructions += MonoString(code.nextId(), inst.span, inst.value, type)
             provider(inst.span, inst.ref, type)
         }
 
         is LstSizeOf -> {
             val type = typeToMonoType(inst.type, ctx)
             val sizeType = typeToMonoType(inst.typeUsageBox!!.type, ctx)
-            mono.instructions += MonoInt(mono.nextId(), inst.span, sizeType.heapSize())
+            code.instructions += MonoInt(code.nextId(), inst.span, sizeType.heapSize())
             provider(inst.span, inst.ref, type)
         }
 
@@ -297,7 +242,8 @@ fun WasmBuilder.processInst(
             int(inst.span, type.heapSize())
             call(inst.span, "memory_alloc_internal", ctx)
 
-            val option = (type.base as? MonoStruct)?.instance?.parentOption
+            val monoStruct = type.base as? MonoStruct
+            val option = monoStruct?.instance?.parentOption
             if (option != null) {
                 val index = option.items.indexOf(type.base.instance)
                 check(index != -1)
@@ -305,7 +251,7 @@ fun WasmBuilder.processInst(
                 // $1.variant = index
                 dup(inst.span, type)
                 int(inst.span, index + 1)
-                opcode(inst.span, "i32.store")
+                code.instructions += MonoStoreField(code.nextId(), inst.span, type, monoStruct.fields.first())
             }
 
             provider(inst.span, inst.ref, type)
@@ -317,10 +263,7 @@ fun WasmBuilder.processInst(
             dup(inst.span, type)
 
             val monoLambda = getMonoLambdaFunction(inst.lambda, ctx)
-            val index = module.lambdaLabels.indexOf(monoLambda.name)
-            comment(inst.span, "Lambda function \$${monoLambda.name} at index $index in \$lambdas")
-            int(inst.span, index)
-            opcode(inst.span, "i32.store")
+            code.instructions += MonoLambdaInit(code.nextId(), inst.span, monoLambda)
 
             provider(inst.span, inst.ref, type)
         }
@@ -328,7 +271,7 @@ fun WasmBuilder.processInst(
         is LstIsType -> {
             val type = typeToMonoType(inst.type, ctx)
             val typePattern = patternToMonoTypePattern(inst.typePattern, ctx)
-            val expr = code.getInst(inst.expr) as LstExpression
+            val expr = code.code.getInst(inst.expr) as LstExpression
             val exprType = typeToMonoType(expr.type, ctx)
 
             if (!typePattern.isOptionOrOptionItem() || !exprType.isOptionOrOptionItem()) {
@@ -351,7 +294,7 @@ fun WasmBuilder.processInst(
                     "Invalid type check, types must be known at compile type or be options",
                     inst.span
                 )
-                opcode(inst.span, "unreachable")
+                unreachable(inst.span)
                 provider(inst.span, inst.ref, type)
             }
         }
@@ -359,7 +302,7 @@ fun WasmBuilder.processInst(
         is LstAsType -> {
             val type = typeToMonoType(inst.type, ctx)
             val typeParam = typeToMonoType(inst.typeUsageBox!!.type, ctx)
-            val expr = code.getInst(inst.expr) as LstExpression
+            val expr = code.code.getInst(inst.expr) as LstExpression
             val exprType = typeToMonoType(expr.type, ctx)
 
             if (typeParam.isValueType() || exprType.isValueType()) {
@@ -382,7 +325,7 @@ fun WasmBuilder.processInst(
             } else {
                 // Invalid cast
                 this.program.collector.report("Invalid type cast", inst.span)
-                opcode(inst.span, "unreachable")
+                unreachable(inst.span)
                 provider(inst.span, inst.ref, type)
             }
         }
@@ -392,13 +335,13 @@ fun WasmBuilder.processInst(
             consumer(inst.span, inst.ifTrue)
             consumer(inst.span, inst.ifFalse)
             consumer(inst.span, inst.cond)
-            mono.instructions += MonoIfChoose(mono.nextId(), inst.span)
+            code.instructions += MonoIfChoose(code.nextId(), inst.span)
             provider(inst.span, inst.ref, type)
         }
 
         is LstReturn -> {
             consumer(inst.span, inst.expr)
-            mono.instructions += MonoReturn(mono.nextId(), inst.span)
+            code.instructions += MonoReturn(code.nextId(), inst.span)
         }
 
         is LstLoadVar -> {
@@ -407,28 +350,32 @@ fun WasmBuilder.processInst(
                 val constType = typeToMonoType(const.type, ctx)
 
 
-                mono.instructions += MonoLoadConst(mono.nextId(), inst.span, consts[const.ref.id]!!)
+                code.instructions += MonoLoadConst(code.nextId(), inst.span, consts[const.ref.id]!!)
                 constType
             } else {
-                val variable = varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
+                val variable = code.varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
 
-                mono.instructions += MonoLoadVar(mono.nextId(), inst.span, variable)
+                code.instructions += MonoLoadVar(code.nextId(), inst.span, variable)
                 variable.type
             }
 
-            mono.instructions += MonoProvider(mono.nextId(), inst.span, type).also {
-                providers[inst.ref] = it
+            code.instructions += MonoProvider(code.nextId(), inst.span, type).also {
+                code.providers[inst.ref] = it
             }
         }
 
         is LstStoreVar -> {
-            val variable = varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
+            if (inst.constant != null) {
+                program.collector.report("Cannot override const ${inst.constant!!.fullName}", inst.span)
+                return
+            }
+            val variable = code.varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
             consumer(inst.span, inst.expr)
-            mono.instructions += MonoStoreVar(mono.nextId(), inst.span, variable)
+            code.instructions += MonoStoreVar(code.nextId(), inst.span, variable)
         }
 
         is LstLoadField -> {
-            val instance = code.getInst(inst.instance) as LstExpression
+            val instance = code.code.getInst(inst.instance) as LstExpression
             val instanceType = typeToMonoType(instance.type, ctx)
             val type = typeToMonoType(inst.type, ctx)
 
@@ -437,21 +384,20 @@ fun WasmBuilder.processInst(
 
             consumer(inst.span, inst.instance)
             // Field offset
-            int(inst.span, field.offset)
-            opcode(inst.span, "i32.add")
+            code.instructions += MonoGetFieldAddress(code.nextId(), inst.span, struct, field)
 
             if (field.type.isValueType() && !field.type.isIntrinsic()) {
                 // Field offset is already the pointer to the struct
                 provider(inst.span, inst.ref, type)
             } else {
                 // Load value from pointer
-                mono.instructions += MonoLoadField(mono.nextId(), inst.span, instanceType, field)
+                code.instructions += MonoLoadField(code.nextId(), inst.span, instanceType, field)
                 provider(inst.span, inst.ref, type)
             }
         }
 
         is LstStoreField -> {
-            val instance = code.getInst(inst.instance) as LstExpression
+            val instance = code.code.getInst(inst.instance) as LstExpression
             val instanceType = typeToMonoType(instance.type, ctx)
 
             val struct = instanceType.base as MonoStruct
@@ -465,8 +411,7 @@ fun WasmBuilder.processInst(
             consumer(inst.span, inst.instance)
 
             // Field offset
-            int(inst.span, field.offset)
-            opcode(inst.span, "i32.add")
+            code.instructions += MonoGetFieldAddress(code.nextId(), inst.span, struct, field)
 
             // Value
             consumer(inst.span, inst.expr)
@@ -478,72 +423,71 @@ fun WasmBuilder.processInst(
                 drop(inst.span, fieldType)
             } else {
                 // Copy pointer
-                mono.instructions += MonoStoreField(mono.nextId(), inst.span, instanceType, field)
+                code.instructions += MonoStoreField(code.nextId(), inst.span, instanceType, field)
             }
         }
 
         is LstIfStart -> {
             consumer(inst.span, inst.cond)
-            mono.instructions += MonoIfStart(mono.nextId(), inst.span)
+            code.instructions += MonoIfStart(code.nextId(), inst.span)
         }
 
         is LstIfElse -> {
-            mono.instructions += MonoIfElse(mono.nextId(), inst.span)
+            code.instructions += MonoIfElse(code.nextId(), inst.span)
         }
 
         is LstIfEnd -> {
-            mono.instructions += MonoEndBlock(mono.nextId(), inst.span)
+            code.instructions += MonoEndBlock(code.nextId(), inst.span, "if")
         }
 
         is LstWhenStart -> {
             val type = typeToMonoType(inst.type, ctx)
-            val variable = MonoVar(mono.variables.size, "when-${inst.ref.id}", type)
-            helperVars[inst.ref] = variable
-            mono.variables += variable
-            mono.instructions += MonoStartBlock(mono.nextId(), inst.span)
+            val variable = MonoVar(code.variables.size, "when-${inst.ref.id}", type)
+            code.helperVars[inst.ref] = variable
+            code.variables += variable
+            code.instructions += MonoStartBlock(code.nextId(), inst.span)
         }
 
         is LstWhenJump -> {
-            mono.instructions += MonoJump(mono.nextId(), inst.span, inst.block.depth - inst.whenBlock.depth)
+            code.instructions += MonoJump(code.nextId(), inst.span, inst.block.depth - inst.whenBlock.depth, false)
         }
 
         is LstWhenStore -> {
-            val variable = helperVars[inst.start.ref]!!
+            val variable = code.helperVars[inst.start.ref]!!
             consumer(inst.span, inst.expr)
-            mono.instructions += MonoStoreVar(mono.nextId(), inst.span, variable)
+            code.instructions += MonoStoreVar(code.nextId(), inst.span, variable)
         }
 
         is LstWhenEnd -> {
-            mono.instructions += MonoEndBlock(mono.nextId(), inst.span)
-            mono.instructions += MonoLoadVar(mono.nextId(), inst.span, helperVars[inst.start.ref]!!)
+            code.instructions += MonoEndBlock(code.nextId(), inst.span, "when")
+            code.instructions += MonoLoadVar(code.nextId(), inst.span, code.helperVars[inst.start.ref]!!)
         }
 
         is LstLoopStart -> {
-            mono.instructions += MonoStartBlock(mono.nextId(), inst.span)
-            mono.instructions += MonoStartLoop(mono.nextId(), inst.span)
+            code.instructions += MonoStartBlock(code.nextId(), inst.span)
+            code.instructions += MonoStartLoop(code.nextId(), inst.span)
         }
 
         is LstLoopJump -> {
-            mono.instructions += MonoJump(mono.nextId(), inst.span, inst.block.depth - inst.loopBlock!!.depth)
+            code.instructions += MonoJump(
+                code.nextId(),
+                inst.span,
+                inst.block.depth - inst.loopBlock!!.depth,
+                inst.backwards
+            )
         }
 
         is LstLoopEnd -> {
-            mono.instructions += MonoEndBlock(mono.nextId(), inst.span)
-            mono.instructions += MonoEndBlock(mono.nextId(), inst.span)
+            code.instructions += MonoEndBlock(code.nextId(), inst.span, "loop")
+            code.instructions += MonoEndBlock(code.nextId(), inst.span, "block")
         }
     }
 }
 
-fun WasmBuilder.processFunctionCall(mono: MonoFunction, function: LstFunction, inst: LstFunCall, ctx: MonoCtx) {
+fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst: LstFunCall, ctx: MonoCtx) {
     val finalType = typeToMonoType(inst.type, ctx)
-    val inline = function.getAnnotation(ANNOTATION_WASM_INLINE)
-    val opcode = inline?.args?.get("opcode") as? ConstString
 
-    // Just a wasm opcode
-    if (opcode != null) {
-        inst.arguments.forEach { ref -> consumer(inst.span, ref) }
-        mono.instructions += MonoOpcode(mono.nextId(), inst.span, opcode.value)
-        provider(inst.span, inst.ref, finalType)
+    if (builder.onCompileFunctionCall(mono, function, inst, finalType)) {
         return
     }
 
@@ -569,12 +513,11 @@ fun WasmBuilder.processFunctionCall(mono: MonoFunction, function: LstFunction, i
         val lambdaParam = inst.arguments.first()
         val lambdaType = typeOf(lambdaParam)
 
-        inst.arguments.drop(1).forEach { ref -> consumer(inst.span, ref) }
+        val args = inst.arguments.drop(1)
+        args.forEach { ref -> consumer(inst.span, ref) }
+
         consumer(inst.span, lambdaParam)
-        mono.instructions += MonoOpcode(mono.nextId(), inst.span, "i32.const 4")
-        mono.instructions += MonoOpcode(mono.nextId(), inst.span, "i32.add")
-        mono.instructions += MonoOpcode(mono.nextId(), inst.span, "i32.load")
-        mono.instructions += MonoIndirectCall(mono.nextId(), inst.span, lambdaType)
+        mono.instructions += MonoLambdaCall(mono.nextId(), inst.span, lambdaType, args.size)
         provider(inst.span, inst.ref, finalType)
         return
     }
@@ -618,6 +561,6 @@ fun WasmBuilder.processFunctionCall(mono: MonoFunction, function: LstFunction, i
     provider(inst.span, inst.ref, finalType)
 
     if (monoFunction.returnType.isNever()) {
-        opcode(inst.span, "unreachable")
+        unreachable(inst.span)
     }
 }

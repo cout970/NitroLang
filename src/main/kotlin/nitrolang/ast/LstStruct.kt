@@ -23,6 +23,7 @@ class LstStruct(
     val fullName: Path get() = createPath(path, name)
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
     val isIntrinsic: Boolean get() = getAnnotation(ANNOTATION_INTRINSIC) != null
+    var enumConstants: Map<String, LstConst>? = null
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 

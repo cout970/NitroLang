@@ -68,9 +68,10 @@ Data structures:
 
 ```nitrolang
 fun main() {
-    // Optional ';' at the end 
+    // Optional ';' to end lines
     let my_list = #[1, 2, 3, 4]
-    // Optional ',' whe there are newlines
+    
+    // Optional ',' as separator if there is a newline
     let my_other_list = #[
         1
         2
@@ -78,20 +79,34 @@ fun main() {
     ]
     
     let my_map: Map<String, Int> = @[
-        a: 1
-        b: 2
-        c: 2 + 1
-        "this key has spaces": 4
-        ("this expression is evaluated: ${1 + 1}"): 5
-    ] 
+        a: 1,
+        b: 2,
+        c: 2 + 1,
+        "this key has spaces": 4,
+        ("this expression is evaluated: ${1 + 1}"): 5,
+    ]
     
-    let compute = #{ 1 + 2 }
-    
-    // Omit parens for lists, maps and lambdas 
-    use_my_list_function #[]
+    let my_beloved_json = json {
+        "name": "John Doe",
+        "age": 42,
+        "is_admin": true,
+        "friends": [
+            "Alice",
+            "Bob",
+            "Charlie"
+        ]
+    }
         
+    // Omit parenthesis for lists, maps and lambdas if they are the last argument 
+    use_my_list_function #[]
+
+    // Lambda function as data
+    let compute: () -> Int = #{ 1 + 2 }
+    
     use_my_lambda_function(compute)
-    use_my_lambda_function #{ 2 + 2 }    
+    
+    // Inline lambda function as argument
+    use_my_lambda_function #{ 2 + 2 }
 }
 ```
 
@@ -138,9 +153,9 @@ option Available {
 
 // Not yet added..
 enum Roles {
-    Admin $[]
-    Moderator $[]
-    Regular $[]
+    Admin
+    Moderator
+    Regular
 }
 
 fun main() {

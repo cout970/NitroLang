@@ -159,7 +159,7 @@ export function memory_copy_within(src: number, dst: number, len: number) {
 }
 
 export function memory_copy_internal(dst: number, src: number, len: number) {
-    // console.debug('memory_copy_internal', {src, dst, len});
+    console.debug('memory_copy_internal', {src, dst, len});
     memcopy(dst, src, len);
 }
 

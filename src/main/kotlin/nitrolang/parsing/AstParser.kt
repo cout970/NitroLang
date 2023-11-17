@@ -151,6 +151,10 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         parserCtx.processTypeAliasDefinition(ctx)
     }
 
+    override fun enterEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
+        parserCtx.processEnumDefinition(ctx)
+    }
+
     override fun enterIncludeDefinition(ctx: MainParser.IncludeDefinitionContext) {
         parserCtx.processIncludeDefinition(ctx)
     }

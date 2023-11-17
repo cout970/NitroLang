@@ -52,7 +52,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         // Field to discriminate between the option's items
         fields += LstStructField(
             span = opt.declaredNameToken().span(),
-            name = "variant",
+            name = VARIANT_FIELD_NAME,
             index = index++,
             typeUsage = LstTypeUsage.int(),
             ref = program.nextFieldRef()
@@ -307,4 +307,253 @@ fun ParserCtx.processTypeAliasDefinition(ctx: MainParser.TypeAliasDefinitionCont
 
     program.definedNames[alias.fullName] = alias.span
     program.typeAliases += alias
+}
+
+fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
+    // enum Direction {
+    //    Up      $[name: "up"]
+    //    Down    $[name: "down"]
+    //    Left    $[name: "left"]
+    //    Right   $[name: "right"]
+    //    Front   $[name: "front"]
+    //    Back    $[name: "back"]
+    //
+    //    let name: String
+    // }
+    // to
+    // struct Direction {
+    //    let name: String
+    // }
+    // mod Direction {
+    //    let Up: Direction = Direction $[name: "up"]
+    //    let Down: Direction = Direction $[name: "down"]
+    //    let Left: Direction = Direction $[name: "left"]
+    //    let Right: Direction = Direction $[name: "right"]
+    //    let Front: Direction = Direction $[name: "front"]
+    //    let Back: Direction = Direction $[name: "back"]
+    //
+    //    // Autogenerado:
+    //    fun values(): List<Direction> = #[Up, Down, Left, Right, Front, Back]
+    //    fun from_index(index: Int): Optional<Direction> {}
+    //    fun Direction.to_string(): String {}
+    // }
+
+    val name = ctx.declaredNameToken().text
+    val path = currentPath(ctx)
+    val enumFullName = createPath(path, name)
+
+    // Check if the enum has already been defined
+    val span = ctx.declaredNameToken().span()
+    if (enumFullName in program.definedNames) {
+        val prev = program.definedNames[enumFullName]
+        collector.report("Redeclaration of ${enumFullName}, previously defined at $prev", span)
+        return
+    }
+
+    // Create struct
+    var index = 0
+    val fields = mutableListOf<LstStructField>()
+    fields += LstStructField(
+        span = span,
+        name = VARIANT_FIELD_NAME,
+        index = index++,
+        typeUsage = LstTypeUsage.int(),
+        ref = program.nextFieldRef()
+    )
+
+    ctx.enumFields()?.enumField()?.forEach { fieldCtx ->
+        fields += LstStructField(
+            span = fieldCtx.span(),
+            name = fieldCtx.declaredNameToken().text,
+            index = index++,
+            typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
+            ref = program.nextFieldRef()
+        )
+    }
+
+    val struct = LstStruct(
+        span = span,
+        name = name,
+        path = path,
+        fields = fields.associateBy { it.ref },
+        typeParameters = emptyList(),
+        annotations = emptyList(),
+        ref = program.nextStructRef(),
+    )
+
+    program.definedNames[struct.fullName] = struct.span
+    program.structs += struct
+
+    // Create constants for enum values
+    val enumConstants = mutableMapOf<String, LstConst>()
+    val tu = LstTypeUsage(
+        span = span,
+        name = name,
+        path = path,
+        sub = mutableListOf(),
+        typeParameter = null,
+        currentPath = path
+    )
+
+    ctx.enumValue().forEachIndexed { valueIndex, constCtx ->
+        val constSpan = constCtx.span()
+        val constName = constCtx.declaredNameToken().text
+        val const = LstConst(
+            span = constCtx.span(),
+            name = constName,
+            path = enumFullName,
+            typeUsage = tu,
+            body = LstCode(),
+            annotations = emptyList(),
+            ref = program.nextConstRef(),
+        )
+
+        this.code = const.body
+
+        val instance = code.alloc(constCtx.span(), tu, struct = struct)
+
+        val allFields = struct.fields.values.map { it.name }.toMutableSet()
+
+        // Variant field
+        run {
+            val expr = code.int(constSpan, valueIndex + 1)
+
+            val field = struct.fields.values.find { it.name == VARIANT_FIELD_NAME }!!
+            allFields.remove(VARIANT_FIELD_NAME)
+
+            code.storeField(
+                constSpan,
+                instance,
+                VARIANT_FIELD_NAME,
+                expr,
+                struct = struct,
+                field = field,
+            )
+        }
+
+        // Rest of the fields
+        constCtx.enumValueInit()?.forEach { initCtx ->
+            val expr = processExpression(initCtx.expression())
+            val fieldName = initCtx.nameToken().text
+            val field = struct.fields.values.find { it.name == fieldName }
+
+            if (field == null) {
+                collector.report("Field $fieldName not found in enum $name", initCtx.span())
+                return
+            }
+
+            allFields.remove(fieldName)
+
+            code.storeField(
+                initCtx.span(),
+                instance,
+                fieldName,
+                expr,
+                struct = struct,
+                field = field,
+            )
+        }
+
+        if (allFields.isNotEmpty()) {
+            collector.report("Missing fields in enum $name: ${allFields.joinToString(", ")}", constCtx.span())
+            return
+        }
+
+        code.lastExpression = code.returnExpr(constCtx.span(), instance)
+
+        program.definedNames[const.fullName] = const.span
+        program.consts += const
+        enumConstants[constName] = const
+    }
+
+    struct.enumConstants = enumConstants
+
+    // Create auto-generated functions
+
+    // fun values(): List<Direction> = #[Up, Down, Left, Right, Front, Back]
+    val valuesFunc = LstFunction(
+        span = span,
+        name = "values",
+        path = enumFullName,
+        hasReceiver = false,
+        params = emptyList(),
+        returnTypeUsage = LstTypeUsage.list(tu),
+        typeParameters = emptyList(),
+        body = LstCode(),
+        annotations = listOf(
+            LstAnnotation(
+                span = span,
+                name = ANNOTATION_AUTO_GENERATED
+            )
+        ),
+        ref = program.nextFunctionRef()
+    )
+    program.functions += valuesFunc
+
+    val values = valuesFunc.body
+    val newList = values.call(span, "List", "new", explicitTypeParams = listOf(tu))
+
+    ctx.enumValue().forEach { valueCtx ->
+        val constName = valueCtx.declaredNameToken().text
+        val const = enumConstants[constName]!!
+        val loadConst = values.loadConst(span, enumFullName, constName, const)
+
+        values.call(span, "", "add", listOf(newList, loadConst))
+    }
+
+    values.lastExpression = values.returnExpr(span, newList)
+
+    // fun Direction.to_string(): String {
+    //     if (this.variant == Direction::Up.variant) {
+    //         return "Up"
+    //     }
+    //     if (this.variant == Direction::Down.variant) {
+    //         return "Down"
+    //     }
+    //     // ... Rest of cases
+    //     unreachable()
+    // }
+    val toString = LstCode()
+    program.functions += LstFunction(
+        span = span,
+        name = "to_string",
+        path = enumFullName,
+        hasReceiver = true,
+        params = listOf(
+            LstFunctionParam(
+                span = span,
+                name = SELF_NAME,
+                index = 0,
+                typeUsage = tu,
+            ).apply { createVariable(toString) }
+        ),
+        returnTypeUsage = LstTypeUsage.string(),
+        typeParameters = emptyList(),
+        body = toString,
+        annotations = listOf(
+            LstAnnotation(
+                span = span,
+                name = ANNOTATION_AUTO_GENERATED
+            )
+        ),
+        ref = program.nextFunctionRef()
+    )
+
+    enumConstants.forEach { (variantName, const) ->
+        val loadSelf = toString.loadVar(span, "", SELF_NAME)
+        val loadSelfVariant = toString.loadField(span, loadSelf, VARIANT_FIELD_NAME)
+        val loadConst = toString.loadConst(span, enumFullName, variantName, const)
+        val loadConstVariant = toString.loadField(span, loadConst, VARIANT_FIELD_NAME)
+
+        val cond = toString.call(
+            span, "", "is_equal",
+            listOf(loadSelfVariant, loadConstVariant)
+        )
+
+        toString.ifStart(span, cond)
+        toString.returnExpr(span, toString.string(span, variantName))
+        toString.ifEnd(span)
+    }
+
+    toString.lastExpression = toString.call(span, "", "unreachable")
 }

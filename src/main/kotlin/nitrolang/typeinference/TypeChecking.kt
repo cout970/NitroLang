@@ -93,7 +93,7 @@ fun ParserCtx.doAllTypeChecking() {
                 continue
             }
 
-            val matchEntry = matchMap.getOrPut(func.fullName) { mutableListOf() }
+            val matchEntry = matchMap.getOrPut(func.name) { mutableListOf() }
             matchEntry += tag to func
         }
     }
@@ -101,11 +101,11 @@ fun ParserCtx.doAllTypeChecking() {
     program.functions.forEach { func ->
         if (func.tag != null) return@forEach
 
-        val possibleTags = matchMap[func.fullName] ?: emptyList()
+        val possibleTags = matchMap[func.name] ?: emptyList()
 
         possibleTags.forEach inner@{ (tag, header) ->
             val matchType = functionMatchesTagHeader(func, header) ?: return@inner
-            tag.addPosibleImpl(func.fullName, matchType, func)
+            tag.addPosibleImpl(func.name, matchType, func)
         }
     }
 

@@ -11,5 +11,7 @@ data class MonoConst(
     var offset: Int = 0
     var size: Int = 0
 
+    lateinit var code: MonoCode
+
     override fun toString(): String = instance.fullName
 }

@@ -1,6 +1,4 @@
 .idea/
-output.wasm
-/output/assembly.wat
-/output/compiled.wasm
+output/*
 *.map
 *.js
