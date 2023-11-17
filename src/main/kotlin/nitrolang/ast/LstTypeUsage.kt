@@ -65,6 +65,15 @@ data class LstTypeUsage(
             currentPath = ""
         )
 
+        fun optional(other: LstTypeUsage) = LstTypeUsage(
+            span = Span.internal(),
+            name = "Optional",
+            path = "",
+            sub = listOf(other),
+            typeParameter = null,
+            currentPath = ""
+        )
+
         fun list(other: LstTypeUsage) = LstTypeUsage(
             span = Span.internal(),
             name = "List",

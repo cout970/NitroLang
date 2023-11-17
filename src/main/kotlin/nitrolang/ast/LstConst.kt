@@ -26,6 +26,7 @@ class LstConst(
             typeBox!!.type = v
         }
 
+    var enumVariant: Int? = null
     var checked: Boolean = false
     var codeChecked: Boolean = false
     var isDeadCode: Boolean = false

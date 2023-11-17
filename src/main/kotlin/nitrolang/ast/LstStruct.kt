@@ -24,6 +24,7 @@ class LstStruct(
     val isExternal: Boolean get() = getAnnotation(ANNOTATION_EXTERN) != null
     val isIntrinsic: Boolean get() = getAnnotation(ANNOTATION_INTRINSIC) != null
     var enumConstants: Map<String, LstConst>? = null
+    val isEnum: Boolean get() = enumConstants != null
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
 

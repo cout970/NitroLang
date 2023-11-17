@@ -533,6 +533,7 @@ data class LstAlloc(
 ) : LstExpression(ref, span, block) {
     var typeUsageBox: TypeBox? = null
     var struct: LstStruct? = null
+    var isEnumInstanceInit: Boolean = false
 
     override fun toString(): String = "$ref = alloc $typeUsage [$typeBox]"
 

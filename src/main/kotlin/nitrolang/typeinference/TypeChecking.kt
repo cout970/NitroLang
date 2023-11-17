@@ -648,6 +648,11 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 else -> error("Invalid option: ${definedType.base}")
             }
 
+            if (struct.isEnum && !node.isEnumInstanceInit) {
+                val err = "Enum '${struct.fullName}' instance cannot be created, use and enum value instead"
+                collector.report(err, node.span)
+            }
+
             // The real type is unknown until we resolve al unresolved types
             // and can replace the struct type template with concrete types
             val params = List(struct.typeParameters.size) {
@@ -931,7 +936,11 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         return@forEachIndexed
                     }
 
-                    typeEnv.addEqualConstraint(getTypeFromUsage(typeUsage), node.typeParamsTypes[index].type, typeUsage.span)
+                    typeEnv.addEqualConstraint(
+                        getTypeFromUsage(typeUsage),
+                        node.typeParamsTypes[index].type,
+                        typeUsage.span
+                    )
                 }
 
                 paramTypes.zip(args).forEach { (param, arg) ->
