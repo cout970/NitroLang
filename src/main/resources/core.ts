@@ -11,7 +11,7 @@ import {
     dumpMemory
 } from './internal.ts'
 
-// ptr.nl
+// ptr.nitro
 
 export function ptr_ptr_of(ptr: number): number {
     return ptr;
@@ -58,14 +58,14 @@ export function ptr_copy_into(self: number, other: number, len: number) {
     memcopy(other, self, len);
 }
 
-// raw_array.nl
+// raw_array.nitro
 
 export function raw_array_copy_into(self: number, other: number, len: number) {
     // console.debug('raw_array_copy_into', {self, other, len});
     memcopy(other, self, len);
 }
 
-// intrinsic.nl
+// intrinsic.nitro
 
 // Check the type id of a struct instance
 export function is_type_internal(ptr: number, typeId: number): boolean {
@@ -87,7 +87,7 @@ export function as_type_internal(ptr: number, typeId: number): number {
     return ptr;
 }
 
-// memory.nl
+// memory.nitro
 
 export function memory_get_memory(): number {
     return 4;
@@ -168,7 +168,7 @@ export function memory_dump(ptr: number) {
     console.debug('Memory dump:\n' + dumpMemory(getInt(12), getInt(8)));
 }
 
-// string.nl
+// string.nitro
 
 export function string_codepoint_len(a: number): number {
     const str = getString(a);
@@ -223,7 +223,7 @@ export function int_to_string_in_base(int: number, radix: number): number {
     return createString((int | 0).toString(radix));
 }
 
-// float.nl
+// float.nitro
 
 export function float_to_string(float: number): number {
     return createString(String(float));
@@ -245,31 +245,31 @@ export function float_is_safe_integer(float: number): boolean {
     return Number.isSafeInteger(float);
 }
 
-// byte.nl
+// byte.nitro
 
 export function byte_to_int(byte: number): number {
     return byte & 0xFF;
 }
 
-// int.nl
+// int.nitro
 
 export function int_to_byte(int: number): number {
    return int & 0xFF;
 }
 
-// intrinsic.nl
+// intrinsic.nitro
 
 export function choose(cond: number, a: number, b: number): number {
     return cond ? a : b;
 }
 
-// float.nl
+// float.nitro
 
 export function float_rem(a: number, b: number): number {
     return a % b;
 }
 
-// console.nl
+// console.nitro
 
 export function println_boolean(val: number): number {
     console.log(val !== 0);
@@ -291,7 +291,7 @@ export function println_string(ptr: number): number {
     return ptr;
 }
 
-// ordering.nl
+// ordering.nitro
 export function string_get_ordering_internal(a: number, b: number): number {
     if (a === b) return 0;
 
@@ -301,7 +301,7 @@ export function string_get_ordering_internal(a: number, b: number): number {
     return aStr.localeCompare(bStr);
 }
 
-// math.nl
+// math.nitro
 
 export function math_acos(x: number): number             { return Math.acos(x);     }
 export function math_acosh(x: number): number            { return Math.acosh(x);    }
@@ -326,11 +326,11 @@ export function math_sinh(x: number): number             { return Math.sinh(x); 
 export function math_tan(x: number): number              { return Math.tan(x);      }
 export function math_tanh(x: number): number             { return Math.tanh(x);     }
 
-// random.nl
+// random.nitro
 
 export function random_get_initial_seed(): number { return (Math.random() * 0x7FFFFFFF) | 0; }
 
-// logger.nl
+// logger.nitro
 
 export function logger_get_logger(): number { return 0; }
 

@@ -18,8 +18,8 @@ import kotlin.io.path.name
 import kotlin.system.measureNanoTime
 
 fun main() {
-//    val source = File("example.nl")
-    val source = File("src/main/nitro/compiler/main.nl")
+//    val source = File("example.nitro")
+    val source = File("src/main/nitro/compiler/main.nitro")
     val core = File("src/main/nitro/core")
     val res = File("src/main/resources")
 
@@ -31,7 +31,7 @@ fun main() {
 
     watchFolderForChanges(listOf(source.parentFile.toPath(), core.toPath(), res.toPath())) {
         val fileName = it.fileName.toString()
-        if (!fileName.endsWith(".nl") && !fileName.endsWith(".ts")) return@watchFolderForChanges
+        if (!fileName.endsWith(".nitro") && !fileName.endsWith(".ts")) return@watchFolderForChanges
 
         try {
             compile(source.path)
@@ -47,7 +47,7 @@ fun compile(path: String) {
     val program = LstProgram()
 
     Prof.next("parse_core")
-    AstParser.includeFile("core", "core.nl", program, null)
+    AstParser.includeFile("core", "core.nitro", program, null)
     Prof.next("parse_source")
     AstParser.parseFile(SourceFile.load(path), program)
 

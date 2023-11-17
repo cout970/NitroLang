@@ -1,0 +1,29 @@
+
+fun main() {
+    single()
+    deep()
+}
+
+fun single() {
+    println("First")
+    defer {
+        println("Last")
+    }
+    println("Second")
+}
+
+fun deep() {
+    println("Start")
+    defer {
+        println("Finish")
+    }
+
+    println("Before-loop")
+    for i in #[1, 2] {
+        defer {
+            println("Loop $i end")
+        }
+        println("Loop $i")
+    }
+    println("After-loop")
+}

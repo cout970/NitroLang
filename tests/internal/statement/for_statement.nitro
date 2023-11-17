@@ -1,0 +1,7 @@
+
+// Actual test
+fun main() {
+    for i in #[1, 2, 3] {
+        42
+    }
+}

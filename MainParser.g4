@@ -62,7 +62,7 @@ definitionChoice
     | enumDefinition
     ;
 
-// E.g. include "core:optional.nl"
+// E.g. include "core:optional.nitro"
 includeDefinition
     : INCLUDE PLAIN_STRING ;
 

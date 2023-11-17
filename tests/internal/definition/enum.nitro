@@ -1,0 +1,22 @@
+
+enum Direction {
+    North $[name: "North"]
+    South $[name: "South"]
+    East  $[name: "East"]
+    West  $[name: "West"]
+
+    let name: String
+}
+
+fun main() {
+    let direction = Direction::East
+
+    println(direction)
+    println(direction.variant)
+    println(direction.name)
+
+    for dir in Direction::values() {
+        println("Dir $dir is ${dir.variant} and has name: ${dir.name}")
+        println(Direction::from_variant(dir.variant))
+    }
+}

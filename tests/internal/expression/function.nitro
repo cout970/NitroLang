@@ -6,8 +6,8 @@ fun main() {
     // func3("Error")
     func4(420, 69)
 
-    let a: Unit = func1()
-    let b: Unit = func5(())
+    let a: Nothing = func1()
+    let b: Nothing = func5(nothing)
     let c: Int = func5(420)
     let d: String = func5("String")
     let e: List<Boolean> = func7(true)
@@ -20,8 +20,8 @@ fun main() {
 //    let j = func9(12, "Test")
 }
 
-// Function returning Unit with body expression
-fun func1(): Unit = ()
+// Function returning Nothing with body expression
+fun func1(): Nothing = nothing
 
 // Function returning an Int with body statements
 fun func2(): Int {
@@ -50,7 +50,7 @@ fun func7(value: #T): List<#T> {
 }
 
 // Return type inference
-fun func8(): #Any = () as #Any
+fun func8(): #Any = nothing as #Any
 
 // Type of a and b must be the same, but can be any type
 fun func9(a: #Same, b: #Same): #Same = a

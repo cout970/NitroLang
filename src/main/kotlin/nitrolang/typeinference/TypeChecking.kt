@@ -214,7 +214,7 @@ private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String,
     typeEnv.addAssignableConstraint(returnType, lastInst.type, lastInst.span)
 }
 
-private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage): TType {
+private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage, validateParams: Boolean = true): TType {
     if (tu.resolvedType != null) {
         return tu.resolvedType!!.type
     }
@@ -256,7 +256,7 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage): TType {
         val alias = program.typeAliases.find { it.fullName == segment }
 
         if (alias != null) {
-            if (alias.typeParameters.size != params.size) {
+            if (validateParams && alias.typeParameters.size != params.size) {
                 collector.report(
                     "Incorrect number of type parameters, expected ${alias.typeParameters.size}, found ${params.size}",
                     tu.span
@@ -277,7 +277,7 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage): TType {
         if (option != null) {
             val base = typeEnv.typeBaseOption(option)
 
-            if (option.typeParameters.size != params.size) {
+            if (validateParams && option.typeParameters.size != params.size) {
                 collector.report(
                     "Incorrect number of type parameters, expected ${option.typeParameters.size}, found ${params.size}",
                     tu.span
@@ -291,7 +291,7 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage): TType {
 
         if (struct != null) {
 
-            if (!struct.isIntrinsic && struct.typeParameters.size != params.size) {
+            if (validateParams && !struct.isIntrinsic && struct.typeParameters.size != params.size) {
                 collector.report(
                     "Incorrect number of type parameters, expected ${struct.typeParameters.size}, found ${params.size}",
                     tu.span
@@ -617,7 +617,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
         is LstAlloc -> {
             // Declared type, ej. List<*>, Map<*, *>, Struct<Int>
-            val definedType = getTypeFromUsage(node.typeUsage)
+            val definedType = getTypeFromUsage(node.typeUsage, validateParams = false)
             node.typeUsageBox = typeEnv.box(definedType, node.span)
 
             if (definedType !is TComposite) {

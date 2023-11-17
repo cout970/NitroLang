@@ -23,7 +23,6 @@ Intended for the developers
 
 
 ### Other features to implement
-- Vec<*> implementation
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts

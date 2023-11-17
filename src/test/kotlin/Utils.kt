@@ -11,28 +11,26 @@ import kotlin.test.assertNotEquals
 private val debug = System.getenv("override-tests") == "true"
 
 fun assertCompilationSuccess(path: String): LstProgram {
-    val errors = ErrorCollector()
     val file = SourceFile.load(path)
     val program = LstProgram()
-    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), program)
+    AstParser.includeFile("core", "core.nitro", program, null)
     program.resetCounters(10000)
     AstParser.parseFile(file, program)
 
-    assertEquals("", errors.toString(), "Parsing errors")
+    assertEquals("", program.collector.toString(), "Parsing errors")
     assertCompilerOutput(program, path)
     return program
 }
 
 fun assertCompilationError(path: String) {
-    val errors = ErrorCollector()
     val file = SourceFile.load(path)
     val program = LstProgram()
-    AstParser.parseFile(SourceFile.load("src/main/nitro/core.nl"), program)
+    AstParser.includeFile("core", "core.nitro", program, null)
     program.resetCounters(10000)
     AstParser.parseFile(file, program)
 
-    println(errors.toString())
-    assertNotEquals("", errors.toString(), "Parsed without the expected errors")
+    println(program.collector.toString())
+    assertNotEquals("", program.collector.toString(), "Parsed without the expected errors")
     assertCompilerOutput(program, path)
 }
 
