@@ -11,11 +11,8 @@ parseExpression : NL* expression EOF;
 parseFunctionDefinition : NL* annotation* functionDefinition EOF;
 
 // Identifiers
-nameToken
-    : IDENTIFIER ;
-
-declaredNameToken
-    : nameToken ;
+upperName : UPPER_IDENTIFIER ;
+anyName : LOWER_IDENTIFIER | UPPER_IDENTIFIER ;
 
 string
     : PLAIN_STRING
@@ -35,16 +32,16 @@ definition
 
 // @Extern $[lib: "core", name: "println"]
 annotation
-    : AT nameToken annotationArgs? NL* ;
+    : AT upperName annotationArgs? NL* ;
 
 annotationArgs
-    : STRUCT_START NL* (annotationArgEntry (commaOrNl annotationArgEntry)* COMMA?)? NL* RBRACKET ;
+    : LBRACKET NL* (annotationArgEntry (commaOrNl annotationArgEntry)* COMMA?)? NL* RBRACKET ;
 
 annotationArgEntry
     : annotationArgKey COLON NL* constExpr ;
 
 annotationArgKey
-    : nameToken
+    : anyName
     | PLAIN_STRING
     ;
 
@@ -68,38 +65,38 @@ includeDefinition
 
 // E.g. alias Int32 = Int
 aliasDefinition
-    : ALIAS declaredNameToken ASSIGN typeUsage;
+    : ALIAS upperName ASSIGN typeUsage;
 
 useDefinition
     : USE modulePath (useDefinitionConst | useDefinitionType | useDefinitionFunction | useDefinitionExtension) ;
 
 // E.g. use module::var
 useDefinitionConst
-    : declaredNameToken ;
+    : anyName ;
 
 // E.g. use module::<core::Type>
 useDefinitionType
-    : (LTH | LBRACE) NL* modulePath? declaredNameToken NL* (GTH | RBRACE) ;
+    : (LTH | LBRACE) NL* modulePath? anyName NL* (GTH | RBRACE) ;
 
 // E.g. use module::plus()
 useDefinitionFunction
-    : declaredNameToken LPAREN RPAREN ;
+    : anyName LPAREN RPAREN ;
 
 // E.g. use module::Int.plus()
 useDefinitionExtension
-    : typeUsage DOT declaredNameToken LPAREN RPAREN ;
+    : typeUsage DOT anyName LPAREN RPAREN ;
 
 // E.g. mod core {}
 moduleDefinition
-    : MODULE modulePath? declaredNameToken NL* LBRACE NL* definition* RBRACE ;
+    : MODULE modulePath? anyName NL* LBRACE NL* definition* RBRACE ;
 
 // E.g. let pi: Float = 3.14
 constDefinition
-    : LET declaredNameToken COLON typeUsage ASSIGN NL* expression ;
+    : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
 
 // E.g. struct List<Int> { }
 structDefinition
-    : STRUCT declaredNameToken typeParamsDef? NL* structBody;
+    : STRUCT upperName typeParamsDef? NL* structBody;
 
 // E.g. { a: Int, b: Int }
 structBody
@@ -107,21 +104,21 @@ structBody
 
 // E.g. value: Int,
 structField
-    : nameToken COLON typeUsage;
+    : anyName COLON typeUsage;
 
 // E.g. type Optional<T> {}
 optionDefinition
-    : OPTION declaredNameToken typeParamsDef? NL* LBRACE NL*
+    : OPTION upperName typeParamsDef? NL* LBRACE NL*
     (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
     RBRACE ;
 
 // E.g. Some { value: T },
 optionDefinitionItem
-    : declaredNameToken structBody?;
+    : upperName structBody?;
 
 // E.g. tag ToString { fun to_string(): String }
 tagDefinition
-    : TAG declaredNameToken LBRACE NL* (tagDefinitionFunction (NL+ tagDefinitionFunction)*)? NL* RBRACE ;
+    : TAG upperName LBRACE NL* (tagDefinitionFunction (NL+ tagDefinitionFunction)*)? NL* RBRACE ;
 
 tagDefinitionFunction
     : annotation* functionHeader;
@@ -129,12 +126,12 @@ tagDefinitionFunction
 // E.g. type_alias Meters = Float
 // E.g. type_alias MultiMap<#Key, #Value> = Map<#Key, List<#Value>>
 typeAliasDefinition
-    : TYPE_ALIAS declaredNameToken typeParamsDef? ASSIGN NL* typeUsage ;
+    : TYPE_ALIAS upperName typeParamsDef? ASSIGN NL* typeUsage ;
 
 // E.g. enum Direction { Up, Down, Left, Right, Front, Back }
 enumDefinition
-    : ENUM declaredNameToken NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
-    | ENUM declaredNameToken NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
+    : ENUM upperName NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
+    | ENUM upperName NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
     ;
 
 enumFields
@@ -142,18 +139,18 @@ enumFields
 
 // E.g. let name: String = "John"
 enumField
-    : LET declaredNameToken COLON typeUsage (ASSIGN NL* constExpr)? ;
+    : LET anyName COLON typeUsage (ASSIGN NL* constExpr)? ;
 
 // E.g. Up, Down, Left, Right, Front, Back
 // E.g. Red $[rgb: 0xFF0000], Green $[rgb: 0x00FF00], Blue $[rgb: 0x0000FF
 enumValue
-    : declaredNameToken
-    | declaredNameToken STRUCT_START NL* (enumValueInit (commaOrNl enumValueInit)* COMMA?)? NL* RBRACKET
+    : anyName
+    | anyName STRUCT_START NL* (enumValueInit (commaOrNl enumValueInit)* COMMA?)? NL* RBRACKET
     ;
 
 // E.g. rgb: 0xFF0000
 enumValueInit
-    : nameToken COLON NL* expression ;
+    : anyName COLON NL* expression ;
 
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition
@@ -162,9 +159,9 @@ functionDefinition
     ;
 
 functionHeader
-    : FUN NL* functionReceiver? modulePath? declaredNameToken NL* typeParamsDef? NL*
+    : FUN NL* functionReceiver? modulePath? anyName NL* typeParamsDef? NL*
         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?
-    | FUN NL* typeParamsDef? NL* functionReceiver? modulePath? declaredNameToken NL*
+    | FUN NL* typeParamsDef? NL* functionReceiver? modulePath? anyName NL*
         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?;
 
 // E.g. Int.
@@ -177,7 +174,7 @@ functionReturnType
 
 // E.g. count: Int,
 functionParameter
-    : varModifier nameToken NL* COLON NL* typeUsage;
+    : varModifier anyName NL* COLON NL* typeUsage;
 
 // E.g. {}
 // E.g. = 3.14
@@ -212,7 +209,7 @@ statementChoice
 
 // E.g. let a: Int = 0
 letStatement
-    : LET varModifier nameToken (COLON typeUsage)? (ASSIGN NL* expression)? ;
+    : LET varModifier anyName (COLON typeUsage)? (ASSIGN NL* expression)? ;
 
 // E.g. if true {} else {}
 ifStatement
@@ -220,7 +217,7 @@ ifStatement
 
 // E.g. for item in list {}
 forStatement
-    : FOR NL* nameToken NL* IN NL* expression NL* statementBlock ;
+    : FOR NL* anyName NL* IN NL* expression NL* statementBlock ;
 
 // E.g. repeat 5 {}
 repeatStatement
@@ -259,10 +256,10 @@ expressionStatement
 // E.g. list[] = value
 // E.g. core::var = value
 assignableExpression
-    : expression DOT nameToken
+    : expression DOT anyName
     | expression collectionIndexingSuffix
     | expression LBRACKET RBRACKET
-    | modulePath? nameToken
+    | modulePath? anyName
     ;
 
 // Expressions
@@ -331,14 +328,14 @@ expressionWithSuffix
     : expressionWithSuffix assertSuffix
     | expressionWithSuffix collectionIndexingSuffix
     | expressionWithSuffix structFieldAccessSuffix
-    | expressionWithSuffix NL? DOT nameToken functionCallParams functionCallEnd?
-    | expressionWithSuffix NL? DOT nameToken functionCallEnd
+    | expressionWithSuffix NL? DOT modulePath? anyName functionCallParams functionCallEnd?
+    | expressionWithSuffix NL? DOT modulePath? anyName functionCallEnd
     | expressionOrFunctionCall
     ;
 
 expressionOrFunctionCall
-    : modulePath? nameToken functionCallEnd
-    | modulePath? nameToken functionCallParams functionCallEnd?
+    : modulePath? anyName functionCallEnd
+    | modulePath? anyName functionCallParams functionCallEnd?
     | parenthesizedExpression functionCallParams functionCallEnd?
     | expressionLiteral functionCallParams functionCallEnd?
     | structInstanceExpr functionCallParams functionCallEnd?
@@ -354,7 +351,7 @@ collectionIndexingSuffix
     : LBRACKET NL* expression NL* RBRACKET ;
 
 structFieldAccessSuffix
-    : NL? DOT nameToken ;
+    : NL? DOT anyName ;
 
 parenthesizedExpression
     : LPAREN NL* expression NL* RPAREN ;
@@ -423,7 +420,7 @@ whenKey
 
 // #[item1, item2]
 listExpr
-    : LIST_START NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
+    : LBRACKET NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
 
 // item
 listEntry
@@ -438,7 +435,7 @@ mapEntry
 
 mapKey
     : LPAREN NL* expression NL* RPAREN
-    | nameToken
+    | anyName
     | string
     ;
 
@@ -474,7 +471,7 @@ lambdaReturn
     : RETURN typeUsage;
 
 lambdaArgument
-    : nameToken (COLON typeUsage)?
+    : anyName (COLON typeUsage)?
     | UNDERSCORE (COLON typeUsage)?
     ;
 
@@ -504,18 +501,18 @@ ifExpr
     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;
 
 structInstanceExpr
-    : modulePath? nameToken typeParamArg? STRUCT_START NL* (structInstanceEntry (commaOrNl structInstanceEntry)* COMMA?)? NL* RBRACKET ;
+    : modulePath? upperName typeParamArg? STRUCT_START NL* (structInstanceEntry (commaOrNl structInstanceEntry)* COMMA?)? NL* RBRACKET ;
 
 structInstanceEntry
-    : nameToken COLON NL* expression
+    : anyName COLON NL* expression
     | variableExpr
     ;
 
 variableExpr
-    : modulePath? nameToken ;
+    : modulePath? anyName ;
 
 modulePath
-    : (nameToken DOUBLE_COLON)+ ;
+    : (anyName DOUBLE_COLON)+ ;
 
 // Function call
 
@@ -527,15 +524,15 @@ functionCallParamList
 
 functionCallEnd
     : lambdaExpr
-    | listExpr
-    | mapExpr
-    | setExpr
+//    | listExpr
+//    | mapExpr
+//    | setExpr
     ;
 
 // Types
 typeParamsDef
     : LTH NL* typeParamDef (commaOrNl typeParamDef)* COMMA? NL* GTH ;
-    
+
 typeParamDef
     : typeParameter COLON typeUsage (commaOrNl typeUsage)*
     | typeParameter
@@ -561,11 +558,11 @@ typeUsage
 
 // #T, #A, #B, List<#A>
 typeParameter
-    : HASH nameToken ;
+    : HASH upperName ;
 
 // Int, List<Int>
 baseTypeUsage
-    : modulePath? nameToken typeParamArg? ;
+    : modulePath? upperName typeParamArg? ;
 
 // (Int) -> Int
 functionTypeUsage
@@ -576,7 +573,7 @@ functionTypeUsage
 // a, a: Int
 functionTypeUsageParam
     : typeUsage
-    | nameToken COLON typeUsage
+    | anyName COLON typeUsage
     ;
 
 // Int
@@ -593,7 +590,7 @@ typePattern
     ;
 
 baseTypePattern
-    : modulePath? nameToken typePatternArgs? ;
+    : modulePath? upperName typePatternArgs? ;
 
 typePatternArgs
     : LTH NL* typePatternArg (commaOrNl typePatternArg)* COMMA? NL* GTH ;
@@ -621,7 +618,7 @@ jsonObject
    : LBRACE NL* (jsonPair (commaOrNl jsonPair)* COMMA?)? NL* RBRACE ;
 
 jsonPair
-   : (nameToken|string) NL* COLON NL* jsonValue ;
+   : (anyName|string) NL* COLON NL* jsonValue ;
 
 jsonArray
    : LBRACKET NL* (jsonValue (commaOrNl jsonValue)* COMMA?)? NL* RBRACKET ;

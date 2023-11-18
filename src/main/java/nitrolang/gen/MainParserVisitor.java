@@ -35,17 +35,17 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitParseFunctionDefinition(MainParser.ParseFunctionDefinitionContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#nameToken}.
+	 * Visit a parse tree produced by {@link MainParser#upperName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitNameToken(MainParser.NameTokenContext ctx);
+	T visitUpperName(MainParser.UpperNameContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#declaredNameToken}.
+	 * Visit a parse tree produced by {@link MainParser#anyName}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx);
+	T visitAnyName(MainParser.AnyNameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MainParser#string}.
 	 * @param ctx the parse tree

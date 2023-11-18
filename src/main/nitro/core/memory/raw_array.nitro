@@ -5,7 +5,7 @@
 //
 // It's recommended to use List<#Item> instead of this low level representation
 //
-@Extern $[lib: "core", name: "RawArray"]
+@Extern [lib: "core", name: "RawArray"]
 @ValueType
 @Intrinsic
 struct RawArray<#Item> {}
@@ -18,7 +18,7 @@ fun RawArray::new<#Item>(len: Int): RawArray<#Item> {
 }
 
 // Gets the pointer to the first element of the array
-@Extern $[lib: "core", name: "raw_array_to_ptr"]
+@Extern [lib: "core", name: "raw_array_to_ptr"]
 fun RawArray<#Item>.to_ptr(): Ptr<#Item> {}
 
 // Gets the pointer to an element of the array
@@ -44,7 +44,7 @@ fun RawArray<#Item>.copy_into(other: RawArray<#Item>, len: Int) {
     this.copy_into_internal(other, size_of<#Item> * len)
 }
 
-@Extern $[lib: "core", name: "raw_array_copy_into"]
+@Extern [lib: "core", name: "raw_array_copy_into"]
 fun RawArray<#Item>.copy_into_internal(other: RawArray<#Item>, byte_len: Int) {}
 
 // Returns the address of the array

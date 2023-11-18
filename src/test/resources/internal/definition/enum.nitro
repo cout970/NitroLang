@@ -1,9 +1,9 @@
 
 enum Direction {
-    North $[name: "North"]
-    South $[name: "South"]
-    East  $[name: "East"]
-    West  $[name: "West"]
+    North @[name: "North"]
+    South @[name: "South"]
+    East  @[name: "East"]
+    West  @[name: "West"]
 
     let name: String
 }

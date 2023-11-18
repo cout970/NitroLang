@@ -19,7 +19,7 @@ fun deep() {
     }
 
     println("Before-loop")
-    for i in #[1, 2] {
+    for i in [1, 2] {
         defer {
             println("Loop $i end")
         }

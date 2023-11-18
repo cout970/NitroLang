@@ -1,7 +1,7 @@
 
 struct Logger {}
 
-@Extern $[lib: "core", name: "logger_get_logger"]
+@Extern [lib: "core", name: "logger_get_logger"]
 fun get_logger(): Logger {}
 
 // Trace: The most fine-grained information only used in rare cases where you need the full visibility of what is going on
@@ -23,5 +23,5 @@ fun Logger.error(message: String) = this.log("error", message)
 fun Logger.fatal(message: String) = this.log("fatal", message)
 
 // Logs a message with the given level, one of: trace, debug, info, warn, error, fatal
-@Extern $[lib: "core", name: "logger_log"]
+@Extern [lib: "core", name: "logger_log"]
 fun Logger.log(level: String, message: String) {}

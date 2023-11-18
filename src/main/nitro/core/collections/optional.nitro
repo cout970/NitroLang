@@ -9,12 +9,12 @@ option Optional<#Value> {
 
 // Creates an instance of the Some variant of the Optional type
 fun Some(value: #Value): Optional<#Value> {
-    ret Optional::Some<#Value> $[value]
+    ret Optional::Some<#Value> @[value]
 }
 
 // Creates an instance of the None variant of the Optional type
 fun None<#Value>(): Optional<#Value> {
-    ret Optional::None<#Value> $[]
+    ret Optional::None<#Value> @[]
 }
 
 // Checks if the Optional is the Some variant

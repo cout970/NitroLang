@@ -3,11 +3,10 @@ lexer grammar MainLexer ;
 
 RANGE_IN                        : '..=' ;
 RANGE_EX                        : '..<' ;
-LAMBDA_START                    : '#{' ;
+LAMBDA_START                    : '@{' ;
 SET_START                       : '%[' ;
-MAP_START                       : '@[' ;
-LIST_START                      : '#[' ;
-STRUCT_START                    : '$[' ;
+MAP_START                       : '#[' ;
+STRUCT_START                    : '@[' ;
 STRING_INTERP                   : '${' ;
 DOUBLE_COLON                    : '::' ;
 ARROW                           : '->' ;
@@ -87,7 +86,7 @@ MUT                             : 'mut' ;
 REF                             : 'ref' ;
 REF_MUT                         : 'ref_mut' ;
 COPY                            : 'copy' ;
-BLOCK_START                     : '```' IDENTIFIER? -> pushMode(BLOCK_MODE) ;
+BLOCK_START                     : '```' (LOWER_IDENTIFIER|UPPER_IDENTIFIER)? -> pushMode(BLOCK_MODE) ;
 
 WHITE_SPACE                     : [ \t\f]+ -> skip ;
 NL                              : ('\n' WHITE_SPACE*)+ | ';' ;
@@ -103,7 +102,8 @@ fragment INT_HEX_NUMBER         : '0x' [0-9a-fA-F]+ ;
 fragment FLOAT_OPTION           : DIGIT+ | DIGIT+ '.' DIGIT+ | '.' DIGIT+ ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
 FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGIT+)?[fFdD]? ;
-IDENTIFIER                      : [a-zA-Z][a-zA-Z0-9_]* ;
+UPPER_IDENTIFIER                : [A-Z][a-zA-Z0-9_]* ;
+LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;
 
 // Simple no interpolation string
 PLAIN_STRING                    : '"' (~["$]|[\\]["]|[\\][$])* '"' ;
@@ -125,7 +125,7 @@ mode STRING_MODE;
 STRING_ESCAPE                   : '\\' '"' | '\\' '$' | '\\' '\\' ;
 STRING_INTERP_START             : '$' '{' -> pushMode(DEFAULT_MODE) ;
 STRING_INTERP_END               : '}';
-STRING_VAR                      : '$' IDENTIFIER ;
+STRING_VAR                      : '$' LOWER_IDENTIFIER ;
 STRING_BLOB                     : ~["$\\]+ ;
 STRING_END                      : '"' -> popMode ;
 

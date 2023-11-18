@@ -46,14 +46,14 @@ public class MainParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitNameToken(MainParser.NameTokenContext ctx) { return visitChildren(ctx); }
+	@Override public T visitUpperName(MainParser.UpperNameContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx) { return visitChildren(ctx); }
+	@Override public T visitAnyName(MainParser.AnyNameContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

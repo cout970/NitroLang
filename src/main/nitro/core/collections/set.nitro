@@ -11,14 +11,14 @@
 //     2 // The 2 will not be added to the set twice, since it already exists
 // ]
 // ```
-@Extern $[lib: "core", name: "Set"]
+@Extern [lib: "core", name: "Set"]
 struct Set<#Item> {
    map: Map<#Item, Boolean>
 }
 
 // Create a new empty set
 fun <#Item: MapKey> Set::new(): Set<#Item> {
-   ret Set<#Item> $[
+   ret Set<#Item> @[
       map: Map::new<#Item, Boolean>()
    ]
 }

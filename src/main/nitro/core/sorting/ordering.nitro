@@ -54,18 +54,18 @@ fun <#Value: GetOrdering> min(a: #Value, b: #Value): #Value {
 fun String.get_ordering(other: String): Ordering = this.get_ordering_internal(other).to_ordering()
 
 // Internal function for comparing two strings using the current locale and user preferences
-@Extern $[lib: "core", name: "string_get_ordering_internal"]
+@Extern [lib: "core", name: "string_get_ordering_internal"]
 fun String.get_ordering_internal(other: String): Int {}
 
 // Utility function for converting an integer (-1, 0, 1) to an ordering
 fun Int.to_ordering(): Ordering {
     if this == 0 {
-        ret Ordering::Equals $[]
+        ret Ordering::Equals @[]
     }
 
     if this < 0 {
-        ret Ordering::Less $[]
+        ret Ordering::Less @[]
     }
 
-    ret Ordering::Greater $[]
+    ret Ordering::Greater @[]
 }

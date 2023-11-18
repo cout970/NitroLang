@@ -9,8 +9,8 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
     var index = 0
     val fields = ctx.structBody().structField().map { fieldCtx ->
         LstStructField(
-            span = fieldCtx.nameToken().span(),
-            name = fieldCtx.nameToken().text,
+            span = fieldCtx.anyName().span(),
+            name = fieldCtx.anyName().text,
             index = index++,
             typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
             ref = program.nextFieldRef()
@@ -20,8 +20,8 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
     val typeParameters = endTypeParams()
 
     val struct = LstStruct(
-        span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().text,
+        span = ctx.upperName().span(),
+        name = ctx.upperName().text,
         path = currentPath(ctx),
         fields = fields.associateBy { it.ref },
         typeParameters = typeParameters,
@@ -51,7 +51,7 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         val fields = mutableListOf<LstStructField>()
         // Field to discriminate between the option's items
         fields += LstStructField(
-            span = opt.declaredNameToken().span(),
+            span = opt.upperName().span(),
             name = VARIANT_FIELD_NAME,
             index = index++,
             typeUsage = LstTypeUsage.int(),
@@ -60,8 +60,8 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
 
         opt.structBody()?.structField()?.forEach { fieldCtx ->
             fields += LstStructField(
-                span = fieldCtx.nameToken().span(),
-                name = fieldCtx.nameToken().text,
+                span = fieldCtx.anyName().span(),
+                name = fieldCtx.anyName().text,
                 index = index++,
                 typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
                 ref = program.nextFieldRef()
@@ -75,9 +75,9 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
         }
 
         val struct = LstStruct(
-            span = opt.declaredNameToken().span(),
-            name = opt.declaredNameToken().text,
-            path = path + ctx.declaredNameToken().text,
+            span = opt.upperName().span(),
+            name = opt.upperName().text,
+            path = path + ctx.upperName().text,
             fields = fields.associateBy { it.ref },
             typeParameters = mutableTypeParametersList,
             annotations = emptyList(),
@@ -99,8 +99,8 @@ fun ParserCtx.processOptionDefinition(ctx: MainParser.OptionDefinitionContext) {
     mutableTypeParametersList.addAll(endTypeParams())
 
     val option = LstOption(
-        span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().text,
+        span = ctx.upperName().span(),
+        name = ctx.upperName().text,
         path = currentPath(ctx),
         itemsRef = options.map { it.ref },
         items = options,
@@ -147,8 +147,8 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
 
     ctx.functionParameter().forEach { rawParam ->
         params += LstFunctionParam(
-            span = rawParam.nameToken().span(),
-            name = rawParam.nameToken().text,
+            span = rawParam.anyName().span(),
+            name = rawParam.anyName().text,
             index = index++,
             typeUsage = resolveTypeUsage(rawParam.typeUsage()),
         ).apply { createVariable(body) }
@@ -160,15 +160,15 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
 
     if (ctx.modulePath() != null) {
         val subPath = ctx.modulePath()
-            .nameToken()
+            .anyName()
             .joinToString(MODULE_SEPARATOR) { it.text }
 
         path = if (path.isNotEmpty()) path + MODULE_SEPARATOR + subPath else subPath
     }
 
     val func = LstFunction(
-        span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().text,
+        span = ctx.anyName().span(),
+        name = ctx.anyName().text,
         path = path,
         hasReceiver = hasReceiver,
         params = params,
@@ -215,10 +215,20 @@ fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
     body.lastExpression = processExpression(ctx.expression())
     code.executeDeferredActions()
 
+    var path = currentPath(ctx)
+
+    if (ctx.modulePath() != null) {
+        val subPath = ctx.modulePath()
+            .anyName()
+            .joinToString(MODULE_SEPARATOR) { it.text }
+
+        path = if (path.isNotEmpty()) path + MODULE_SEPARATOR + subPath else subPath
+    }
+
     val const = LstConst(
-        span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().nameToken().text,
-        path = currentPath(ctx),
+        span = ctx.anyName().span(),
+        name = ctx.anyName().text,
+        path = path,
         typeUsage = resolveTypeUsage(ctx.typeUsage()),
         body = body,
         annotations = resolveAnnotations(ctx),
@@ -246,16 +256,16 @@ fun ParserCtx.processIncludeDefinition(ctx: MainParser.IncludeDefinitionContext)
 fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
     val annotations = resolveAnnotations(ctx)
     val headers = mutableMapOf<String, LstFunction>()
-    val tagName = ctx.declaredNameToken().text
+    val tagName = ctx.upperName().text
 
     currentTagName = tagName
 
     ctx.tagDefinitionFunction().forEach { funHeader ->
         val header = funHeader.functionHeader()
-        val name = header.declaredNameToken().nameToken().text
+        val name = header.anyName().text
 
         if (name in headers) {
-            collector.report("Duplicated function name: '$name'", header.declaredNameToken().span())
+            collector.report("Duplicated function name: '$name'", header.anyName().span())
         }
 
         val func = processFunctionHeader(header)
@@ -265,7 +275,7 @@ fun ParserCtx.processTagDefinition(ctx: MainParser.TagDefinitionContext) {
     currentTagName = null
 
     val tag = LstTag(
-        span = ctx.declaredNameToken().span(),
+        span = ctx.upperName().span(),
         name = tagName,
         path = currentPath(ctx),
         annotations = annotations,
@@ -291,8 +301,8 @@ fun ParserCtx.processTypeAliasDefinition(ctx: MainParser.TypeAliasDefinitionCont
     val typeParameters = endTypeParams()
 
     val alias = LstTypeAlias(
-        span = ctx.declaredNameToken().span(),
-        name = ctx.declaredNameToken().text,
+        span = ctx.upperName().span(),
+        name = ctx.upperName().text,
         path = currentPath(ctx),
         typeParameters = typeParameters,
         typeUsage = typeUsage,
@@ -338,12 +348,12 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     //    fun Direction.to_string(): String {}
     // }
 
-    val name = ctx.declaredNameToken().text
+    val name = ctx.upperName().text
     val path = currentPath(ctx)
     val enumFullName = createPath(path, name)
 
     // Check if the enum has already been defined
-    val span = ctx.declaredNameToken().span()
+    val span = ctx.upperName().span()
     if (enumFullName in program.definedNames) {
         val prev = program.definedNames[enumFullName]
         collector.report("Redeclaration of ${enumFullName}, previously defined at $prev", span)
@@ -364,7 +374,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     ctx.enumFields()?.enumField()?.forEach { fieldCtx ->
         fields += LstStructField(
             span = fieldCtx.span(),
-            name = fieldCtx.declaredNameToken().text,
+            name = fieldCtx.anyName().text,
             index = index++,
             typeUsage = resolveTypeUsage(fieldCtx.typeUsage()),
             ref = program.nextFieldRef()
@@ -397,7 +407,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
 
     ctx.enumValue().forEachIndexed { valueIndex, constCtx ->
         val constSpan = constCtx.span()
-        val constName = constCtx.declaredNameToken().text
+        val constName = constCtx.anyName().text
         val const = LstConst(
             span = constCtx.span(),
             name = constName,
@@ -437,7 +447,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
         // Rest of the fields
         constCtx.enumValueInit()?.forEach { initCtx ->
             val expr = processExpression(initCtx.expression())
-            val fieldName = initCtx.nameToken().text
+            val fieldName = initCtx.anyName().text
             val field = struct.fields.values.find { it.name == fieldName }
 
             if (field == null) {
@@ -497,7 +507,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     val newList = values.call(span, "List", "new", explicitTypeParams = listOf(tu))
 
     ctx.enumValue().forEach { valueCtx ->
-        val constName = valueCtx.declaredNameToken().text
+        val constName = valueCtx.anyName().text
         val const = enumConstants[constName]!!
         val loadConst = values.loadConst(span, enumFullName, constName, const)
 

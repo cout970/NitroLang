@@ -3,9 +3,9 @@
 // It is implemented as a hash table with open addressing and linear probing
 // Any type that has the functions Type.get_hash() and Type.get_ordering(Type) can be used as a key
 //
-// A map can be created using the `@[...]` syntax:
+// A map can be created using the `#[...]` syntax:
 // ```
-// let map = @[
+// let map = #[
 //     foo: 1,
 //     bar: 2,
 // ]
@@ -13,7 +13,7 @@
 // If the keys are strings the " can be omitted is only ascii letters, numbers and _ are used
 // Any arbitrary expression can be used as a key by surrounding it with ()
 // ```
-// let map = @[
+// let map = #[
 //     regular_key: 0,
 //     "key with spaces": 1,
 //     "key with string templates $index => ${1 + 1}": 2,
@@ -21,7 +21,7 @@
 //     (hash_of(item)): 4,
 // ]
 // ```
-@Extern $[lib: "core", name: "Map"]
+@Extern [lib: "core", name: "Map"]
 struct Map<#Key, #Value> {
     capacity: Int
     len: Int
@@ -36,7 +36,7 @@ tag MapKey {
 
 // Creates an empty map
 fun <#Key: MapKey> Map::new(): Map<#Key, #Value> {
-    ret Map<#Key, #Value> $[
+    ret Map<#Key, #Value> @[
         capacity: 0
         len: 0
         table: RawArray::new<Optional<Pair<#Key, #Value>>>(0)
@@ -343,7 +343,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<Pair<#Key, #Value>>
 
 // Converts the map to a string
 fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
-    let mut str = "@["
+    let mut str = "#["
     let mut count = 0
 
     repeat this.capacity {

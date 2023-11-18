@@ -1,15 +1,19 @@
 // Range of values 1..<2
-struct Range {
+struct IntRange {
     start_inclusive: Int
     end_exclusive: Int
 }
 
 // Operator overloads
-@Extern $[lib: "core", name: "range_in"]
-fun Int.range_in(other: Int): Range {}
+fun Int.range_to(other: Int): IntRange = IntRange @[
+    start_inclusive: this
+    end_exclusive: other - 1
+]
 
-@Extern $[lib: "core", name: "range_ex"]
-fun Int.range_ex(other: Int): Range {}
+fun Int.range_up_to(other: Int): IntRange = IntRange @[
+    start_inclusive: this
+    end_exclusive: other
+]
 
 fun main() {
     let a: Int = 1 + 2 // 1.plus(2)
@@ -38,6 +42,6 @@ fun main() {
     let c8  = 1 >>  2 // shift right
     let c9  = 1 >>> 2 // shift right unsigned
     let c10 = 1 <<  2 // shift left
-    let c11 = 1 ..= 2 // range inclusive
-    let c12 = 1 ..< 2 // range exclusive
+    let c11 = 1 ..= 2 // range inclusive/range_to
+    let c12 = 1 ..< 2 // range exclusive/range_up_to
 }

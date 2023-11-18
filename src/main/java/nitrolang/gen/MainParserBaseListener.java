@@ -65,25 +65,25 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterNameToken(MainParser.NameTokenContext ctx) { }
+	@Override public void enterUpperName(MainParser.UpperNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitNameToken(MainParser.NameTokenContext ctx) { }
+	@Override public void exitUpperName(MainParser.UpperNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx) { }
+	@Override public void enterAnyName(MainParser.AnyNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx) { }
+	@Override public void exitAnyName(MainParser.AnyNameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

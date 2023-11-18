@@ -12,10 +12,10 @@ option Result<#Ok, #Err> {
 }
 
 // Creates a new Result with the Ok variant
-fun Ok<#Ok, #Err>(ok: #Ok): Result<#Ok, #Err> = Result::Ok<#Ok, #Err> $[value: ok]
+fun Ok<#Ok, #Err>(ok: #Ok): Result<#Ok, #Err> = Result::Ok<#Ok, #Err> @[value: ok]
 
 // Creates a new Result with the Err variant
-fun Err<#Ok, #Err>(err: #Err): Result<#Ok, #Err> = Result::Err<#Ok, #Err> $[value: err]
+fun Err<#Ok, #Err>(err: #Err): Result<#Ok, #Err> = Result::Err<#Ok, #Err> @[value: err]
 
 // Checks if the result is Ok
 fun Result<#Ok, #Err>.is_ok(): Boolean = this is Result::Ok<#Ok, #Err>

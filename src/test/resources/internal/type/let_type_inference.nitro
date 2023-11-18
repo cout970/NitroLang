@@ -13,7 +13,7 @@ fun main() {
     let d = "Test"
     let d_check: String = d
 
-    let e = Struct $[]
+    let e = Struct @[]
     let e_check: Struct = e
 
     let f

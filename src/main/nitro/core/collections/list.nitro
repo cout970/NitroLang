@@ -3,9 +3,9 @@
 // The implementation is a dynamic array that doubles in size when it runs out of space.
 // The array stores pointers to the items, so the items are not owned by the list
 //
-// A list can be created using the `#[...]` syntax:
+// A list can be created using the `[...]` syntax:
 // ```
-// let my_list: List<Int> = #[1, 2, 3]
+// let my_list: List<Int> = [1, 2, 3]
 // ```
 // or using the `List::new()` function:
 // ```
@@ -22,7 +22,7 @@ struct List<#Item> {
 
 // Creates an empty list
 fun List::new<#Item>(): List<#Item> {
-    ret List<#Item> $[
+    ret List<#Item> @[
         capacity: 0
         len: 0
         items: null_ptr<Ptr<#Item>>().to_raw_array()
@@ -31,7 +31,7 @@ fun List::new<#Item>(): List<#Item> {
 
 // Creates an empty list with the given capacity pre-allocated
 fun List::new<#Item>(capacity: Int): List<#Item> {
-    ret List<#Item> $[
+    ret List<#Item> @[
         capacity: capacity
         len: 0
         items: RawArray::new<Ptr<#Item>>(capacity)
@@ -303,12 +303,12 @@ fun <#Item: GetOrdering> List<#Item>.find_index(predicate: (#Item) -> Boolean): 
 
 // Generates a string with debug information about the list internals
 fun List<#Item>.to_debug_string(): String {
-    ret "List \$[capacity: ${this.capacity}, len: ${this.len}, data: ${this.items}]"
+    ret "List @[capacity: ${this.capacity}, len: ${this.len}, data: ${this.items}]"
 }
 
 // Converts the list to a string
 fun <#Item: ToString> List<#Item>.to_string(): String {
-    let str = "#["
+    let str = "["
 
     repeat this.len {
         let item = this[it]!!.to_string()
@@ -324,9 +324,9 @@ fun <#Item: ToString> List<#Item>.to_string(): String {
 }
 
 // Iterates over the list and calls the given function for each item
-// Can be called using the `list.for_each #{ ... }` syntax:
+// Can be called using the `list.for_each @{ ... }` syntax:
 // ```
-// #[1, 2, 3].for_each #{ item: Int ->
+// [1, 2, 3].for_each @{ item: Int ->
 //     println(item)
 // }
 // ```
@@ -337,9 +337,9 @@ fun List<#Item>.for_each(func: (#Item) -> Nothing) {
 }
 
 // Iterates over the list and calls the given function for each item, passing the index as well
-// Can be called using the `list.for_each_entry #{ ... }` syntax:
+// Can be called using the `list.for_each_entry @{ ... }` syntax:
 // ```
-// #[1, 2, 3].for_each_entry #{ index: Int, item: Int ->
+// [1, 2, 3].for_each_entry @{ index: Int, item: Int ->
 //     println("Item at index $index is $item")
 // }
 fun List<#Item>.for_each_entry(func: (Int, #Item) -> Nothing) {

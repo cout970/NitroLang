@@ -1,3 +1,4 @@
+// TODO Rewrite
 
 struct Lexer {
     tokens: List<Int>
@@ -7,7 +8,7 @@ struct Lexer {
 }
 
 fun Lexer::new(source: String): Lexer {
-    ret Lexer $[
+    ret Lexer @[
         source: source,
         token_count: 0,
         tokens: List::new<Int>(),
@@ -171,7 +172,7 @@ fun Lexer.process() {
 }
 
 fun Lexer.debug_print() {
-    Log::info("Lexer \$[token_count: ${this.token_count}, cursor: ${this.cursor}]")
+    Log::info("Lexer @[token_count: ${this.token_count}, cursor: ${this.cursor}]")
     repeat this.token_count {
         Log::info(" - ${this.get_token_offset(it)}: ${this.get_token_type(it)}")
     }

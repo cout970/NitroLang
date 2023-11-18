@@ -43,3 +43,7 @@ bin/
 
 # The intellij folder, keeps adding changes to every commit
 .idea
+
+# Other
+MainLexer.tokens
+/ignore

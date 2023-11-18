@@ -46,7 +46,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): LstTypeUsage {
     }
 
     if (ctx.typeParameter() != null) {
-        val name = ctx.typeParameter().nameToken().text
+        val name = ctx.typeParameter().upperName().text
         val typeParameterDef = typeParamMap.getOrPut(name) {
             if (!allowTypeParamCollection) {
                 collector.report(
@@ -56,7 +56,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): LstTypeUsage {
             }
 
             LstTypeParameter(
-                span = ctx.typeParameter().nameToken().span(),
+                span = ctx.typeParameter().upperName().span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
                 bounds = emptyList()
@@ -64,7 +64,7 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): LstTypeUsage {
         }
 
         return LstTypeUsage(
-            span = ctx.typeParameter().nameToken().span(),
+            span = ctx.typeParameter().upperName().span(),
             name = name,
             path = "",
             sub = emptyList(),
@@ -106,11 +106,11 @@ fun ParserCtx.resolveTypeUsage(ctx: MainParser.TypeUsageContext): LstTypeUsage {
 }
 
 fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): LstTypeUsage {
-    val name = base.nameToken().text
+    val name = base.upperName().text
     var path = ""
 
     if (base.modulePath() != null) {
-        path = base.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+        path = base.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
     }
 
     val sub = if (base.typeParamArg() != null) {
@@ -120,7 +120,7 @@ fun ParserCtx.resolveBaseTypeUsage(base: MainParser.BaseTypeUsageContext): LstTy
     }
 
     return LstTypeUsage(
-        span = base.nameToken().span(),
+        span = base.upperName().span(),
         name = name,
         path = path,
         sub = sub,
@@ -138,8 +138,8 @@ fun ParserCtx.startTypeParams(ctx: MainParser.TypeParamsDefContext?) {
         val bounds = def.typeUsage().map { resolveTypeUsage(it) }
 
         val td = LstTypeParameter(
-            span = typeParam.nameToken().span(),
-            name = typeParam.nameToken().text,
+            span = typeParam.upperName().span(),
+            name = typeParam.upperName().text,
             ref = program.nextTypeParamRef(),
             bounds = bounds,
         )
@@ -200,7 +200,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): LstTypePat
     }
 
     if (ctx.typeParameter() != null) {
-        val name = ctx.typeParameter().nameToken().text
+        val name = ctx.typeParameter().upperName().text
         val typeParameterDef = typeParamMap.getOrPut(name) {
             if (!allowTypeParamCollection) {
                 collector.report(
@@ -210,7 +210,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): LstTypePat
             }
 
             LstTypeParameter(
-                span = ctx.typeParameter().nameToken().span(),
+                span = ctx.typeParameter().upperName().span(),
                 name = name,
                 ref = program.nextTypeParamRef(),
                 bounds = emptyList()
@@ -218,7 +218,7 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): LstTypePat
         }
 
         return LstTypePattern(
-            span = ctx.typeParameter().nameToken().span(),
+            span = ctx.typeParameter().upperName().span(),
             name = name,
             path = "",
             sub = emptyList(),
@@ -231,11 +231,11 @@ fun ParserCtx.resolveTypePattern(ctx: MainParser.TypePatternContext): LstTypePat
 }
 
 fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): LstTypePattern {
-    val name = base.nameToken().text
+    val name = base.upperName().text
     var path = ""
 
     if (base.modulePath() != null) {
-        path = base.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+        path = base.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
     }
 
     val sub = if (base.typePatternArgs() != null) {
@@ -262,7 +262,7 @@ fun ParserCtx.resolveBaseTypePattern(base: MainParser.BaseTypePatternContext): L
     }
 
     return LstTypePattern(
-        span = base.nameToken().span(),
+        span = base.upperName().span(),
         name = name,
         path = path,
         sub = sub,

@@ -23,18 +23,18 @@ struct World {
 }
 
 fun main() {
-    let world: World = World $[
-        player: Player $[
+    let world: World = World @[
+        player: Player @[
             x: 0
             y: 0
             name: "Anonymous"
             health: 100.0
             max_health: 100.0
         ]
-        entities: #[
-            Entity $[x: 50, y: 50, kind: "target"]
-            Entity $[x: 25, y: 50, kind: "enemy"]
-            Entity $[x: 50, y: 25, kind: "enemy"]
+        entities: [
+            Entity @[x: 50, y: 50, kind: "target"]
+            Entity @[x: 25, y: 50, kind: "enemy"]
+            Entity @[x: 50, y: 25, kind: "enemy"]
         ]
         pending_save: true
     ]

@@ -357,11 +357,11 @@ fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixCo
 
         ctx.structFieldAccessSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
-            val name = ctx.structFieldAccessSuffix().nameToken().text
+            val name = ctx.structFieldAccessSuffix().anyName().text
 
             val node = LstLoadField(
                 ref = code.nextRef(),
-                span = ctx.structFieldAccessSuffix().nameToken().span(),
+                span = ctx.structFieldAccessSuffix().anyName().span(),
                 block = code.currentBlock,
                 instance = prevRef,
                 name = name,
@@ -370,14 +370,18 @@ fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixCo
             node.ref
         }
 
-        ctx.nameToken() != null -> {
+        ctx.anyName() != null -> {
             val prev = processExpressionWithSuffix(ctx.expressionWithSuffix())
-            val name = ctx.nameToken().text
+            val name = ctx.anyName().text
+            var path = ""
+            if (ctx.modulePath() != null) {
+                path = ctx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
+            }
 
             processFunctionCall(
-                span = ctx.nameToken().span(),
+                span = ctx.anyName().span(),
                 receiver = prev,
-                path = "",
+                path = path,
                 name = name,
                 params = ctx.functionCallParams(),
                 end = ctx.functionCallEnd(),
@@ -395,15 +399,15 @@ fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixCo
 
 fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFunctionCallContext): Ref {
     return when {
-        ctx.nameToken() != null -> {
-            val name = ctx.nameToken().text
+        ctx.anyName() != null -> {
+            val name = ctx.anyName().text
             var path = ""
             if (ctx.modulePath() != null) {
-                path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+                path = ctx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
             }
 
             processFunctionCall(
-                span = ctx.nameToken().span(),
+                span = ctx.anyName().span(),
                 receiver = null,
                 path = path,
                 name = name,
@@ -445,7 +449,7 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
             val prev = processExpressionStructInstanceExpr(ctx.structInstanceExpr())
 
             processFunctionCall(
-                span = ctx.structInstanceExpr().nameToken().span(),
+                span = ctx.structInstanceExpr().upperName().span(),
                 receiver = prev,
                 path = "",
                 name = "invoke",
@@ -513,17 +517,17 @@ fun ParserCtx.processFunctionCall(
                 args += processExpressionLambdaExpr(end.lambdaExpr())
             }
 
-            end.listExpr() != null -> {
-                args += processExpressionListExpr(end.listExpr())
-            }
-
-            end.mapExpr() != null -> {
-                args += processExpressionMapExpr(end.mapExpr())
-            }
-
-            end.setExpr() != null -> {
-                args += processExpressionSetExpr(end.setExpr())
-            }
+//            end.listExpr() != null -> {
+//                args += processExpressionListExpr(end.listExpr())
+//            }
+//
+//            end.mapExpr() != null -> {
+//                args += processExpressionMapExpr(end.mapExpr())
+//            }
+//
+//            end.setExpr() != null -> {
+//                args += processExpressionSetExpr(end.setExpr())
+//            }
 
             else -> error("Grammar has been expanded and parser is outdated")
         }
@@ -1098,7 +1102,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                         ref = code.nextRef(),
                         span = value.span(),
                         block = code.currentBlock,
-                        value = pair.nameToken().text
+                        value = pair.anyName().text
                     )
                     code.nodes += entryKey
                     entryKey.ref
@@ -1481,12 +1485,12 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
     ctx.mapEntry().forEach { entry ->
         val keyCtx = entry.mapKey()
         val keyRef = when {
-            keyCtx.nameToken() != null -> {
+            keyCtx.anyName() != null -> {
                 val node = LstString(
                     ref = code.nextRef(),
                     span = ctx.span(),
                     block = code.currentBlock,
-                    value = keyCtx.nameToken().text
+                    value = keyCtx.anyName().text
                 )
                 code.nodes += node
                 node.ref
@@ -1583,8 +1587,8 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                     )
                 }
 
-                val name = if (it.nameToken() != null) {
-                    it.nameToken().text
+                val name = if (it.anyName() != null) {
+                    it.anyName().text
                 } else if (it.UNDERSCORE() != null) {
                     "_ignored_${index}_"
                 } else {
@@ -1696,10 +1700,10 @@ fun ParserCtx.processExpressionIfExpr(ctx: MainParser.IfExprContext): Ref {
 }
 
 fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstanceExprContext): Ref {
-    val name = ctx.nameToken().text
+    val name = ctx.upperName().text
     var path = ""
     if (ctx.modulePath() != null) {
-        path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+        path = ctx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
     }
 
     var typeParamArgs = listOf<LstTypeUsage>()
@@ -1713,7 +1717,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
         span = ctx.span(),
         block = code.currentBlock,
         typeUsage = LstTypeUsage(
-            span = ctx.nameToken().span(),
+            span = ctx.upperName().span(),
             name = name,
             path = path,
             sub = typeParamArgs,
@@ -1732,7 +1736,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
                 ref = code.nextRef(),
                 span = ctx.span(),
                 block = code.currentBlock,
-                name = entry.nameToken().text,
+                name = entry.anyName().text,
                 instance = alloc.ref,
                 expr = expr,
             )
@@ -1743,7 +1747,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
                 ref = code.nextRef(),
                 span = ctx.span(),
                 block = code.currentBlock,
-                name = entry.variableExpr().nameToken().text,
+                name = entry.variableExpr().anyName().text,
                 instance = alloc.ref,
                 expr = expr,
             )
@@ -1754,10 +1758,10 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
 }
 
 fun ParserCtx.processExpressionVariableExpr(ctx: MainParser.VariableExprContext): Ref {
-    val name = ctx.nameToken().text
+    val name = ctx.anyName().text
     var path = ""
     if (ctx.modulePath() != null) {
-        path = ctx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+        path = ctx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
     }
 
     val node = LstLoadVar(

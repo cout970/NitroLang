@@ -21,19 +21,17 @@ Intended for the developers
 - [ ] Sell the project to a big company and retire to a tropical paradise
 - [ ] Profit?
 
-
 ### Other features to implement
+
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
 - Question mark operator `?` at the end of an expression
 - Optional function arguments
 - Variadic function arguments
-- implicit this instead of writing `this.something()` everywhere
+- Implicit this instead of writing `this.something()` everywhere
 - `for` statement with iterators
 - Runtime reflection of types
-- Enums, not like rust, but like java, a list of constants that can be iterated
-- Consts only accept primitive values, it should allow lists, maps and sets
 - Fix external functions with Floats compressed as pointers
 - Lambdas as closures, implement upvalues
 - Call lambdas without the `func.invoke(args)` syntax
@@ -43,8 +41,43 @@ Intended for the developers
 - Self-hosted compiler
 - Check for read of uninitialized variables
 - Implement interface for runtime function call indirection
+- Added @Test for compiler testing support
+- Added assert() or check() for tests
+- Added ranges: IntRange, FloatRange, etc.
 
 ### Bugs
+
 - `ret when { ... }` Missing provider for ref
 - 0 compressed as pointer causes null pointer exceptions
 - `Some(None<Int>)` returns `true` when calling `is_none()`
+
+### New syntax
+
+Old:
+
+```
+let list = #[1, 2, 3]
+let map = @[x: 0, y: 1, z: 0]
+let set = %[0, 1, 0]
+let struct = Vec3 $[x: 0, y: 1, z: 0]
+list[0]
+if cond {} else {}
+for i in 0..10 {}
+func #[1, 2, 3]
+func #{ i -> i + 1 }
+```
+
+New:
+
+```
+let list = [1, 2, 3]
+let map = #[x: 0, y: 1, z: 0]
+let set = %[0, 1, 0]
+let struct = Vec3 @[x: 0, y: 1, z: 0]
+list[0]
+list[] = 0
+if cond {} else {}
+for i in 0..10 {}
+func([1, 2, 3])
+func @{ it }
+```

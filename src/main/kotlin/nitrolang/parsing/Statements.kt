@@ -33,15 +33,15 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                 val subSubCtx = subCtx.assignableExpression()
 
                 when {
-                    subSubCtx.expression() != null && subSubCtx.nameToken() != null -> {
+                    subSubCtx.expression() != null && subSubCtx.anyName() != null -> {
                         val receiver = processExpression(subSubCtx.expression())
                         val value = processExpression(subCtx.expression())
 
                         code.nodes += LstStoreField(
                             ref = code.nextRef(),
-                            span = subSubCtx.nameToken().span(),
+                            span = subSubCtx.anyName().span(),
                             block = code.currentBlock,
-                            name = subSubCtx.nameToken().text,
+                            name = subSubCtx.anyName().text,
                             instance = receiver,
                             expr = value,
                         )
@@ -76,18 +76,18 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                         )
                     }
 
-                    subSubCtx.nameToken() != null -> {
+                    subSubCtx.anyName() != null -> {
                         val value = processExpression(subCtx.expression())
-                        val name = subSubCtx.nameToken().text
+                        val name = subSubCtx.anyName().text
                         var path = ""
 
                         if (subSubCtx.modulePath() != null) {
-                            path = subSubCtx.modulePath().nameToken().joinToString(MODULE_SEPARATOR) { it.text }
+                            path = subSubCtx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
                         }
 
                         code.nodes += LstStoreVar(
                             ref = code.nextRef(),
-                            span = subSubCtx.nameToken().span(),
+                            span = subSubCtx.anyName().span(),
                             block = code.currentBlock,
                             name = name,
                             path = path,
@@ -245,9 +245,9 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     // next_item = iter.next()
     code.nodes += LstStoreVar(
         ref = code.nextRef(),
-        span = subCtx.nameToken().span(),
+        span = subCtx.anyName().span(),
         block = code.currentBlock,
-        name = subCtx.nameToken().text,
+        name = subCtx.anyName().text,
         path = "",
         expr = iteratorNext.ref,
         varRef = nextItem.ref,
@@ -257,7 +257,7 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     // next_item.is_some()
     val isSomeCall = LstFunCall(
         ref = code.nextRef(),
-        span = subCtx.nameToken().span(),
+        span = subCtx.anyName().span(),
         block = code.currentBlock,
         name = "is_some",
         path = "",
@@ -278,7 +278,7 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     // next_item.get_or_crash()
     val getOrCrashCall = LstFunCall(
         ref = code.nextRef(),
-        span = subCtx.nameToken().span(),
+        span = subCtx.anyName().span(),
         block = code.currentBlock,
         name = "get_or_crash",
         path = "",
@@ -288,8 +288,8 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
 
     // let i
     val forVar = LstVar(
-        span = subCtx.nameToken().span(),
-        name = subCtx.nameToken().text,
+        span = subCtx.anyName().span(),
+        name = subCtx.anyName().text,
         block = code.currentBlock,
         typeUsage = null,
         validAfter = code.currentRef(),
@@ -301,9 +301,9 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     // i = next_item.get_or_crash()
     code.nodes += LstStoreVar(
         ref = code.nextRef(),
-        span = subCtx.nameToken().span(),
+        span = subCtx.anyName().span(),
         block = code.currentBlock,
-        name = subCtx.nameToken().text,
+        name = subCtx.anyName().text,
         path = "",
         expr = getOrCrashCall.ref,
         varRef = forVar.ref,
@@ -753,9 +753,9 @@ private fun ParserCtx.processIfStatement(subCtx: MainParser.IfStatementContext) 
 
 private fun ParserCtx.processLetStatement(subCtx: MainParser.LetStatementContext) {
     val variable = LstVar(
-        span = subCtx.nameToken().span(),
+        span = subCtx.anyName().span(),
         block = code.currentBlock,
-        name = subCtx.nameToken().text,
+        name = subCtx.anyName().text,
         typeUsage = subCtx.typeUsage()?.let { resolveTypeUsage(it) },
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),

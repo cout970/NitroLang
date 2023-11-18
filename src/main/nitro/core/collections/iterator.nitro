@@ -14,7 +14,7 @@ struct ListIterator<#Item> {
 }
 
 fun List<#Item>.to_iterator(): ListIterator<#Item> {
-    ret ListIterator<#Item> $[
+    ret ListIterator<#Item> @[
         list: this
         index: 0
     ]

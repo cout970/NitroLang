@@ -48,25 +48,25 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitParseFunctionDefinition(MainParser.ParseFunctionDefinitionContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#nameToken}.
+	 * Enter a parse tree produced by {@link MainParser#upperName}.
 	 * @param ctx the parse tree
 	 */
-	void enterNameToken(MainParser.NameTokenContext ctx);
+	void enterUpperName(MainParser.UpperNameContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MainParser#nameToken}.
+	 * Exit a parse tree produced by {@link MainParser#upperName}.
 	 * @param ctx the parse tree
 	 */
-	void exitNameToken(MainParser.NameTokenContext ctx);
+	void exitUpperName(MainParser.UpperNameContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#declaredNameToken}.
+	 * Enter a parse tree produced by {@link MainParser#anyName}.
 	 * @param ctx the parse tree
 	 */
-	void enterDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx);
+	void enterAnyName(MainParser.AnyNameContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link MainParser#declaredNameToken}.
+	 * Exit a parse tree produced by {@link MainParser#anyName}.
 	 * @param ctx the parse tree
 	 */
-	void exitDeclaredNameToken(MainParser.DeclaredNameTokenContext ctx);
+	void exitAnyName(MainParser.AnyNameContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MainParser#string}.
 	 * @param ctx the parse tree

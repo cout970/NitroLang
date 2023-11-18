@@ -25,19 +25,19 @@ fun main() {
     let c: Result<Int, String> = Ok(420)
     let d: Result<Int, String> = Err("Not found")
 
-    let e: Bool = Bool::True $[]
-    let f: Bool = Bool::False $[]
+    let e: Bool = Bool::True @[]
+    let f: Bool = Bool::False @[]
 
-    let n: NodeList<Int> = NodeList::Cons $[
+    let n: NodeList<Int> = NodeList::Cons @[
         value: 0
-        next: NodeList::Cons $[
+        next: NodeList::Cons @[
             value: 1
-            next: NodeList::Nil $[]
+            next: NodeList::Nil @[]
         ]
     ]
 
-    let err = Error::OsError $[
-        error: OsError $[
+    let err = Error::OsError @[
+        error: OsError @[
             os_code: 1000
             message: "Error with code 1000"
         ]

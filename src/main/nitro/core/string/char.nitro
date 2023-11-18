@@ -12,7 +12,7 @@ fun Char.to_int(): Int {
 
 // This function converts an integer to a Char instance
 fun Int.to_char(): Char {
-    ret Char $[unicode_code_point: this]
+    ret Char @[unicode_code_point: this]
 }
 
 // Creates an string with only this character

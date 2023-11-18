@@ -6,7 +6,7 @@ struct Struct<#A, #B, #C> {
 }
 
 fun main() {
-    let inst = Struct $[
+    let inst = Struct @[
         a: 0
         b: 0f
         c: "Test"

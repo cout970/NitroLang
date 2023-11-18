@@ -51,9 +51,9 @@ data class ParserCtx(
 
         while (parent != null) {
             if (parent is ModuleDefinitionContext) {
-                pathComponents += parent.declaredNameToken().text
+                pathComponents += parent.anyName().text
 
-                parent.modulePath()?.nameToken()?.forEach { name ->
+                parent.modulePath()?.anyName()?.forEach { name ->
                     pathComponents += name.text
                 }
             }

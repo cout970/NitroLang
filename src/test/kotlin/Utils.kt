@@ -2,7 +2,6 @@ import nitrolang.parsing.AstParser
 import nitrolang.ast.DeadCodeAnalyzer
 import nitrolang.ast.LstProgram
 import nitrolang.ast.LstProgram.Companion.toJson
-import nitrolang.util.ErrorCollector
 import nitrolang.util.SourceFile
 import java.io.File
 import kotlin.test.assertEquals
@@ -10,7 +9,8 @@ import kotlin.test.assertNotEquals
 
 private val debug = System.getenv("override-tests") == "true"
 
-fun assertCompilationSuccess(path: String): LstProgram {
+fun assertCompilationSuccess(relPath: String): LstProgram {
+    val path = "src/test/resources/$relPath"
     val file = SourceFile.load(path)
     val program = LstProgram()
     AstParser.includeFile("core", "core.nitro", program, null)
@@ -22,7 +22,8 @@ fun assertCompilationSuccess(path: String): LstProgram {
     return program
 }
 
-fun assertCompilationError(path: String) {
+fun assertCompilationError(relPath: String) {
+    val path = "src/test/resources/$relPath"
     val file = SourceFile.load(path)
     val program = LstProgram()
     AstParser.includeFile("core", "core.nitro", program, null)

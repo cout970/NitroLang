@@ -3,7 +3,7 @@ struct Box {
 }
 
 fun main() {
-    let a = Box $[value: 42]
+    let a = Box @[value: 42]
 
     a.value = 420
     a.value

@@ -46,7 +46,7 @@ fun func6(value: #X): #X {
 
 // Using param types in subtypes
 fun func7(value: #T): List<#T> {
-    ret #[func6(value), func5(value)]
+    ret [func6(value), func5(value)]
 }
 
 // Return type inference

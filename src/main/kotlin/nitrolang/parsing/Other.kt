@@ -44,8 +44,8 @@ fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
                         processPlainString(entry.annotationArgKey().PLAIN_STRING())
                     }
 
-                    entry.annotationArgKey().nameToken() != null -> {
-                        entry.annotationArgKey().nameToken().text
+                    entry.annotationArgKey().anyName() != null -> {
+                        entry.annotationArgKey().anyName().text
                     }
 
                     else -> error("Grammar has been expanded and parser is outdated")
@@ -56,8 +56,8 @@ fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
         }
 
         LstAnnotation(
-            span = subCtx.nameToken().span(),
-            name = subCtx.nameToken().text,
+            span = subCtx.upperName().span(),
+            name = subCtx.upperName().text,
             args = args,
         )
     }
