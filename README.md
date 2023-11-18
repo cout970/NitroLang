@@ -318,8 +318,8 @@ fun main() {
     // Example of what is posible
     html @{
         attr = @[
-            lang: "en",
-            class: "dark-mode"
+            lang: "en"
+            classes: ["dark-mode"]
         ]
         
         head @{
@@ -331,13 +331,16 @@ fun main() {
             p("This is my page")
             
             a("https://example.com") @{
-                class = ["link", "link--primary"]
+                classes = ["link", "link--primary"]
                 target = "_blank"
                 text("Visit example.com")
             }
             
             script @{
-                type = "application/json"
+                attr = @[
+                    "type": "application/json"
+                ]
+                
                 text_content = json {
                     settings: {
                         theme: "dark"

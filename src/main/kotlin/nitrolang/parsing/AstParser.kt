@@ -159,6 +159,10 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         parserCtx.processIncludeDefinition(ctx)
     }
 
+    override fun enterTestDefinition(ctx: MainParser.TestDefinitionContext) {
+        parserCtx.processTestDefinition(ctx)
+    }
+
     override fun enterUseDefinition(ctx: MainParser.UseDefinitionContext) {
         TODO("Use-declarations")
     }

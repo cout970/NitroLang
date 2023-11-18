@@ -1,8 +1,8 @@
 
 // This type represents a json value. It can be a boolean, number, string, array, object or null.
-// Can be created inline using the `json` literal:
+// Can be created inline using the `json!` literal:
 // ```
-// let value: Json = json {
+// let value: Json = json! {
 //    "key1": "value",
 //    "key2": 123,
 //    "key3": true,

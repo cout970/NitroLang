@@ -35,17 +35,6 @@ open class WasmBuilder(
     }
 
     override fun finish() {
-        // Override section with address where the heap starts
-        // @formatter:off
-        module.sectionOffset = pad(module.sectionOffset)
-        val memoryInstance = byteArrayOf(
-            /* capacity */ *intToWasm(16 * 64 * 1024 - module.sectionOffset),
-            /* len      */ *intToWasm(0),
-            /* bytes    */ *intToWasm(module.sectionOffset)
-        )
-        // @formatter:on
-        module.sections[1].data = memoryInstance
-
         val start = WasmFunction(
             name = "\$_start_main",
             params = emptyList(),
@@ -71,9 +60,14 @@ open class WasmBuilder(
         }
 
         if (program.compilerOptions.runTests) {
+            module.functions
             module.functions.forEach { func ->
-                if (func.sourceFunction?.isTest == true) {
-                    start.instructions += WasmInst("call ${func.name}")
+                val sourceFunction: LstFunction = func.sourceFunction ?: return@forEach
+
+                if (sourceFunction.isTest) {
+                    pushString(func.exportName, start)
+                    pushString(sourceFunction.getTestName() ?: sourceFunction.fullName, start)
+                    start.instructions += WasmInst("call \$run_test")
                     start.instructions += WasmInst("drop")
                 }
             }
@@ -82,6 +76,17 @@ open class WasmBuilder(
             start.instructions += WasmInst("call \$main")
         }
         module.functions += start
+
+        // Override section with address where the heap starts
+        // @formatter:off
+        module.sectionOffset = pad(module.sectionOffset)
+        val memoryInstance = byteArrayOf(
+            /* capacity */ *intToWasm(16 * 64 * 1024 - module.sectionOffset),
+            /* len      */ *intToWasm(0),
+            /* bytes    */ *intToWasm(module.sectionOffset)
+        )
+        // @formatter:on
+        module.sections[1].data = memoryInstance
     }
 
     override fun compileImport(func: LstFunction, mono: MonoFunction, name: ConstString, lib: ConstString) {
@@ -181,7 +186,11 @@ open class WasmBuilder(
         val extern = func.annotations.find { it.name == ANNOTATION_EXTERN }
         val externName = (extern?.args?.get("name") as? ConstString)?.value
 
-        val exportName = main ?: wasmNameValue ?: externName ?: ""
+        var exportName = main ?: wasmNameValue ?: externName ?: ""
+
+        if (lst.isTest) {
+            exportName = "test_${lst.ref.id}"
+        }
 
         val wasmFunc = WasmFunction(
             name = func.finalName,
@@ -273,19 +282,7 @@ open class WasmBuilder(
             }
 
             is MonoString -> {
-                // Align to 4 bytes for the 32bit length field
-                module.sectionOffset = pad(module.sectionOffset)
-
-                val bytes = inst.value.encodeToByteArray()
-                val start = module.sectionOffset
-                val contentStart = module.sectionOffset + PTR_SIZE * 2
-                val size = intToWasm(bytes.size)
-                val contentsPtr = intToWasm(contentStart)
-
-                module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
-                module.addSection(WasmDataSection(contentStart, bytes, "String \"${inst.value}\""))
-
-                wasmFunc.instructions += WasmInst("i32.const $start")
+                pushString(inst.value, wasmFunc)
             }
 
             is MonoLambdaCall -> {
@@ -429,6 +426,22 @@ open class WasmBuilder(
                 wasmFunc.instructions += WasmInst("end", needsWrapping = false)
             }
         }
+    }
+
+    private fun pushString(value: String, wasmFunc: WasmFunction) {
+        // Align to 4 bytes for the 32bit length field
+        module.sectionOffset = pad(module.sectionOffset)
+
+        val bytes = value.encodeToByteArray()
+        val start = module.sectionOffset
+        val contentStart = module.sectionOffset + PTR_SIZE * 2
+        val size = intToWasm(bytes.size)
+        val contentsPtr = intToWasm(contentStart)
+
+        module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
+        module.addSection(WasmDataSection(contentStart, bytes, "String \"${value}\""))
+
+        wasmFunc.instructions += WasmInst("i32.const $start")
     }
 
     fun monoTypeToPrimitive(mono: MonoType): WasmPrimitive {

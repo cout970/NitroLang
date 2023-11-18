@@ -30,7 +30,6 @@ Intended for the developers
 - Optional function arguments
 - Variadic function arguments
 - Implicit this instead of writing `this.something()` everywhere
-- `for` statement with iterators
 - Runtime reflection of types
 - Fix external functions with Floats compressed as pointers
 - Lambdas as closures, implement upvalues
@@ -41,7 +40,7 @@ Intended for the developers
 - Self-hosted compiler
 - Check for read of uninitialized variables
 - Implement interface for runtime function call indirection
-- Added `test "Description" {}` for custom test names
+- Place core in a module for namespacing
 
 ### Bugs
 

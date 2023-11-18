@@ -44,11 +44,8 @@ fun IntRangeUpTo.to_string(): String {
     return "${this.start}..<${this.end_exclusive}"
 }
 
-@Test
 mod test {
-
-    @Test
-    fun test_for_with_int_range_to() {
+    test! "Check IntRangeUpTo and for statement" {
         let count = 0
         for i in 0..<10 {
             check(i >= 0 && i <= 9, "i should be between 1 and 9")
@@ -57,8 +54,7 @@ mod test {
         check(count == 10, "Number of iterations should be 9")
     }
 
-    @Test
-    fun test_int_range_to_to_list() {
+    test! "Check IntRangeUpTo to List<Int>" {
         let list = (0..<10).to_list()
         check(list.len() == 10, "List should have 10 elements")
         check(list[0]!! == 0, "First element should be 1")

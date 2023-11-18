@@ -57,6 +57,7 @@ definitionChoice
     | tagDefinition
     | typeAliasDefinition
     | enumDefinition
+    | testDefinition
     ;
 
 // E.g. include "core:optional.nitro"
@@ -151,6 +152,10 @@ enumValue
 // E.g. rgb: 0xFF0000
 enumValueInit
     : anyName COLON NL* expression ;
+
+// E.g. test! "Check that everything works" { }
+testDefinition
+    : TEST NL* PLAIN_STRING NL* statementBlock ;
 
 // E.g. fun Int.sum(other: Int): Int {}
 functionDefinition

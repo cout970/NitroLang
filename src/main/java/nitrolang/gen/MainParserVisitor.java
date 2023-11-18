@@ -227,6 +227,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEnumValueInit(MainParser.EnumValueInitContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#testDefinition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTestDefinition(MainParser.TestDefinitionContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

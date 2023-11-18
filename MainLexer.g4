@@ -1,6 +1,10 @@
 
 lexer grammar MainLexer ;
 
+// Reserved
+RESERVED : 'self' | 'Self' | 'function' | 'var' | 'val' | 'module' | 'class' | 'type' | 'recv' | 'receiver' | 'trait'
+| 'interface' | 'either' | 'ref_mut' | 'ref' | 'copy';
+
 RANGE_IN                        : '..=' ;
 RANGE_EX                        : '..<' ;
 LAMBDA_START                    : '@{' ;
@@ -44,24 +48,23 @@ NOT                             : 'not' | '!' ;
 ASSIGN                          : '=' ;
 LTH                             : '<' ;
 GTH                             : '>' ;
-THIS                            : 'this'        | 'self' ;
-THIS_TYPE                       : 'This'        | 'Self' ;
-FUN                             : 'fun'         | 'function' ;
-LET                             : 'let'         | 'var'         | 'val' ;
-MODULE                          : 'mod'         | 'module' ;
-STRUCT                          : 'struct'      | 'class' ;
-RETURN                          : 'ret'         | 'return' ;
-SIZE_OF                         : 'size_of'     | 'sizeOf' | 'sizeof' ;
-OPTION                          : 'type'        | 'option';
-REC                             : 'rec'         | 'recv'        | 'receiver' ;
-TAG                             : 'interface'   | 'trait'       | 'tag' ;
+THIS                            : 'this' ;
+THIS_TYPE                       : 'This' ;
+FUN                             : 'fun' ;
+LET                             : 'let';
+MODULE                          : 'mod';
+STRUCT                          : 'struct';
+RETURN                          : 'ret'     | 'return' ;
+SIZE_OF                         : 'size_of' | 'sizeOf' | 'sizeof' ;
+OPTION                          : 'option' ;
+REC                             : 'rec' ;
+TAG                             : 'tag' ;
 DEFER                           : 'defer' ;
 TYPE_ALIAS                      : 'type_alias'  | 'typeAlias'   | 'typealias' ;
 ENUM                            : 'enum' ;
 NOTHING                         : 'nothing' ;
 WHEN                            : 'when' ;
 MATCH                           : 'match' ;
-EITHER                          : 'either' ;
 ALIAS                           : 'alias' ;
 IF                              : 'if' ;
 ELSE                            : 'else' ;
@@ -80,14 +83,14 @@ NULL                            : 'null' ;
 INCLUDE                         : 'include' ;
 BREAK                           : 'break' ;
 CONTINUE                        : 'continue' ;
-JSON                            : 'json' ;
 USE                             : 'use' ;
 MUT                             : 'mut' ;
-REF                             : 'ref' ;
-REF_MUT                         : 'ref_mut' ;
-COPY                            : 'copy' ;
-BLOCK_START                     : '```' (LOWER_IDENTIFIER|UPPER_IDENTIFIER)? -> pushMode(BLOCK_MODE) ;
 
+// Added ! to void conflicts with variables of the same name
+JSON                            : 'json!' ;
+TEST                            : 'test!' ;
+
+BLOCK_START                     : '```' (LOWER_IDENTIFIER|UPPER_IDENTIFIER)? -> pushMode(BLOCK_MODE) ;
 WHITE_SPACE                     : [ \t\f]+ -> skip ;
 NL                              : ('\n' WHITE_SPACE*)+ | ';' ;
 LINE_COMMENT                    : '//' ~[\n]* -> type(NL) ;
@@ -95,13 +98,14 @@ DOC_COMMENT                     : '/**' (BLOCK_COMMENT|DOC_COMMENT|.)*? '*/' -> 
 BLOCK_COMMENT                   : '/*' (BLOCK_COMMENT|DOC_COMMENT|.)*? '*/' -> skip ;
 
 fragment DIGIT                  : [0-9] ;
-fragment INT_DECIMAL_NUMBER     : [+-]? DIGIT+ ;
-fragment INT_BINARY_NUMBER      : '0b' [0-1]+ ;
-fragment INT_OCTAL_NUMBER       : '0o' [0-7]+ ;
-fragment INT_HEX_NUMBER         : '0x' [0-9a-fA-F]+ ;
-fragment FLOAT_OPTION           : DIGIT+ | DIGIT+ '.' DIGIT+ | '.' DIGIT+ ;
+fragment DIGITS                 : DIGIT+ (UNDERSCORE DIGIT+)* ;
+fragment INT_DECIMAL_NUMBER     : [+-]? DIGITS ;
+fragment INT_BINARY_NUMBER      : '0b' [0-1]+ (UNDERSCORE [0-1]+)* ;
+fragment INT_OCTAL_NUMBER       : '0o' [0-7]+ (UNDERSCORE [0-7]+)* ;
+fragment INT_HEX_NUMBER         : '0x' [0-9a-fA-F]+ (UNDERSCORE [0-9a-fA-F]+)* ;
+fragment FLOAT_OPTION           : DIGITS | DIGITS '.' DIGITS | '.' DIGITS ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
-FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGIT+)?[fFdD]? ;
+FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGITS)?[fFdD]? ;
 UPPER_IDENTIFIER                : [A-Z][a-zA-Z0-9_]* ;
 LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;
 

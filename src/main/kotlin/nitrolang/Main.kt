@@ -66,7 +66,7 @@ fun compile(opt: CompilerOptions): Boolean {
     Prof.next("parse_source")
     AstParser.parseFile(SourceFile.load(opt.source), program)
 
-    if (!opt.dumpIr) {
+    if (opt.dumpIr) {
         Prof.next("dump_ir")
         program.functions.forEach { func ->
             if (func.isExternal) return@forEach
@@ -95,7 +95,7 @@ fun compile(opt: CompilerOptions): Boolean {
         WasmBuilder.compile(program, out)
     }
 
-    if (program.compilerOptions.dumpWasm) {
+    if (opt.dumpWasm) {
         Prof.next("dump_wasm")
         println("------------------------------")
         File(opt.output).readLines().forEachIndexed { index, s ->

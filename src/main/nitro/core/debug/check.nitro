@@ -4,3 +4,8 @@ fun check(condition: Boolean, message: String) {
         crash("Check failed: $message")
     }
 }
+
+@Required
+@WasmName [name: "run_test"]
+@Extern [lib: "core", name: "run_test"]
+fun run_test(internal_function_name: String, test_name: String) {}

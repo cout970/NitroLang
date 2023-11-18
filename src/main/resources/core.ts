@@ -8,8 +8,29 @@ import {
     alloc,
     setByte,
     memcopy,
-    dumpMemory
+    dumpMemory,
+    mem,
 } from './internal.ts'
+
+// check.nitro
+
+export function run_test(internal_function_name: number, test_name: number) {
+    const internal_name = getString(internal_function_name);
+    const msg = getString(test_name);
+
+    console.debug(`--------------------------------------------------------------------------------`);
+    console.debug(`# Running test (${internal_name}): ${msg}`);
+    try {
+        const start = performance.now();
+        mem.program[internal_name]();
+        const end = performance.now();
+        console.debug(`%c# Test passed (${end - start} ms)`, 'color: green;');
+        return 1;
+    } catch(e) {
+        console.error(`%c# Test failed: ${e}`, 'color: red;');
+        return 0;
+    }
+}
 
 // ptr.nitro
 

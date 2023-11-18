@@ -1,6 +1,7 @@
 package nitrolang.parsing
 
 import nitrolang.ast.*
+import nitrolang.backend.ConstString
 import nitrolang.gen.MainParser
 
 fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
@@ -622,4 +623,42 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
 
     val none = fromVariant.call(span, "", "None")
     fromVariant.lastExpression = fromVariant.returnExpr(span, none)
+}
+
+fun ParserCtx.processTestDefinition(ctx: MainParser.TestDefinitionContext) {
+    val span = ctx.span()
+    val testName = processPlainString(ctx.PLAIN_STRING())
+
+    val body = LstCode()
+    code = body
+    processStatementBlock(ctx.statementBlock())
+    if (code.blockStack.isNotEmpty()) {
+        error("Block stack is not empty, test: $testName")
+    }
+    code.executeDeferredActions()
+
+    val testAnnotation = LstAnnotation(
+        span = span,
+        name = ANNOTATION_TEST,
+        args = mapOf("name" to ConstString(testName))
+    )
+
+    val annotations = mutableListOf(testAnnotation)
+    annotations.addAll(resolveAnnotations(ctx))
+
+    val ref = program.nextFunctionRef()
+    val testFunction = LstFunction(
+        span = span,
+        name = "test_${ref.id}",
+        path = currentPath(ctx),
+        body = body,
+        hasReceiver = false,
+        params = emptyList(),
+        returnTypeUsage = LstTypeUsage.nothing(),
+        typeParameters = emptyList(),
+        annotations = annotations,
+        ref = ref,
+    )
+
+    program.functions += testFunction
 }

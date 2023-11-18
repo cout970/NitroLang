@@ -368,6 +368,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitEnumValueInit(MainParser.EnumValueInitContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#testDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void enterTestDefinition(MainParser.TestDefinitionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#testDefinition}.
+	 * @param ctx the parse tree
+	 */
+	void exitTestDefinition(MainParser.TestDefinitionContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#functionDefinition}.
 	 * @param ctx the parse tree
 	 */

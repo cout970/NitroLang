@@ -1,6 +1,7 @@
 package nitrolang.ast
 
 import com.google.gson.JsonObject
+import nitrolang.backend.ConstString
 import nitrolang.parsing.*
 import nitrolang.typeinference.TType
 import nitrolang.typeinference.TypeBox
@@ -46,6 +47,12 @@ class LstFunction(
     val finalName: String = ref.toString()
 
     fun getAnnotation(name: String): LstAnnotation? = annotations.find { it.name == name }
+
+    fun getTestName(): String? {
+        val annotation = getAnnotation(ANNOTATION_TEST) ?: return null
+        val const = annotation.args["name"] as? ConstString ?: return null
+        return const.value
+    }
 
     fun toDebugString(): String {
         return "LstFunction {\n" +
