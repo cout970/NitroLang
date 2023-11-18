@@ -8,11 +8,13 @@
 //    fun <#Iterator: Iterator> This.to_iterator(): #Iterator
 //}
 
+// for i in list {}
 struct ListIterator<#Item> {
     list: List<#Item>
     index: Int
 }
 
+// Iterator for lists
 fun List<#Item>.to_iterator(): ListIterator<#Item> {
     ret ListIterator<#Item> @[
         list: this
@@ -27,5 +29,23 @@ fun ListIterator<#Item>.next(): Optional<#Item> {
 
     let item = this.list[this.index]!!
     this.index = this.index + 1
+    ret Some(item)
+}
+
+// Iterator for int ranges
+// for i in 0..=10 {}
+// for i in 0..<10 {}
+struct IntRangeIterator {
+    current: Int
+    last: Int
+}
+
+fun IntRangeIterator.next(): Optional<Int> {
+    if this.current > this.last {
+        ret None()
+    }
+
+    let item = this.current
+    this.current = this.current + 1
     ret Some(item)
 }

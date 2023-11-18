@@ -153,7 +153,7 @@ fun ParserCtx.doAllTypeChecking() {
         if (func.returnType.isNothing() && func.hasExpressionBody && func.returnTypeUsage.span.isInternal()) {
             val lastInst = code.lastExpression?.let { code.getInst(it) }
 
-            if ((lastInst as? LstExpression)?.type?.isNothing() != true) {
+            if (lastInst is LstExpression && !lastInst.type.isNothing()) {
                 val err =
                     "Function '${func.name}' has an expression body and implicit return type Nothing, please specify the correct return type"
 

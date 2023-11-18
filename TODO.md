@@ -41,15 +41,12 @@ Intended for the developers
 - Self-hosted compiler
 - Check for read of uninitialized variables
 - Implement interface for runtime function call indirection
-- Added @Test for compiler testing support
-- Added assert() or check() for tests
-- Added ranges: IntRange, FloatRange, etc.
+- Added `test "Description" {}` for custom test names
 
 ### Bugs
 
 - `ret when { ... }` Missing provider for ref
 - 0 compressed as pointer causes null pointer exceptions
-- `Some(None<Int>)` returns `true` when calling `is_none()`
 
 ### New syntax
 

@@ -27,3 +27,15 @@ kotlin {
 application {
     mainClass.set("MainKt")
 }
+
+val runTests by tasks.registering(JavaExec::class) {
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("nitrolang.MainKt")
+    args = listOf(
+        "--test",
+        "--output",
+        "src/main/resources/output/assembly.wat",
+        "--execute",
+        "src/main/nitro/compiler/main.nitro",
+    )
+}

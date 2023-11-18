@@ -349,8 +349,14 @@ fun MonoBuilder.processInst(
                 val const = inst.constant!!
                 val constType = typeToMonoType(const.type, ctx)
 
+                if (const.isDeadCode) {
+                    error("Internal error: attempt to access constant marked as dead code: ${const.fullName}")
+                }
 
-                code.instructions += MonoLoadConst(code.nextId(), inst.span, consts[const.ref.id]!!)
+                val monoConst =
+                    consts[const.ref.id] ?: error("Missing const: ${const.fullName}, with id: ${const.ref.id}")
+
+                code.instructions += MonoLoadConst(code.nextId(), inst.span, monoConst)
                 constType
             } else {
                 val variable = code.varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")

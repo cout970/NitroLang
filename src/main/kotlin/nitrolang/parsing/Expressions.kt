@@ -1216,8 +1216,6 @@ fun ParserCtx.processExpressionWhenExpr(ctx: MainParser.WhenExprContext): Ref {
                 cond = condRef,
             )
 
-
-            val prevIfBlock = code.currentBlock
             code.enterBlock(false)
 
             val (branchValue, span) = if (entry.expression() != null) {
@@ -1371,7 +1369,6 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
                 cond = condRef,
             )
 
-            val prevIfBlock = code.currentBlock
             code.enterBlock(false)
 
             if (entry.expression() != null) {

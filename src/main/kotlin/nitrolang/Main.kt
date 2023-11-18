@@ -7,108 +7,133 @@ import nitrolang.parsing.AstParser
 import nitrolang.util.Prof
 import nitrolang.util.SourceFile
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchEvent
-import java.nio.file.WatchKey
+import java.nio.file.*
 import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
-import kotlin.system.measureNanoTime
 
-fun main() {
-//    val source = File("example.nitro")
-    val source = File("src/main/nitro/compiler/main.nitro")
-    val core = File("src/main/nitro/core")
-    val res = File("src/main/resources")
+
+fun main(args: Array<String>) {
+    val opts = CompilerOptions.fromArgs(args)
+    if (opts == null) {
+        CompilerOptions.showUsage()
+        return
+    }
 
     try {
-        compile(source.path)
+        if (compile(opts) && opts.execute) {
+            execute(File(opts.output))
+        }
     } catch (e: Throwable) {
         e.printStackTrace()
     }
 
-    watchFolderForChanges(listOf(source.parentFile.toPath(), core.toPath(), res.toPath())) {
-        val fileName = it.fileName.toString()
-        if (!fileName.endsWith(".nitro") && !fileName.endsWith(".ts")) return@watchFolderForChanges
+    // Listen to changes
+    if (opts.listenChanges.isNotEmpty()) {
+        val paths: MutableList<Path> = mutableListOf(
+            File(opts.source).absoluteFile.parentFile.toPath()
+        )
+        opts.listenChanges.forEach {
+            paths.add(File(it).toPath())
+        }
 
-        try {
-            compile(source.path)
-        } catch (e: Throwable) {
-            e.printStackTrace()
+        watchFolderForChanges(paths) {
+            val fileName = it.fileName.toString()
+
+            if (!fileName.endsWith(".nitro") && !fileName.endsWith(".ts") && !fileName.endsWith(".js")) {
+                return@watchFolderForChanges
+            }
+
+            try {
+                if (compile(opts) && opts.execute) {
+                    execute(File(opts.output))
+                }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
         }
     }
 }
 
-fun compile(path: String) {
+fun compile(opt: CompilerOptions): Boolean {
     Prof.start("compile")
     Prof.start("program")
-    val program = LstProgram()
+    val program = LstProgram(opt)
 
     Prof.next("parse_core")
     AstParser.includeFile("core", "core.nitro", program, null)
+
     Prof.next("parse_source")
-    AstParser.parseFile(SourceFile.load(path), program)
+    AstParser.parseFile(SourceFile.load(opt.source), program)
 
-    Prof.next("print_main")
-    program.functions.forEach { func ->
-        if (func.fullName !in setOf("main")) return@forEach
+    if (!opt.dumpIr) {
+        Prof.next("dump_ir")
+        program.functions.forEach { func ->
+            if (func.isExternal) return@forEach
 
-        println("${func.fullName}: $func")
-        func.body.nodes.forEach {
-            println("   $it")
+            println("------------------------------")
+            println("${func.fullName}:")
+            func.body.nodes.forEach {
+                println("   $it")
+            }
+            println("------------------------------")
+            println("")
         }
-        println()
     }
 
     Prof.next("print_errors")
-    if (!program.collector.isEmpty()) {
+    if (program.collector.isNotEmpty()) {
         System.err.println(program.collector.toString())
-        return
+        return false
     }
 
     Prof.next("mark_code")
     DeadCodeAnalyzer.markDeadCode(program)
 
     Prof.next("compile_wasm")
-    val assembly = File("src/main/resources/output/assembly.wat")
-    val compiled = File("src/main/resources/output/compiled.wasm")
-
-    assembly.bufferedWriter().use { out ->
+    File(opt.output).bufferedWriter().use { out ->
         WasmBuilder.compile(program, out)
     }
 
-//    Prof.next("print_wasm")
-//    println("------------------------------")
-//    assembly.readLines().forEachIndexed { index, s ->
-//        println("${(index + 1).toString().padStart(4)} |$s")
-//    }
-//    println("------------------------------")
-
-    Prof.next("print_wasm_errors")
-    if (!program.collector.isEmpty()) {
-        System.err.println(program.collector.toString())
-        return
+    if (program.compilerOptions.dumpWasm) {
+        Prof.next("dump_wasm")
+        println("------------------------------")
+        File(opt.output).readLines().forEachIndexed { index, s ->
+            println("${(index + 1).toString().padStart(4)} |$s")
+        }
+        println("------------------------------")
     }
 
-    Prof.next("wat2wasm")
-    ProcessBuilder("wat2wasm", "--enable-code-metadata", assembly.path, "-o", compiled.path)
+    Prof.next("print_wasm_errors")
+    if (program.collector.isNotEmpty()) {
+        System.err.println(program.collector.toString())
+        return false
+    }
+
+    Prof.end()
+    return true
+}
+
+fun execute(watFile: File) {
+    Prof.start("run")
+    val wasmFile = File(watFile.parentFile, "compiled.wasm")
+
+    Prof.start("wat2wasm")
+    ProcessBuilder("wat2wasm", "--enable-code-metadata", watFile.path, "-o", wasmFile.path)
         .inheritIO()
         .start()
         .waitFor()
     Prof.end()
-    Prof.end()
 
-    val rtElapsed = measureNanoTime {
-        println("--- Running output.wasm")
-        ProcessBuilder("./src/main/resources/deno_wrapper.ts")
-            .inheritIO()
-            .start()
-            .waitFor()
-        println("---")
-    }
-    println("[] Executed in ${rtElapsed / 1_000_000} ms")
+    Prof.start("deno")
+    println("--- Running output.wasm")
+    ProcessBuilder("./src/main/resources/deno_wrapper.ts")
+        .inheritIO()
+        .start()
+        .waitFor()
+    println("---")
+    Prof.end()
+    Prof.end()
 }
 
 fun getAbsDirsRec(dirs: List<Path>, result: MutableList<Path>) {

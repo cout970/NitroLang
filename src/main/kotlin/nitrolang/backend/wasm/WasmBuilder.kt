@@ -52,6 +52,7 @@ open class WasmBuilder(
             result = WasmPrimitive.i32,
             comment = "Init constants and call main",
             exportName = "_start_main",
+            sourceFunction = null,
         )
 
         module.initializers.forEach { (mono, wasmFunc) ->
@@ -69,7 +70,17 @@ open class WasmBuilder(
             }
         }
 
-        start.instructions += WasmInst("call \$main")
+        if (program.compilerOptions.runTests) {
+            module.functions.forEach { func ->
+                if (func.sourceFunction?.isTest == true) {
+                    start.instructions += WasmInst("call ${func.name}")
+                    start.instructions += WasmInst("drop")
+                }
+            }
+            start.instructions += WasmInst("i32.const 0")
+        } else {
+            start.instructions += WasmInst("call \$main")
+        }
         module.functions += start
     }
 
@@ -88,7 +99,8 @@ open class WasmBuilder(
             name = mono.finalName,
             params = params,
             result = monoTypeToPrimitive(mono.returnType),
-            comment = func.toString()
+            comment = func.toString(),
+            sourceFunction = func,
         )
 
         module.imports += WasmImport(
@@ -125,7 +137,8 @@ open class WasmBuilder(
             name = "\$init_const_${mono.instance.ref.id}",
             params = emptyList(),
             result = monoTypeToPrimitive(mono.type),
-            comment = "${const.fullName} at ${mono.offset}"
+            comment = "${const.fullName} at ${mono.offset}",
+            sourceFunction = null,
         )
 
         compileConstInit(mono, wasmFunction)
@@ -175,7 +188,8 @@ open class WasmBuilder(
             params = params,
             result = monoTypeToPrimitive(func.returnType),
             comment = func.signature.toString(),
-            exportName = exportName
+            exportName = exportName,
+            sourceFunction = lst,
         )
 
         func.code.variables.forEach { variable ->

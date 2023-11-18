@@ -196,8 +196,12 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
         }
 
         ctx.functionBody().expression() != null -> {
-            func.body.lastExpression = processExpression(ctx.functionBody().expression())
             func.hasExpressionBody = true
+
+            val expr = processExpression(ctx.functionBody().expression())
+            if (func.returnTypeUsage.fullName != "Nothing") {
+                func.body.lastExpression = func.body.returnExpr(ctx.functionBody().expression().span(), expr)
+            }
         }
 
         else -> error("Grammar has been expanded and parser is outdated")

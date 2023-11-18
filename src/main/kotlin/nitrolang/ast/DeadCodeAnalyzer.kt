@@ -1,6 +1,5 @@
 package nitrolang.ast
 
-import nitrolang.parsing.ANNOTATION_REQUIRED
 import nitrolang.parsing.MAIN_FUNCTION_NAME
 
 class DeadCodeAnalyzer(val program: LstProgram) {
@@ -9,20 +8,29 @@ class DeadCodeAnalyzer(val program: LstProgram) {
 
     companion object {
         fun markDeadCode(program: LstProgram) {
-            val main = program.functions.find { it.fullName == MAIN_FUNCTION_NAME }
-                ?: error("Missing $MAIN_FUNCTION_NAME function")
-
             program.functions.forEach {
-                it.isDeadCode = it.getAnnotation(ANNOTATION_REQUIRED) == null
+                it.isDeadCode = it.isRequired
             }
             program.consts.forEach {
                 it.isDeadCode = true
             }
 
+            val deadCodeAnalyzer = DeadCodeAnalyzer(program)
+
             program.functions.filter { it.isRequired }.forEach {
-                DeadCodeAnalyzer(program).visitFunction(it)
+                deadCodeAnalyzer.visitFunction(it)
             }
-            DeadCodeAnalyzer(program).visitFunction(main)
+
+            if (program.compilerOptions.runTests) {
+                program.functions.filter { it.isTest }.forEach {
+                    deadCodeAnalyzer.visitFunction(it)
+                }
+            } else {
+                val main = program.functions.find { it.fullName == MAIN_FUNCTION_NAME }
+                    ?: error("Missing $MAIN_FUNCTION_NAME function")
+
+                deadCodeAnalyzer.visitFunction(main)
+            }
         }
     }
 

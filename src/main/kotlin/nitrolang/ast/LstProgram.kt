@@ -2,13 +2,14 @@ package nitrolang.ast
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
+import nitrolang.CompilerOptions
 import nitrolang.typeinference.TComposite
 import nitrolang.typeinference.TGeneric
 import nitrolang.typeinference.TType
 import nitrolang.typeinference.TypeEnv
 import nitrolang.util.*
 
-class LstProgram : Dumpable {
+class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
     val collector = ErrorCollector()
     val typeEnv = TypeEnv(collector)
 

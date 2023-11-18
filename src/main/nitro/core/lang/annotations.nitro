@@ -19,3 +19,6 @@
 
 // @Intrinsic
 // Marks a type or function that has special handling in the compiler
+
+// @Test
+// Marks a test that should be executed by the test runner and cannot be called from normal code

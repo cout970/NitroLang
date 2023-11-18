@@ -77,7 +77,14 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
         program.functions.filter { it.isRequired }.forEach {
             getMonoFunction(it, MonoCtx())
         }
-        getMonoFunction(program.getFunction("main"), MonoCtx())
+
+        if (program.compilerOptions.runTests) {
+            program.functions.filter { it.isTest }.forEach {
+                getMonoFunction(it, MonoCtx())
+            }
+        } else {
+            getMonoFunction(program.getFunction("main"), MonoCtx())
+        }
 
         for ((key, func) in funcCache) {
             if (func.code.isExternal) {

@@ -1,0 +1,67 @@
+
+// Range of Integers [start, end], start is inclusive, end is inclusive
+struct IntRangeTo {
+    start: Int
+    end_inclusive: Int
+}
+
+// Creates a range of integers from start to end (inclusive)
+fun Int.range_to(end_inclusive: Int): IntRangeTo {
+    return IntRangeTo @[start: this, end_inclusive]
+}
+
+// Creates a list from a range of integers, the end is included
+fun IntRangeTo.to_list(): List<Int> {
+    let list = List::new()
+    let current = this.start
+
+    while current <= this.end_inclusive {
+        list[] = current
+        current = current + 1
+    }
+
+    ret list
+}
+
+// Iterator to allow for loops like:
+// for i in 1..=10 {
+fun IntRangeTo.to_iterator(): IntRangeIterator = IntRangeIterator @[
+    current: this.start
+    last: this.end_inclusive
+]
+
+// Checks if the range is empty, meaning, no values are contained in it
+fun IntRangeTo.is_empty(): Boolean {
+    return this.start > this.end_inclusive
+}
+
+// Checks if a value is contained in the range
+fun IntRangeTo.contains(value: Int): Boolean {
+    return value >= this.start && value <= this.end_inclusive
+}
+
+fun IntRangeTo.to_string(): String {
+    return "${this.start}..=${this.end_inclusive}"
+}
+
+@Test
+mod test {
+
+    @Test
+    fun test_for_with_int_range_to() {
+        let count = 0
+        for i in 1..=10 {
+            check(i >= 1 && i <= 10, "i should be between 1 and 10")
+            count = count + 1
+        }
+        check(count == 10, "Number of iterations should be 10")
+    }
+
+    @Test
+    fun test_int_range_to_to_list() {
+        let list = (1..=10).to_list()
+        check(list.len() == 10, "List should have 10 elements")
+        check(list[0]!! == 1, "First element should be 1")
+        check(list[9]!! == 10, "Last element should be 10")
+    }
+}

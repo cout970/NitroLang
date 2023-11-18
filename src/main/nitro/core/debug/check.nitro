@@ -1,0 +1,6 @@
+
+fun check(condition: Boolean, message: String) {
+    if (!condition) {
+        crash("Check failed: $message")
+    }
+}
