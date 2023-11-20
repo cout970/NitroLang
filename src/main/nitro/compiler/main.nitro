@@ -1,13 +1,27 @@
 
 fun main() {
-    println(test(0))
-    println(test(1))
-    println(test(2))
-}
+//    let array = RawArray::new<Int>(2)
+//    println("Address")
+//    println(array.get_ptr(0).get_address())
+//
+//    println("At 0")
+//    array[0] = 1
+//    println(array[0])
+//
+//    println("At 1")
+//    array[1] = 42
+//    println(array[1])
+//
+//    get_memory().dump()
 
-fun test(x: Int): Int {
-    ret when (x) {
-        1 -> 42
-        else -> 69
-    }
+    let array2 = RawArray::new<String>(2)
+    array2[0] = "Hello"
+    println(array2[0])
+//    println(array2[0])
+//
+//    println("At 1")
+//    array2[1] = "World"
+//    println(array2[1])
+
+    get_memory().dump()
 }

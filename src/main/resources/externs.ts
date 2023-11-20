@@ -148,7 +148,7 @@ export const core = {
    // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/memory_arena.nitro(memory_arena.nitro:37)
    // @Extern [lib="core", name="memory_copy_within"]
    // fun copy_within(MemoryArena, Ptr<Byte>, Ptr<Byte>, Int): Nothing
-   memory_copy_within(self: Ref, src: Ptr, dst: Ptr, byte_len: Int): Nothing { return impl.memory_copy_within(self, src, dst, byte_len); },
+   memory_copy_within(self: Ref, dst: Ptr, src: Ptr, byte_len: Int): Nothing { return impl.memory_copy_within(self, dst, src, byte_len); },
    //
    // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/memory_arena.nitro(memory_arena.nitro:41)
    // @Extern [lib="core", name="memory_read_byte"]
@@ -219,11 +219,6 @@ export const core = {
    // fun write(Ptr<Ptr<#Value>>, Ptr<#Value>): Nothing
    ptr_write(self: Ptr, value: Ptr): Nothing { return impl.ptr_write(self, value); },
    //
-   // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/ptr.nitro(ptr.nitro:58)
-   // @Extern [lib="core", name="ptr_copy_into"]
-   // fun copy_into_internal(Ptr<#Item>, Ptr<#Item>, Int): Nothing
-   ptr_copy_into(self: Ptr, other: Ptr, byte_len: Int): Nothing { return impl.ptr_copy_into(self, other, byte_len); },
-   //
    // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/ptr.nitro(ptr.nitro:64)
    // @Extern [lib="core", name="ptr_read"]
    // fun read(Ptr<Ptr<#Value>>): Ptr<#Value>
@@ -233,20 +228,6 @@ export const core = {
    // @Extern [lib="core", name="ptr_to_raw_array"]
    // fun to_raw_array(Ptr<#Value>): RawArray<#Value>
    ptr_to_raw_array(self: Ptr): RawArray { return impl.ptr_to_raw_array(self); },
-   //
-   // -------------------------------------------------------------------------
-   // From raw_array.nitro
-   // -------------------------------------------------------------------------
-   //
-   // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/raw_array.nitro(raw_array.nitro:22)
-   // @Extern [lib="core", name="raw_array_to_ptr"]
-   // fun to_ptr(RawArray<#Item>): Ptr<#Item>
-   raw_array_to_ptr(self: RawArray): Ptr { return impl.raw_array_to_ptr(self); },
-   //
-   // At /home/cout970/Dev/Kotlin/NitroLang/src/main/nitro/core/memory/raw_array.nitro(raw_array.nitro:48)
-   // @Extern [lib="core", name="raw_array_copy_into"]
-   // fun copy_into_internal(RawArray<#Item>, RawArray<#Item>, Int): Nothing
-   raw_array_copy_into(self: RawArray, other: RawArray, byte_len: Int): Nothing { return impl.raw_array_copy_into(self, other, byte_len); },
    //
    // -------------------------------------------------------------------------
    // From exponential_utils.nitro

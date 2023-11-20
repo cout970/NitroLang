@@ -47,15 +47,16 @@ fun Ptr<Ptr<#Value>>.write(value: Ptr<#Value>) {}
 
 // Writes a copy of the value provided into the memory pointed to by this pointer
 fun Ptr<#Value>.write_copy(value: #Value) {
-    if is_encoded_in_ref(value) {
+    if is_encoded_in_ref<#Value>() {
         this.unsafe_cast().write(ptr_of(value))
     } else {
-        ptr_of(value).copy_into_internal(this, size_of<#Value>)
+        get_memory().copy_within(
+            this.unsafe_cast(),
+            ptr_of(value).unsafe_cast(),
+            size_of<#Value>
+        )
     }
 }
-
-@Extern [lib: "core", name: "ptr_copy_into"]
-fun Ptr<#Item>.copy_into_internal(other: Ptr<#Item>, byte_len: Int) {}
 
 // Read a pointer, given a pointer to the pointer
 // Same in C:

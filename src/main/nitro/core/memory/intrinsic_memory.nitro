@@ -6,7 +6,6 @@ fun get_memory(): MemoryArena {}
 // Intrinsic function that allocates a block of memory of the given size in bytes
 // used by the compiler to allocate memory when a struct instance is created
 @WasmName [name: "memory_alloc_internal"]
-@Required
 fun memory_alloc_internal(bytes: Int): Int {
     ret get_memory().alloc_bytes(bytes).get_address()
 }

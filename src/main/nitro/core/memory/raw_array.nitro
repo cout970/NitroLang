@@ -17,20 +17,24 @@ fun RawArray::new<#Item>(len: Int): RawArray<#Item> {
     ret ptr.unsafe_cast().to_raw_array<#Item>()
 }
 
-// Gets the pointer to the first element of the array
-@Extern [lib: "core", name: "raw_array_to_ptr"]
-fun RawArray<#Item>.to_ptr(): Ptr<#Item> {}
-
-// Gets the pointer to an element of the array
+// Gets the pointer to an element in the array
 // The array bounds are not checked
 fun RawArray<#Item>.get_ptr(index: Int): Ptr<#Item> {
-    ret this.to_ptr().offset_in_bytes(size_of<#Item> * index)
+    let item_ptr = ptr_of(this).unsafe_cast<RawArray<#Item>, #Item>()
+    ret item_ptr.offset_in_bytes(size_of<#Item> * index)
 }
 
 // Gets a reference to a value in the array
 // The array bounds are not checked
 fun RawArray<#Item>.get(index: Int): #Item {
-    ret this.get_ptr(index).unsafe_as_ref()
+    let ptr: Ptr<#Item> = this.get_ptr(index)
+
+    // Some values are encoded in the reference, so a ref to the array position is no enough
+    if is_encoded_in_ref<#Item>() {
+        ret ptr.unsafe_cast<#Item, Ptr<#Item>>().read().unsafe_as_ref()
+    } else {
+        ret ptr.unsafe_as_ref()
+    }
 }
 
 // Sets a value in the array at the given index
@@ -41,18 +45,19 @@ fun RawArray<#Item>.set(index: Int, value: #Item) {
 
 // Copy a number of items from one array into another
 fun RawArray<#Item>.copy_into(other: RawArray<#Item>, len: Int) {
-    this.copy_into_internal(other, size_of<#Item> * len)
+    get_memory().copy_within(
+        other.get_ptr(0).unsafe_cast(),
+        this.get_ptr(0).unsafe_cast(),
+        size_of<#Item> * len
+    )
 }
-
-@Extern [lib: "core", name: "raw_array_copy_into"]
-fun RawArray<#Item>.copy_into_internal(other: RawArray<#Item>, byte_len: Int) {}
 
 // Returns the address of the array
 fun RawArray<#Item>.get_address(): Int {
-    ret this.to_ptr().get_address()
+    ret this.get_ptr(0).get_address()
 }
 
 // Debug representation of the pointer to the array
 fun RawArray<#Item>.to_string(): String {
-    ret this.to_ptr().to_string()
+    ret this.get_ptr(0).to_string()
 }

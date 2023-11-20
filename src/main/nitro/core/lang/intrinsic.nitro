@@ -14,10 +14,10 @@ fun as_type_internal(ptr_to_value: Int, type_id: Int): Int {}
 @Required
 fun is_type_internal(ptr_to_value: Int, type_id: Int): Boolean {}
 
-// fun is_encoded_in_ref(v: #Type): Boolean
 // Returns true if the given type is 4 bytes or smaller and
 // instead of being stored in the heap, it is stored in the reference itself
-fun is_encoded_in_ref(v: #Type): Boolean {
+fun <#Type> is_encoded_in_ref(): Boolean {
+    let v: #Type
     if v is Int         { ret true }
     if v is Float       { ret true }
     if v is Nothing     { ret true }

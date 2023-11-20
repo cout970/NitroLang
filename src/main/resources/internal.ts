@@ -57,10 +57,20 @@ export function assert(ptr: number) {
 }
 
 export function alloc(bytes: number): number {
-    const func = mem.program.memory_alloc_internal as CallableFunction;
-    const res = func(bytes);
-    // console.debug(`alloc(${bytes}) => 0x${res.toString(16).padStart(4, '0')}`);
-    return res
+    // Port of: `fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {}`
+    // from memory_arena.nitro
+    // Memory: capacity = getInt(4), len = getInt(8), bytes = getInt(12)
+    //
+    const ptr_size = PTR;
+    let next = getInt(8);
+
+    const pad = (ptr_size - next) % ptr_size;
+    next = next + (pad < 0 ? pad + ptr_size : pad);
+
+    setInt(8, next + bytes);
+    const result = getInt(12) + next;
+    // console.debug(`alloc(${bytes}) => 0x${result.toString(16).padStart(4, '0')} (${result})`);
+    return result;
 }
 
 export function createString(value: string): number {

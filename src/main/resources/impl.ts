@@ -139,7 +139,7 @@ export function memory_alloc_trace(amount: number, ptr: number): void {
 
 // @Extern [lib="core", name="memory_copy_within"]
 // fun copy_within(MemoryArena, Ptr<Byte>, Ptr<Byte>, Int): Nothing
-export function memory_copy_within(_self: number, src: number, dst: number, byte_len: number): void { memcopy(dst, src, byte_len); }
+export function memory_copy_within(_self: number, dst: number, src: number, byte_len: number): void { memcopy(dst, src, byte_len); }
 
 // @Extern [lib="core", name="memory_read_byte"]
 // fun read_byte(MemoryArena, Ptr<Byte>): Byte
@@ -205,11 +205,7 @@ export function ptr_unsafe_cast(self: number): number { return self; }
 
 // @Extern [lib="core", name="ptr_write"]
 // fun write(Ptr<Ptr<#Value>>, Ptr<#Value>): Nothing
-export function ptr_write(self: number, value: number): void {  setInt(self, value); }
-
-// @Extern [lib="core", name="ptr_copy_into"]
-// fun copy_into_internal(Ptr<#Item>, Ptr<#Item>, Int): Nothing
-export function ptr_copy_into(self: number, other: number, byte_len: number): void { memcopy(other, self, byte_len); }
+export function ptr_write(self: number, value: number): void { setInt(self, value); }
 
 // @Extern [lib="core", name="ptr_read"]
 // fun read(Ptr<Ptr<#Value>>): Ptr<#Value>
@@ -218,18 +214,6 @@ export function ptr_read(self: number): number { return getInt(self); }
 // @Extern [lib="core", name="ptr_to_raw_array"]
 // fun to_raw_array(Ptr<#Value>): RawArray<#Value>
 export function ptr_to_raw_array(self: number): number { return self; }
-
-// -------------------------------------------------------------------------
-// From raw_array.nitro
-// -------------------------------------------------------------------------
-
-// @Extern [lib="core", name="raw_array_to_ptr"]
-// fun to_ptr(RawArray<#Item>): Ptr<#Item>
-export function raw_array_to_ptr(self: number): number { return self; }
-
-// @Extern [lib="core", name="raw_array_copy_into"]
-// fun copy_into_internal(RawArray<#Item>, RawArray<#Item>, Int): Nothing
-export function raw_array_copy_into(self: number, other: number, byte_len: number): void { return memcopy(other, self, byte_len); }
 
 // -------------------------------------------------------------------------
 // From exponential_utils.nitro
