@@ -216,6 +216,12 @@ fun MonoBuilder.processInst(
             provider(inst.span, inst.ref, type)
         }
 
+        is LstLong -> {
+            val type = typeToMonoType(inst.type, ctx)
+            code.instructions += MonoLong(code.nextId(), inst.span, inst.value)
+            provider(inst.span, inst.ref, type)
+        }
+
         is LstNothing -> {
             val type = typeToMonoType(inst.type, ctx)
             code.instructions += MonoNothing(code.nextId(), inst.span)

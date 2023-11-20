@@ -1,6 +1,6 @@
 
 import * as internal from './internal.ts'
-import * as core from './core.ts'
+import * as core from './impl.ts'
 import * as compiler from '../nitro/compiler/extern.ts'
 
 export async function run(url: string) {

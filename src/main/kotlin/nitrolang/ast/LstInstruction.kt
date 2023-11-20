@@ -68,6 +68,25 @@ data class LstInt(
     }
 }
 
+data class LstLong(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstBlock,
+    val value: Long
+) : LstConstant(ref, span, block) {
+    override fun toString(): String = "$ref = $value [$typeBox]"
+
+    override fun toRawString(): String = "$value"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "Int".dump())
+        it.add("block", block.dump())
+        it.add("type", typeBox?.dump())
+        it.add("value", value.dump())
+    }
+}
+
 data class LstFloat(
     override val ref: Ref,
     override val span: Span,

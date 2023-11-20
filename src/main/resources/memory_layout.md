@@ -8,6 +8,14 @@ Stack:
 
 Heap: None
 
+### Long
+
+Stack:
+
+- 8 byte: inline value as i64
+
+Heap: None
+
 ### String
 
 Stack:
@@ -38,7 +46,7 @@ When the value is used by itself, it is stored in the heap and referenced with a
 When the value is used as a field in a struct, it is encoded as an inline value and
 pointers to the value will be obtained from the struct pointer adding the field offset.
 
-### Optional
+### Optional/Result
 
 Stack:
 
@@ -59,5 +67,3 @@ Heap:
 
 - 4 byte: Stack representation of the first value or the inlined value
 - 4 or more bytes: Stack representation of the second value or the inlined value
-
-

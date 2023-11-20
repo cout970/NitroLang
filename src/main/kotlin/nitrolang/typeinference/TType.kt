@@ -8,8 +8,16 @@ sealed interface TType {
     val indexKey: String
 
     fun isNothing(): Boolean = this.isNamed("Nothing")
-
     fun isNever(): Boolean = this.isNamed("Never")
+    fun isBoolean(): Boolean = this.isNamed("Boolean")
+    fun isByte(): Boolean = this.isNamed("Byte")
+    fun isInt(): Boolean = this.isNamed("Int")
+    fun isChar(): Boolean = this.isNamed("Char")
+    fun isLong(): Boolean = this.isNamed("Long")
+    fun isFloat(): Boolean = this.isNamed("Float")
+    fun isPtr(): Boolean = this.isNamed("Ptr")
+    fun isRawArray(): Boolean = this.isNamed("RawArray")
+    fun isString(): Boolean = this.isNamed("String")
 
     private fun isNamed(name: String): Boolean =
         this is TComposite && this.base is TStruct && this.base.instance.fullName == name

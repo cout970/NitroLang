@@ -21,6 +21,7 @@ fun MonoType.heapSize(): Int {
                 "Float" -> 4
                 "Ptr" -> 4
                 "RawArray" -> 4
+                "Long" -> 8
                 else -> base.size
             }
         }

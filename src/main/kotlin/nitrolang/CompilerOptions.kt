@@ -9,6 +9,7 @@ data class CompilerOptions(
     var profile: Boolean = false,
     var execute: Boolean = false,
     var dumpIr: Boolean = false,
+    var dumpExtern: Boolean = false,
     var dumpWasm: Boolean = false,
     var runTests: Boolean = false,
     var listenChanges: MutableList<String> = mutableListOf(),
@@ -88,6 +89,10 @@ data class CompilerOptions(
                     "--dump-ir" -> {
                         i++
                         opt.dumpIr = true
+                    }
+                    "--dump-extern" -> {
+                        i++
+                        opt.dumpExtern = true
                     }
 
                     "--dump-wasm" -> {

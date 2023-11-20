@@ -23,6 +23,12 @@ class MonoInt(
     var value: Int,
 ) : MonoInstruction(id, span)
 
+// Push Long to stack
+class MonoLong(
+    id: MonoRef, span: Span,
+    var value: Long,
+) : MonoInstruction(id, span)
+
 // Push Float to stack
 class MonoFloat(
     id: MonoRef, span: Span,

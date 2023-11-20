@@ -277,6 +277,10 @@ open class WasmBuilder(
                 wasmFunc.instructions += WasmInst("i32.const ${inst.value}")
             }
 
+            is MonoLong -> {
+                wasmFunc.instructions += WasmInst("i64.const ${inst.value}")
+            }
+
             is MonoNothing -> {
                 wasmFunc.instructions += WasmInst("i32.const 0")
             }
@@ -445,7 +449,11 @@ open class WasmBuilder(
     }
 
     fun monoTypeToPrimitive(mono: MonoType): WasmPrimitive {
-        return if (mono.isFloat()) WasmPrimitive.f32 else WasmPrimitive.i32
+        return when {
+            mono.isFloat() -> WasmPrimitive.f32
+            mono.isLong() -> WasmPrimitive.i64
+            else -> WasmPrimitive.i32
+        }
     }
 
     fun funcTypeToWasm(mono: MonoType): String {

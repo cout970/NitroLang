@@ -1,13 +1,26 @@
 
+// No arguments
+fun println() {
+    println("")
+}
+
+// String argument
 @Extern [lib: "core", name: "println_string"]
 fun println(i: String): String {}
 
+// Int argument
 @Extern [lib: "core", name: "println_int"]
 fun println(i: Int): Int {}
 
+// Long argument
+@Extern [lib: "core", name: "println_long"]
+fun println(i: Long): Long {}
+
+// Float argument
 @Extern [lib: "core", name: "println_float"]
 fun println(i: Float): Float {}
 
+// Boolean argument
 @Extern [lib: "core", name: "println_boolean"]
 fun println(i: Boolean): Boolean {}
 

@@ -41,6 +41,7 @@ Intended for the developers
 - Check for read of uninitialized variables
 - Implement interface for runtime function call indirection
 - Place core in a module for namespacing
+- Add more tests to the code library
 
 ### Bugs
 

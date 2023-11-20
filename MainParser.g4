@@ -394,6 +394,7 @@ nothingExpression
 
 expressionLiteral
     : INT_NUMBER
+    | LONG_NUMBER
     | FLOAT_NUMBER
     | string
     | TRUE
@@ -403,6 +404,7 @@ expressionLiteral
 
 constExpressionLiteral
     : INT_NUMBER
+    | LONG_NUMBER
     | FLOAT_NUMBER
     | PLAIN_STRING
     | TRUE

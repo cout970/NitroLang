@@ -105,6 +105,7 @@ fragment INT_OCTAL_NUMBER       : '0o' [0-7]+ (UNDERSCORE [0-7]+)* ;
 fragment INT_HEX_NUMBER         : '0x' [0-9a-fA-F]+ (UNDERSCORE [0-9a-fA-F]+)* ;
 fragment FLOAT_OPTION           : DIGITS | DIGITS '.' DIGITS | '.' DIGITS ;
 INT_NUMBER                      : INT_DECIMAL_NUMBER | INT_BINARY_NUMBER | INT_OCTAL_NUMBER | INT_HEX_NUMBER ;
+LONG_NUMBER                     : INT_NUMBER [lL] ;
 FLOAT_NUMBER                    : [+-]? FLOAT_OPTION ([eE][+-]?DIGITS)?[fFdD]? ;
 UPPER_IDENTIFIER                : [A-Z][a-zA-Z0-9_]* ;
 LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;

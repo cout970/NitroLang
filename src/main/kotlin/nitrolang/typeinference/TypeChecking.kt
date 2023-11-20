@@ -594,6 +594,10 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             node.typeBox = typeEnv.box(typeEnv.find("Int"), node.span)
         }
 
+        is LstLong -> {
+            node.typeBox = typeEnv.box(typeEnv.find("Long"), node.span)
+        }
+
         is LstNothing -> {
             node.typeBox = typeEnv.box(typeEnv.find("Nothing"), node.span)
         }

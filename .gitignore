@@ -47,3 +47,4 @@ bin/
 # Other
 MainLexer.tokens
 /ignore
+out.wat

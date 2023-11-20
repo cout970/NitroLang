@@ -15,6 +15,7 @@ data class MonoType(
     fun isNothing() = isNamed("Nothing")
     fun isNever() = isNamed("Never")
     fun isInt() = isNamed("Int")
+    fun isLong() = isNamed("Long")
     fun isFloat() = isNamed("Float")
     fun isBoolean() = isNamed("Boolean")
     fun isFunction() = isNamed("Function")

@@ -182,107 +182,109 @@ let MODE_NORMAL: Int  = 0
 let MODE_STRING: Int  = 1
 let MODE_BLOCK: Int   = 2
 
-let TOKEN_TYPE_RANGE_IN: Int            = 0
-let TOKEN_TYPE_RANGE_EX: Int            = 1
-let TOKEN_TYPE_LAMBDA_START: Int        = 2
-let TOKEN_TYPE_SET_START: Int           = 3
-let TOKEN_TYPE_MAP_START: Int           = 4
-let TOKEN_TYPE_LIST_START: Int          = 5
-let TOKEN_TYPE_STRUCT_START: Int        = 6
-let TOKEN_TYPE_STRING_INTERP: Int       = 7
-let TOKEN_TYPE_DOUBLE_COLON: Int        = 8
-let TOKEN_TYPE_ARROW: Int               = 9
-let TOKEN_TYPE_OROR: Int                = 10
-let TOKEN_TYPE_ANDAND: Int              = 11
-let TOKEN_TYPE_XORXOR: Int              = 12
-let TOKEN_TYPE_COMPARE: Int             = 13
-let TOKEN_TYPE_EQ: Int                  = 14
-let TOKEN_TYPE_NEQ: Int                 = 15
-let TOKEN_TYPE_LEQ: Int                 = 16
-let TOKEN_TYPE_GEQ: Int                 = 17
-let TOKEN_TYPE_DOT: Int                 = 18
-let TOKEN_TYPE_LPAREN: Int              = 19
-let TOKEN_TYPE_RPAREN: Int              = 20
-let TOKEN_TYPE_LBRACE: Int              = 21
-let TOKEN_TYPE_LBRACKET: Int            = 22
-let TOKEN_TYPE_RBRACKET: Int            = 23
-let TOKEN_TYPE_COMMA: Int               = 24
-let TOKEN_TYPE_COLON: Int               = 25
-let TOKEN_TYPE_ADD: Int                 = 26
-let TOKEN_TYPE_SUB: Int                 = 27
-let TOKEN_TYPE_MUL: Int                 = 28
-let TOKEN_TYPE_DIV: Int                 = 29
-let TOKEN_TYPE_XOR: Int                 = 30
-let TOKEN_TYPE_DOLAR: Int               = 31
-let TOKEN_TYPE_MOD: Int                 = 32
-let TOKEN_TYPE_AT: Int                  = 33
-let TOKEN_TYPE_HASH: Int                = 34
-let TOKEN_TYPE_OR: Int                  = 35
-let TOKEN_TYPE_AND: Int                 = 36
-let TOKEN_TYPE_NOT: Int                 = 37
-let TOKEN_TYPE_ASSIGN: Int              = 38
-let TOKEN_TYPE_LTH: Int                 = 39
-let TOKEN_TYPE_GTH: Int                 = 40
-let TOKEN_TYPE_THIS: Int                = 41
-let TOKEN_TYPE_THIS_TYPE: Int           = 42
-let TOKEN_TYPE_FUN: Int                 = 43
-let TOKEN_TYPE_LET: Int                 = 44
-let TOKEN_TYPE_MODULE: Int              = 45
-let TOKEN_TYPE_STRUCT: Int              = 46
-let TOKEN_TYPE_RETURN: Int              = 47
-let TOKEN_TYPE_SIZE_OF: Int             = 48
-let TOKEN_TYPE_PTR_OF: Int              = 49
-let TOKEN_TYPE_MEMORY_WRITE: Int        = 50
-let TOKEN_TYPE_MEMORY_READ: Int         = 51
-let TOKEN_TYPE_OPTION: Int              = 52
-let TOKEN_TYPE_REC: Int                 = 53
-let TOKEN_TYPE_TAG: Int                 = 54
-let TOKEN_TYPE_NOTHING: Int             = 55
-let TOKEN_TYPE_WHEN: Int                = 56
-let TOKEN_TYPE_MATCH: Int               = 57
-let TOKEN_TYPE_EITHER: Int              = 58
-let TOKEN_TYPE_ALIAS: Int               = 59
-let TOKEN_TYPE_IF: Int                  = 60
-let TOKEN_TYPE_ELSE: Int                = 61
-let TOKEN_TYPE_FOR: Int                 = 62
-let TOKEN_TYPE_IN: Int                  = 63
-let TOKEN_TYPE_NOT_IN: Int              = 64
-let TOKEN_TYPE_WHILE: Int               = 65
-let TOKEN_TYPE_REPEAT: Int              = 66
-let TOKEN_TYPE_LOOP: Int                = 67
-let TOKEN_TYPE_IS: Int                  = 68
-let TOKEN_TYPE_NOT_IS: Int              = 69
-let TOKEN_TYPE_AS: Int                  = 70
-let TOKEN_TYPE_TRUE: Int                = 71
-let TOKEN_TYPE_FALSE: Int               = 72
-let TOKEN_TYPE_NULL: Int                = 73
-let TOKEN_TYPE_INCLUDE: Int             = 74
-let TOKEN_TYPE_BREAK: Int               = 75
-let TOKEN_TYPE_CONTINUE: Int            = 76
-let TOKEN_TYPE_JSON: Int                = 77
-let TOKEN_TYPE_USE: Int                 = 78
-let TOKEN_TYPE_MUT: Int                 = 79
-let TOKEN_TYPE_REF: Int                 = 80
-let TOKEN_TYPE_REF_MUT: Int             = 81
-let TOKEN_TYPE_COPY: Int                = 82
-let TOKEN_TYPE_BLOCK_START: Int         = 83
-let TOKEN_TYPE_WHITE_SPACE: Int         = 84
-let TOKEN_TYPE_NL: Int                  = 85
-let TOKEN_TYPE_LINE_COMMENT: Int        = 86
-let TOKEN_TYPE_DOC_COMMENT: Int         = 87
-let TOKEN_TYPE_BLOCK_COMMENT: Int       = 88
-let TOKEN_TYPE_INT_NUMBER: Int          = 89
-let TOKEN_TYPE_FLOAT_NUMBER: Int        = 90
-let TOKEN_TYPE_IDENTIFIER: Int          = 91
-let TOKEN_TYPE_PLAIN_STRING: Int        = 92
-let TOKEN_TYPE_RBRACE: Int              = 93
-let TOKEN_TYPE_STRING_ESCAPE: Int       = 94
-let TOKEN_TYPE_STRING_INTERP_START: Int = 95
-let TOKEN_TYPE_STRING_INTERP_END: Int   = 96
-let TOKEN_TYPE_STRING_VAR: Int          = 97
-let TOKEN_TYPE_STRING_BLOB: Int         = 98
-let TOKEN_TYPE_STRING_END: Int          = 99
-let TOKEN_TYPE_BLOCK_END: Int           = 100
-let TOKEN_TYPE_BLOCK_BLOB: Int          = 101
-let TOKEN_TYPE_BLOCK_OTHER: Int         = 102
-let TOKEN_TYPE_ERROR_CHARACTER: Int     = 255
+enum Token {
+    RANGE_IN,
+    RANGE_EX,
+    LAMBDA_START,
+    SET_START,
+    MAP_START,
+    LIST_START,
+    STRUCT_START,
+    STRING_INTERP,
+    DOUBLE_COLON,
+    ARROW,
+    OROR,
+    ANDAND,
+    XORXOR,
+    COMPARE,
+    EQ,
+    NEQ,
+    LEQ,
+    GEQ,
+    DOT,
+    LPAREN,
+    RPAREN,
+    LBRACE,
+    LBRACKET,
+    RBRACKET,
+    COMMA,
+    COLON,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    XOR,
+    DOLAR,
+    MOD,
+    AT,
+    HASH,
+    OR,
+    AND,
+    NOT,
+    ASSIGN,
+    LTH,
+    GTH,
+    THIS,
+    THIS_TYPE,
+    FUN,
+    LET,
+    MODULE,
+    STRUCT,
+    RETURN,
+    SIZE_OF,
+    PTR_OF,
+    MEMORY_WRITE,
+    MEMORY_READ,
+    OPTION,
+    REC,
+    TAG,
+    NOTHING,
+    WHEN,
+    MATCH,
+    EITHER,
+    ALIAS,
+    IF,
+    ELSE,
+    FOR,
+    IN,
+    NOT_IN,
+    WHILE,
+    REPEAT,
+    LOOP,
+    IS,
+    NOT_IS,
+    AS,
+    TRUE,
+    FALSE,
+    NULL,
+    INCLUDE,
+    BREAK,
+    CONTINUE,
+    JSON,
+    USE,
+    MUT,
+    REF,
+    REF_MUT,
+    COPY,
+    BLOCK_START,
+    WHITE_SPACE,
+    NL,
+    LINE_COMMENT,
+    DOC_COMMENT,
+    BLOCK_COMMENT,
+    INT_NUMBER,
+    FLOAT_NUMBER,
+    IDENTIFIER,
+    PLAIN_STRING,
+    RBRACE,
+    STRING_ESCAPE,
+    STRING_INTERP_START,
+    STRING_INTERP_END,
+    STRING_VAR,
+    STRING_BLOB,
+    STRING_END,
+    BLOCK_END,
+    BLOCK_BLOB,
+    BLOCK_OTHER,
+    ERROR_CHARACTER,
+}

@@ -1,3 +1,4 @@
+import nitrolang.CompilerOptions
 import nitrolang.parsing.AstParser
 import nitrolang.ast.DeadCodeAnalyzer
 import nitrolang.ast.LstProgram
@@ -12,7 +13,7 @@ private val debug = System.getenv("override-tests") == "true"
 fun assertCompilationSuccess(relPath: String): LstProgram {
     val path = "src/test/resources/$relPath"
     val file = SourceFile.load(path)
-    val program = LstProgram()
+    val program = LstProgram(CompilerOptions(source = path))
     AstParser.includeFile("core", "core.nitro", program, null)
     program.resetCounters(10000)
     AstParser.parseFile(file, program)
@@ -25,7 +26,7 @@ fun assertCompilationSuccess(relPath: String): LstProgram {
 fun assertCompilationError(relPath: String) {
     val path = "src/test/resources/$relPath"
     val file = SourceFile.load(path)
-    val program = LstProgram()
+    val program = LstProgram(CompilerOptions(source = path))
     AstParser.includeFile("core", "core.nitro", program, null)
     program.resetCounters(10000)
     AstParser.parseFile(file, program)

@@ -9,7 +9,7 @@ class DeadCodeAnalyzer(val program: LstProgram) {
     companion object {
         fun markDeadCode(program: LstProgram) {
             program.functions.forEach {
-                it.isDeadCode = it.isRequired
+                it.isDeadCode = !it.isRequired
             }
             program.consts.forEach {
                 it.isDeadCode = true

@@ -733,8 +733,31 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
             node.ref
         }
 
+        ctx.LONG_NUMBER() != null -> {
+            val text = ctx.LONG_NUMBER().text.trimEnd('l', 'L')
+            var longValue = stringToLong(text)
+
+            if (longValue == null) {
+                collector.report("Invalid long value '${text}'", ctx.span())
+                longValue = 0
+            }
+
+            if (text.startsWith("-") || text.startsWith("+")) {
+                checkSubPreviousToken(ctx, ctx.LONG_NUMBER())
+            }
+
+            val node = LstLong(
+                ref = code.nextRef(),
+                span = ctx.span(),
+                block = code.currentBlock,
+                value = longValue
+            )
+            code.nodes += node
+            node.ref
+        }
+
         ctx.FLOAT_NUMBER() != null -> {
-            val text = ctx.FLOAT_NUMBER().text
+            val text = ctx.FLOAT_NUMBER().text.trimEnd('f', 'F', 'd', 'D')
             var floatValue = text.toFloatOrNull()
 
             if (floatValue == null) {
@@ -1789,6 +1812,15 @@ private fun stringToInt(text: String): Int? {
         text.startsWith("0o") -> text.substring(2).toUIntOrNull(8)?.toInt()
         text.startsWith("0b") -> text.substring(2).toUIntOrNull(2)?.toInt()
         else -> text.toIntOrNull()
+    }
+}
+
+private fun stringToLong(text: String): Long? {
+    return when {
+        text.startsWith("0x") -> text.substring(2).toULongOrNull(16)?.toLong()
+        text.startsWith("0o") -> text.substring(2).toULongOrNull(8)?.toLong()
+        text.startsWith("0b") -> text.substring(2).toULongOrNull(2)?.toLong()
+        else -> text.toLongOrNull()
     }
 }
 

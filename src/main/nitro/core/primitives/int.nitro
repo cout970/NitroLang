@@ -115,6 +115,7 @@ fun Int.bitwise_count_leading_zeros(): Int {}
 fun Int.bitwise_count_trailing_zeros(): Int {}
 
 // Counts the number of bits that are set to 1 in the binary representation of the integer
+// Also known as the Population Count (popcnt)
 @Extern [lib: "core", name: "int_bitwise_count_nonzero_bits"]
 @WasmInline [opcode: "i32.popcnt"]
 fun Int.bitwise_count_nonzero_bits(): Int {}
@@ -182,11 +183,11 @@ fun Int.greater_than_signed(other: Int): Boolean {}
 @WasmInline [opcode: "i32.gt_u"]
 fun Int.greater_than_unsigned(other: Int): Boolean {}
 
-// Function called when a unary minus is applied to a integer value, e.g. -(1.0)
+// Function called when a unary minus is applied to a integer value, e.g. -(1)
 // Note: -1 is parsed as a negative number, so no operation is performed
 fun Int.unary_minus(): Int = 0 - this
 
-// Function called when a unary plus is applied to a integer value, e.g. +(1.0)
+// Function called when a unary plus is applied to a integer value, e.g. +(1)
 // Note: +1 is parsed as a positive number, so no operation is performed
 fun Int.unary_plus(): Int = this
 
@@ -194,6 +195,10 @@ fun Int.unary_plus(): Int = this
 @Extern [lib: "core", name: "int_to_float"]
 @WasmInline [opcode: "f32.convert_i32_s"]
 fun Int.to_float(): Float {}
+
+// Converts this 32 bit integer into a 64 bit long
+@Extern [lib: "core", name: "int_to_long"]
+fun Int.to_long(): Long {}
 
 // Converts this 32 bit integer into a 8 bit integer
 @Extern [lib: "core", name: "int_to_byte"]
