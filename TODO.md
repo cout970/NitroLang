@@ -42,10 +42,10 @@ Intended for the developers
 - Implement interface for runtime function call indirection
 - Place core in a module for namespacing
 - Add more tests to the code library
+- Allow fields at the option level, to be added to all the option variants
 
-### Bugs
+### Known Bugs
 
-- `ret when { ... }` Missing provider for ref
 - 0 compressed as pointer causes null pointer exceptions
 
 ### New syntax

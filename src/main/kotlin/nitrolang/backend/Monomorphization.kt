@@ -472,7 +472,11 @@ fun MonoBuilder.processInst(
 
         is LstWhenEnd -> {
             code.instructions += MonoEndBlock(code.nextId(), inst.span, "when")
-            code.instructions += MonoLoadVar(code.nextId(), inst.span, code.helperVars[inst.start.ref]!!)
+            if (!inst.isStatement) {
+                val whenVar = code.helperVars[inst.start.ref]!!
+                code.instructions += MonoLoadVar(code.nextId(), inst.span, whenVar)
+                provider(inst.span, inst.ref, whenVar.type)
+            }
         }
 
         is LstLoopStart -> {

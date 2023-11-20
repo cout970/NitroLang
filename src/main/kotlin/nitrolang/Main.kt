@@ -70,21 +70,6 @@ fun compile(opt: CompilerOptions): Boolean {
     Prof.next("parse_source")
     AstParser.parseFile(SourceFile.load(opt.source), program)
 
-    if (opt.dumpIr) {
-        Prof.next("dump_ir")
-        program.functions.forEach { func ->
-            if (func.isExternal) return@forEach
-
-            println("------------------------------")
-            println("${func.fullName}:")
-            func.body.nodes.forEach {
-                println("   $it")
-            }
-            println("------------------------------")
-            println("")
-        }
-    }
-
     if (opt.dumpExtern) {
         Prof.next("dump_extern")
 
@@ -170,6 +155,21 @@ fun compile(opt: CompilerOptions): Boolean {
 
     Prof.next("mark_code")
     DeadCodeAnalyzer.markDeadCode(program)
+
+    if (opt.dumpIr) {
+        Prof.next("dump_ir")
+        program.functions.forEach { func ->
+            if (func.isExternal || func.isDeadCode) return@forEach
+
+            println("------------------------------")
+            println("${func.fullName}:")
+            func.body.nodes.forEach {
+                println("   $it")
+            }
+            println("------------------------------")
+            println("")
+        }
+    }
 
     Prof.next("compile_wasm")
     File(opt.output).bufferedWriter().use { out ->

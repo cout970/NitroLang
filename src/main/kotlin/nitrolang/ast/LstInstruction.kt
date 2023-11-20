@@ -272,7 +272,7 @@ data class LstWhenStore(
         }
 
     override fun toString(): String {
-        return "$ref when-store"
+        return "$ref when-store $expr [$typeBox]"
     }
 
     override fun dump(): JsonElement = JsonObject().also {
@@ -292,7 +292,7 @@ data class LstWhenEnd(
 ) : LstExpression(ref, span, block) {
 
     override fun toString(): String {
-        return "$ref end-when"
+        return "$ref end-when (${if (isStatement) "statement" else "expression"})"
     }
 
     override fun dump(): JsonElement = JsonObject().also {

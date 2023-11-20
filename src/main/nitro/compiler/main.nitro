@@ -1,9 +1,13 @@
 
-
 fun main() {
-    let long: Long = 100L
+    println(test(0))
+    println(test(1))
+    println(test(2))
 }
 
-fun test(a: Long, b: Long): Long {
-    ret a + b
+fun test(x: Int): Int {
+    ret when (x) {
+        1 -> 42
+        else -> 69
+    }
 }
