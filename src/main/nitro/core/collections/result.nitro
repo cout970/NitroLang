@@ -23,6 +23,9 @@ fun Result<#Ok, #Err>.is_ok(): Boolean = this is Result::Ok<#Ok, #Err>
 // Checks if the result is Err
 fun Result<#Ok, #Err>.is_err(): Boolean = this is Result::Err<#Ok, #Err>
 
+// Allows the use of `?` to perform an early return if the result is Err
+fun Result<#Ok, #Err>.is_returnable_error(): Boolean = this is Result::Err<#Ok, #Err>
+
 // Returns the value of the result if it is Ok, otherwise panics
 // Can be called with the syntax `result!!`
 fun Result<#Ok, #Err>.get_or_crash(): #Ok {

@@ -10,7 +10,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.TerminalNode
 
-fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
+fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): MutableList<LstAnnotation> {
 
     val annotations = when (ctx.parent) {
         is ParseFunctionDefinitionContext -> {
@@ -60,7 +60,7 @@ fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): List<LstAnnotation> {
             name = subCtx.upperName().text,
             args = args,
         )
-    }
+    }.toMutableList()
 }
 
 fun ParserCtx.resolvePrecedence(

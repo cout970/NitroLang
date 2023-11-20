@@ -23,6 +23,9 @@ fun Optional<#Value>.is_some(): Boolean = this is Optional::Some<#Value>
 // Checks if the Optional is the None variant
 fun Optional<#Value>.is_none(): Boolean = this is Optional::None<#Value>
 
+// Allows the use of `?` to perform an early return if value is None
+fun Optional<#Value>.is_returnable_error(): Boolean = this is Optional::None<#Value>
+
 // Returns the value of the Some variant, or crashes if the Optional is the None variant
 // Can be called with the syntax `optional!!`
 fun Optional<#Value>.get_or_crash(): #Value {

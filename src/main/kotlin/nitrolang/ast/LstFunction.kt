@@ -19,7 +19,7 @@ class LstFunction(
     val returnTypeUsage: LstTypeUsage,
     val typeParameters: List<LstTypeParameter>,
     val body: LstCode,
-    val annotations: List<LstAnnotation>,
+    val annotations: MutableList<LstAnnotation>,
     val ref: FunRef
 ) : Dumpable {
     var tag: LstTag? = null

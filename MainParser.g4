@@ -321,7 +321,7 @@ expressionSimple
     | plusExpr
     ;
 
-// E.g. expr() #[]
+// E.g. expr #{ }
 // E.g. expr[index]
 // E.g. expr.field
 // E.g. expr
@@ -329,8 +329,11 @@ expressionSimple
 // E.g. expr.field()
 // E.g. func()()
 // E.g. break()
+// E.g. result!!
+// E.g. result?
 expressionWithSuffix
-    : expressionWithSuffix assertSuffix
+    : expressionWithSuffix earlyReturnSuffix
+    | expressionWithSuffix assertSuffix
     | expressionWithSuffix collectionIndexingSuffix
     | expressionWithSuffix structFieldAccessSuffix
     | expressionWithSuffix NL? DOT modulePath? anyName functionCallParams functionCallEnd?
@@ -348,6 +351,9 @@ expressionOrFunctionCall
     | THIS functionCallEnd
     | expressionBase
     ;
+
+earlyReturnSuffix
+    : QUESTION_MARK ;
 
 assertSuffix
     : BANGBANG ;

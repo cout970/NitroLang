@@ -5,6 +5,7 @@ import nitrolang.parsing.MAIN_FUNCTION_NAME
 class DeadCodeAnalyzer(val program: LstProgram) {
     private val visitedFunctions = mutableSetOf<LstFunction>()
     private val visitedLambdas = mutableSetOf<LstLambdaFunction>()
+    private var usesAlloc: Boolean = false
 
     companion object {
         fun markDeadCode(program: LstProgram) {
@@ -30,6 +31,11 @@ class DeadCodeAnalyzer(val program: LstProgram) {
                     ?: error("Missing $MAIN_FUNCTION_NAME function")
 
                 deadCodeAnalyzer.visitFunction(main)
+            }
+
+            if (deadCodeAnalyzer.usesAlloc) {
+                val func = program.getFunction("memory_alloc_internal")
+                deadCodeAnalyzer.visitFunction(func)
             }
         }
     }
@@ -68,6 +74,9 @@ class DeadCodeAnalyzer(val program: LstProgram) {
             if (it.lambda !in visitedLambdas) {
                 visitLambda(it.lambda)
             }
+        }
+        if (body.nodes.any { it is LstAlloc }) {
+            usesAlloc = true
         }
         body.nodes.filterIsInstance<LstFunCall>().forEach { node ->
             val newFunc = node.function ?: error("Function not resolved")

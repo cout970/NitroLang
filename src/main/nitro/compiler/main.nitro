@@ -1,27 +1,17 @@
 
 fun main() {
-//    let array = RawArray::new<Int>(2)
-//    println("Address")
-//    println(array.get_ptr(0).get_address())
-//
-//    println("At 0")
-//    array[0] = 1
-//    println(array[0])
-//
-//    println("At 1")
-//    array[1] = 42
-//    println(array[1])
-//
-//    get_memory().dump()
+    println(work_harder()!!)
+}
 
-    let array2 = RawArray::new<String>(2)
-    array2[0] = "Hello"
-    println(array2[0])
-//    println(array2[0])
-//
-//    println("At 1")
-//    array2[1] = "World"
-//    println(array2[1])
+fun work_harder(): Result<Int, String> {
+    ret Ok(work()? * work()?)
+}
 
-    get_memory().dump()
+fun work(): Result<Int, String> {
+    ret Ok(maybe_work()? * maybe_work()?)
+}
+
+fun maybe_work(): Result<Int, String> {
+    ret Ok(16)
+//    ret Err("nope")
 }

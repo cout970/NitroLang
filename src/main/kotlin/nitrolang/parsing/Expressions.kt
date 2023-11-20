@@ -324,50 +324,35 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
 
 fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixContext): Ref {
     return when {
+        ctx.earlyReturnSuffix() != null -> {
+            val subCtx = ctx.earlyReturnSuffix()
+            val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
+
+            val call = code.call(subCtx.span(), "", "is_returnable_error", listOf(prevRef))
+            code.ifStart(subCtx.span(), call)
+            code.returnExpr(subCtx.span(), prevRef)
+            code.ifEnd(subCtx.span())
+            code.call(subCtx.span(), "", "get_or_crash", listOf(prevRef))
+        }
+
         ctx.assertSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
 
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                name = "get_or_crash",
-                path = "",
-                arguments = listOf(prevRef),
-            )
-            code.nodes += call
-            call.ref
+            code.call(ctx.assertSuffix().span(), "", "get_or_crash", listOf(prevRef))
         }
 
         ctx.collectionIndexingSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
             val indexRef = processExpression(ctx.collectionIndexingSuffix().expression())
 
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = ctx.collectionIndexingSuffix().span(),
-                block = code.currentBlock,
-                name = "get",
-                path = "",
-                arguments = listOf(prevRef, indexRef),
-            )
-            code.nodes += call
-            call.ref
+            code.call(ctx.collectionIndexingSuffix().span(), "", "get", listOf(prevRef, indexRef))
         }
 
         ctx.structFieldAccessSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
             val name = ctx.structFieldAccessSuffix().anyName().text
 
-            val node = LstLoadField(
-                ref = code.nextRef(),
-                span = ctx.structFieldAccessSuffix().anyName().span(),
-                block = code.currentBlock,
-                instance = prevRef,
-                name = name,
-            )
-            code.nodes += node
-            node.ref
+            code.loadField(ctx.structFieldAccessSuffix().span(), prevRef, name)
         }
 
         ctx.anyName() != null -> {

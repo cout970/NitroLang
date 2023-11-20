@@ -246,8 +246,6 @@ fun MonoBuilder.processInst(
 
             // $1 = memory_alloc_internal(size_of<Type>)
             int(inst.span, type.heapSize())
-
-            getMonoFunction(program.getFunction("memory_alloc_internal"), ctx)
             call(inst.span, "memory_alloc_internal", ctx)
 
             val monoStruct = type.base as? MonoStruct

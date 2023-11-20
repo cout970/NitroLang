@@ -498,7 +498,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
         returnTypeUsage = LstTypeUsage.list(tu),
         typeParameters = emptyList(),
         body = LstCode(),
-        annotations = listOf(
+        annotations = mutableListOf(
             LstAnnotation(
                 span = span,
                 name = ANNOTATION_AUTO_GENERATED
@@ -548,7 +548,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
         returnTypeUsage = LstTypeUsage.string(),
         typeParameters = emptyList(),
         body = toString,
-        annotations = listOf(
+        annotations = mutableListOf(
             LstAnnotation(
                 span = span,
                 name = ANNOTATION_AUTO_GENERATED
@@ -600,7 +600,7 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
         returnTypeUsage = LstTypeUsage.optional(tu),
         typeParameters = emptyList(),
         body = fromVariant,
-        annotations = listOf(
+        annotations = mutableListOf(
             LstAnnotation(
                 span = span,
                 name = ANNOTATION_AUTO_GENERATED

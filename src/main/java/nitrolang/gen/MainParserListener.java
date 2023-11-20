@@ -698,6 +698,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitExpressionOrFunctionCall(MainParser.ExpressionOrFunctionCallContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#earlyReturnSuffix}.
+	 * @param ctx the parse tree
+	 */
+	void enterEarlyReturnSuffix(MainParser.EarlyReturnSuffixContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#earlyReturnSuffix}.
+	 * @param ctx the parse tree
+	 */
+	void exitEarlyReturnSuffix(MainParser.EarlyReturnSuffixContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#assertSuffix}.
 	 * @param ctx the parse tree
 	 */

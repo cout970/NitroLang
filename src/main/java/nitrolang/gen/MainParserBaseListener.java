@@ -845,6 +845,18 @@ public class MainParserBaseListener implements MainParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterEarlyReturnSuffix(MainParser.EarlyReturnSuffixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitEarlyReturnSuffix(MainParser.EarlyReturnSuffixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterAssertSuffix(MainParser.AssertSuffixContext ctx) { }
 	/**
 	 * {@inheritDoc}

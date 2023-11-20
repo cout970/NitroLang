@@ -425,6 +425,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionOrFunctionCall(MainParser.ExpressionOrFunctionCallContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#earlyReturnSuffix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEarlyReturnSuffix(MainParser.EarlyReturnSuffixContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#assertSuffix}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
