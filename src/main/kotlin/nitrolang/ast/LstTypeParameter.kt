@@ -5,6 +5,10 @@ import nitrolang.util.Dumpable
 import nitrolang.util.Span
 import nitrolang.util.dump
 
+interface TypeParameterDefiner {
+    val typeParameters: List<LstTypeParameter>
+}
+
 class LstTypeParameter(
     val span: Span,
     val name: String,
@@ -12,6 +16,7 @@ class LstTypeParameter(
     val bounds: List<LstTypeUsage>,
 ) : Dumpable {
     val requiredTags = mutableListOf<LstTag>()
+    var definer: TypeParameterDefiner? = null
 
     override fun toString(): String = "#$name"
 

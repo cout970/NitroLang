@@ -7,10 +7,10 @@ class LstTypeAlias(
     val span: Span,
     val name: String,
     val path: Path,
-    val typeParameters: List<LstTypeParameter>,
+    override val typeParameters: List<LstTypeParameter>,
     val typeUsage: LstTypeUsage,
     val annotations: List<LstAnnotation>
-) {
+): TypeParameterDefiner {
     var type: TType? = null
     val fullName: Path get() = createPath(path, name)
 }

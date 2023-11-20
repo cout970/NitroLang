@@ -26,7 +26,6 @@ Intended for the developers
 - Get annotations of type: type_annotation<Box>("Extern")
 - Arena allocators
 - Smart casts
-- Question mark operator `?` at the end of an expression
 - Optional function arguments
 - Variadic function arguments
 - Implicit this instead of writing `this.something()` everywhere

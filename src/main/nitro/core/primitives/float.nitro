@@ -169,13 +169,3 @@ fun Float.get_ordering(other: Float): Ordering {
         }
     }
 }
-
-// Optimized version of max() for floating point numbers
-fun max(a: Float, b: Float): Float {
-    ret if a > b { a } else { b }
-}
-
-// Optimized version of min() for floating point numbers
-fun min(a: Float, b: Float): Float {
-    ret if a > b { b } else { a }
-}

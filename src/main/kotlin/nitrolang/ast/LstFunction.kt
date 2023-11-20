@@ -17,11 +17,11 @@ class LstFunction(
     val hasReceiver: Boolean,
     val params: List<LstFunctionParam>,
     val returnTypeUsage: LstTypeUsage,
-    val typeParameters: List<LstTypeParameter>,
+    override val typeParameters: List<LstTypeParameter>,
     val body: LstCode,
     val annotations: MutableList<LstAnnotation>,
     val ref: FunRef
-) : Dumpable {
+) : Dumpable, TypeParameterDefiner {
     var tag: LstTag? = null
     var hasExpressionBody: Boolean = false
 

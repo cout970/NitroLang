@@ -127,9 +127,23 @@ fun ParserCtx.doAllTypeChecking() {
     }
 
     Prof.next("check_func_bodies")
+    val allSignatures = mutableMapOf<TFunctionSignature, LstFunction>()
     program.functions.forEach { func ->
         if (func.codeChecked) return@forEach
         func.codeChecked = true
+
+        if (func.tag == null) {
+            val signature = func.toSignature()
+
+            if (signature in allSignatures) {
+                val dupFunc = allSignatures[signature]!!
+                collector.report(
+                    "Duplicated function signature: $signature\nDup at ${dupFunc.span}",
+                    func.span
+                )
+            }
+            allSignatures[signature] = func
+        }
 
         // Extern functions have empty body
         if (func.omitBody) {

@@ -13,10 +13,10 @@ class LstStruct(
     val name: String,
     val path: Path,
     val fields: Map<FieldRef, LstStructField>,
-    val typeParameters: List<LstTypeParameter>,
+    override val typeParameters: List<LstTypeParameter>,
     val annotations: List<LstAnnotation>,
     val ref: StructRef,
-) : Dumpable {
+) : Dumpable, TypeParameterDefiner {
     var checked: Boolean = false
     var parentOption: LstOption? = null
     var isDeadCode: Boolean = false

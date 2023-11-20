@@ -30,6 +30,8 @@ fun ParserCtx.processStructDefinition(ctx: MainParser.StructDefinitionContext) {
         ref = program.nextStructRef(),
     )
 
+    typeParameters.forEach { it.definer = struct }
+
     if (struct.fullName in program.definedNames) {
         val prev = program.definedNames[struct.fullName]
         collector.report("Redeclaration of ${struct.fullName}, previously defined at $prev", struct.span)
@@ -180,6 +182,8 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
         ref = program.nextFunctionRef()
     )
 
+    typeParameters.forEach { it.definer = func }
+
     program.functions += func
     return func
 }
@@ -313,6 +317,8 @@ fun ParserCtx.processTypeAliasDefinition(ctx: MainParser.TypeAliasDefinitionCont
         typeUsage = typeUsage,
         annotations = resolveAnnotations(ctx)
     )
+
+    typeParameters.forEach { it.definer = alias }
 
     if (alias.fullName in program.definedNames) {
         val prev = program.definedNames[alias.fullName]
