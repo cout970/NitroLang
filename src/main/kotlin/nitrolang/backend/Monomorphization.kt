@@ -85,7 +85,7 @@ fun MonoBuilder.createMonoFunction(
     processCode(mono.code, ctx)
 
     function.params.forEach {
-        mono.params += mono.code.varMap[it.variable]!!
+        mono.code.params += mono.code.variableMap[it.variable!!.ref]!!
     }
     current = prev
 }
@@ -99,15 +99,20 @@ fun MonoBuilder.createMonoLambdaFunction(
 ) {
     mono.name = signature.fullName
     mono.returnType = signature.returnType
-    mono.isLambda = true
     mono.code = MonoCode(function.body)
+    mono.code.isLambda = true
+
+    // Lambdas have a hidden self parameter that points to the lambda closure,
+    // This closure has an index to the function and a list of pointers to the closure captured values (upvalues)
+    val selfType = typeToMonoType(program.typeEnv.find("Int"), ctx)
+    mono.code.params += MonoVar(0, "lambda-self", selfType, null)
 
     val prev = current
     current = mono.code
     processCode(mono.code, ctx)
 
     function.params.forEach {
-        mono.params += mono.code.varMap[it.variable]!!
+        mono.code.params += mono.code.variableMap[it.variable!!.ref]!!
     }
 
     builder.onCompileLambda(mono)
@@ -116,18 +121,55 @@ fun MonoBuilder.createMonoLambdaFunction(
 
 fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
     var varIndex = 0
-    for (variable in monoCode.code.variables.values) {
-        val type = typeToMonoType(
-            if (monoCode.isExternal) program.removeAllGenerics(variable.type) else variable.type,
-            ctx
-        )
 
-        val monoVar = MonoVar(varIndex, variable.name, type)
-        monoCode.varMap[variable] = monoVar
+    for (variable in monoCode.code.variables) {
+        var tType = if (monoCode.isExternal) program.removeAllGenerics(variable.type) else variable.type
 
+        // Upvalues are references to the heap
+        if (variable.isUpValue) {
+            val ptrType = program.typeEnv.findBase("Ptr")
+            tType = program.typeEnv.composite(ptrType, listOf(tType))
+        }
+
+        val type = typeToMonoType(tType, ctx)
+
+        val monoVar = MonoVar(varIndex, variable.name, type, variable.ref, variable.isUpValue)
+        monoCode.variableMap[variable.ref] = monoVar
+
+        // TODO check
         if (!variable.isParam) {
             varIndex++
             monoCode.variables += monoVar
+        }
+
+        if (variable.isUpValue) {
+            monoVar.upValueSlot = monoCode.upValues.size
+            monoCode.upValues += monoVar
+            monoCode.instructions += MonoCreateUpValue(monoCode.nextId(), variable.span, monoVar)
+        }
+    }
+
+    for (variable in monoCode.code.outerVariables) {
+        var tType = if (monoCode.isExternal) program.removeAllGenerics(variable.type) else variable.type
+
+        // Upvalues are references to the heap
+        val ptrType = program.typeEnv.findBase("Ptr")
+        tType = program.typeEnv.composite(ptrType, listOf(tType))
+
+        val type = typeToMonoType(tType, ctx)
+
+        val monoVar = MonoVar(varIndex, variable.name, type, variable.ref, true)
+        monoCode.variableMap[variable.ref] = monoVar
+
+        monoVar.upValueSlot = monoCode.upValues.size
+        monoCode.upValues += monoVar
+        monoCode.variables += monoVar
+
+        if (variable.definedIn == monoCode.code) {
+            monoCode.instructions += MonoCreateUpValue(monoCode.nextId(), variable.span, monoVar)
+        } else {
+            if (!monoCode.isLambda) error("Attempt to access outer variable in non-lambda function")
+            monoCode.instructions += MonoInitUpValue(monoCode.nextId(), variable.span, monoVar)
         }
     }
 
@@ -155,7 +197,7 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
                 continue
             }
 
-            val variable = MonoVar(monoCode.variables.size, "tmp${inst.id}", inst.type)
+            val variable = MonoVar(monoCode.variables.size, "tmp${inst.id}", inst.type, null)
             monoCode.variables += variable
             monoCode.instructions[index] = MonoStoreVar(monoCode.nextId(), inst.span, variable)
             inst.consumers.forEach { it.variable = variable }
@@ -269,7 +311,10 @@ fun MonoBuilder.processInst(
             dup(inst.span, type)
 
             val monoLambda = getMonoLambdaFunction(inst.lambda, ctx)
-            code.instructions += MonoLambdaInit(code.nextId(), inst.span, monoLambda)
+            val localUpValues = monoLambda.code.upValues.map { lam ->
+                lam to code.upValues.find { local -> local.varRef == lam.varRef }!!
+            }
+            code.instructions += MonoLambdaInit(code.nextId(), inst.span, monoLambda, localUpValues)
 
             provider(inst.span, inst.ref, type)
         }
@@ -351,7 +396,7 @@ fun MonoBuilder.processInst(
         }
 
         is LstLoadVar -> {
-            val type = if (inst.constant != null) {
+            if (inst.constant != null) {
                 val const = inst.constant!!
                 val constType = typeToMonoType(const.type, ctx)
 
@@ -363,17 +408,28 @@ fun MonoBuilder.processInst(
                     consts[const.ref.id] ?: error("Missing const: ${const.fullName}, with id: ${const.ref.id}")
 
                 code.instructions += MonoLoadConst(code.nextId(), inst.span, monoConst)
-                constType
-            } else {
-                val variable = code.varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
-
-                code.instructions += MonoLoadVar(code.nextId(), inst.span, variable)
-                variable.type
+                provider(inst.span, inst.ref, constType)
+                return
             }
 
-            code.instructions += MonoProvider(code.nextId(), inst.span, type).also {
-                code.providers[inst.ref] = it
+            val instVar = inst.variable ?: error("Invalid state: $inst")
+
+            if (instVar.isUpValue) {
+                val upValue = code.upValues.find { it.varRef == instVar.ref }
+                    ?: error("Missing upValue: $instVar")
+
+                code.instructions += MonoLoadUpValue(code.nextId(), inst.span, upValue)
+
+                val ptrType = upValue.type
+                val type = ptrType.params.first()
+                provider(inst.span, inst.ref, type)
+                return
             }
+
+            val variable = code.variableMap[instVar.ref] ?: error("Missing variable: $instVar")
+
+            code.instructions += MonoLoadVar(code.nextId(), inst.span, variable)
+            provider(inst.span, inst.ref, variable.type)
         }
 
         is LstStoreVar -> {
@@ -381,7 +437,19 @@ fun MonoBuilder.processInst(
                 program.collector.report("Cannot override const ${inst.constant!!.fullName}", inst.span)
                 return
             }
-            val variable = code.varMap[inst.variable] ?: error("Missing variable: ${inst.variable}")
+
+            if (inst.variable!!.isUpValue) {
+                val upValue = code.upValues.find { it.varRef == inst.variable!!.ref }
+                    ?: error("Missing upValue: ${inst.variable}")
+
+                consumer(inst.span, inst.expr)
+                code.instructions += MonoStoreUpValue(code.nextId(), inst.span, upValue)
+                return
+            }
+
+            val variable = code.variableMap[inst.variable!!.ref]
+                ?: error("Missing variable: ${inst.variable}")
+
             consumer(inst.span, inst.expr)
             code.instructions += MonoStoreVar(code.nextId(), inst.span, variable)
         }
@@ -454,7 +522,7 @@ fun MonoBuilder.processInst(
 
         is LstWhenStart -> {
             val type = typeToMonoType(inst.type, ctx)
-            val variable = MonoVar(code.variables.size, "when-${inst.ref.id}", type)
+            val variable = MonoVar(code.variables.size, "when-${inst.ref.id}", type, null)
             code.helperVars[inst.ref] = variable
             code.variables += variable
             code.instructions += MonoStartBlock(code.nextId(), inst.span)

@@ -429,7 +429,6 @@ interface HasVarRef {
     val name: String
     val path: Path
     val block: LstBlock
-    var varRef: VarRef?
     var variable: LstVar?
     var constant: LstConst?
 }
@@ -440,14 +439,14 @@ data class LstLoadVar(
     override val block: LstBlock,
     override val name: String,
     override val path: Path,
-    override var varRef: VarRef? = null,
     override var variable: LstVar? = null
 ) : LstExpression(ref, span, block), HasVarRef {
     override var constant: LstConst? = null
     val fullName: Path get() = createPath(path, name)
-    val finalName: Path get() = "$" + varRef.toString()
+    val finalName: Path get() = "$" + variable.toString()
+    val isUnbound: Boolean get() = variable == null && constant == null
 
-    override fun toString(): String = "$ref = load_var $name ($varRef) [$typeBox]"
+    override fun toString(): String = "$ref = load_var $name (${variable?.ref}) [$typeBox]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -455,7 +454,7 @@ data class LstLoadVar(
         it.add("block", block.dump())
         it.add("type", typeBox?.dump())
         it.add("name", fullName.dump())
-        it.add("var_ref", varRef?.dump())
+        it.add("var_ref", variable?.ref?.dump())
     }
 }
 
@@ -466,15 +465,15 @@ data class LstStoreVar(
     override val name: String,
     override val path: Path,
     val expr: Ref,
-    override var varRef: VarRef? = null,
     override var variable: LstVar? = null,
     override var constant: LstConst? = null,
 ) : LstExpression(ref, span, block), HasVarRef {
     var varTypeBox: TypeBox? = null
-    val finalName: Path get() = "$" + varRef.toString()
+    val finalName: Path get() = "$" + variable.toString()
+    val isUnbound: Boolean get() = variable == null && constant == null
 
     val fullName: Path get() = createPath(path, name)
-    override fun toString(): String = "$ref store_var $name: $varTypeBox ($varRef) = $expr"
+    override fun toString(): String = "$ref store_var $name: $varTypeBox (${variable?.ref}) = $expr"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -484,7 +483,7 @@ data class LstStoreVar(
         it.add("name", fullName.dump())
         it.add("expr", expr.dump())
         it.add("var_type", varTypeBox?.dump())
-        it.add("var_ref", varRef?.dump())
+        it.add("var_ref", variable?.ref?.dump())
     }
 }
 

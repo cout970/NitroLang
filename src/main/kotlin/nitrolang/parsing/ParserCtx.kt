@@ -46,7 +46,7 @@ data class ParserCtx(
         return this
     }
 
-    fun currentPath(ctx: ParserRuleContext): String {
+    fun currentPath(ctx: ParserRuleContext): Path {
         val pathComponents = mutableListOf<String>()
         var parent = ctx.getParent()
 

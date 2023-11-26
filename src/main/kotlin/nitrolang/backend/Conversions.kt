@@ -161,7 +161,11 @@ fun MonoBuilder.getLambdaType(lambda: LstLambdaFunction, params: List<MonoType>)
     params.forEach { sign += it.id }
 
     if (sign !in lambdaIds) {
-        val size = PTR_SIZE
+        // Function index
+        var size = PTR_SIZE
+        // Slots
+        size += PTR_SIZE * lambda.body.outerVariables.size
+
         lambdaIds[sign] = MonoLambda(lambdaIds.size + 1, lambda, size)
     }
 

@@ -1623,13 +1623,15 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
 
     ctx.statement().forEach { processStatement(it) }
     this.code = prevCode
+    body.parent = prevCode
+    body.currentPath = currentPath(ctx)
 
     val lambda = LstLambdaFunction(
         ref = program.nextFunctionRef(),
         span = ctx.span(),
         params = params,
         returnTypeUsage = returnType,
-        body = body
+        body = body,
     )
 
     program.lambdaFunctions += lambda

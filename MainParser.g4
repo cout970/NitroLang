@@ -321,7 +321,7 @@ expressionSimple
     | plusExpr
     ;
 
-// E.g. expr #{ }
+// E.g. expr @{ }
 // E.g. expr[index]
 // E.g. expr.field
 // E.g. expr
@@ -456,8 +456,8 @@ mapKey
 setExpr
     : SET_START NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
 
-// #{ a -> a + 1 }
-// #{}
+// @{ a -> a + 1 }
+// @{}
 lambdaExpr
     : LAMBDA_START lambdaDef? NL* statement (NL+ statement)* NL* RBRACE
     | LAMBDA_START lambdaDef? NL* RBRACE

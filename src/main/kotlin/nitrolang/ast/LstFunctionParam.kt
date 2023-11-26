@@ -30,10 +30,11 @@ class LstFunctionParam(
             block = body.currentBlock,
             typeUsage = typeUsage,
             validAfter = body.currentRef(),
-            ref = body.nextVarRef()
+            ref = body.nextVarRef(),
+            definedIn = body,
         )
         variable.isParam = true
-        body.variables[variable.ref] = variable
+        body.variables += variable
         this.variable = variable
     }
 

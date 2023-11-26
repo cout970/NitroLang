@@ -205,7 +205,7 @@ fun ParserCtx.doAllTypeChecking() {
 }
 
 private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String, span: Span) {
-    if (returnType.isNothing()) {
+    if (returnType.isNothing() || returnType is TUnresolved) {
         return
     }
 
@@ -395,7 +395,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
 
     Prof.start("variables")
     // Resolve specified types in let expressions
-    code.variables.values.forEach { variable ->
+    code.variables.forEach { variable ->
         variable.typeUsage?.let {
             variable.typeBox = typeEnv.box(getTypeFromUsage(it), variable.span)
         }
@@ -475,49 +475,18 @@ private fun ParserCtx.visitCode(code: LstCode) {
 }
 
 fun ParserCtx.bindVariables(code: LstCode) {
-    fun <T> ParserCtx.linkVariable(node: T, code: LstCode) where T : LstExpression, T : HasVarRef {
-        var found: LstVar? = null
-        var block: LstBlock? = node.block
-
-        while (block != null && found == null) {
-            found = code.variables.values
-                .filter { it.block == block }
-                .sortedByDescending { it.validAfter.id }
-                .filter { it.validAfter.id <= node.ref.id }
-                .find { it.name == node.name }
-
-            block = block.parent
-        }
-
-        if (found != null) {
-            node.varRef = found.ref
-            node.variable = found
-            found.referencedBy.add(node)
-            return
-        }
-
-        val found2 = program.consts.find { it.name == node.name }
-
-        if (found2 != null) {
-            node.varRef = found2.ref
-            node.constant = found2
-            found2.referencedBy.add(node)
-            return
-        }
-    }
-
-    code.nodes.filterIsInstance<LstLoadVar>().forEach { if (it.varRef == null) linkVariable(it, code) }
-    code.nodes.filterIsInstance<LstStoreVar>().forEach { if (it.varRef == null) linkVariable(it, code) }
+    code.nodes.filterIsInstance<LstLoadVar>().forEach { if (it.isUnbound) linkVariable(it, code) }
+    code.nodes.filterIsInstance<LstStoreVar>().forEach { if (it.isUnbound) linkVariable(it, code) }
 
     // Replace missing variables with field access/store on 'this'
-    val thisVar = code.variables.values.find { it.name == SELF_NAME }
+    val thisVar = code.variables.find { it.name == SELF_NAME }
     if (thisVar != null) {
         var i = 0
         while (i < code.nodes.size) {
             val node = code.nodes[i]
 
             // Replace load_var with missing variable with load_field on `this`
-            if (node is LstLoadVar && node.varRef == null) {
+            if (node is LstLoadVar && node.isUnbound) {
                 val found = findField(thisVar.type, node.name)
 
                 // Replace with LstLoadField
@@ -528,7 +497,6 @@ fun ParserCtx.bindVariables(code: LstCode) {
                         block = node.block,
                         name = SELF_NAME,
                         path = "",
-                        varRef = thisVar.ref,
                         variable = thisVar,
                     )
                     code.nodes.add(i, loadThis)
@@ -546,7 +514,7 @@ fun ParserCtx.bindVariables(code: LstCode) {
             }
 
             // Replace store_var with missing variable with store_field on `this`
-            if (node is LstStoreVar && node.varRef == null) {
+            if (node is LstStoreVar && node.isUnbound) {
                 val found = findField(thisVar.type, node.name)
 
                 // Replace with LstStoreField
@@ -557,7 +525,6 @@ fun ParserCtx.bindVariables(code: LstCode) {
                         block = node.block,
                         name = SELF_NAME,
                         path = "",
-                        varRef = thisVar.ref,
                         variable = thisVar,
                     )
                     code.nodes.add(i, loadThis)
@@ -581,18 +548,68 @@ fun ParserCtx.bindVariables(code: LstCode) {
 
     // Report errors
     code.nodes.filterIsInstance<LstLoadVar>().forEach { node ->
-        if (node.varRef == null) {
+        if (node.isUnbound) {
             val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
             collector.report("$kind not found: ${node.name}", node.span)
         }
     }
     code.nodes.filterIsInstance<LstStoreVar>().forEach { node ->
-        if (node.varRef == null) {
+        if (node.isUnbound) {
             val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
             collector.report("$kind not found: ${node.name}", node.span)
         }
     }
 }
+
+fun ParserCtx.findVariable(name: String, block: LstBlock, ref: Ref, code: LstCode): LstVar? {
+    var found: LstVar? = null
+    var currBlock: LstBlock? = block
+
+    while (currBlock != null && found == null) {
+        found = code.variables
+            .filter { it.block == currBlock }
+//            .sortedByDescending { it.validAfter.id }
+//            .filter { it.validAfter.id <= ref.id }
+            .find { it.name == name }
+
+        currBlock = currBlock.parent
+    }
+
+    if (found == null && code.parent != null) {
+        return findVariable(name, block, ref, code.parent!!)
+    }
+
+    return found
+}
+
+fun <T> ParserCtx.linkVariable(node: T, code: LstCode) where T : LstExpression, T : HasVarRef {
+    if (node.path == "") {
+        val found: LstVar? = findVariable(node.name, node.block, node.ref, code)
+
+        if (found != null) {
+            node.variable = found
+            found.referencedBy.add(node)
+            if (found.definedIn != code) {
+                found.isUpValue = true
+                code.outerVariables += found
+            }
+            return
+        }
+    }
+
+    val fullName = createPath(node.path, node.name)
+
+    createPathSegments(code.currentPath, fullName).forEach { segment ->
+        val found = program.consts.find { it.fullName == segment }
+
+        if (found != null) {
+            node.constant = found
+            found.referencedBy.add(node)
+            return
+        }
+    }
+}
+
 
 fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
     when (node) {
@@ -718,7 +735,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstLoadVar -> {
-            if (node.varRef == null) {
+            if (node.isUnbound) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
                 return
             }
@@ -730,7 +747,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            val variable = code.variables[node.varRef] ?: error("VarRef not found!")
+            val variable = node.variable ?: error("Variable is not set")
 
             if (variable.typeBox == null) {
                 collector.report("Attempt to read a variable before its first write", node.span)
@@ -744,7 +761,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         is LstStoreVar -> {
             val value = code.getInst(node.expr).asExpr(node)
 
-            if (node.varRef == null || value == null) {
+            if (node.isUnbound || value == null) {
                 node.typeBox = typeEnv.box(typeEnv.invalid(node.span), node.span)
                 return
             }
@@ -754,7 +771,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 node.varTypeBox = const.typeBox
                 typeEnv.addAssignableConstraint(const.type, value.type, node.span)
             } else {
-                val variable = code.variables[node.varRef] ?: error("VarRef not found!")
+                val variable = node.variable ?: error("VarRef not found!")
 
                 // First use of the variable assigns the type
                 if (variable.typeBox == null) {

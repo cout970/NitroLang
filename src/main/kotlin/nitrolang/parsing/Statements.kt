@@ -238,9 +238,10 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         typeUsage = null,
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
+        definedIn = code,
     )
 
-    code.variables[nextItem.ref] = nextItem
+    code.variables += nextItem
 
     // next_item = iter.next()
     code.nodes += LstStoreVar(
@@ -250,7 +251,6 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         name = subCtx.anyName().text,
         path = "",
         expr = iteratorNext.ref,
-        varRef = nextItem.ref,
         variable = nextItem,
     )
 
@@ -294,9 +294,10 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         typeUsage = null,
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
+        definedIn = code,
     )
 
-    code.variables[forVar.ref] = forVar
+    code.variables += forVar
 
     // i = next_item.get_or_crash()
     code.nodes += LstStoreVar(
@@ -306,7 +307,6 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
         name = subCtx.anyName().text,
         path = "",
         expr = getOrCrashCall.ref,
-        varRef = forVar.ref,
         variable = forVar,
     )
 
@@ -377,9 +377,10 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         typeUsage = LstTypeUsage.int(),
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
+        definedIn = code,
     )
 
-    code.variables[varLimit.ref] = varLimit
+    code.variables += varLimit
 
     code.nodes += LstStoreVar(
         ref = code.nextRef(),
@@ -388,7 +389,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         name = "limit",
         path = "",
         expr = count,
-        varRef = varLimit.ref,
         variable = varLimit,
     )
 
@@ -400,9 +400,10 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         typeUsage = LstTypeUsage.int(),
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
+        definedIn = code,
     )
 
-    code.variables[varIt.ref] = varIt
+    code.variables += varIt
 
     val zero1 = LstInt(
         ref = code.nextRef(),
@@ -419,7 +420,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         name = "it",
         path = "",
         expr = zero1.ref,
-        varRef = varIt.ref,
         variable = varIt,
     )
 
@@ -451,7 +451,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         block = code.currentBlock,
         name = "it",
         path = "",
-        varRef = varIt.ref,
         variable = varIt,
     )
     code.nodes += loadIfIt
@@ -462,7 +461,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
         block = code.currentBlock,
         name = "limit",
         path = "",
-        varRef = varLimit.ref,
         variable = varLimit,
     )
     code.nodes += loadIfLimit
@@ -496,7 +494,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
             block = code.currentBlock,
             name = "it",
             path = "",
-            varRef = varIt.ref,
             variable = varIt,
         )
         code.nodes += loadItInc
@@ -525,7 +522,6 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
             block = code.currentBlock,
             name = "it",
             path = "",
-            varRef = varIt.ref,
             variable = varIt,
             expr = inc.ref,
         )
@@ -759,9 +755,10 @@ private fun ParserCtx.processLetStatement(subCtx: MainParser.LetStatementContext
         typeUsage = subCtx.typeUsage()?.let { resolveTypeUsage(it) },
         validAfter = code.currentRef(),
         ref = code.nextVarRef(),
+        definedIn = code,
     )
 
-    code.variables[variable.ref] = variable
+    code.variables += variable
 
     if (subCtx.expression() != null) {
         val expr = processExpression(subCtx.expression())
@@ -772,7 +769,6 @@ private fun ParserCtx.processLetStatement(subCtx: MainParser.LetStatementContext
             name = variable.name,
             path = "",
             expr = expr,
-            varRef = variable.ref,
             variable = variable
         )
     }

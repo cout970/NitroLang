@@ -9,7 +9,7 @@ interface IBuilder {
     fun finish()
     fun compileImport(func: LstFunction, mono: MonoFunction, name: ConstString, lib: ConstString)
     fun compileConst(const: LstConst, mono: MonoConst)
-    fun compileFunction(lst: LstFunction, func: MonoFunction)
+    fun compileFunction(lst: LstFunction?, func: MonoFunction)
     fun onCompileLambda(mono: MonoFunction)
     fun onCompileFunctionCall(
         mono: MonoCode,
@@ -90,7 +90,7 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
             if (func.code.isExternal) {
                 continue
             }
-            builder.compileFunction(key.function!!, func)
+            builder.compileFunction(key.function, func)
         }
     }
 

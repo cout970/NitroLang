@@ -132,6 +132,8 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
     var hasReceiver = false
     var index = 0
 
+    body.currentPath = currentPath(ctx)
+
     if (ctx.functionReceiver() != null) {
         params += LstFunctionParam(
             span = ctx.functionReceiver().typeUsage().span(),

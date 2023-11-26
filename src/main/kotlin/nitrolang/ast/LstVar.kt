@@ -15,7 +15,9 @@ class LstVar(
     val typeUsage: LstTypeUsage?,
     val validAfter: Ref,
     val ref: VarRef,
+    var definedIn: LstCode
 ) : Dumpable {
+    var isUpValue: Boolean = false
     var typeBox: TypeBox? = null
     var type: TType
         get() = typeBox!!.type

@@ -15,6 +15,9 @@ class LstCode : Dumpable {
     private var counter = 0
     private var lastBlock = 0
 
+    var parent: LstCode? = null
+    var currentPath: Path = ""
+
     val nodes: MutableList<LstInstruction> = ArrayDeque()
 
     var returnTypeBox: TypeBox? = null
@@ -31,7 +34,9 @@ class LstCode : Dumpable {
     var currentBlock: LstBlock = rootBlock
 
     // Let declarations
-    val variables: MutableMap<VarRef, LstVar> = mutableMapOf()
+    val variables = mutableListOf<LstVar>()
+    // Variables captured from outer scopes
+    val outerVariables = mutableSetOf<LstVar>()
 
     // Linking loops and break/continue
     var breaks: MutableList<LstLoopJump> = mutableListOf()
@@ -68,7 +73,7 @@ class LstCode : Dumpable {
 
     fun toPrettyString(): String {
         return "LstCode {\n" +
-                "  variables=${formatItem(variables.values)}\n" +
+                "  variables=${formatItem(variables)}\n" +
                 "  nodes=${formatItem(nodes)}\n" +
                 "}"
     }

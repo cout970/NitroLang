@@ -13,7 +13,7 @@ class LstLambdaFunction(
     val params: List<LstFunctionParam>,
     val returnTypeUsage: LstTypeUsage,
     val body: LstCode,
-    val ref: FunRef
+    val ref: FunRef,
 ) : Dumpable {
     var checked = false
     var codeChecked = false

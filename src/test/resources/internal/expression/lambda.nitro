@@ -1,0 +1,163 @@
+
+fun main() {
+    int_up_value()
+    float_up_value()
+    long_up_value()
+    string_up_value()
+}
+
+fun int_up_value() {
+    let i: Int = 42
+    let j: Int = 69
+
+    let incI: () -> Nothing = @{
+        i = i + 1
+        println("incI i: $i, j: $j")
+    }
+
+    let incJ: () -> Nothing = @{
+        j = j + 1
+        println("incJ i: $i, j: $j")
+    }
+
+    let incEach: () -> Nothing = @{
+        j = j + 1
+        i = i + 1
+        println("incEach i: $i, j: $j")
+    }
+
+    println("int_up_value i: $i, j: $j")
+
+    invoke(incEach)
+
+    i = i + 100
+    j = j + 100
+    println("int_up_value i: $i, j: $j")
+
+    invoke(incI)
+
+    invoke(incJ)
+
+    i = 0
+    j = 0
+    println("int_up_value i: $i, j: $j")
+
+    invoke(incEach)
+}
+
+fun float_up_value() {
+    let i: Float = 0.25f
+    let j: Float = 0.75f
+
+    let incI: () -> Nothing = @{
+        i = i + 1f
+        println("incI i: $i, j: $j")
+    }
+
+    let incJ: () -> Nothing = @{
+        j = j + 1f
+        println("incJ i: $i, j: $j")
+    }
+
+    let incEach: () -> Nothing = @{
+        j = j + 1f
+        i = i + 1f
+        println("incEach i: $i, j: $j")
+    }
+
+    println("float_up_value i: $i, j: $j")
+
+    invoke(incEach)
+
+    i = i + 100f
+    j = j + 100f
+    println("float_up_value i: $i, j: $j")
+
+    invoke(incI)
+
+    invoke(incJ)
+
+    i = -1f
+    j = -1f
+    println("float_up_value i: $i, j: $j")
+
+    invoke(incEach)
+}
+
+fun long_up_value() {
+    let i: Long = 4200l
+    let j: Long = 6900l
+
+    let incI: () -> Nothing = @{
+        i = i + 1l
+        println("incI i: $i, j: $j")
+    }
+
+    let incJ: () -> Nothing = @{
+        j = j + 1l
+        println("incJ i: $i, j: $j")
+    }
+
+    let incEach: () -> Nothing = @{
+        j = j + 1l
+        i = i + 1l
+        println("incEach i: $i, j: $j")
+    }
+
+    println("long_up_value i: $i, j: $j")
+
+    invoke(incEach)
+
+    i = i + 10l
+    j = j + 10l
+    println("long_up_value i: $i, j: $j")
+
+    invoke(incI)
+
+    invoke(incJ)
+
+    i = 0l
+    j = 0l
+    println("long_up_value i: $i, j: $j")
+
+    invoke(incEach)
+}
+
+fun string_up_value() {
+    let i: String = "a"
+    let j: String = "b"
+
+    let incI: () -> Nothing = @{
+        i = i.concat("i")
+        println("incI i: $i, j: $j")
+    }
+
+    let incJ: () -> Nothing = @{
+        j = j.concat("j")
+        println("incJ i: $i, j: $j")
+    }
+
+    let incEach: () -> Nothing = @{
+        j = j.concat("j")
+        i = i.concat("i")
+        println("incEach i: $i, j: $j")
+    }
+
+    println("string_up_value i: $i, j: $j")
+
+    invoke(incEach)
+
+    i = i.concat("m")
+    j = j.concat("m")
+    println("string_up_value i: $i, j: $j")
+
+    invoke(incI)
+
+    invoke(incJ)
+
+    i = "m"
+    j = "m"
+    println("string_up_value i: $i, j: $j")
+
+    invoke(incEach)
+}

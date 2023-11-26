@@ -69,6 +69,11 @@ fun CodePrinter.wasmModule(module: WasmModule) {
             }
             +local.type.toString()
             +")"
+            if (local.monoType != null) {
+                +" (; "
+                +local.monoType.toString()
+                +" ;)"
+            }
             nl()
         }
 

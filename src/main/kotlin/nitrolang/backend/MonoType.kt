@@ -19,6 +19,7 @@ data class MonoType(
     fun isFloat() = isNamed("Float")
     fun isBoolean() = isNamed("Boolean")
     fun isFunction() = isNamed("Function")
+    fun isNumber() = isFloat() || isInt() || isLong()
     fun isLambda() = base is MonoLambda
     fun isOption() = base is MonoOption
     fun isOptionItem() = base is MonoStruct && base.instance.parentOption != null

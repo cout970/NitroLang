@@ -116,6 +116,30 @@ class MonoStoreVar(
     val variable: MonoVar,
 ) : MonoInstruction(id, span)
 
+// Allocate space in heap for the upValue
+class MonoCreateUpValue(
+    id: MonoRef, span: Span,
+    val upValue: MonoVar,
+) : MonoInstruction(id, span)
+
+// Load an upValue from the lambda closure
+class MonoInitUpValue(
+    id: MonoRef, span: Span,
+    val upValue: MonoVar,
+) : MonoInstruction(id, span)
+
+// Load a value from a local variable
+class MonoLoadUpValue(
+    id: MonoRef, span: Span,
+    val upValue: MonoVar,
+) : MonoInstruction(id, span)
+
+// Store a value to a local variable
+class MonoStoreUpValue(
+    id: MonoRef, span: Span,
+    val upValue: MonoVar,
+) : MonoInstruction(id, span)
+
 // Load a value from a field inside a struct
 class MonoLoadField(
     id: MonoRef, span: Span,
@@ -140,6 +164,8 @@ class MonoFunCall(
 class MonoLambdaInit(
     id: MonoRef, span: Span,
     val lambda: MonoFunction,
+    // Lambda variable and linked function variable
+    val localUpValues: List<Pair<MonoVar, MonoVar>>,
 ) : MonoInstruction(id, span)
 
 // Appends inline assembly code

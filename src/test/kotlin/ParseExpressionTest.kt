@@ -60,4 +60,9 @@ class ParseExpressionTest {
     fun operators() {
         assertCompilationSuccess("internal/expression/operators.nitro")
     }
+
+    @Test
+    fun lambda() {
+        assertCompilationSuccess("internal/expression/lambda.nitro")
+    }
 }

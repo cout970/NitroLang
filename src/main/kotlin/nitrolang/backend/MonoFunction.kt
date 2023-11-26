@@ -1,9 +1,6 @@
 package nitrolang.backend
 
-import nitrolang.ast.LstAnnotation
-import nitrolang.ast.LstCode
-import nitrolang.ast.LstVar
-import nitrolang.ast.Ref
+import nitrolang.ast.*
 
 // Global static function
 // Monomorphized version of LstConst
@@ -15,23 +12,20 @@ class MonoFunction(
     lateinit var name: String
     lateinit var returnType: MonoType
     lateinit var code: MonoCode
-    var isLambda = false
 
     val annotations = mutableListOf<LstAnnotation>()
-    val params= mutableListOf<MonoVar>()
-
-    private var lastId = 0
-
-    fun nextId(): MonoRef = lastId++
 }
 
 class MonoCode(val code: LstCode) {
     var isExternal: Boolean = false
+    val params = mutableListOf<MonoVar>()
     val providers = mutableMapOf<Ref, MonoProvider>()
     val variables = mutableListOf<MonoVar>()
     val instructions = mutableListOf<MonoInstruction>()
     val helperVars = mutableMapOf<Ref, MonoVar>()
-    val varMap = mutableMapOf<LstVar, MonoVar>()
+    val variableMap = mutableMapOf<VarRef, MonoVar>()
+    val upValues = mutableListOf<MonoVar>()
+    var isLambda = false
 
     private var lastId = 0
 

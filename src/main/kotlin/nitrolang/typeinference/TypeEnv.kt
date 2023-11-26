@@ -45,11 +45,28 @@ class TypeEnv(val collector: ErrorCollector) {
     }
 
     fun find(name: String): TType = allTypes.values.find {
-        it is TComposite && (
-                (it.base is TStruct && it.base.instance.fullName == name) ||
+        it is TComposite &&
+                ((it.base is TStruct && it.base.instance.fullName == name) ||
                         (it.base is TOption && it.base.instance.fullName == name) ||
-                        (it.base is TOptionItem && it.base.instance.fullName == name)
-                )
+                        (it.base is TOptionItem && it.base.instance.fullName == name)) &&
+                it.params.isEmpty()
+    }!!
+
+    fun find(name: String, arg1: String): TType = allTypes.values.find {
+        it is TComposite &&
+                ((it.base is TStruct && it.base.instance.fullName == name) ||
+                        (it.base is TOption && it.base.instance.fullName == name) ||
+                        (it.base is TOptionItem && it.base.instance.fullName == name)) &&
+                it.params.size == 1 &&
+                it.params[0].let { param ->
+                    param is TComposite && param.base is TStruct && param.base.instance.fullName == arg1
+                }
+    }!!
+
+    fun findBase(name: String): TTypeBase = allTypeBases.values.find {
+        it is TStruct && it.instance.fullName == name ||
+                it is TOption && it.instance.fullName == name ||
+                it is TOptionItem && it.instance.fullName == name
     }!!
 
     fun replaceAll(find: TUnresolved, replacement: TType) {

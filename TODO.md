@@ -31,7 +31,6 @@ Intended for the developers
 - Implicit this instead of writing `this.something()` everywhere
 - Runtime reflection of types
 - Fix external functions with Floats compressed as pointers
-- Lambdas as closures, implement upvalues
 - Call lambdas without the `func.invoke(args)` syntax
 - Assert type has tag `assert tag ToString for List<#Item>`
 - Tags with parametric types

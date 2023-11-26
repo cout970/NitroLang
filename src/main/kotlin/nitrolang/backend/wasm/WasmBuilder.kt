@@ -48,8 +48,9 @@ open class WasmBuilder(
             // memory_copy_internal(target: Int, value: Int, len: Int)
             start.instructions += WasmInst("i32.const ${mono.offset}")
             start.instructions += WasmInst("call ${wasmFunc.name}")
-            if (mono.type.isFloat()) {
-                start.instructions += WasmInst("f32.store")
+            if (mono.type.isEncodedInRef()) {
+                val prim = mono.type.getReferencePrimitive()
+                start.instructions += WasmInst("$prim.store")
             } else if (mono.type.isIntrinsic()) {
                 start.instructions += WasmInst("i32.store")
             } else {
@@ -92,11 +93,12 @@ open class WasmBuilder(
     override fun compileImport(func: LstFunction, mono: MonoFunction, name: ConstString, lib: ConstString) {
         val params = mutableListOf<WasmVar>()
 
-        for (param in mono.params) {
+        for (param in mono.code.params) {
             params += WasmVar(
                 kind = WasmVarKind.Param,
                 name = param.finalName(),
-                type = monoTypeToPrimitive(param.type)
+                type = monoTypeToPrimitive(param.type),
+                monoType = param.type,
             )
         }
 
@@ -156,25 +158,27 @@ open class WasmBuilder(
             wasmFunc.locals += WasmVar(
                 kind = WasmVarKind.Local,
                 name = variable.finalName(),
-                type = monoTypeToPrimitive(variable.type)
+                type = monoTypeToPrimitive(variable.type),
+                monoType = variable.type,
             )
         }
 
         for (inst in const.code.instructions) {
-            compileInstruction(inst, wasmFunc)
+            compileInstruction(inst, wasmFunc, const.code)
         }
 
         module.functions += wasmFunc
     }
 
-    override fun compileFunction(lst: LstFunction, func: MonoFunction) {
+    override fun compileFunction(lst: LstFunction?, func: MonoFunction) {
         val params = mutableListOf<WasmVar>()
 
-        func.params.map { variable ->
+        func.code.params.map { variable ->
             params += WasmVar(
                 kind = WasmVarKind.Param,
                 name = variable.finalName(),
-                type = monoTypeToPrimitive(variable.type)
+                type = monoTypeToPrimitive(variable.type),
+                monoType = variable.type,
             )
         }
 
@@ -188,7 +192,7 @@ open class WasmBuilder(
 
         var exportName = main ?: wasmNameValue ?: externName ?: ""
 
-        if (lst.isTest) {
+        if (lst != null && lst.isTest) {
             exportName = "test_${lst.ref.id}"
         }
 
@@ -205,12 +209,13 @@ open class WasmBuilder(
             wasmFunc.locals += WasmVar(
                 kind = WasmVarKind.Local,
                 name = variable.finalName(),
-                type = monoTypeToPrimitive(variable.type)
+                type = monoTypeToPrimitive(variable.type),
+                monoType = variable.type,
             )
         }
 
         for (inst in func.code.instructions) {
-            compileInstruction(inst, wasmFunc)
+            compileInstruction(inst, wasmFunc, func.code)
         }
 
         module.functions += wasmFunc
@@ -240,7 +245,7 @@ open class WasmBuilder(
         return false
     }
 
-    fun compileInstruction(inst: MonoInstruction, wasmFunc: WasmFunction) {
+    fun compileInstruction(inst: MonoInstruction, wasmFunc: WasmFunction, code: MonoCode) {
         when (inst) {
             is MonoConsumer -> error("MonoConsumer")
             is MonoProvider -> error("MonoProvider")
@@ -290,9 +295,8 @@ open class WasmBuilder(
             }
 
             is MonoLambdaCall -> {
-                val wasmFuncType = funcTypeToWasm(inst.functionType)
-                wasmFunc.instructions += WasmInst("i32.const 4")
-                wasmFunc.instructions += WasmInst("i32.add")
+                val wasmFuncType = funcTypeToWasm(inst.functionType, true)
+                wasmFunc.dup(WasmPrimitive.i32)
                 wasmFunc.instructions += WasmInst("i32.load")
                 wasmFunc.instructions += WasmInst("call_indirect $wasmFuncType")
             }
@@ -320,6 +324,17 @@ open class WasmBuilder(
                 wasmFunc.instructions += WasmInst("; $msg ;")
                 wasmFunc.instructions += WasmInst("i32.const $index")
                 wasmFunc.instructions += WasmInst("i32.store")
+
+                inst.localUpValues.forEach { (lambdaVar, functionVar) ->
+                    val slot = lambdaVar.upValueSlot
+                    val prim = monoTypeToPrimitive(lambdaVar.type)
+                    wasmFunc.instructions += WasmInst("; Copy upValue ref to slot $slot ;")
+                    wasmFunc.dup(WasmPrimitive.i32)
+                    wasmFunc.instructions += WasmInst("i32.const ${PTR_SIZE + slot * PTR_SIZE}")
+                    wasmFunc.instructions += WasmInst("i32.add")
+                    wasmFunc.instructions += WasmInst("local.get ${functionVar.finalName()}")
+                    wasmFunc.instructions += WasmInst("${prim}.store")
+                }
             }
 
             is MonoIfChoose -> {
@@ -342,6 +357,38 @@ open class WasmBuilder(
                 } else {
                     wasmFunc.instructions += WasmInst("i32.const ${inst.const.offset}")
                 }
+            }
+
+            is MonoCreateUpValue -> {
+                val ptrType = inst.upValue.type
+                val type = ptrType.params.first()
+                wasmFunc.instructions += WasmInst("i32.const ${type.heapSize()}")
+                wasmFunc.instructions += WasmInst("call \$memory_alloc_internal")
+                wasmFunc.instructions += WasmInst("local.set ${inst.upValue.finalName()}")
+            }
+
+            is MonoInitUpValue -> {
+                val selfParam = wasmFunc.params.first().name
+                wasmFunc.instructions += WasmInst("local.get $selfParam")
+                wasmFunc.instructions += WasmInst("i32.const ${PTR_SIZE + inst.upValue.upValueSlot * PTR_SIZE}")
+                wasmFunc.instructions += WasmInst("i32.add")
+                wasmFunc.instructions += WasmInst("i32.load")
+                wasmFunc.instructions += WasmInst("local.set ${inst.upValue.finalName()}")
+            }
+
+            is MonoLoadUpValue -> {
+                val ptrType = inst.upValue.type.params.first()
+                val prim = ptrType.getReferencePrimitive()
+                wasmFunc.instructions += WasmInst("local.get ${inst.upValue.finalName()}")
+                wasmFunc.instructions += WasmInst("$prim.load")
+            }
+
+            is MonoStoreUpValue -> {
+                val ptrType = inst.upValue.type.params.first()
+                val prim = ptrType.getReferencePrimitive()
+                wasmFunc.instructions += WasmInst("local.get ${inst.upValue.finalName()}")
+                wasmFunc.swap(WasmPrimitive.i32, prim)
+                wasmFunc.instructions += WasmInst("$prim.store")
             }
 
             is MonoLoadVar -> {
@@ -456,10 +503,30 @@ open class WasmBuilder(
         }
     }
 
-    fun funcTypeToWasm(mono: MonoType): String {
+    fun MonoType.getReferencePrimitive(): WasmPrimitive {
+        return when {
+            isFloat() -> WasmPrimitive.f32
+            isLong() -> WasmPrimitive.i64
+            isInt() -> WasmPrimitive.i32
+            else -> WasmPrimitive.i32
+        }
+    }
+
+    fun MonoType.isEncodedInRef(): Boolean {
+        return isFloat() || isLong() || isInt()
+    }
+
+    fun funcTypeToWasm(mono: MonoType, lambda: Boolean): String {
         if (!mono.isFunction() && !mono.isLambda()) error("Invalid type $mono")
 
         return buildString {
+            if (lambda) {
+                append("(param ")
+                append(WasmPrimitive.i32)
+                append(")")
+                append(" ")
+            }
+
             mono.params.dropLast(1).forEach { p ->
                 append("(param ")
                 append(monoTypeToPrimitive(p))
