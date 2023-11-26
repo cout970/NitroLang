@@ -15,7 +15,12 @@ class LstCode : Dumpable {
     private var counter = 0
     private var lastBlock = 0
 
+    // If this code belongs to a lambda, the parent will be the function where the lambda is defined
+    // This allows us to access the function's variables to capture
     var parent: LstCode? = null
+    var parentRef: Ref? = null
+    var parentBlock: LstBlock? = null
+
     var currentPath: Path = ""
 
     val nodes: MutableList<LstInstruction> = ArrayDeque()
@@ -35,6 +40,7 @@ class LstCode : Dumpable {
 
     // Let declarations
     val variables = mutableListOf<LstVar>()
+
     // Variables captured from outer scopes
     val outerVariables = mutableSetOf<LstVar>()
 
@@ -109,4 +115,8 @@ class LstCode : Dumpable {
             executeDeferredActions(block.parent)
         }
     }
+
+    // Checks if the function has any code in it,
+    // LstLetVar are created for each argument, so they don't count
+    fun hasAnyCode(): Boolean = nodes.any { it !is LstLetVar }
 }

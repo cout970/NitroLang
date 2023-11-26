@@ -307,14 +307,11 @@ fun MonoBuilder.processInst(
 
         is LstLambdaInit -> {
             val type = typeToMonoType(inst.type, ctx)
-            consumer(inst.span, inst.alloc)
-            dup(inst.span, type)
-
             val monoLambda = getMonoLambdaFunction(inst.lambda, ctx)
             val localUpValues = monoLambda.code.upValues.map { lam ->
                 lam to code.upValues.find { local -> local.varRef == lam.varRef }!!
             }
-            code.instructions += MonoLambdaInit(code.nextId(), inst.span, monoLambda, localUpValues)
+            code.instructions += MonoLambdaInit(code.nextId(), inst.span, type, monoLambda, localUpValues)
 
             provider(inst.span, inst.ref, type)
         }
@@ -564,6 +561,10 @@ fun MonoBuilder.processInst(
         is LstLoopEnd -> {
             code.instructions += MonoEndBlock(code.nextId(), inst.span, "loop")
             code.instructions += MonoEndBlock(code.nextId(), inst.span, "block")
+        }
+
+        is LstLetVar -> {
+            // no-op
         }
     }
 }

@@ -1,0 +1,36 @@
+
+fun main() {
+    let a = 42
+    println(a)
+    let a = "hello"
+    println(a)
+    let a = 56f
+    println(a)
+
+    if true {
+        let a = "world"
+        println(a)
+    }
+
+    // Must be 56f
+    println(a)
+
+    let a = 50
+    let i = 0
+    let j = 0
+    while i < 2 {
+        let j = 0
+        while j < 2 {
+            let a = 42
+            // Prints 42
+            println("$i,$j: $a")
+            j = j + 1
+        }
+        // Prints 50
+        println("$i,$j: $a")
+        let a = 32
+        i = i + 1
+    }
+    // Prints 50
+    println(a)
+}

@@ -11,6 +11,7 @@ data class LstBlock(
 ) : Dumpable {
     val depth: Int get() = if (parent == null) 0 else parent.depth + 1
     val deferredActions = mutableListOf<() -> Unit>()
+    val variableStack = mutableListOf<LstVar>()
 
     override fun toString(): String = "block#$id/$depth"
 

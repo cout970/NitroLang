@@ -433,6 +433,22 @@ interface HasVarRef {
     var constant: LstConst?
 }
 
+data class LstLetVar(
+    override val ref: Ref,
+    override val span: Span,
+    override val block: LstBlock,
+    val variable: LstVar,
+) : LstInstruction(ref, span, block) {
+    override fun toString(): String = "$ref let ${variable.name} (${variable.ref})"
+
+    override fun dump(): JsonElement = JsonObject().also {
+        it.add("ref", ref.dump())
+        it.add("kind", "DefVar".dump())
+        it.add("block", block.dump())
+        it.add("var_ref", variable.ref.dump())
+    }
+}
+
 data class LstLoadVar(
     override val ref: Ref,
     override val span: Span,
@@ -568,7 +584,6 @@ data class LstLambdaInit(
     override val ref: Ref,
     override val span: Span,
     override val block: LstBlock,
-    val alloc: Ref,
     val lambda: LstLambdaFunction,
 ) : LstExpression(ref, span, block) {
 

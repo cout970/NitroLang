@@ -37,6 +37,16 @@ class ParseStatementTest {
     }
 
     @Test
+    fun letShadowing() {
+        assertCompilationSuccess("internal/statement/let_shadowing.nitro")
+    }
+
+    @Test
+    fun lambdaLetShadowing() {
+        assertCompilationSuccess("internal/statement/lambda_let_shadowing.nitro")
+    }
+
+    @Test
     fun deferStatement() {
         assertCompilationSuccess("internal/statement/defer.nitro")
     }

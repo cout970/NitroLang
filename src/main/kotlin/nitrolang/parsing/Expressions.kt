@@ -1623,7 +1623,6 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
 
     ctx.statement().forEach { processStatement(it) }
     this.code = prevCode
-    body.parent = prevCode
     body.currentPath = currentPath(ctx)
 
     val lambda = LstLambdaFunction(
@@ -1636,22 +1635,17 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
 
     program.lambdaFunctions += lambda
 
-    val alloc = LstAlloc(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        typeUsage = LstTypeUsage.lambda(lambda)
-    )
-    code.nodes += alloc
-
     val init = LstLambdaInit(
         ref = code.nextRef(),
         span = ctx.span(),
         block = code.currentBlock,
-        alloc = alloc.ref,
         lambda = lambda,
     )
     code.nodes += init
+
+    body.parent = prevCode
+    body.parentRef = init.ref
+    body.parentBlock = init.block
 
     return init.ref
 }

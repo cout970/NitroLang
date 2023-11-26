@@ -147,7 +147,7 @@ fun ParserCtx.doAllTypeChecking() {
 
         // Extern functions have empty body
         if (func.omitBody) {
-            if (func.body.nodes.isNotEmpty()) {
+            if (func.body.hasAnyCode()) {
                 collector.report("Extern function must have empty body", func.span)
             }
             return@forEach
@@ -475,8 +475,24 @@ private fun ParserCtx.visitCode(code: LstCode) {
 }
 
 fun ParserCtx.bindVariables(code: LstCode) {
-    code.nodes.filterIsInstance<LstLoadVar>().forEach { if (it.isUnbound) linkVariable(it, code) }
-    code.nodes.filterIsInstance<LstStoreVar>().forEach { if (it.isUnbound) linkVariable(it, code) }
+
+    code.nodes.forEach { node ->
+        when (node) {
+            is LstLetVar -> {
+                node.block.variableStack += node.variable
+            }
+
+            is LstLoadVar -> {
+                if (node.isUnbound) linkVariable(node, code)
+            }
+
+            is LstStoreVar -> {
+                if (node.isUnbound) linkVariable(node, code)
+            }
+
+            else -> Unit
+        }
+    }
 
     // Replace missing variables with field access/store on 'this'
     val thisVar = code.variables.find { it.name == SELF_NAME }
@@ -565,18 +581,31 @@ fun ParserCtx.findVariable(name: String, block: LstBlock, ref: Ref, code: LstCod
     var found: LstVar? = null
     var currBlock: LstBlock? = block
 
-    while (currBlock != null && found == null) {
-        found = code.variables
-            .filter { it.block == currBlock }
-//            .sortedByDescending { it.validAfter.id }
-//            .filter { it.validAfter.id <= ref.id }
-            .find { it.name == name }
+    outer@ while (currBlock != null) {
+        var index = currBlock.variableStack.lastIndex
+
+        while (index >= 0) {
+            val variable = currBlock.variableStack[index]
+
+            if (variable.name == name) {
+                // Check that the let definition happened before the lambda definition
+                val letIndex = code.nodes.indexOfFirst { it.ref == variable.definedBy }
+                val refIndex = code.nodes.indexOfFirst { it.ref == ref }
+
+                if (letIndex < refIndex) {
+                    found = variable
+                    break@outer
+                }
+            }
+
+            index--
+        }
 
         currBlock = currBlock.parent
     }
 
     if (found == null && code.parent != null) {
-        return findVariable(name, block, ref, code.parent!!)
+        return findVariable(name, code.parentBlock!!, code.parentRef!!, code.parent!!)
     }
 
     return found
@@ -655,56 +684,14 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             val definedType = getTypeFromUsage(node.typeUsage, validateParams = false)
             node.typeUsageBox = typeEnv.box(definedType, node.span)
 
-            if (definedType !is TComposite) {
-                val err = "Type '${definedType}' cannot be instantiated"
-                collector.report(err, node.span)
-                node.typeBox = typeEnv.box(typeEnv.invalid(node.span, err), node.span)
-                return
-            }
-
-            // Lambda types have a variable number of parameters
-            if (definedType.base is TLambda) {
-                val lambda = definedType.base.instance
-                node.typeBox = typeEnv.box(typeEnv.typeLambda(lambda), node.span)
-                return
-            }
-
-            // Only structs can be allocated, options and traits are only for the type system
-            if (definedType.base !is TStruct && definedType.base !is TOptionItem) {
-                val err = "Type '${definedType}' is not an struct/option item"
-                collector.report(err, node.span)
-                node.typeBox = typeEnv.box(typeEnv.invalid(node.span, err), node.span)
-                return
-            }
-
-            val struct: LstStruct = when (definedType.base) {
-                is TStruct -> definedType.base.instance
-                is TOptionItem -> definedType.base.instance
-                else -> error("Invalid option: ${definedType.base}")
-            }
-
-            if (struct.isEnum && !node.isEnumInstanceInit) {
-                val err = "Enum '${struct.fullName}' instance cannot be created, use and enum value instead"
-                collector.report(err, node.span)
-            }
-
-            // The real type is unknown until we resolve al unresolved types
-            // and can replace the struct type template with concrete types
-            val params = List(struct.typeParameters.size) {
-                definedType.params.getOrNull(it) ?: typeEnv.unresolved(node.span)
-            }
-
-            val base = if (struct.parentOption != null)
-                typeEnv.typeBaseOptionItem(struct, struct.parentOption!!)
-            else
-                typeEnv.typeBaseStruct(struct)
-
-            node.typeBox = typeEnv.box(typeEnv.composite(base, params), node.span)
+            node.typeBox = typeEnv.box(typeCheckAlloc(node.span, definedType, node.isEnumInstanceInit), node.span)
         }
 
         is LstLambdaInit -> {
-            val alloc = code.getInst(node.alloc).asExpr(node) ?: error("Missing lambda alloc")
-            node.typeBox = alloc.typeBox
+            val typeUsage = LstTypeUsage.lambda(node.lambda)
+            val definedType = getTypeFromUsage(typeUsage, validateParams = false)
+
+            node.typeBox = typeEnv.box(typeCheckAlloc(node.span, definedType, false), node.span)
         }
 
         is LstIfChoose -> {
@@ -986,6 +973,52 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             }
         }
     }
+}
+
+private fun ParserCtx.typeCheckAlloc(span: Span, definedType: TType, isEnumInstanceInit: Boolean): TType {
+
+    if (definedType !is TComposite) {
+        val err = "Type '${definedType}' cannot be instantiated"
+        collector.report(err, span)
+        return typeEnv.invalid(span, err)
+    }
+
+    // Lambda types have a variable number of parameters
+    if (definedType.base is TLambda) {
+        val lambda = definedType.base.instance
+        return typeEnv.typeLambda(lambda)
+    }
+
+    // Only structs can be allocated, options and traits are only for the type system
+    if (definedType.base !is TStruct && definedType.base !is TOptionItem) {
+        val err = "Type '${definedType}' is not an struct/option item"
+        collector.report(err, span)
+        return typeEnv.invalid(span, err)
+    }
+
+    val struct: LstStruct = when (definedType.base) {
+        is TStruct -> definedType.base.instance
+        is TOptionItem -> definedType.base.instance
+        else -> error("Invalid option: ${definedType.base}")
+    }
+
+    if (struct.isEnum && !isEnumInstanceInit) {
+        val err = "Enum '${struct.fullName}' instance cannot be created, use and enum value instead"
+        collector.report(err, span)
+    }
+
+    // The real type is unknown until we resolve al unresolved types
+    // and can replace the struct type template with concrete types
+    val params = List(struct.typeParameters.size) {
+        definedType.params.getOrNull(it) ?: typeEnv.unresolved(span)
+    }
+
+    val base = if (struct.parentOption != null)
+        typeEnv.typeBaseOptionItem(struct, struct.parentOption!!)
+    else
+        typeEnv.typeBaseStruct(struct)
+
+    return typeEnv.composite(base, params)
 }
 
 private fun ParserCtx.findTag(tu: LstTypeUsage): LstTag? {

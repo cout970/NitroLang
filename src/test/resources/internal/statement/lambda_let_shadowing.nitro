@@ -1,0 +1,16 @@
+
+fun main() {
+    let a = 42
+
+    let run: () -> Nothing = @{
+        // This will crash if 'a' is a String
+        let b: Int = a
+
+        // Must print 42
+        println("a: $a")
+    }
+
+    let a = "Hello, World!"
+
+    run.invoke()
+}

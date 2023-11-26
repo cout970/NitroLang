@@ -163,6 +163,7 @@ class MonoFunCall(
 // Ejecute a wasm native opcode
 class MonoLambdaInit(
     id: MonoRef, span: Span,
+    val type: MonoType,
     val lambda: MonoFunction,
     // Lambda variable and linked function variable
     val localUpValues: List<Pair<MonoVar, MonoVar>>,

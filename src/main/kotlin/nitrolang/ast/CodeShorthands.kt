@@ -50,6 +50,29 @@ fun LstCode.string(span: Span, value: String): Ref {
     return ref
 }
 
+fun LstCode.letVar(span: Span, name: String, typeUsage: LstTypeUsage?): LstVar {
+    val ref = nextRef()
+    val variable = LstVar(
+        span = span,
+        name = name,
+        block = currentBlock,
+        typeUsage = typeUsage,
+        definedBy = ref,
+        ref = nextVarRef(),
+        definedIn = this,
+    )
+    val node = LstLetVar(
+        ref = ref,
+        span = span,
+        block = currentBlock,
+        variable = variable,
+    )
+    variables += variable
+    nodes += node
+    return variable
+}
+
+
 fun LstCode.returnExpr(span: Span, value: Ref): Ref {
     val ref = nextRef()
     val node = LstReturn(

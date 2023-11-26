@@ -13,7 +13,7 @@ class LstVar(
     val name: String,
     val block: LstBlock,
     val typeUsage: LstTypeUsage?,
-    val validAfter: Ref,
+    val definedBy: Ref,
     val ref: VarRef,
     var definedIn: LstCode
 ) : Dumpable {
@@ -38,6 +38,6 @@ class LstVar(
         it.add("name", name.dump())
         it.add("type", typeBox?.dump())
         it.add("block", block.dump())
-        it.add("valid_after", validAfter.dump())
+        it.add("defined_by", definedBy.dump())
     }
 }

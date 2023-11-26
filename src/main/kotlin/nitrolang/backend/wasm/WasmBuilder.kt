@@ -319,6 +319,11 @@ open class WasmBuilder(
             }
 
             is MonoLambdaInit -> {
+                // $1 = memory_alloc_internal(size_of<Type>)
+                wasmFunc.instructions += WasmInst("i32.const ${inst.type.heapSize()}")
+                wasmFunc.instructions += WasmInst("call \$memory_alloc_internal")
+                wasmFunc.dup(WasmPrimitive.i32)
+
                 val index = module.lambdaLabels.indexOf(inst.lambda.name)
                 val msg = "Lambda function \$${inst.lambda.name} at index $index in \$lambdas"
                 wasmFunc.instructions += WasmInst("; $msg ;")

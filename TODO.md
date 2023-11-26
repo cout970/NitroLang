@@ -23,56 +23,37 @@ Intended for the developers
 
 ### Other features to implement
 
-- Get annotations of type: type_annotation<Box>("Extern")
-- Arena allocators
-- Smart casts
-- Optional function arguments
-- Variadic function arguments
-- Implicit this instead of writing `this.something()` everywhere
-- Runtime reflection of types
-- Fix external functions with Floats compressed as pointers
+- Add automatic properties by detecting functions with the pattern get_<property> and set_property
+- Improve core library
+- Check for read of uninitialized variables
 - Call lambdas without the `func.invoke(args)` syntax
+- Implicit this instead of writing `this.something()` everywhere
+- Smart casts
+- Place core in a module for namespacing
 - Assert type has tag `assert tag ToString for List<#Item>`
 - Tags with parametric types
-- Improve core library
-- Self-hosted compiler
-- Check for read of uninitialized variables
 - Implement interface for runtime function call indirection
-- Place core in a module for namespacing
+- Fix external functions with Floats compressed as pointers
 - Add more tests to the code library
+- Self-hosted compiler
+- Get annotations of type: type_annotation<Box>("Extern")
+- Runtime reflection of types
+- Arena allocators
+- Optional function arguments
+- Variadic function arguments
 - Allow fields at the option level, to be added to all the option variants
+- Add formatter to convert values to string without allocating intermediary strings and allow special formats (hex,
+  binary, fixed number of decimales, custom separators, etc.)
+- Add inverse tags, if Int and Float have the tag Numeric, any function shared between Int and Float, becomes a function
+  of Numeric
+- Add suspend functions (async/await)
+- Support WASI runtime
+- Inline struct in another struct to share a set of fields between structs
+- Add bench! to create benchmarks
+- Add reference-count garbage collector
+- Add option to disable GC on specific instances
+- Implement merge sort
 
 ### Known Bugs
 
 - 0 compressed as pointer causes null pointer exceptions
-
-### New syntax
-
-Old:
-
-```
-let list = #[1, 2, 3]
-let map = @[x: 0, y: 1, z: 0]
-let set = %[0, 1, 0]
-let struct = Vec3 $[x: 0, y: 1, z: 0]
-list[0]
-if cond {} else {}
-for i in 0..10 {}
-func #[1, 2, 3]
-func #{ i -> i + 1 }
-```
-
-New:
-
-```
-let list = [1, 2, 3]
-let map = #[x: 0, y: 1, z: 0]
-let set = %[0, 1, 0]
-let struct = Vec3 @[x: 0, y: 1, z: 0]
-list[0]
-list[] = 0
-if cond {} else {}
-for i in 0..10 {}
-func([1, 2, 3])
-func @{ it }
-```

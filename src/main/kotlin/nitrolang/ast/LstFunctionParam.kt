@@ -24,17 +24,8 @@ class LstFunctionParam(
     var variable: LstVar? = null
 
     fun createVariable(body: LstCode) {
-        val variable = LstVar(
-            span = span,
-            name = name,
-            block = body.currentBlock,
-            typeUsage = typeUsage,
-            validAfter = body.currentRef(),
-            ref = body.nextVarRef(),
-            definedIn = body,
-        )
+        val variable = body.letVar(span, name, typeUsage)
         variable.isParam = true
-        body.variables += variable
         this.variable = variable
     }
 

@@ -75,7 +75,7 @@ class DeadCodeAnalyzer(val program: LstProgram) {
                 visitLambda(it.lambda)
             }
         }
-        if (body.nodes.any { it is LstAlloc }) {
+        if (body.nodes.any { it is LstAlloc || it is LstLambdaInit }) {
             usesAlloc = true
         }
         body.nodes.filterIsInstance<LstFunCall>().forEach { node ->

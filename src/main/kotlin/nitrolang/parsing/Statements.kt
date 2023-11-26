@@ -231,17 +231,11 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     code.nodes += iteratorNext
 
     // let next_item: Optional<#Item>
-    val nextItem = LstVar(
+    val nextItem = code.letVar(
         span = subCtx.span(),
         name = "next_item",
-        block = code.currentBlock,
         typeUsage = null,
-        validAfter = code.currentRef(),
-        ref = code.nextVarRef(),
-        definedIn = code,
     )
-
-    code.variables += nextItem
 
     // next_item = iter.next()
     code.nodes += LstStoreVar(
@@ -287,17 +281,11 @@ private fun ParserCtx.processForStatement(subCtx: MainParser.ForStatementContext
     code.nodes += getOrCrashCall
 
     // let i
-    val forVar = LstVar(
+    val forVar = code.letVar(
         span = subCtx.anyName().span(),
         name = subCtx.anyName().text,
-        block = code.currentBlock,
         typeUsage = null,
-        validAfter = code.currentRef(),
-        ref = code.nextVarRef(),
-        definedIn = code,
     )
-
-    code.variables += forVar
 
     // i = next_item.get_or_crash()
     code.nodes += LstStoreVar(
@@ -370,17 +358,11 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     // let limit = count
     val count = processExpression(subCtx.expression())
 
-    val varLimit = LstVar(
+    val varLimit = code.letVar(
         span = subCtx.expression().span(),
-        block = code.currentBlock,
         name = "limit",
-        typeUsage = LstTypeUsage.int(),
-        validAfter = code.currentRef(),
-        ref = code.nextVarRef(),
-        definedIn = code,
+        typeUsage = LstTypeUsage.int()
     )
-
-    code.variables += varLimit
 
     code.nodes += LstStoreVar(
         ref = code.nextRef(),
@@ -393,17 +375,11 @@ private fun ParserCtx.processRepeatStatement(subCtx: MainParser.RepeatStatementC
     )
 
     // let it = 0
-    val varIt = LstVar(
+    val varIt = code.letVar(
         span = subCtx.expression().span(),
-        block = code.currentBlock,
         name = "it",
-        typeUsage = LstTypeUsage.int(),
-        validAfter = code.currentRef(),
-        ref = code.nextVarRef(),
-        definedIn = code,
+        typeUsage = LstTypeUsage.int()
     )
-
-    code.variables += varIt
 
     val zero1 = LstInt(
         ref = code.nextRef(),
@@ -748,17 +724,10 @@ private fun ParserCtx.processIfStatement(subCtx: MainParser.IfStatementContext) 
 }
 
 private fun ParserCtx.processLetStatement(subCtx: MainParser.LetStatementContext) {
-    val variable = LstVar(
-        span = subCtx.anyName().span(),
-        block = code.currentBlock,
-        name = subCtx.anyName().text,
-        typeUsage = subCtx.typeUsage()?.let { resolveTypeUsage(it) },
-        validAfter = code.currentRef(),
-        ref = code.nextVarRef(),
-        definedIn = code,
-    )
-
-    code.variables += variable
+    val span = subCtx.anyName().span()
+    val name = subCtx.anyName().text
+    val typeUsage = subCtx.typeUsage()?.let { resolveTypeUsage(it) }
+    val variable = code.letVar(span, name, typeUsage)
 
     if (subCtx.expression() != null) {
         val expr = processExpression(subCtx.expression())
