@@ -176,7 +176,7 @@ open class WasmBuilder(
         func.code.params.map { variable ->
             params += WasmVar(
                 kind = WasmVarKind.Param,
-                name = variable.finalName(),
+                name = if (variable.name == "_") null else variable.finalName(),
                 type = monoTypeToPrimitive(variable.type),
                 monoType = variable.type,
             )

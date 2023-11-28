@@ -179,7 +179,8 @@ functionReturnType
 
 // E.g. count: Int,
 functionParameter
-    : varModifier anyName NL* COLON NL* typeUsage;
+    : varModifier anyName NL* COLON NL* typeUsage
+    | varModifier UNDERSCORE NL* COLON NL* typeUsage;
 
 // E.g. {}
 // E.g. = 3.14

@@ -139,8 +139,6 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
             isParam = variable.isParam,
         )
         varIndex++
-        monoCode.variableMap[variable.ref] = monoVar
-        monoCode.variables += monoVar
 
         if (variable.isParam) {
             monoCode.params += MonoParam(
@@ -150,11 +148,18 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
             )
         }
 
+        if (variable.name == "_") {
+            continue
+        }
+
         if (variable.isUpValue) {
             monoVar.upValueSlot = monoCode.upValues.size
             monoCode.upValues += monoVar
             monoCode.instructions += MonoCreateUpValue(monoCode.nextId(), variable.span, monoVar)
         }
+
+        monoCode.variableMap[variable.ref] = monoVar
+        monoCode.variables += monoVar
     }
 
     for (variable in monoCode.code.outerVariables) {
@@ -193,7 +198,7 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
     }
 
     monoCode.params.forEach { param ->
-        if (param.monoVar == null) return@forEach
+        if (param.monoVar == null || param.name == "_") return@forEach
         monoCode.instructions += MonoLoadParam(monoCode.nextId(), Span.internal(), param)
 
         if (param.monoVar.isUpValue) {

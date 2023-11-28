@@ -1,12 +1,12 @@
 
-fun main() {
-    println("Hello, world!")
-}
+fun main() {}
 
-fun returns_42(): Int {
-    ret 42
+fun change_my_mind(_: Int, _: String) {
+    println("Ignoring arguments")
 
-    test! "This test is inside a block and checks that the return value is 42" {
-        check(returns_42() == 42, "The return value should be 42")
+    test! "This method will never change its mind" {
+        change_my_mind(0, "")
+        change_my_mind(42, "123")
+        change_my_mind(36875908, "sdfgjndfjklgn")
     }
 }

@@ -150,10 +150,19 @@ fun ParserCtx.processFunctionHeader(ctx: MainParser.FunctionHeaderContext): LstF
         LstTypeUsage.nothing()
     }
 
+    val names = mutableSetOf<String>()
     ctx.functionParameter().forEach { rawParam ->
+        val span = if (rawParam.UNDERSCORE() != null) rawParam.span() else rawParam.anyName().span()
+        val name = if (rawParam.UNDERSCORE() != null) "_" else rawParam.anyName().text
+
+        if (name != "_" && name in names) {
+            collector.report("Duplicated parameter name: '$name'", span)
+        }
+        names += name
+
         params += LstFunctionParam(
-            span = rawParam.anyName().span(),
-            name = rawParam.anyName().text,
+            span = span,
+            name = name,
             index = index++,
             typeUsage = resolveTypeUsage(rawParam.typeUsage()),
         ).apply { createVariable(body) }
