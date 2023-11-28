@@ -104,6 +104,12 @@ class MonoLoadConst(
     val const: MonoConst,
 ) : MonoInstruction(id, span)
 
+// Load a value from a function parameter
+class MonoLoadParam(
+    id: MonoRef, span: Span,
+    val param: MonoParam,
+) : MonoInstruction(id, span)
+
 // Load a value from a local variable
 class MonoLoadVar(
     id: MonoRef, span: Span,

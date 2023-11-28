@@ -396,6 +396,10 @@ open class WasmBuilder(
                 wasmFunc.instructions += WasmInst("$prim.store")
             }
 
+            is MonoLoadParam -> {
+                wasmFunc.instructions += WasmInst("local.get ${inst.param.finalName()}")
+            }
+
             is MonoLoadVar -> {
                 wasmFunc.instructions += WasmInst("local.get ${inst.variable.finalName()}")
             }

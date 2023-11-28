@@ -84,9 +84,6 @@ fun MonoBuilder.createMonoFunction(
     current = mono.code
     processCode(mono.code, ctx)
 
-    function.params.forEach {
-        mono.code.params += mono.code.variableMap[it.variable!!.ref]!!
-    }
     current = prev
 }
 
@@ -105,22 +102,22 @@ fun MonoBuilder.createMonoLambdaFunction(
     // Lambdas have a hidden self parameter that points to the lambda closure,
     // This closure has an index to the function and a list of pointers to the closure captured values (upvalues)
     val selfType = typeToMonoType(program.typeEnv.find("Int"), ctx)
-    mono.code.params += MonoVar(0, "lambda-self", selfType, null)
+    mono.code.params += MonoParam(
+        name = "lambda-self",
+        type = selfType,
+        monoVar = null,
+    )
 
     val prev = current
     current = mono.code
     processCode(mono.code, ctx)
-
-    function.params.forEach {
-        mono.code.params += mono.code.variableMap[it.variable!!.ref]!!
-    }
 
     builder.onCompileLambda(mono)
     current = prev
 }
 
 fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
-    var varIndex = 0
+    var varIndex = monoCode.variables.size
 
     for (variable in monoCode.code.variables) {
         var tType = if (monoCode.isExternal) program.removeAllGenerics(variable.type) else variable.type
@@ -133,13 +130,24 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
 
         val type = typeToMonoType(tType, ctx)
 
-        val monoVar = MonoVar(varIndex, variable.name, type, variable.ref, variable.isUpValue)
+        val monoVar = MonoVar(
+            id = varIndex,
+            name = variable.name,
+            type = type,
+            varRef = variable.ref,
+            isUpValue = variable.isUpValue,
+            isParam = variable.isParam,
+        )
+        varIndex++
         monoCode.variableMap[variable.ref] = monoVar
+        monoCode.variables += monoVar
 
-        // TODO check
-        if (!variable.isParam) {
-            varIndex++
-            monoCode.variables += monoVar
+        if (variable.isParam) {
+            monoCode.params += MonoParam(
+                name = variable.name,
+                type = type,
+                monoVar = monoVar,
+            )
         }
 
         if (variable.isUpValue) {
@@ -158,7 +166,14 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
 
         val type = typeToMonoType(tType, ctx)
 
-        val monoVar = MonoVar(varIndex, variable.name, type, variable.ref, true)
+        val monoVar = MonoVar(
+            id = varIndex,
+            name = variable.name,
+            type = type,
+            varRef = variable.ref,
+            isUpValue = true,
+        )
+        varIndex++
         monoCode.variableMap[variable.ref] = monoVar
 
         monoVar.upValueSlot = monoCode.upValues.size
@@ -175,6 +190,17 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
 
     if (monoCode.isExternal) {
         return
+    }
+
+    monoCode.params.forEach { param ->
+        if (param.monoVar == null) return@forEach
+        monoCode.instructions += MonoLoadParam(monoCode.nextId(), Span.internal(), param)
+
+        if (param.monoVar.isUpValue) {
+            monoCode.instructions += MonoStoreUpValue(monoCode.nextId(), Span.internal(), param.monoVar)
+        } else {
+            monoCode.instructions += MonoStoreVar(monoCode.nextId(), Span.internal(), param.monoVar)
+        }
     }
 
     for (inst in monoCode.code.nodes) {
@@ -197,7 +223,12 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
                 continue
             }
 
-            val variable = MonoVar(monoCode.variables.size, "tmp${inst.id}", inst.type, null)
+            val variable = MonoVar(
+                id = monoCode.variables.size,
+                name = "tmp${inst.id}",
+                type = inst.type,
+                varRef = null
+            )
             monoCode.variables += variable
             monoCode.instructions[index] = MonoStoreVar(monoCode.nextId(), inst.span, variable)
             inst.consumers.forEach { it.variable = variable }
@@ -519,7 +550,12 @@ fun MonoBuilder.processInst(
 
         is LstWhenStart -> {
             val type = typeToMonoType(inst.type, ctx)
-            val variable = MonoVar(code.variables.size, "when-${inst.ref.id}", type, null)
+            val variable = MonoVar(
+                id = code.variables.size,
+                name = "when-${inst.ref.id}",
+                type = type,
+                varRef = null,
+            )
             code.helperVars[inst.ref] = variable
             code.variables += variable
             code.instructions += MonoStartBlock(code.nextId(), inst.span)

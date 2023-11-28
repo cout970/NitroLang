@@ -4,6 +4,7 @@ fun main() {
     float_up_value()
     long_up_value()
     string_up_value()
+    lambda_with_argument(42)
 }
 
 fun int_up_value() {
@@ -43,6 +44,8 @@ fun int_up_value() {
     println("int_up_value i: $i, j: $j")
 
     invoke(incEach)
+    check(i == 1, "i should be 1")
+    check(j == 1, "j should be 1")
 }
 
 fun float_up_value() {
@@ -82,6 +85,8 @@ fun float_up_value() {
     println("float_up_value i: $i, j: $j")
 
     invoke(incEach)
+    check(i == 1f, "i should be 0")
+    check(j == 1f, "j should be 0")
 }
 
 fun long_up_value() {
@@ -121,6 +126,8 @@ fun long_up_value() {
     println("long_up_value i: $i, j: $j")
 
     invoke(incEach)
+    check(i == 1l, "i should be 1")
+    check(j == 1l, "j should be 1")
 }
 
 fun string_up_value() {
@@ -160,4 +167,20 @@ fun string_up_value() {
     println("string_up_value i: $i, j: $j")
 
     invoke(incEach)
+
+    check(i == "aimim", "i should be aimim")
+    check(j == "ajmjm", "j should be ajmjm")
 }
+
+fun lambda_with_argument(i: Int) {
+     println(i)
+     let lambda: () -> Nothing = @{
+         i = i + 1
+         println(i)
+     }
+     lambda.invoke()
+     i = i - 1
+     println(i)
+
+     check(i == 42, "i should be 42")
+ }

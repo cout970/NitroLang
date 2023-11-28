@@ -74,16 +74,21 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
     }
 
     fun compileFunctions() {
+        val root = MonoCtx()
         program.functions.filter { it.isRequired }.forEach {
-            getMonoFunction(it, MonoCtx())
+            getMonoFunction(it, root)
         }
 
         if (program.compilerOptions.runTests) {
             program.functions.filter { it.isTest }.forEach {
-                getMonoFunction(it, MonoCtx())
+                getMonoFunction(it, root)
             }
         } else {
-            getMonoFunction(program.getFunction("main"), MonoCtx())
+            getMonoFunction(program.getFunction("main"), root)
+        }
+
+        if (program.usesAlloc) {
+            getMonoFunction(program.getFunction("memory_alloc_internal"), root)
         }
 
         for ((key, func) in funcCache) {

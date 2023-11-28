@@ -10,7 +10,7 @@ class DeadCodeAnalyzer(val program: LstProgram) {
     companion object {
         fun markDeadCode(program: LstProgram) {
             program.functions.forEach {
-                it.isDeadCode = !it.isRequired
+                it.isDeadCode = true
             }
             program.consts.forEach {
                 it.isDeadCode = true
@@ -33,6 +33,7 @@ class DeadCodeAnalyzer(val program: LstProgram) {
                 deadCodeAnalyzer.visitFunction(main)
             }
 
+            program.usesAlloc = deadCodeAnalyzer.usesAlloc
             if (deadCodeAnalyzer.usesAlloc) {
                 val func = program.getFunction("memory_alloc_internal")
                 deadCodeAnalyzer.visitFunction(func)
@@ -76,6 +77,9 @@ class DeadCodeAnalyzer(val program: LstProgram) {
             }
         }
         if (body.nodes.any { it is LstAlloc || it is LstLambdaInit }) {
+            usesAlloc = true
+        }
+        if (body.variables.any { it.isUpValue }) {
             usesAlloc = true
         }
         body.nodes.filterIsInstance<LstFunCall>().forEach { node ->

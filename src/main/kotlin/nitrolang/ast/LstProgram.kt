@@ -23,6 +23,7 @@ class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
     val definedNames = mutableMapOf<Path, Span>()
 
     val includedFiles = mutableSetOf<String>()
+    var usesAlloc: Boolean = false
 
     private var lastStruct = 0
     private var lastOption = 0

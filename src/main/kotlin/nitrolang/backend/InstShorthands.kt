@@ -22,7 +22,12 @@ fun MonoBuilder.drop(span: Span, type: MonoType) {
 
 fun MonoBuilder.dup(span: Span, type: MonoType) {
     val mono = current!!
-    val dupAux = MonoVar(mono.variables.size, "dup-${mono.instructions.size}", type, null)
+    val dupAux = MonoVar(
+        id = mono.variables.size,
+        name = "dup-${mono.instructions.size}",
+        type = type,
+        varRef = null
+    )
     mono.variables += dupAux
 
     mono.instructions += MonoDup(mono.nextId(), span, dupAux, type)
@@ -30,9 +35,19 @@ fun MonoBuilder.dup(span: Span, type: MonoType) {
 
 fun MonoBuilder.swap(span: Span, top: MonoType, bottom: MonoType) {
     val mono = current!!
-    val swapAux0 = MonoVar(mono.variables.size, "swap-0-${mono.instructions.size}", top, null)
+    val swapAux0 = MonoVar(
+        id = mono.variables.size,
+        name = "swap-0-${mono.instructions.size}",
+        type = top,
+        varRef = null,
+    )
     mono.variables += swapAux0
-    val swapAux1 = MonoVar(mono.variables.size, "swap-1-${mono.instructions.size}", bottom, null)
+    val swapAux1 = MonoVar(
+        id = mono.variables.size,
+        name = "swap-1-${mono.instructions.size}",
+        type = bottom,
+        varRef = null
+    )
     mono.variables += swapAux1
 
     mono.instructions += MonoSwap(mono.nextId(), span, swapAux0, swapAux1)

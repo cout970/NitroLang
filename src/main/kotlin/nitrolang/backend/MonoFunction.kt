@@ -18,7 +18,7 @@ class MonoFunction(
 
 class MonoCode(val code: LstCode) {
     var isExternal: Boolean = false
-    val params = mutableListOf<MonoVar>()
+    val params = mutableListOf<MonoParam>()
     val providers = mutableMapOf<Ref, MonoProvider>()
     val variables = mutableListOf<MonoVar>()
     val instructions = mutableListOf<MonoInstruction>()
