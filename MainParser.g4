@@ -210,6 +210,7 @@ statementChoice
     | deferStatement
     | expressionStatement
     | foreignBlockStatement
+    | testDefinition
     ;
 
 // E.g. let a: Int = 0

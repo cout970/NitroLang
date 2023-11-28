@@ -9,6 +9,8 @@ fun ParserCtx.processStatementBlock(ctx: MainParser.StatementBlockContext) {
 
 fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
     val stm = ctx.statementChoice()
+    val prevExpression = code.lastExpression
+    // The last expression is reset since the previous expression is not the last one anymore
     code.lastExpression = null
 
     when {
@@ -147,13 +149,17 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
 
                     else -> error("Grammar has been expanded and parser is outdated")
                 }
-            } else {
-                code.lastExpression = processExpression(subCtx.expression())
+                return
             }
+
+            // This is the last expression visited
+            code.lastExpression = processExpression(subCtx.expression())
         }
 
-
         stm.deferStatement() != null -> {
+            // Defer statements do not count as expressions, we keep the previous expression
+            code.lastExpression = prevExpression
+
             if (!allowDefer) {
                 collector.report("Defer statements are not allowed here", stm.span())
                 return
@@ -183,6 +189,9 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
         }
 
         stm.foreignBlockStatement() != null -> {
+            // Foreign blocks do not count as expressions, we keep the previous expression
+            code.lastExpression = prevExpression
+
             val subCtx = stm.foreignBlockStatement()
 
             val name = subCtx.BLOCK_START().text.substring(3)
@@ -218,6 +227,12 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                 block = code.currentBlock,
                 comment = "```${name}\n${contents}\n```"
             )
+        }
+
+        stm.testDefinition() != null -> {
+            // Test definitions do not count as expressions, we keep the previous expression
+            code.lastExpression = prevExpression
+            /** Ignored, tests are collected and processed by [AstParser.enterTestDefinition] */
         }
 
         else -> error("Grammar has been expanded and parser is outdated")

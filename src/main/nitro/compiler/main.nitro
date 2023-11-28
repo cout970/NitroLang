@@ -1,6 +1,12 @@
 
 fun main() {
-    let i = 0
+    println("Hello, world!")
+}
 
-    i += 1
+fun returns_42(): Int {
+    ret 42
+
+    test! "This test is inside a block and checks that the return value is 42" {
+        check(returns_42() == 42, "The return value should be 42")
+    }
 }

@@ -29,6 +29,11 @@ fun ParserCtx.resolveAnnotations(ctx: ParserRuleContext): MutableList<LstAnnotat
             (ctx.parent as TagDefinitionFunctionContext).annotation()
         }
 
+        is StatementChoiceContext -> {
+            // Definition inside a function block, for example, for tests
+            return mutableListOf()
+        }
+
         else -> {
             error("Unknown context to extract annotations: ${ctx.javaClass}, parent: ${ctx.parent.javaClass}")
         }

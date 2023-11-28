@@ -212,7 +212,7 @@ private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String,
     val lastInst = code.lastExpression?.let { code.getInst(it) }
 
     if (lastInst == null) {
-        collector.report("$name must return a value but has empty body", span)
+        collector.report("$name must return a value but the last line is not an expression", span)
         return
     }
 
