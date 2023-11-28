@@ -145,6 +145,21 @@ fun LstCode.loadVar(span: Span, path: String, name: String, config: (LstLoadVar.
     return ref
 }
 
+fun LstCode.storeVar(span: Span, path: String, name: String, expr: Ref, config: (LstStoreVar.() -> Unit)? = null): Ref {
+    val ref = nextRef()
+    val node = LstStoreVar(
+        ref = ref,
+        span = span,
+        block = currentBlock,
+        path = path,
+        name = name,
+        expr = expr,
+    )
+    config?.invoke(node)
+    nodes += node
+    return ref
+}
+
 fun LstCode.loadConst(
     span: Span,
     path: String,

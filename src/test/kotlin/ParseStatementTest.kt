@@ -56,4 +56,9 @@ class ParseStatementTest {
         assertCompilationSuccess("internal/statement/foreign_block_statement.nitro")
     }
 
+    @Test
+    fun operatorAssign() {
+        assertCompilationSuccess("internal/statement/operator_assign.nitro")
+    }
+
 }

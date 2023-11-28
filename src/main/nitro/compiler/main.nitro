@@ -1,2 +1,6 @@
 
-fun main() {}
+fun main() {
+    let i = 0
+
+    i += 1
+}

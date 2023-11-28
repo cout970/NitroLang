@@ -250,9 +250,15 @@ foreignBlockStatementPart
     ;
 
 // E.g. a = 0
+// E.g. i += 1
 // E.g. 1 + 2
 expressionStatement
     : assignableExpression ASSIGN NL* expression
+    | assignableExpression ADD_ASSIGN NL* expression
+    | assignableExpression SUB_ASSIGN NL* expression
+    | assignableExpression MUL_ASSIGN NL* expression
+    | assignableExpression DIV_ASSIGN NL* expression
+    | assignableExpression MOD_ASSIGN NL* expression
     | expression
     ;
 

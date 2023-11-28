@@ -32,16 +32,39 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
             if (subCtx.assignableExpression() != null) {
                 val subSubCtx = subCtx.assignableExpression()
 
+                val operation = when {
+                    subCtx.ASSIGN() != null -> null
+                    subCtx.ADD_ASSIGN() != null -> ExpressionTree.Operator.ADD
+                    subCtx.SUB_ASSIGN() != null -> ExpressionTree.Operator.SUB
+                    subCtx.MUL_ASSIGN() != null -> ExpressionTree.Operator.MUL
+                    subCtx.DIV_ASSIGN() != null -> ExpressionTree.Operator.DIV
+                    subCtx.MOD_ASSIGN() != null -> ExpressionTree.Operator.MOD
+                    else -> error("Grammar has been expanded and parser is outdated")
+                }
+
                 when {
                     subSubCtx.expression() != null && subSubCtx.anyName() != null -> {
                         val receiver = processExpression(subSubCtx.expression())
-                        val value = processExpression(subCtx.expression())
+                        var value = processExpression(subCtx.expression())
+                        val fieldName = subSubCtx.anyName().text
 
-                        code.nodes += LstStoreField(
-                            ref = code.nextRef(),
+                        if (operation != null) {
+                            val load = code.loadField(
+                                span = subSubCtx.anyName().span(),
+                                instance = receiver,
+                                name = fieldName,
+                            )
+                            value = code.call(
+                                span = subCtx.span(),
+                                path = "",
+                                name = operation.function,
+                                arguments = listOf(load, value),
+                            )
+                        }
+
+                        code.storeField(
                             span = subSubCtx.anyName().span(),
-                            block = code.currentBlock,
-                            name = subSubCtx.anyName().text,
+                            name = fieldName,
                             instance = receiver,
                             expr = value,
                         )
@@ -50,14 +73,27 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                     subSubCtx.collectionIndexingSuffix() != null -> {
                         val receiver = processExpression(subSubCtx.expression())
                         val index = processExpression(subSubCtx.collectionIndexingSuffix().expression())
-                        val value = processExpression(subCtx.expression())
+                        var value = processExpression(subCtx.expression())
 
-                        code.nodes += LstFunCall(
-                            ref = code.nextRef(),
+                        if (operation != null) {
+                            val load = code.call(
+                                span = subSubCtx.collectionIndexingSuffix().expression().span(),
+                                path = "",
+                                name = "get",
+                                arguments = listOf(receiver, index),
+                            )
+                            value = code.call(
+                                span = subCtx.span(),
+                                path = "",
+                                name = operation.function,
+                                arguments = listOf(load, value),
+                            )
+                        }
+
+                        code.call(
                             span = subSubCtx.collectionIndexingSuffix().expression().span(),
-                            block = code.currentBlock,
-                            name = "set",
                             path = "",
+                            name = "set",
                             arguments = listOf(receiver, index, value),
                         )
                     }
@@ -66,18 +102,20 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                         val receiver = processExpression(subSubCtx.expression())
                         val value = processExpression(subCtx.expression())
 
-                        code.nodes += LstFunCall(
-                            ref = code.nextRef(),
+                        if (operation != null) {
+                            collector.report("Operator ${operation.text} is not supported for arrays", subCtx.span())
+                        }
+
+                        code.call(
                             span = subSubCtx.span(),
-                            block = code.currentBlock,
-                            name = "add",
                             path = "",
+                            name = "add",
                             arguments = listOf(receiver, value),
                         )
                     }
 
                     subSubCtx.anyName() != null -> {
-                        val value = processExpression(subCtx.expression())
+                        var value = processExpression(subCtx.expression())
                         val name = subSubCtx.anyName().text
                         var path = ""
 
@@ -85,10 +123,22 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                             path = subSubCtx.modulePath().anyName().joinToString(MODULE_SEPARATOR) { it.text }
                         }
 
-                        code.nodes += LstStoreVar(
-                            ref = code.nextRef(),
+                        if (operation != null) {
+                            val load = code.loadVar(
+                                span = subSubCtx.anyName().span(),
+                                name = name,
+                                path = path,
+                            )
+                            value = code.call(
+                                span = subCtx.span(),
+                                path = "",
+                                name = operation.function,
+                                arguments = listOf(load, value),
+                            )
+                        }
+
+                        code.storeVar(
                             span = subSubCtx.anyName().span(),
-                            block = code.currentBlock,
                             name = name,
                             path = path,
                             expr = value,

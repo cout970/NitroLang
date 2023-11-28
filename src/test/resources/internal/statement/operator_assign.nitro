@@ -1,0 +1,54 @@
+fun main() {
+    variable()
+    field()
+    list()
+}
+
+fun variable() {
+    let i: Int = 1
+
+    i += 10
+    i -= 1
+    i *= 7
+    i /= 2
+    i %= 3
+
+    check(i == 2, "i should be 2")
+}
+
+struct A {
+    i: Int
+}
+
+fun field() {
+    let value = A @[i: 1]
+
+    value.i += 10
+    value.i -= 1
+    value.i *= 7
+    value.i /= 2
+    value.i %= 3
+
+    check(value.i == 2, "i should be 2")
+}
+
+// Required for the following test
+// because list.get(0) returns an Optional<Int> while list.set(0, value) requires an Int
+fun Optional<Int>.plus (other: Int): Int = if this.is_some() { ret this!! + other } else { other }
+fun Optional<Int>.minus(other: Int): Int = if this.is_some() { ret this!! - other } else { other }
+fun Optional<Int>.mul  (other: Int): Int = if this.is_some() { ret this!! * other } else { other }
+fun Optional<Int>.div  (other: Int): Int = if this.is_some() { ret this!! / other } else { other }
+fun Optional<Int>.rem  (other: Int): Int = if this.is_some() { ret this!! % other } else { other }
+
+fun list() {
+    let list: List<Int> = [1]
+
+    list[0] += 10
+    list[0] -= 1
+    list[0] *= 7
+    list[0] /= 2
+    list[0] %= 3
+
+    check(list[0]!! == 2, "i should be 2")
+}
+
