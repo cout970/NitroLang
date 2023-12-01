@@ -388,9 +388,14 @@ expressionBase
     | sizeOfExpr
     | variableExpr
     | jsonExpr
+    | templateLiteral
     | THIS
     | BREAK
     | CONTINUE
+    ;
+
+templateLiteral
+    : anyName typeParamArg? STRING_START stringContents* STRING_END
     ;
 
 // json {"key": ["val1", 1, true, null]}

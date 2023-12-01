@@ -1,12 +1,20 @@
 
-fun main() {}
+struct Config {
+  output: String
+  enable: Boolean
+}
 
-fun change_my_mind(_: Int, _: String) {
-    println("Ignoring arguments")
+fun setup(lambda: Config.() -> Nothing) {
+    let config = Config @[output: "unset", enable: false]
 
-    test! "This method will never change its mind" {
-        change_my_mind(0, "")
-        change_my_mind(42, "123")
-        change_my_mind(36875908, "sdfgjndfjklgn")
+    println("Before: ${config.output} ${config.enable}")
+    lambda.invoke(config)
+    println("After: ${config.output} ${config.enable}")
+}
+
+fun main() {
+    setup @{
+        output = "Hello"
+        enable = true
     }
 }

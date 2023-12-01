@@ -33,6 +33,41 @@ fun MonoBuilder.dup(span: Span, type: MonoType) {
     mono.instructions += MonoDup(mono.nextId(), span, dupAux, type)
 }
 
+fun MonoBuilder.storeTmp(span: Span, type: MonoType, tmpVarIndex: Int) {
+    val mono = current!!
+
+    val varName = "tmp-saved-$tmpVarIndex"
+    var tmpVar = mono.variables.find { it.name == varName }
+
+    if (tmpVar == null) {
+        tmpVar = MonoVar(
+            id = mono.variables.size,
+            name = varName,
+            type = type,
+            varRef = null,
+        )
+        mono.variables += tmpVar
+    }
+
+    mono.instructions += MonoStoreVar(mono.nextId(), span, tmpVar)
+}
+
+fun MonoBuilder.loadTmp(span: Span, type: MonoType, tmpVarIndex: Int) {
+    val mono = current!!
+
+    val varName = "tmp-saved-$tmpVarIndex"
+    val tmpVar = mono.variables.find { it.name == varName } ?: error("Missing tmp var $varName")
+
+    if (tmpVar.type != type) error("Type mismatch for tmp var $varName")
+
+    mono.instructions += MonoLoadVar(mono.nextId(), span, tmpVar)
+}
+
+fun MonoBuilder.memLoad(span: Span, intType: MonoType, offset: Int) {
+    val mono = current!!
+    mono.instructions += MonoMemoryLoad(mono.nextId(), span, intType, offset)
+}
+
 fun MonoBuilder.swap(span: Span, top: MonoType, bottom: MonoType) {
     val mono = current!!
     val swapAux0 = MonoVar(

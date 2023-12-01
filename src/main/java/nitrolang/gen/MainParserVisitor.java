@@ -461,6 +461,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionBase(MainParser.ExpressionBaseContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#templateLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTemplateLiteral(MainParser.TemplateLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#jsonExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -164,7 +164,7 @@ open class WasmBuilder(
         }
 
         for (inst in const.code.instructions) {
-            compileInstruction(inst, wasmFunc, const.code)
+            compileInstruction(inst, wasmFunc)
         }
 
         module.functions += wasmFunc
@@ -215,7 +215,7 @@ open class WasmBuilder(
         }
 
         for (inst in func.code.instructions) {
-            compileInstruction(inst, wasmFunc, func.code)
+            compileInstruction(inst, wasmFunc)
         }
 
         module.functions += wasmFunc
@@ -245,7 +245,7 @@ open class WasmBuilder(
         return false
     }
 
-    fun compileInstruction(inst: MonoInstruction, wasmFunc: WasmFunction, code: MonoCode) {
+    fun compileInstruction(inst: MonoInstruction, wasmFunc: WasmFunction) {
         when (inst) {
             is MonoConsumer -> error("MonoConsumer")
             is MonoProvider -> error("MonoProvider")
@@ -294,10 +294,17 @@ open class WasmBuilder(
                 pushString(inst.value, wasmFunc)
             }
 
+            is MonoMemoryLoad -> {
+                val prim = monoTypeToPrimitive(inst.type)
+                if (inst.offset != 0) {
+                    wasmFunc.instructions += WasmInst("i32.const ${inst.offset}")
+                    wasmFunc.instructions += WasmInst("i32.add")
+                }
+                wasmFunc.instructions += WasmInst("$prim.load")
+            }
+
             is MonoLambdaCall -> {
                 val wasmFuncType = funcTypeToWasm(inst.functionType, true)
-                wasmFunc.dup(WasmPrimitive.i32)
-                wasmFunc.instructions += WasmInst("i32.load")
                 wasmFunc.instructions += WasmInst("call_indirect $wasmFuncType")
             }
 

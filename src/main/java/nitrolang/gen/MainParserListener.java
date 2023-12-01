@@ -758,6 +758,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitExpressionBase(MainParser.ExpressionBaseContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#templateLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterTemplateLiteral(MainParser.TemplateLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#templateLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitTemplateLiteral(MainParser.TemplateLiteralContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#jsonExpr}.
 	 * @param ctx the parse tree
 	 */

@@ -502,18 +502,6 @@ fun ParserCtx.processFunctionCall(
                 args += processExpressionLambdaExpr(end.lambdaExpr())
             }
 
-//            end.listExpr() != null -> {
-//                args += processExpressionListExpr(end.listExpr())
-//            }
-//
-//            end.mapExpr() != null -> {
-//                args += processExpressionMapExpr(end.mapExpr())
-//            }
-//
-//            end.setExpr() != null -> {
-//                args += processExpressionSetExpr(end.setExpr())
-//            }
-
             else -> error("Grammar has been expanded and parser is outdated")
         }
     }
@@ -626,6 +614,10 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
 
         ctx.sizeOfExpr() != null -> {
             processExpressionSizeOf(ctx.sizeOfExpr())
+        }
+
+        ctx.templateLiteral() != null -> {
+            processExpressionTemplateLiteral(ctx.templateLiteral())
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
@@ -848,43 +840,26 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
             item.STRING_ESCAPE() != null -> buff.append(item.STRING_ESCAPE().text)
             item.STRING_VAR() != null -> {
                 endChunk()
-                val node = LstLoadVar(
-                    ref = code.nextRef(),
-                    span = ctx.span(),
-                    block = code.currentBlock,
-                    name = item.STRING_VAR().text.substring(1),
-                    path = "",
-                )
-                code.nodes += node
+                val variable = code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
 
-                val call = LstFunCall(
-                    ref = code.nextRef(),
+                allParts += code.call(
                     span = ctx.span(),
-                    block = code.currentBlock,
+                    path = "",
                     name = "to_string",
-                    path = "",
-                    arguments = listOf(node.ref),
+                    arguments = listOf(variable)
                 )
-                code.nodes += call
-
-                allParts += call.ref
             }
 
             item.STRING_INTERP_START() != null -> {
                 endChunk()
                 val ref = processExpression(item.expression())
 
-                val call = LstFunCall(
-                    ref = code.nextRef(),
+                allParts += code.call(
                     span = ctx.span(),
-                    block = code.currentBlock,
-                    name = "to_string",
                     path = "",
-                    arguments = listOf(ref),
+                    name = "to_string",
+                    arguments = listOf(ref)
                 )
-                code.nodes += call
-
-                allParts += call.ref
             }
         }
     }
@@ -1785,6 +1760,73 @@ fun ParserCtx.processExpressionSizeOf(ctx: MainParser.SizeOfExprContext): Ref {
     )
     code.nodes += node
     return node.ref
+}
+
+fun ParserCtx.processExpressionTemplateLiteral(ctx: MainParser.TemplateLiteralContext): Ref {
+    val span = ctx.anyName().span()
+    val arguments = mutableListOf<Ref>()
+
+    val newList = code.call(
+        span = span,
+        path = "List",
+        name = "new",
+    )
+
+    arguments += newList
+
+    ctx.stringContents().forEach { item ->
+        when {
+            item.STRING_BLOB() != null -> {
+                val str = code.string(span, item.STRING_BLOB().text)
+                code.call(
+                    span = span,
+                    path = "",
+                    name = "add",
+                    arguments = listOf(newList, str),
+                )
+            }
+
+            item.STRING_ESCAPE() != null -> {
+                val str = code.string(span, item.STRING_ESCAPE().text)
+                code.call(
+                    span = span,
+                    path = "",
+                    name = "add",
+                    arguments = listOf(newList, str),
+                )
+            }
+
+            item.STRING_VAR() != null -> {
+                val variable = code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
+
+                arguments += code.call(
+                    span = ctx.span(),
+                    path = "",
+                    name = "to_string",
+                    arguments = listOf(variable)
+                )
+            }
+
+            item.STRING_INTERP_START() != null -> {
+                val ref = processExpression(item.expression())
+
+                arguments += code.call(
+                    span = ctx.span(),
+                    path = "",
+                    name = "to_string",
+                    arguments = listOf(ref)
+                )
+            }
+        }
+    }
+
+    return code.call(
+        span = span,
+        path = currentPath(ctx),
+        name = ctx.anyName().text,
+        arguments = arguments,
+        explicitTypeParams = listOf(),
+    )
 }
 
 private fun stringToInt(text: String): Int? {

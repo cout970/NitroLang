@@ -200,6 +200,13 @@ class MonoLambdaCall(
     val args: Int,
 ) : MonoInstruction(id, span)
 
+// Load a value from memory using the pointer on the stack and an offset
+class MonoMemoryLoad(
+    id: MonoRef, span: Span,
+    val type: MonoType,
+    val offset: Int,
+) : MonoInstruction(id, span)
+
 // Duplicate the top of the stack
 class MonoDup(
     id: MonoRef, span: Span,

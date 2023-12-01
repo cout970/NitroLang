@@ -638,11 +638,18 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
     if (function.isIntrinsic && function.fullName == "invoke") {
         val lambdaParam = inst.arguments.first()
         val lambdaType = typeOf(lambdaParam)
+        val intType = typeToMonoType(program.typeEnv.find("Int"), ctx)
+
+        consumer(inst.span, lambdaParam)
+
+        dup(inst.span, lambdaType)
+        memLoad(inst.span, intType, 0)
+        storeTmp(inst.span, intType, 0)
 
         val args = inst.arguments.drop(1)
         args.forEach { ref -> consumer(inst.span, ref) }
 
-        consumer(inst.span, lambdaParam)
+        loadTmp(inst.span, intType, 0)
         mono.instructions += MonoLambdaCall(mono.nextId(), inst.span, lambdaType, args.size)
         provider(inst.span, inst.ref, finalType)
         return
