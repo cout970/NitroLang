@@ -1,4 +1,10 @@
 
+fun main() {
+    let lang = "en"
+    println("<html lang=\"$lang\">\n")
+}
+
+/*
 struct HtmlElement {
     lang: String
     head: Optional<HeadElement>
@@ -72,3 +78,4 @@ fun main() {
 
     println(root)
 }
+*/

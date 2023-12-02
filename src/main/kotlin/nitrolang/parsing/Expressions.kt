@@ -894,7 +894,7 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     }
 }
 
-fun ParserCtx.unescapeStringLiteral(tokenText: String): String {
+fun unescapeStringLiteral(tokenText: String): String {
     var text = tokenText
 
     // Hex \xFF
@@ -1779,7 +1779,7 @@ fun ParserCtx.processExpressionTemplateLiteral(ctx: MainParser.TemplateLiteralCo
     ctx.stringContents().forEach { item ->
         when {
             item.STRING_BLOB() != null -> {
-                val str = code.string(span, item.STRING_BLOB().text)
+                val str = code.string(span, unescapeStringLiteral(item.STRING_BLOB().text))
                 code.call(
                     span = span,
                     path = "",
@@ -1789,7 +1789,7 @@ fun ParserCtx.processExpressionTemplateLiteral(ctx: MainParser.TemplateLiteralCo
             }
 
             item.STRING_ESCAPE() != null -> {
-                val str = code.string(span, item.STRING_ESCAPE().text)
+                val str = code.string(span, unescapeStringLiteral(item.STRING_ESCAPE().text))
                 code.call(
                     span = span,
                     path = "",

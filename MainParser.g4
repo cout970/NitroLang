@@ -23,7 +23,7 @@ stringContents
     : STRING_BLOB
     | STRING_ESCAPE
     | STRING_VAR
-    | STRING_INTERP_START expression STRING_INTERP_END
+    | STRING_INTERP_START expression (STRING_INTERP_END|RBRACE)
     ;
 
 // Definitions

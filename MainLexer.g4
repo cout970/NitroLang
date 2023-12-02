@@ -118,7 +118,7 @@ UPPER_IDENTIFIER                : [A-Z][a-zA-Z0-9_]* ;
 LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;
 
 // Simple no interpolation string
-PLAIN_STRING                    : '"' (~["$]|[\\]["]|[\\][$])* '"' ;
+PLAIN_STRING                    : '"' (~["$\\]|[\\].)* '"' ;
 // String interpolation section
 STRING_START                    : '"'  -> pushMode(STRING_MODE) ;
 // Especial case to end string interpolation
@@ -134,7 +134,7 @@ RBRACE                          : '}' {
 ERROR_CHARACTER                 : . ;
 
 mode STRING_MODE;
-STRING_ESCAPE                   : '\\' '"' | '\\' '$' | '\\' '\\' ;
+STRING_ESCAPE                   : '\\' . ;
 STRING_INTERP_START             : '$' '{' -> pushMode(DEFAULT_MODE) ;
 STRING_INTERP_END               : '}';
 STRING_VAR                      : '$' LOWER_IDENTIFIER ;
