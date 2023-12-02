@@ -1,81 +1,118 @@
 
-fun main() {
-    let lang = "en"
-    println("<html lang=\"$lang\">\n")
-}
-
-/*
 struct HtmlElement {
-    lang: String
-    head: Optional<HeadElement>
-    body: Optional<BodyElement>
+    tag_name: String
+    attributes: Map<String, String>
+    children: List<HtmlElement>
 }
-
-struct HeadElement {}
-struct BodyElement {
-    children: List<DivElement>
-}
-struct DivElement {}
 
 fun HtmlElement.to_string(): String {
-    ret "<html lang='$lang'>$head$body</html>"
+    if tag_name == "text" {
+        ret attributes["text"]!!
+    }
+
+    let attr = ""
+
+    if attributes.is_not_empty() {
+        attr = " ".concat(attributes.map @{ k, v -> "$k=\"$v\"" }.join(" "))
+    }
+
+    if children.is_empty() {
+        ret "<$tag_name$attr/>"
+    }
+
+    let sub = ""
+    children.for_each @{ i ->
+        sub = sub.concat("\n".concat(i.to_string()).replace("\n", "\n  "))
+        sub = sub.concat("\n")
+    }
+    ret "<$tag_name$attr>$sub</$tag_name>"
 }
 
-fun HeadElement.to_string(): String {
-    ret "<head></head>"
-}
-
-fun BodyElement.to_string(): String {
-    ret "<body>$children</body>"
-}
-
-fun DivElement.to_string(): String {
-    ret "<div></div>"
-}
-
-fun html(config: HtmlElement.() -> Nothing): HtmlElement {
-    let element = HtmlElement @[
-        lang: ""
-        head: None()
-        body: None()
-    ]
-    config.invoke(element)
-    ret element
-}
-
-fun HtmlElement.head(config: HeadElement.() -> Nothing) {
-    let element = HeadElement @[]
-    config.invoke(element)
-    this.head = Some(element)
-}
-
-fun HtmlElement.body(config: BodyElement.() -> Nothing) {
-    let element = BodyElement @[
+fun HtmlElement::new(name: String): HtmlElement {
+    ret HtmlElement @[
+        tag_name: name
+        attributes: #[]
         children: []
     ]
-    config.invoke(element)
-    this.body = Some(element)
 }
 
-fun BodyElement.div(config: DivElement.() -> Nothing) {
-    let element = DivElement @[]
-    config.invoke(element)
+fun html(config: HtmlElement.() -> Nothing) {
+    let value = HtmlElement::new("html")
+    config.invoke(value)
+    println(value.to_string())
+}
+
+fun HtmlElement.head(config: HtmlElement.() -> Nothing) {
+    let value = HtmlElement::new("head")
+    config.invoke(value)
+    this.children[] = value
+}
+
+fun HtmlElement.body(config: HtmlElement.() -> Nothing) {
+    let value = HtmlElement::new("body")
+    config.invoke(value)
+    this.children[] = value
+}
+
+fun HtmlElement.div(config: HtmlElement.() -> Nothing) {
+    let value = HtmlElement::new("div")
+    config.invoke(value)
+    this.children[] = value
+}
+
+fun HtmlElement.h1(config: HtmlElement.() -> Nothing) {
+    let value = HtmlElement::new("h1")
+    config.invoke(value)
+    this.children[] = value
+}
+
+fun HtmlElement.text(text: String) {
+    let value = HtmlElement::new("text")
+    value.attributes["text"] = text
+    this.children[] = value
+}
+
+fun HtmlElement.attr(key: String, value: String) {
+    this.attributes[key] = value
+}
+
+struct HtmlScriptElement {
+    element: HtmlElement
+    src: String
+    async: Boolean
+}
+
+fun HtmlElement.script(config: HtmlScriptElement.() -> Nothing) {
+    let element = HtmlElement::new("script")
+    let value = HtmlScriptElement @[
+        element: element
+        src: ""
+        async: false
+    ]
+    config.invoke(value)
+    element.attributes["async"] = value.async.to_string()
+    element.attributes["src"] = value.src
+
     this.children[] = element
 }
 
 fun main() {
-    let root = html @{
-        lang = "en"
+    html @{
+        this.attr("lang", "en")
 
-        this.head @{}
+        this.head @{
+            this.script @{
+                src = "https://code.jquery.com/jquery-3.4.1.slim.min.js"
+                async = true
+            }
+        }
 
         this.body @{
-            this.div @{}
-            this.div @{}
-            this.div @{}
+            this.div @{
+                this.h1 @{
+                    this.text("Hello, world!")
+                }
+            }
         }
     }
-
-    println(root)
 }
-*/

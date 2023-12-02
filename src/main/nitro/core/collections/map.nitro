@@ -326,6 +326,20 @@ fun <#Key: MapKey> Map<#Key, #Value>.values_to_list(): List<#Value> {
     ret res
 }
 
+// Maps each map entry into a value and collects it into a list
+fun <#Key: MapKey> Map<#Key, #Value>.map(func: (#Key, #Value) -> #Value): List<#Value> {
+    let res: List<#Value> = []
+    repeat this.capacity {
+        let slot = this.table[it]
+
+        if slot.is_some() {
+            let entry: Pair<#Key, #Value> = slot!!
+            res[] = func.invoke(entry.first, entry.second)
+        }
+    }
+    ret res
+}
+
 // Returns the list of entries in the map
 fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<Pair<#Key, #Value>> {
     let res = List::new<Pair<#Key, #Value>>()

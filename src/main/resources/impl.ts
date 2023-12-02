@@ -363,7 +363,9 @@ export function string_concat_string(self: number, other: number): number {
 
 // @Extern [lib="core", name="string_concat_char"]
 // fun concat(String, Char): String
-export function string_concat_char(self: number, char: number): number { return createString(getString(self) + String.fromCodePoint(char)); }
+export function string_concat_char(self: number, char: number): number {
+    return createString(getString(self) + String.fromCodePoint(char));
+}
 
 // @Extern [lib="core", name="string_is_equal"]
 // fun is_equal(String, String): Boolean
@@ -380,6 +382,24 @@ export function string_replace(self: number, find: number, replacement: number):
     const findStr = getString(find);
     const replacementStr = getString(replacement);
     return createString(base.replaceAll(findStr, replacementStr));
+}
+
+// @Extern [lib="core", name="string_sub_string"]
+// fun sub_string(String, Int, Int): String
+export function string_sub_string(self: number, start: number, end: number): number {
+    return createString(getString(self).substring(start, end));
+}
+
+// @Extern [lib="core", name="string_to_ascii_lowercase"]
+// fun to_ascii_lowercase(String): String
+export function string_to_ascii_lowercase(self: number): number {
+    return createString(getString(self).toLowerCase());
+}
+
+// @Extern [lib="core", name="string_to_ascii_uppercase"]
+// fun to_ascii_uppercase(String): String
+export function string_to_ascii_uppercase(self: number): number {
+    return createString(getString(self).toUpperCase());
 }
 
 // -------------------------------------------------------------------------

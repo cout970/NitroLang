@@ -78,5 +78,188 @@ fun String.get_hash(): Int {
 @Extern [lib: "core", name: "string_replace"]
 fun String.replace(find: String, replacement: String): String {}
 
+// Remove all whitespace characters from the start and end of a string
+@Extern [lib: "core", name: "string_sub_string"]
+fun String.sub_string(start: Int, end: Int): String {}
+
+// Checks if a string contains a substring at a certain index
+fun String.contains_substring_at(at: Int, substring: String): Boolean {
+    let substring_len = substring.byte_len()
+
+    if at + substring.byte_len() > this.byte_len() {
+        ret false
+    }
+
+    let cursor = 0
+
+    while cursor < substring_len {
+        if this.get_byte(at + cursor) != substring.get_byte(cursor) {
+            ret false
+        }
+
+        cursor += 1
+    }
+
+    ret true
+}
+
+// Gets the index of the first instance of a substring
+fun String.index_of(substring: String): Optional<Int> {
+    let current = 0
+    let total_len = this.byte_len()
+
+    while current < total_len {
+        if this.contains_substring_at(current, substring) {
+            ret Some(current)
+        } else {
+            current += 1
+        }
+    }
+
+    ret None()
+}
+
+// Gets the index of the last instance of a substring
+fun String.last_index_of(substring: String): Optional<Int> {
+    let current = this.byte_len() - substring.byte_len()
+
+    while current >= 0 {
+        if this.contains_substring_at(current, substring) {
+            ret Some(current)
+        } else {
+            current -= 1
+        }
+    }
+
+    ret None()
+}
+
+// Checks if a string contains a substring
+fun String.contains(substring: String): Boolean {
+    ret this.index_of(substring).is_some()
+}
+
+// Checks if a string starts with a prefix
+fun String.starts_with(prefix: String): Boolean {
+    let index = this.index_of(prefix)
+    ret index.is_some() && index!! == 0
+}
+
+// Checks if a string ends with a suffix
+fun String.ends_with(suffix: String): Boolean {
+    let index = this.last_index_of(suffix)
+    ret index.is_some() && index!! + suffix.byte_len() == this.byte_len()
+}
+
+// Adds padding to the start of a string until it reaches a certain length
+fun String.pad_start(len: Int, pad_character: Char): String {
+    let padding_len = len - this.byte_len()
+
+    if padding_len <= 0 {
+        ret this
+    }
+
+    let padding = pad_character.to_string() * padding_len
+    ret padding.concat(this)
+}
+
+// Adds padding to the end of a string until it reaches a certain length
+fun String.pad_end(len: Int, pad_character: Char): String {
+    let padding_len = len - this.byte_len()
+
+    if padding_len <= 0 {
+        ret this
+    }
+
+    let padding = pad_character.to_string() * padding_len
+    ret this.concat(padding)
+}
+
+// Splits a string into a list of strings based on a separator
+fun String.split(separator: String): List<String> {
+    let list: List<String> = []
+    let start: Int = 0
+    let cursor: Int = 0
+    let total_len = this.byte_len()
+    let sep_len = separator.byte_len()
+
+    while cursor < total_len {
+        if this.contains_substring_at(cursor, separator) {
+            list[] = this.sub_string(start, cursor)
+            start = cursor + sep_len
+            cursor = start
+        } else {
+            cursor += 1
+        }
+    }
+
+    if start < cursor {
+        list[] = this.sub_string(start, cursor)
+    }
+
+    ret list
+}
+
+// Remove all whitespace characters from the start and end of the string
+fun String.trim(): String {
+    ret this.trim_start().trim_end()
+}
+
+// Remove all whitespace characters from the start of the string
+fun String.trim_start(): String {
+    let start = 0
+    let total_len = this.byte_len()
+
+    while start < total_len {
+        let byte = this.get_byte(start).to_int()
+
+        // Space characters: ' ' \t \n \v \f \r
+        if byte != 32 && byte != 9 && byte != 10 && byte != 11 && byte != 12 && byte != 13 {
+            break
+        }
+
+        start += 1
+    }
+
+    ret this.sub_string(start, total_len)
+}
+
+// Remove all whitespace characters from the end of the string
+fun String.trim_end(): String {
+    let end = this.byte_len() - 1
+
+    while end >= 0 {
+        let byte = this.get_byte(end).to_int()
+
+        // Space characters: ' ' \t \n \v \f \r
+        if byte != 32 && byte != 9 && byte != 10 && byte != 11 && byte != 12 && byte != 13 {
+            break
+        }
+
+        end -= 1
+    }
+
+    ret this.sub_string(0, end + 1)
+}
+
+// Converts a string to lowercase but only for ASCII characters
+@Extern [lib: "core", name: "string_to_ascii_lowercase"]
+fun String.to_ascii_lowercase(): String {}
+
+// Converts a string to uppercase but only for ASCII characters
+@Extern [lib: "core", name: "string_to_ascii_uppercase"]
+fun String.to_ascii_uppercase(): String {}
+
+// Repeat a string a certain amount of times
+fun String.mul(amount: Int): String {
+    let result: String = ""
+
+    repeat amount {
+        result = result.concat(this)
+    }
+
+    ret result
+}
+
 // Implementation of the ToString tag for strings
 fun String.to_string(): String = this

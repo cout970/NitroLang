@@ -9,3 +9,11 @@ struct Byte {}
 // This function converts a byte to an integer
 @Extern [lib: "core", name: "byte_to_int"]
 fun Byte.to_int(): Int {}
+
+// Compare two bytes
+fun Byte.get_ordering(other: Byte): Ordering {
+    let this_int = this.to_int()
+    let other_int = other.to_int()
+
+    return this_int.get_ordering(other_int)
+}
