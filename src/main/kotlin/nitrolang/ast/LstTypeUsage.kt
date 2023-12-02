@@ -1,7 +1,7 @@
 package nitrolang.ast
 
 import com.google.gson.JsonElement
-import nitrolang.typeinference.TypeBox
+import nitrolang.typeinference.*
 import nitrolang.util.Dumpable
 import nitrolang.util.Span
 import nitrolang.util.dump
@@ -15,8 +15,8 @@ data class LstTypeUsage(
     val typeParameter: LstTypeParameter?,
     val unresolvedTypeRef: UnresolvedTypeRef? = null,
     val lambda: LstLambdaFunction? = null,
-) : Dumpable {
     var resolvedType: TypeBox? = null
+) : Dumpable {
     var hasReceiver: Boolean = false
     val fullName: Path get() = createPath(path, name)
 
@@ -46,15 +46,16 @@ data class LstTypeUsage(
 
         fun string() = simple("String")
 
-        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef, span: Span? = null) = LstTypeUsage(
-            span = span ?: Span.internal(),
-            name = "<unresolved>",
-            path = "",
-            sub = listOf(),
-            typeParameter = null,
-            currentPath = "",
-            unresolvedTypeRef = unresolvedTypeRef,
-        )
+        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef, span: Span? = null) =
+            LstTypeUsage(
+                span = span ?: Span.internal(),
+                name = "<unresolved>",
+                path = "",
+                sub = listOf(),
+                typeParameter = null,
+                currentPath = "",
+                unresolvedTypeRef = unresolvedTypeRef,
+            )
 
         fun typeParam(param: LstTypeParameter) = LstTypeUsage(
             span = Span.internal(),
@@ -100,19 +101,9 @@ data class LstTypeUsage(
             typeParameter = null,
             currentPath = ""
         )
-
-        fun lambda(lambda: LstLambdaFunction) = LstTypeUsage(
-            span = lambda.span,
-            name = "Lambda",
-            path = "",
-            sub = listOf(),
-            typeParameter = null,
-            currentPath = "",
-            lambda = lambda,
-        )
     }
+}
 
-    enum class Modifier {
-        MUT, REF, NONE
-    }
+enum class Modifier {
+    MUT, REF, NONE
 }

@@ -1,20 +1,74 @@
 
-struct Config {
-  output: String
-  enable: Boolean
+struct HtmlElement {
+    lang: String
+    head: Optional<HeadElement>
+    body: Optional<BodyElement>
 }
 
-fun setup(lambda: Config.() -> Nothing) {
-    let config = Config @[output: "unset", enable: false]
+struct HeadElement {}
+struct BodyElement {
+    children: List<DivElement>
+}
+struct DivElement {}
 
-    println("Before: ${config.output} ${config.enable}")
-    lambda.invoke(config)
-    println("After: ${config.output} ${config.enable}")
+fun HtmlElement.to_string(): String {
+    ret "<html lang='$lang'>$head$body</html>"
+}
+
+fun HeadElement.to_string(): String {
+    ret "<head></head>"
+}
+
+fun BodyElement.to_string(): String {
+    ret "<body>$children</body>"
+}
+
+fun DivElement.to_string(): String {
+    ret "<div></div>"
+}
+
+fun html(config: HtmlElement.() -> Nothing): HtmlElement {
+    let element = HtmlElement @[
+        lang: ""
+        head: None()
+        body: None()
+    ]
+    config.invoke(element)
+    ret element
+}
+
+fun HtmlElement.head(config: HeadElement.() -> Nothing) {
+    let element = HeadElement @[]
+    config.invoke(element)
+    this.head = Some(element)
+}
+
+fun HtmlElement.body(config: BodyElement.() -> Nothing) {
+    let element = BodyElement @[
+        children: []
+    ]
+    config.invoke(element)
+    this.body = Some(element)
+}
+
+fun BodyElement.div(config: DivElement.() -> Nothing) {
+    let element = DivElement @[]
+    config.invoke(element)
+    this.children[] = element
 }
 
 fun main() {
-    setup @{
-        output = "Hello"
-        enable = true
+    let root = html @{
+        lang = "en"
+
+        this.head @{}
+
+        this.body @{
+            this.div @{}
+            this.div @{}
+            this.div @{}
+        }
     }
+
+    println(root)
 }

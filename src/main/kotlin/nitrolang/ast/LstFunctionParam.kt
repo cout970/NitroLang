@@ -11,7 +11,7 @@ import nitrolang.util.dump
 class LstFunctionParam(
     val span: Span,
     val name: String,
-    val index: Int,
+    var index: Int,
     val typeUsage: LstTypeUsage,
 ) : Dumpable {
     var typeBox: TypeBox? = null

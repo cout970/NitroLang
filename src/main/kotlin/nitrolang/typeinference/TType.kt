@@ -1,6 +1,7 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.LstTypeParameter
+import nitrolang.ast.UnresolvedTypeRef
 import nitrolang.util.Span
 
 sealed interface TType {
@@ -18,6 +19,8 @@ sealed interface TType {
     fun isPtr(): Boolean = this.isNamed("Ptr")
     fun isRawArray(): Boolean = this.isNamed("RawArray")
     fun isString(): Boolean = this.isNamed("String")
+    fun isFunction(): Boolean = this.isNamed("Function")
+    fun isIntrinsic(): Boolean = this is TComposite && this.base is TStruct && this.base.instance.isIntrinsic
 
     private fun isNamed(name: String): Boolean =
         this is TComposite && this.base is TStruct && this.base.instance.fullName == name
@@ -103,13 +106,39 @@ data class TUnion(override val id: Int, val options: Set<TType>) : TType {
 }
 
 // ?
-data class TUnresolved(override val id: Int, val span: Span) : TType {
+data class TUnresolved(
+    override val id: Int,
+    val span: Span,
+    val unresolvedTypeRef: UnresolvedTypeRef?,
+    val debugName: String
+) : TType {
     override val indexKey: String = "?$id"
-    override fun toString(): String = "Unresolved($id)"
+    override fun toString(): String = if (debugName.isNotEmpty()) "Unresolved($id, '$debugName')" else "Unresolved($id)"
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is TUnresolved) return false
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = id
+}
+
+// ? but when know must be a lambda
+data class TUnresolvedFunction(
+    override val id: Int,
+    val span: Span,
+    val debugName: String
+) : TType {
+    override val indexKey: String = "?$id"
+    override fun toString(): String = if (debugName.isNotEmpty()) "UnresolvedFunction($id, '$debugName')" else "UnresolvedFunction($id)"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TUnresolvedFunction) return false
 
         if (id != other.id) return false
 

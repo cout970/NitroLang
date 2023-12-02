@@ -149,6 +149,8 @@ fun compile(opt: CompilerOptions): Boolean {
 
     Prof.next("print_errors")
     if (program.collector.isNotEmpty()) {
+        dumpIr(program)
+
         System.err.println(program.collector.toString())
         return false
     }
@@ -158,17 +160,7 @@ fun compile(opt: CompilerOptions): Boolean {
 
     if (opt.dumpIr) {
         Prof.next("dump_ir")
-        program.functions.forEach { func ->
-            if (func.isExternal || func.isDeadCode) return@forEach
-
-            println("------------------------------")
-            println("${func.fullName}:")
-            func.body.nodes.forEach {
-                println("   $it")
-            }
-            println("------------------------------")
-            println("")
-        }
+        dumpIr(program)
     }
 
     Prof.next("compile_wasm")
@@ -193,6 +185,20 @@ fun compile(opt: CompilerOptions): Boolean {
 
     Prof.end()
     return true
+}
+
+fun dumpIr(program: LstProgram) {
+    program.functions.forEach { func ->
+        if (func.isExternal || func.isDeadCode) return@forEach
+
+        println("------------------------------")
+        println("${func.fullName}:")
+        func.body.nodes.forEach {
+            println("   $it")
+        }
+        println("------------------------------")
+        println("")
+    }
 }
 
 fun execute(watFile: File) {

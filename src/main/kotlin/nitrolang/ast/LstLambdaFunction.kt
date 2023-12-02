@@ -10,7 +10,7 @@ import nitrolang.util.dump
 
 class LstLambdaFunction(
     val span: Span,
-    val params: List<LstFunctionParam>,
+    val params: MutableList<LstFunctionParam>,
     val returnTypeUsage: LstTypeUsage,
     val body: LstCode,
     val ref: FunRef,

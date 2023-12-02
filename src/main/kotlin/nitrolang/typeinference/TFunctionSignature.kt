@@ -27,6 +27,7 @@ fun TType.toSignature(): TFunctionSignature? {
         is TInvalid -> null
         is TUnion -> null
         is TUnresolved -> null
+        is TUnresolvedFunction -> null
     }
 }
 

@@ -7,7 +7,7 @@ interface TypeError {
     val message: String
     val constraint: TConstraint
 
-    fun replace(env: TypeEnv, key: TUnresolved, replacement: TType)
+    fun replace(env: TypeEnv, key: TType, replacement: TType)
 }
 
 class TypeMismatchError(
@@ -19,7 +19,7 @@ class TypeMismatchError(
     span = constraint.span,
 ), TypeError {
 
-    override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
+    override fun replace(env: TypeEnv, key: TType, replacement: TType) {
         with(env) {
             left = left.replace(key, replacement)
             right = right.replace(key, replacement)
@@ -36,7 +36,7 @@ class TypeBoundsError(
     span = constraint.span
 ), TypeError {
 
-    override fun replace(env: TypeEnv, key: TUnresolved, replacement: TType) {
+    override fun replace(env: TypeEnv, key: TType, replacement: TType) {
         with(env) {
             left = left.replace(key, replacement)
         }

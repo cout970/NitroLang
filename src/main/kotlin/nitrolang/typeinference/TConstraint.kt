@@ -28,6 +28,13 @@ data class TFindFunction(
     override val span: Span
 ) : TConstraint
 
+data class TInitLambda(
+    val id: Int,
+    val dependency: TypeBox,
+    val callback: (TType) -> Unit,
+    override val span: Span
+) : TConstraint
+
 data class TUnify(
     val id: Int,
     val left: TypeBox,

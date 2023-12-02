@@ -23,7 +23,10 @@ class TypeEnv(val collector: ErrorCollector) {
 
     private val constrains = mutableListOf<TConstraint>()
     private val unresolved = mutableSetOf<TUnresolved>()
+    private val unresolvedFunction = mutableSetOf<TUnresolvedFunction>()
     private val boxes = mutableListOf<TypeBox>()
+
+    private val subCtx = SubstitutionCtx(this)
 
     private var currentConstraint: TConstraint? = null
 
@@ -69,7 +72,7 @@ class TypeEnv(val collector: ErrorCollector) {
                 it is TOptionItem && it.instance.fullName == name
     }!!
 
-    fun replaceAll(find: TUnresolved, replacement: TType) {
+    fun replaceAll(find: TType, replacement: TType) {
         boxes.forEach { it.replace(find, replacement) }
         val old = allTypes.toMap()
         val new = mutableMapOf<Int, TType>()
@@ -81,7 +84,12 @@ class TypeEnv(val collector: ErrorCollector) {
         }
 
         allTypes = new
-        unresolved.remove(find)
+        if (find is TUnresolved) {
+            unresolved.remove(find)
+        }
+        if (find is TUnresolvedFunction) {
+            unresolvedFunction.remove(find)
+        }
     }
 
     fun addAssignableConstraint(expected: TType, found: TType, span: Span) {
@@ -104,8 +112,16 @@ class TypeEnv(val collector: ErrorCollector) {
         constrains += TFindFunction(nextConsId++, arguments.map { box(it, span) }, callback, span)
     }
 
-    fun unresolved(span: Span) = type {
-        TUnresolved(it, span).also { self -> unresolved += self }
+    fun addInitLambdaConstraint(dependency: TType, span: Span, callback: (TType) -> Unit) {
+        constrains += TInitLambda(nextConsId++, box(dependency, span), callback, span)
+    }
+
+    fun unresolved(span: Span, unresolvedTypeRef: UnresolvedTypeRef? = null, debugName: String = "") = type {
+        TUnresolved(it, span, unresolvedTypeRef, debugName).also { self -> unresolved += self }
+    }
+
+    fun unresolvedFunction(span: Span, debugName: String = "") = type {
+        TUnresolvedFunction(it, span, debugName).also { self -> unresolvedFunction += self }
     }
 
     fun generic(instance: LstTypeParameter): TGeneric {
@@ -126,11 +142,7 @@ class TypeEnv(val collector: ErrorCollector) {
         return type { TComposite(it, base, params) }
     }
 
-    fun typeLambda(lambda: LstLambdaFunction): TComposite {
-        val params = mutableListOf<TType>()
-        lambda.params.forEach { params += it.type }
-        params += lambda.returnType
-
+    fun typeLambda(lambda: LstLambdaFunction, params: List<TType>): TComposite {
         val base = typeBaseLambda(lambda)
         return composite(base, params)
     }
@@ -254,34 +266,22 @@ class TypeEnv(val collector: ErrorCollector) {
         }
     }
 
-    fun TType.replace(find: TUnresolved, replacement: TType): TType = when (this) {
-        is TUnresolved -> if (find.id == this.id) replacement else this
+    fun TType.replace(find: TType, replacement: TType): TType = when (this) {
         is TUnion -> {
-            val options = options.map { it.replace(find, replacement) }.toSet()
-            if (this.options != options) union(options) else this
+            if (find == this) replacement else {
+                val options = options.map { it.replace(find, replacement) }.toSet()
+                if (this.options != options) union(options) else this
+            }
         }
 
         is TComposite -> {
-            val params = params.map { it.replace(find, replacement) }
-            if (this.params != params) composite(base, params) else this
+            if (find == this) replacement else {
+                val params = params.map { it.replace(find, replacement) }
+                if (this.params != params) composite(base, params) else this
+            }
         }
 
-        else -> this
-    }
-
-    fun TType.replace(find: TGeneric, replacement: TType): TType = when (this) {
-        is TGeneric -> if (find.id == this.id) replacement else this
-        is TUnion -> {
-            val options = options.map { it.replace(find, replacement) }.toSet()
-            if (this.options != options) union(options) else this
-        }
-
-        is TComposite -> {
-            val params = params.map { it.replace(find, replacement) }
-            if (this.params != params) composite(base, params) else this
-        }
-
-        else -> this
+        else -> if (find == this) replacement else this
     }
 
     fun TType.removeUnresolved(key: TUnresolved): TType {
@@ -300,7 +300,30 @@ class TypeEnv(val collector: ErrorCollector) {
         }
     }
 
+    fun TType.removeUnresolved(key: TUnresolvedFunction): TType {
+        return when (this) {
+            is TUnion -> {
+                if (key in options) union(options - key) else this
+            }
+
+            is TComposite -> {
+                if (this.hasUnresolvedFunction())
+                    composite(base, params.map { it.removeUnresolved(key) })
+                else this
+            }
+
+            else -> this
+        }
+    }
+
     fun TType.contains(find: TUnresolved): Boolean = when (this) {
+        is TUnresolved -> find.id == this.id
+        is TUnion -> this.options.any { it.contains(find) }
+        is TComposite -> this.params.any { it.contains(find) }
+        else -> false
+    }
+
+    fun TType.contains(find: TUnresolvedFunction): Boolean = when (this) {
         is TUnresolved -> find.id == this.id
         is TUnion -> this.options.any { it.contains(find) }
         is TComposite -> this.params.any { it.contains(find) }
@@ -311,6 +334,13 @@ class TypeEnv(val collector: ErrorCollector) {
         is TUnresolved -> true
         is TUnion -> this.options.any { it.hasUnresolved() }
         is TComposite -> this.params.any { it.hasUnresolved() }
+        else -> false
+    }
+
+    fun TType.hasUnresolvedFunction(): Boolean = when (this) {
+        is TUnresolvedFunction -> true
+        is TUnion -> this.options.any { it.hasUnresolvedFunction() }
+        is TComposite -> this.params.any { it.hasUnresolvedFunction() }
         else -> false
     }
     // ---
@@ -346,9 +376,11 @@ class TypeEnv(val collector: ErrorCollector) {
 
     fun solveConstraints() {
         val errors = mutableListOf<ErrorInfo>()
-        val substitutions = mutableMapOf<TUnresolved, TType>()
-        val remaining = ArrayDeque<Pair<TUnresolved, TType>>()
+        val remainingUnresolved = ArrayDeque<Pair<TUnresolved, TType>>()
+        val remainingUnresolvedFunctions = ArrayDeque<Pair<TUnresolvedFunction, TType>>()
         var madeProgress: Boolean
+        subCtx.clear()
+
         do {
             Prof.start("loop")
             madeProgress = false
@@ -361,21 +393,21 @@ class TypeEnv(val collector: ErrorCollector) {
                     unify(
                         constraint.left.type,
                         constraint.right.type,
-                        substitutions,
+                        subCtx,
                         errors
                     )
                     currentConstraint = null
                 }
             }
 
-            Prof.next("replace")
-            if (substitutions.isNotEmpty()) {
+            Prof.next("replace_unresolved_types")
+            if (subCtx.unresolvedTypes.isNotEmpty()) {
                 madeProgress = true
-                substitutions.forEach { (a, b) -> remaining.add(a to b) }
-                substitutions.clear()
+                subCtx.unresolvedTypes.forEach { (a, b) -> remainingUnresolved.add(a to b) }
+                subCtx.unresolvedTypes.clear()
 
-                while (remaining.isNotEmpty()) {
-                    val (key, value) = remaining.first()
+                while (remainingUnresolved.isNotEmpty()) {
+                    val (key, value) = remainingUnresolved.first()
                     val replacement = simplify(value)
 
                     // Replace usages of `key` in all instances of TypeBox
@@ -389,10 +421,40 @@ class TypeEnv(val collector: ErrorCollector) {
                     }
 
                     // Remove this replacement
-                    remaining.removeAt(0)
+                    remainingUnresolved.removeAt(0)
 
                     // Make sure all uses of `key` in remaining are updated as well
-                    remaining.replaceAll { (k, v) ->
+                    remainingUnresolved.replaceAll { (k, v) ->
+                        k to v.replace(key, replacement)
+                    }
+                }
+            }
+
+            Prof.next("replace_unresolved_functions")
+            if (subCtx.unresolvedFunctions.isNotEmpty()) {
+                madeProgress = true
+                subCtx.unresolvedFunctions.forEach { (a, b) -> remainingUnresolvedFunctions.add(a to b) }
+                subCtx.unresolvedFunctions.clear()
+
+                while (remainingUnresolvedFunctions.isNotEmpty()) {
+                    val (key, value) = remainingUnresolvedFunctions.first()
+                    val replacement = simplify(value)
+
+                    // Replace usages of `key` in all instances of TypeBox
+                    replaceAll(key, replacement)
+
+                    // Replace `key` in errors previously detected
+                    errors.forEach { err ->
+                        if (err is TypeError) {
+                            err.replace(this, key, replacement)
+                        }
+                    }
+
+                    // Remove this replacement
+                    remainingUnresolvedFunctions.removeAt(0)
+
+                    // Make sure all uses of `key` in remaining are updated as well
+                    remainingUnresolvedFunctions.replaceAll { (k, v) ->
                         k to v.replace(key, replacement)
                     }
                 }
@@ -437,16 +499,24 @@ class TypeEnv(val collector: ErrorCollector) {
                 if (constraint is TFindField) {
                     if (constraint.dependency.type !is TUnresolved) {
                         madeProgress = true
-                        constraint.callback(constraint.dependency.type)
                         constrains.remove(constraint)
+                        constraint.callback(constraint.dependency.type)
                     }
                 }
 
                 if (constraint is TFindFunction) {
                     if (constraint.dependencies.isEmpty() || constraint.dependencies.first().type !is TUnresolved) {
                         madeProgress = true
-                        constraint.callback(constraint.dependencies.map { it.type })
                         constrains.remove(constraint)
+                        constraint.callback(constraint.dependencies.map { it.type })
+                    }
+                }
+
+                if (constraint is TInitLambda) {
+                    if (constraint.dependency.type !is TUnresolvedFunction) {
+                        madeProgress = true
+                        constrains.remove(constraint)
+                        constraint.callback(constraint.dependency.type)
                     }
                 }
             }
@@ -458,7 +528,22 @@ class TypeEnv(val collector: ErrorCollector) {
     fun finish() {
         // Report missing types
         unresolved.forEach {
-            collector.report("Not enough information to infer the type (${it.id})", it.span)
+            val debug = if (it.debugName.isEmpty()) {
+                "${it.id}, ${it.unresolvedTypeRef}"
+            }
+            else {
+                "${it.debugName}: ${it.id}, ${it.unresolvedTypeRef}"
+            }
+            collector.report("Not enough information to infer the type ($debug)", it.span)
+        }
+        unresolvedFunction.forEach {
+            val debug = if (it.debugName.isEmpty()) {
+                "${it.id}"
+            }
+            else {
+                "${it.debugName}: ${it.id}"
+            }
+            collector.report("Not enough information to infer the type ($debug)", it.span)
         }
 
         boxes.forEach { it.type = simplify(it.type) }
@@ -470,80 +555,35 @@ class TypeEnv(val collector: ErrorCollector) {
 
                 if (it.span !in set) {
                     set += it.span
-                    collector.report("Multiples conflicting types ${ty.options}", it.span)
+                    val debug = ty.options.joinToString("\n- ")
+
+                    collector.report("Multiples conflicting types\n- $debug\n", it.span)
                 }
             }
-        }
-    }
-
-    fun addSubstitution(
-        key: TUnresolved,
-        value: TType,
-        sub: MutableMap<TUnresolved, TType>,
-        errors: MutableList<ErrorInfo>
-    ) {
-        if (key == value) return
-
-        if (value.contains(key)) {
-            val newValue = value.removeUnresolved(key)
-
-            if (newValue.contains(key)) {
-                error("Recursive type: $key and $value")
-            }
-
-            addSubstitution(key, newValue, sub, errors)
-            return
-        }
-
-        if (key !in sub) {
-            sub[key] = value
-            return
-        }
-
-        val prev: TType = sub[key]!!
-        val next: TType = value
-
-        if (prev == next) return
-
-        val common = commonType2(prev, next)
-        if (common != null) {
-            sub[key] = common
-            return
-        }
-
-        if (!prev.hasUnresolved() && !next.hasUnresolved()) {
-            errors += TypeMismatchError(prev, next, currentConstraint!!)
-            sub[key] = prev
-            return
-        }
-
-        // prev or next contain unresolved
-        val sub2 = mutableMapOf<TUnresolved, TType>()
-        unify(prev, next, sub2, errors)
-
-        for ((subKey, subValue) in sub2) {
-            if (subKey !in sub) {
-                sub[subKey] = subValue
-                continue
-            }
-
-            sub[subKey] = unionOf(sub[subKey]!!, subValue)
         }
     }
 
     fun unify(
         type1: TType,
         type2: TType,
-        sub: MutableMap<TUnresolved, TType>,
+        sub: SubstitutionCtx,
         errors: MutableList<ErrorInfo>
     ) {
         when {
             type1 is TUnresolved -> {
-                addSubstitution(type1, type2, sub, errors)
+                addUnresolvedSub(type1, type2, sub, errors)
             }
 
             type2 is TUnresolved -> {
-                addSubstitution(type2, type1, sub, errors)
+                addUnresolvedSub(type2, type1, sub, errors)
+            }
+
+            type1 is TUnresolvedFunction -> {
+                addUnresolvedFunctionSub(type1, type2, sub, errors)
+            }
+
+            type2 is TUnresolvedFunction -> {
+                addUnresolvedFunctionSub(type2, type1, sub, errors)
             }
 
             type1 is TInvalid || type2 is TInvalid -> return
@@ -565,7 +605,7 @@ class TypeEnv(val collector: ErrorCollector) {
                     errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
 
-                if (type1.params.size != type2.params.size) {
+                if (!type1.isIntrinsic() && !type2.isIntrinsic() && type1.params.size != type2.params.size) {
                     errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
             }
@@ -585,7 +625,107 @@ class TypeEnv(val collector: ErrorCollector) {
                     errors += TypeMismatchError(type1, type2, currentConstraint!!)
                 }
             }
+
+            else -> {
+                errors += TypeMismatchError(type1, type2, currentConstraint!!)
+            }
         }
+    }
+
+    fun addUnresolvedSub(
+        key: TUnresolved,
+        value: TType,
+        sub: SubstitutionCtx,
+        errors: MutableList<ErrorInfo>
+    ) {
+        if (key == value) return
+
+        if (value.contains(key)) {
+            val newValue = value.removeUnresolved(key)
+
+            if (newValue.contains(key)) {
+                error("Recursive type: $key and $value")
+            }
+
+            addUnresolvedSub(key, newValue, sub, errors)
+            return
+        }
+
+        if (key !in sub.unresolvedTypes) {
+            sub.unresolvedTypes[key] = value
+            return
+        }
+
+        val prev: TType = sub.unresolvedTypes[key]!!
+        val next: TType = value
+
+        if (prev == next) return
+
+        val common = commonType2(prev, next)
+        if (common != null) {
+            sub.unresolvedTypes[key] = common
+            return
+        }
+
+        if (!prev.hasUnresolved() && !next.hasUnresolved()) {
+            errors += TypeMismatchError(prev, next, currentConstraint!!)
+            sub.unresolvedTypes[key] = prev
+            return
+        }
+
+        // prev or next contain unresolved
+        val sub2 = SubstitutionCtx(sub.typeEnv)
+        unify(prev, next, sub2, errors)
+
+        sub.mergeIn(sub2)
+    }
+
+    fun addUnresolvedFunctionSub(
+        key: TUnresolvedFunction,
+        value: TType,
+        sub: SubstitutionCtx,
+        errors: MutableList<ErrorInfo>
+    ) {
+        if (key == value) return
+
+        if (value.contains(key)) {
+            val newValue = value.removeUnresolved(key)
+
+            if (newValue.contains(key)) {
+                error("Recursive type: $key and $value")
+            }
+
+            addUnresolvedFunctionSub(key, newValue, sub, errors)
+            return
+        }
+
+        if (key !in sub.unresolvedFunctions) {
+            sub.unresolvedFunctions[key] = value
+            return
+        }
+
+        val prev: TType = sub.unresolvedFunctions[key]!!
+        val next: TType = value
+
+        if (prev == next) return
+
+        val common = commonType2(prev, next)
+        if (common != null) {
+            sub.unresolvedFunctions[key] = common
+            return
+        }
+
+        if (!prev.hasUnresolvedFunction() && !next.hasUnresolvedFunction()) {
+            errors += TypeMismatchError(prev, next, currentConstraint!!)
+            sub.unresolvedFunctions[key] = prev
+            return
+        }
+
+        // prev or next contain unresolved
+        val sub2 = SubstitutionCtx(sub.typeEnv)
+        unify(prev, next, sub2, errors)
+
+        sub.mergeIn(sub2)
     }
 
     fun commonType(options: List<TType>): TType? {

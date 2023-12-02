@@ -1548,11 +1548,13 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
         val def = ctx.lambdaDef()
 
         if (def.lambdaReceiver() != null) {
+            val receiverType = resolveTypeUsage(def.lambdaReceiver().typeUsage())
+
             params += LstFunctionParam(
                 span = def.lambdaReceiver().span(),
                 name = SELF_NAME,
                 index = index++,
-                typeUsage = resolveTypeUsage(def.lambdaReceiver().typeUsage()),
+                typeUsage = receiverType,
             ).apply { createVariable(body) }
         }
 
@@ -1570,7 +1572,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                 val name = if (it.anyName() != null) {
                     it.anyName().text
                 } else if (it.UNDERSCORE() != null) {
-                    "_ignored_${index}_"
+                    "_"
                 } else {
                     error("Grammar has been expanded and parser is outdated")
                 }
@@ -1592,7 +1594,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     if (returnType == null) {
         returnType = LstTypeUsage.unresolved(
             program.nextUnresolvedTypeRef(),
-            ctx.span()
+            ctx.span(),
         )
     }
 

@@ -1,7 +1,6 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.LstFunction
-import nitrolang.parsing.ANNOTATION_AUTO_GENERATED
 import nitrolang.parsing.ParserCtx
 
 fun ParserCtx.findBestFunctionMatch(name: String, args: List<TType>): List<LstFunction> {
@@ -62,6 +61,10 @@ fun ParserCtx.functionDiffScore(params: List<TType>, args: List<TType>): Float {
 
 fun ParserCtx.typeDiffScore(param: TType, arg: TType): Float {
     if (param == arg) {
+        return 0f
+    }
+
+    if (param is TComposite && arg is TUnresolvedFunction && param.isFunction()) {
         return 0f
     }
 

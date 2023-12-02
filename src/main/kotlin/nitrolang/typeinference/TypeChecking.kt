@@ -35,20 +35,6 @@ fun ParserCtx.doAllTypeChecking() {
         }
     }
 
-    Prof.next("check_lambdas")
-    program.lambdaFunctions.forEach { lambda ->
-        if (lambda.checked) return@forEach
-        lambda.checked = true
-
-        lambda.params.forEach { param ->
-            param.typeBox = typeEnv.box(getTypeFromUsage(param.typeUsage), param.span)
-            param.variable!!.typeBox = param.typeBox
-        }
-        lambda.returnTypeBox = typeEnv.box(getTypeFromUsage(lambda.returnTypeUsage), lambda.span)
-        lambda.body.returnTypeBox = lambda.returnTypeBox
-
-        lambda.typeBox = typeEnv.box(typeEnv.typeLambda(lambda), lambda.span)
-    }
 
     Prof.next("check_functions")
     program.functions.forEach { func ->
@@ -135,14 +121,16 @@ fun ParserCtx.doAllTypeChecking() {
         if (func.tag == null) {
             val signature = func.toSignature()
 
-            if (signature in allSignatures) {
-                val dupFunc = allSignatures[signature]!!
-                collector.report(
-                    "Duplicated function signature: $signature\nDup at ${dupFunc.span}",
-                    func.span
-                )
+            if (signature != null) {
+                if (signature in allSignatures) {
+                    val dupFunc = allSignatures[signature]!!
+                    collector.report(
+                        "Duplicated function signature: $signature\nDup at ${dupFunc.span}",
+                        func.span
+                    )
+                }
+                allSignatures[signature] = func
             }
-            allSignatures[signature] = func
         }
 
         // Extern functions have empty body
@@ -174,16 +162,6 @@ fun ParserCtx.doAllTypeChecking() {
                 collector.report(err, func.span)
             }
         }
-    }
-
-    Prof.next("check_lambda_bodies")
-    program.lambdaFunctions.forEach { lambda ->
-        if (lambda.codeChecked) return@forEach
-        lambda.codeChecked = true
-
-        currentTag = null
-        visitCode(lambda.body)
-        finishCode(lambda.body, lambda.returnType, "Lambda", lambda.span)
     }
 
     Prof.next("check_const_bodies")
@@ -237,7 +215,7 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage, validateParams: Boolean
         if (tu.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tu.span)
         }
-        val ty = typeEnv.unresolved(tu.span)
+        val ty = typeEnv.unresolved(tu.span, tu.unresolvedTypeRef)
         tu.resolvedType = typeEnv.box(ty, tu.span)
         return ty
     }
@@ -247,15 +225,6 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage, validateParams: Boolean
             collector.report("Type parameters not allowed here", tu.span)
         }
         val ty = typeEnv.generic(tu.typeParameter)
-        tu.resolvedType = typeEnv.box(ty, tu.span)
-        return ty
-    }
-
-    if (tu.lambda != null) {
-        if (tu.sub.isNotEmpty()) {
-            collector.report("Type parameters not allowed here", tu.span)
-        }
-        val ty = typeEnv.typeLambda(tu.lambda)
         tu.resolvedType = typeEnv.box(ty, tu.span)
         return ty
     }
@@ -688,10 +657,18 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstLambdaInit -> {
-            val typeUsage = LstTypeUsage.lambda(node.lambda)
-            val definedType = getTypeFromUsage(typeUsage, validateParams = false)
+            val type = typeEnv.unresolvedFunction(node.span)
 
-            node.typeBox = typeEnv.box(typeCheckAlloc(node.span, definedType, false), node.span)
+            node.typeBox = typeEnv.box(type, node.span)
+            node.lambda.typeBox = node.typeBox
+
+            typeEnv.addInitLambdaConstraint(type, node.span) { inferredType ->
+                if (inferredType !is TComposite || !inferredType.isFunction()) {
+                    collector.report("Inferred invalid type for lambda: $inferredType", node.span)
+                    return@addInitLambdaConstraint
+                }
+                visitLambda(node.lambda, inferredType)
+            }
         }
 
         is LstIfChoose -> {
@@ -825,7 +802,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            node.typeBox = typeEnv.box(typeEnv.find("Never"), node.span)
+            node.typeBox = typeEnv.box(typeEnv.find("Nothing"), node.span)
 
             typeEnv.addFindFieldConstraint(instance.type, node.span) { ty ->
                 if (ty !is TComposite || (ty.base !is TStruct && ty.base !is TOptionItem)) {
@@ -975,18 +952,59 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
     }
 }
 
+private fun ParserCtx.visitLambda(lambda: LstLambdaFunction, type: TType) {
+    if (type !is TComposite || !type.isFunction()) {
+        error("Lambda type is not a TLambda: $type")
+    }
+    val realType = typeEnv.typeLambda(lambda, type.params)
+
+    lambda.typeBox!!.type = realType
+
+    if (realType.params.size - 1 > lambda.params.size) {
+        lambda.params.forEach { it.index++ }
+        val tu = LstTypeUsage(
+            span = lambda.span,
+            name = SELF_NAME,
+            path = "",
+            sub = listOf(),
+            typeParameter = null,
+            currentPath = "",
+            resolvedType = typeEnv.box(realType.params[0], lambda.span),
+        )
+        val newParam = LstFunctionParam(
+            span = lambda.span,
+            name = SELF_NAME,
+            index = 0,
+            typeUsage = tu,
+        ).also { it.createVariable(lambda.body) }
+        lambda.params.add(0, newParam)
+
+        // Move the `this` var to the beginning of the code
+        val last = lambda.body.nodes.removeLast()
+        lambda.body.nodes.add(0, last)
+    }
+
+    lambda.params.forEachIndexed { index, param ->
+        param.typeBox = typeEnv.box(getTypeFromUsage(param.typeUsage), param.span)
+        param.variable!!.typeBox = param.typeBox
+        typeEnv.addEqualConstraint(param.typeBox!!.type, realType.params[index], lambda.span)
+    }
+
+    lambda.returnTypeBox = typeEnv.box(getTypeFromUsage(lambda.returnTypeUsage), lambda.span)
+    lambda.body.returnTypeBox = lambda.returnTypeBox
+    typeEnv.addEqualConstraint(lambda.returnTypeBox!!.type, realType.params.last(), lambda.span)
+
+    currentTag = null
+    visitCode(lambda.body)
+    finishCode(lambda.body, lambda.returnType, "Lambda", lambda.span)
+}
+
 private fun ParserCtx.typeCheckAlloc(span: Span, definedType: TType, isEnumInstanceInit: Boolean): TType {
 
     if (definedType !is TComposite) {
         val err = "Type '${definedType}' cannot be instantiated"
         collector.report(err, span)
         return typeEnv.invalid(span, err)
-    }
-
-    // Lambda types have a variable number of parameters
-    if (definedType.base is TLambda) {
-        val lambda = definedType.base.instance
-        return typeEnv.typeLambda(lambda)
     }
 
     // Only structs can be allocated, options and traits are only for the type system
