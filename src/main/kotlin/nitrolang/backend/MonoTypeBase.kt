@@ -13,9 +13,9 @@ sealed class MonoTypeBase {
 data class MonoStruct(
     override val id: Int,
     val instance: LstStruct,
-    val fields: List<MonoStructField>,
-    val size: Int,
 ) : MonoTypeBase() {
+    val fields: MutableList<MonoStructField> = mutableListOf()
+    var size: Int = 0
     var option: MonoOption? = null
     override fun toString(): String = instance.fullName
 }

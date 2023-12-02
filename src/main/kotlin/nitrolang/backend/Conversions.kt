@@ -109,10 +109,13 @@ fun MonoBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: Mo
 
     if (sign !in structIds) {
         val newCtx = MonoCtx(generics, ctx)
-        val fields = toMonoStructFields(struct, newCtx)
+        val monoStruct = MonoStruct(structIds.size + 1, struct)
+        structIds[sign] = monoStruct
+
+        monoStruct.fields += toMonoStructFields(struct, newCtx)
 
         var size = 0
-        fields.forEach {
+        monoStruct.fields.forEach {
             if (it.size >= 4) {
                 size = pad(size)
             }
@@ -123,7 +126,7 @@ fun MonoBuilder.getStructType(struct: LstStruct, params: List<MonoType>, ctx: Mo
             size = pad(size)
         }
 
-        structIds[sign] = MonoStruct(structIds.size + 1, struct, fields, size)
+        monoStruct.size = size
     }
 
     return structIds[sign]!!

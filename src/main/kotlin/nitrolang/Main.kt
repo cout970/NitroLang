@@ -135,7 +135,7 @@ fun compile(opt: CompilerOptions): Boolean {
                         "$jsName: ${tsType(param.type)}"
                     }
 
-                    println("   // At ${func.span}")
+                    println("   // At src/${func.span.toString().substringAfter("src/")}")
                     println("   // @Extern [lib=\"$lib\", name=\"$name\"]")
                     println("   // fun ${func.fullName}(${func.params.joinToString(", ") { it.type.toString() }}): ${func.returnType}")
                     println("   $name($tsDef): ${tsType(func.returnType)} { return impl.$name($params); },")
@@ -149,9 +149,13 @@ fun compile(opt: CompilerOptions): Boolean {
 
     Prof.next("print_errors")
     if (program.collector.isNotEmpty()) {
-        dumpIr(program)
+        if (opt.dumpIr) {
+            Prof.next("dump_ir")
+            dumpIr(program)
+        }
 
         System.err.println(program.collector.toString())
+        Prof.end()
         return false
     }
 
@@ -180,6 +184,7 @@ fun compile(opt: CompilerOptions): Boolean {
     Prof.next("print_wasm_errors")
     if (program.collector.isNotEmpty()) {
         System.err.println(program.collector.toString())
+        Prof.end()
         return false
     }
 
