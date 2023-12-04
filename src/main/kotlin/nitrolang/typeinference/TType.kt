@@ -1,7 +1,6 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.LstTypeParameter
-import nitrolang.ast.UnresolvedTypeRef
 import nitrolang.util.Span
 
 sealed interface TType {
@@ -109,7 +108,6 @@ data class TUnion(override val id: Int, val options: Set<TType>) : TType {
 data class TUnresolved(
     override val id: Int,
     val span: Span,
-    val unresolvedTypeRef: UnresolvedTypeRef?,
     val debugName: String
 ) : TType {
     override val indexKey: String = "?$id"

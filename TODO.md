@@ -23,12 +23,10 @@ Intended for the developers
 
 ### Other features to implement
 
-- String scape sequences `\n`, `\"`, etc.
 - Add automatic properties by detecting functions with the pattern get_<property> and set_property
 - Improve core library
 - Check for read of uninitialized variables
 - Call lambdas without the `func.invoke(args)` syntax
-- Implicit this instead of writing `this.something()` everywhere
 - Smart casts
 - Place core in a module for namespacing
 - Assert type has tag `assert tag ToString for List<#Item>`

@@ -1412,7 +1412,6 @@ fun ParserCtx.processWhenStatement(ctx: MainParser.WhenExprContext, code: LstCod
 }
 
 fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
-    val listType = program.nextUnresolvedTypeRef()
     val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
@@ -1420,7 +1419,7 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
         name = "new",
         path = "List",
         arguments = emptyList(),
-        explicitTypeParams = listOf(LstTypeUsage.unresolved(listType, ctx.span())),
+        explicitTypeParams = listOf(LstTypeUsage.unresolved(ctx.span(), "List item type")),
     )
     code.nodes += value
 
@@ -1446,8 +1445,6 @@ fun ParserCtx.processExpressionListExpr(ctx: MainParser.ListExprContext): Ref {
 }
 
 fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
-    val keyType = program.nextUnresolvedTypeRef()
-    val valueType = program.nextUnresolvedTypeRef()
     val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
@@ -1456,8 +1453,8 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
         path = "Map",
         arguments = emptyList(),
         explicitTypeParams = listOf(
-            LstTypeUsage.unresolved(keyType, ctx.span()),
-            LstTypeUsage.unresolved(valueType, ctx.span())
+            LstTypeUsage.unresolved(ctx.span(), "Map key type"),
+            LstTypeUsage.unresolved(ctx.span(), "Map value type")
         ),
     )
     code.nodes += value
@@ -1504,7 +1501,6 @@ fun ParserCtx.processExpressionMapExpr(ctx: MainParser.MapExprContext): Ref {
 }
 
 fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
-    val setType = program.nextUnresolvedTypeRef()
     val value = LstFunCall(
         ref = code.nextRef(),
         span = ctx.span(),
@@ -1512,7 +1508,7 @@ fun ParserCtx.processExpressionSetExpr(ctx: MainParser.SetExprContext): Ref {
         name = "new",
         path = "Set",
         arguments = emptyList(),
-        explicitTypeParams = listOf(LstTypeUsage.unresolved(setType, ctx.span())),
+        explicitTypeParams = listOf(LstTypeUsage.unresolved(ctx.span(), "Set item type")),
     )
     code.nodes += value
 
@@ -1563,10 +1559,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
                 val typeUsage = if (it.typeUsage() != null) {
                     resolveTypeUsage(it.typeUsage())
                 } else {
-                    LstTypeUsage.unresolved(
-                        program.nextUnresolvedTypeRef(),
-                        it.span()
-                    )
+                    LstTypeUsage.unresolved(it.span(), "Lambda parameter type")
                 }
 
                 val name = if (it.anyName() != null) {
@@ -1592,10 +1585,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     }
 
     if (returnType == null) {
-        returnType = LstTypeUsage.unresolved(
-            program.nextUnresolvedTypeRef(),
-            ctx.span(),
-        )
+        returnType = LstTypeUsage.unresolved(ctx.span(), "Lambda return type")
     }
 
     ctx.statement().forEach { processStatement(it) }

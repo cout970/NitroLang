@@ -1,6 +1,7 @@
 package nitrolang
 
 import nitrolang.ast.DeadCodeAnalyzer
+import nitrolang.ast.LstLambdaInit
 import nitrolang.ast.LstProgram
 import nitrolang.backend.ConstString
 import nitrolang.backend.wasm.WasmBuilder
@@ -198,8 +199,13 @@ fun dumpIr(program: LstProgram) {
 
         println("------------------------------")
         println("${func.fullName}:")
-        func.body.nodes.forEach {
-            println("   $it")
+        func.body.nodes.forEach { node ->
+            println("    $node")
+            if (node is LstLambdaInit) {
+                node.lambda.body.nodes.forEach { lambdaNode ->
+                    println("        $lambdaNode")
+                }
+            }
         }
         println("------------------------------")
         println("")

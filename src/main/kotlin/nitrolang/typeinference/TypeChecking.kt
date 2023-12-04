@@ -183,7 +183,12 @@ fun ParserCtx.doAllTypeChecking() {
 }
 
 private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String, span: Span) {
-    if (returnType.isNothing() || returnType is TUnresolved) {
+    if (returnType.isNothing()) {
+        return
+    }
+
+    if (returnType is TUnresolved) {
+        collector.report("Unable to resolve return type, not enough information", span)
         return
     }
 
@@ -211,11 +216,11 @@ private fun ParserCtx.getTypeFromUsage(tu: LstTypeUsage, validateParams: Boolean
         return tu.resolvedType!!.type
     }
 
-    if (tu.unresolvedTypeRef != null) {
+    if (tu.isUnresolved) {
         if (tu.sub.isNotEmpty()) {
             collector.report("Type parameters not allowed here", tu.span)
         }
-        val ty = typeEnv.unresolved(tu.span, tu.unresolvedTypeRef)
+        val ty = typeEnv.unresolved(tu.span, tu.debugName)
         tu.resolvedType = typeEnv.box(ty, tu.span)
         return ty
     }
@@ -684,7 +689,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            val commonType = typeEnv.unresolved(node.span)
+            val commonType = typeEnv.unresolved(node.span, "If branches common type")
 
             typeEnv.addAssignableConstraint(commonType, ifTrue.type, ifTrue.span)
             typeEnv.addAssignableConstraint(commonType, ifFalse.type, ifFalse.span)
@@ -761,7 +766,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 return
             }
 
-            val unresolved = typeEnv.unresolved(node.span)
+            val unresolved = typeEnv.unresolved(node.span, "Struct field type")
             node.typeBox = typeEnv.box(unresolved, node.span)
 
             typeEnv.addFindFieldConstraint(instance.type, node.span) { ty ->
@@ -848,7 +853,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             val resultType = if (node.isStatement) {
                 typeEnv.find("Nothing")
             } else {
-                typeEnv.unresolved(node.span)
+                typeEnv.unresolved(node.span, "When result type")
             }
 
             node.typeBox = typeEnv.box(resultType, node.span)
@@ -863,7 +868,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstFunCall -> {
-            val unresolved = typeEnv.unresolved(node.span)
+            val unresolved = typeEnv.unresolved(node.span, "Function call return type")
             node.typeBox = typeEnv.box(unresolved, node.span)
 
             val argTypes = mutableListOf<TType>()
@@ -929,7 +934,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
                 func.typeParameters.forEach { typeParam ->
                     val generic = typeEnv.generic(typeParam)
-                    val paramUnresolved = typeEnv.unresolved(node.span)
+                    val paramUnresolved = typeEnv.unresolved(node.span, "Generic type param $typeParam")
                     node.typeParamsTypes += typeEnv.box(paramUnresolved, node.span)
 
                     typeEnv.addBoundsConstraint(paramUnresolved, typeParam.requiredTags, node.span)
@@ -1004,10 +1009,20 @@ private fun ParserCtx.visitLambda(lambda: LstLambdaFunction, type: TType) {
 
     lambda.returnTypeBox = typeEnv.box(getTypeFromUsage(lambda.returnTypeUsage), lambda.span)
     lambda.body.returnTypeBox = lambda.returnTypeBox
-    typeEnv.addEqualConstraint(lambda.returnTypeBox!!.type, realType.params.last(), lambda.span)
+    typeEnv.addEqualConstraint(lambda.returnType, realType.params.last(), lambda.span)
 
     currentTag = null
     visitCode(lambda.body)
+
+    if (!lambda.returnType.isNothing()) {
+        val lastInst = code.lastExpression?.let { code.getInst(it) }
+
+        lastInst?.asExpr(lastInst)?.let { expr ->
+            typeEnv.addAssignableConstraint(lambda.returnType, expr.type, expr.span)
+        }
+    }
+
+    typeEnv.solveConstraints()
     finishCode(lambda.body, lambda.returnType, "Lambda", lambda.span)
 }
 
@@ -1040,7 +1055,7 @@ private fun ParserCtx.typeCheckAlloc(span: Span, definedType: TType, isEnumInsta
     // The real type is unknown until we resolve al unresolved types
     // and can replace the struct type template with concrete types
     val params = List(struct.typeParameters.size) {
-        definedType.params.getOrNull(it) ?: typeEnv.unresolved(span)
+        definedType.params.getOrNull(it) ?: typeEnv.unresolved(span, "Struct type param $it")
     }
 
     val base = if (struct.parentOption != null)
@@ -1071,7 +1086,7 @@ private fun ParserCtx.findTag(tu: LstTypeUsage): LstTag? {
     return null
 }
 
-private fun ParserCtx.findField(ty: TType, name: String): Pair<LstStruct, LstStructField>? {
+private fun findField(ty: TType, name: String): Pair<LstStruct, LstStructField>? {
     if (ty !is TComposite || (ty.base !is TStruct && ty.base !is TOptionItem)) {
         return null
     }

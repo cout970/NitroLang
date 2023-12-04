@@ -66,13 +66,6 @@ data class TypeParamRef(val id: Int) : Dumpable {
     override fun dump(): JsonElement = toString().dump()
 }
 
-data class UnresolvedTypeRef(val id: Int) : Dumpable {
-    override fun toString(): String = "unresolved#$id"
-
-    override fun dump(): JsonElement = toString().dump()
-}
-
-
 data class FieldRef(val id: Int) : Dumpable {
 
     override fun toString(): String = "field#$id"

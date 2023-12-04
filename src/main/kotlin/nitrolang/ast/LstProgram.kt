@@ -31,7 +31,6 @@ class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
     private var lastFunction = 0
     private var lastTag = 0
     private var lastTypeParam = 0
-    private var lastUnresolvedType = 0
     private var lastField = 0
 
     fun getFunction(fullName: String): LstFunction {
@@ -61,7 +60,6 @@ class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
     fun nextFunctionRef(): FunRef = FunRef(lastFunction++)
     fun nextTagRef(): TagRef = TagRef(lastTag++)
     fun nextTypeParamRef(): TypeParamRef = TypeParamRef(lastTypeParam++)
-    fun nextUnresolvedTypeRef(): UnresolvedTypeRef = UnresolvedTypeRef(lastUnresolvedType++)
 
     fun resetCounters(offset: Int) {
         lastStruct = offset
@@ -70,7 +68,6 @@ class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
         lastFunction = offset
         lastTag = offset
         lastTypeParam = offset
-        lastUnresolvedType = offset
         lastField = offset
     }
 

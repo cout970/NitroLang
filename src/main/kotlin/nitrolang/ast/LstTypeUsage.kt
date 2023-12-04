@@ -13,10 +13,11 @@ data class LstTypeUsage(
     val sub: List<LstTypeUsage>,
     val currentPath: Path,
     val typeParameter: LstTypeParameter?,
-    val unresolvedTypeRef: UnresolvedTypeRef? = null,
+    val isUnresolved: Boolean = false,
     val lambda: LstLambdaFunction? = null,
     var resolvedType: TypeBox? = null
 ) : Dumpable {
+    var debugName: String = ""
     var hasReceiver: Boolean = false
     val fullName: Path get() = createPath(path, name)
 
@@ -46,7 +47,7 @@ data class LstTypeUsage(
 
         fun string() = simple("String")
 
-        fun unresolved(unresolvedTypeRef: UnresolvedTypeRef, span: Span? = null) =
+        fun unresolved(span: Span? = null, debugName: String) =
             LstTypeUsage(
                 span = span ?: Span.internal(),
                 name = "<unresolved>",
@@ -54,8 +55,8 @@ data class LstTypeUsage(
                 sub = listOf(),
                 typeParameter = null,
                 currentPath = "",
-                unresolvedTypeRef = unresolvedTypeRef,
-            )
+                isUnresolved = true,
+            ).also { it.debugName = debugName }
 
         fun typeParam(param: LstTypeParameter) = LstTypeUsage(
             span = Span.internal(),

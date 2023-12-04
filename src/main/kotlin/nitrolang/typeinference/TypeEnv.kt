@@ -116,8 +116,8 @@ class TypeEnv(val collector: ErrorCollector) {
         constrains += TInitLambda(nextConsId++, box(dependency, span), callback, span)
     }
 
-    fun unresolved(span: Span, unresolvedTypeRef: UnresolvedTypeRef? = null, debugName: String = "") = type {
-        TUnresolved(it, span, unresolvedTypeRef, debugName).also { self -> unresolved += self }
+    fun unresolved(span: Span, debugName: String) = type {
+        TUnresolved(it, span, debugName).also { self -> unresolved += self }
     }
 
     fun unresolvedFunction(span: Span, debugName: String = "") = type {
@@ -529,10 +529,10 @@ class TypeEnv(val collector: ErrorCollector) {
         // Report missing types
         unresolved.forEach {
             val debug = if (it.debugName.isEmpty()) {
-                "${it.id}, ${it.unresolvedTypeRef}"
+                "${it.id}"
             }
             else {
-                "${it.debugName}: ${it.id}, ${it.unresolvedTypeRef}"
+                "${it.debugName}: ${it.id}"
             }
             collector.report("Not enough information to infer the type ($debug)", it.span)
         }

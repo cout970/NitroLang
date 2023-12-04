@@ -1,4 +1,4 @@
-
+/*
 struct HtmlElement {
     tag_name: String
     attributes: Map<String, String>
@@ -95,24 +95,29 @@ fun HtmlElement.script(config: HtmlScriptElement.() -> Nothing) {
 
     this.children[] = element
 }
+*/
 
 fun main() {
-    html @{
-        attr("lang", "en")
+//    html @{
+//        attr("lang", "en")
+//
+//        head @{
+//            script @{
+//                src = "https://code.jquery.com/jquery-3.4.1.slim.min.js"
+//                async = true
+//            }
+//        }
+//
+//        body @{
+//            div @{
+//                h1 @{
+//                    text("Hello, world!")
+//                }
+//            }
+//        }
+//    }
 
-        head @{
-            script @{
-                src = "https://code.jquery.com/jquery-3.4.1.slim.min.js"
-                async = true
-            }
-        }
-
-        body @{
-            div @{
-                h1 @{
-                    text("Hello, world!")
-                }
-            }
-        }
-    }
+    [1, 2, 3].map @{ this * 2 }
+        .filter @{ this > 2 }
+        .for_each @{ println(this) }
 }
