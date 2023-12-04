@@ -1,0 +1,6 @@
+
+fun main() {
+    [1, 2, 3].map @{ this * 2 }
+             .filter @{ this > 2 }
+             .for_each @{ println(this) }
+}

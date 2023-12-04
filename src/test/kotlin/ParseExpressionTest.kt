@@ -65,4 +65,14 @@ class ParseExpressionTest {
     fun lambda() {
         assertCompilationSuccess("internal/expression/lambda.nitro")
     }
+
+    @Test
+    fun lambda_chain() {
+        assertCompilationSuccess("internal/expression/lambda_chain.nitro")
+    }
+
+    @Test
+    fun html_dsl() {
+        assertCompilationSuccess("internal/expression/html_dsl.nitro")
+    }
 }
