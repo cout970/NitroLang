@@ -98,19 +98,19 @@ fun HtmlElement.script(config: HtmlScriptElement.() -> Nothing) {
 
 fun main() {
     html @{
-        this.attr("lang", "en")
+        attr("lang", "en")
 
-        this.head @{
-            this.script @{
+        head @{
+            script @{
                 src = "https://code.jquery.com/jquery-3.4.1.slim.min.js"
                 async = true
             }
         }
 
-        this.body @{
-            this.div @{
-                this.h1 @{
-                    this.text("Hello, world!")
+        body @{
+            div @{
+                h1 @{
+                    text("Hello, world!")
                 }
             }
         }

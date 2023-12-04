@@ -414,7 +414,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
         val tyName = ((ty as? TComposite)?.base as? TStruct)?.instance?.fullName ?: continue
 
         val funcName = call.posibleOptimizations[tyName] ?: continue
-        val matches = findBestFunctionMatch(funcName, call.concreteArgTypes.map { it.type })
+        val matches = findBestFunctionMatch(funcName, call.concreteArgTypes.map { it.type }, null)
         if (matches.size != 1) continue
         val match = matches[0]
 
@@ -466,69 +466,7 @@ fun ParserCtx.bindVariables(code: LstCode) {
     // Replace missing variables with field access/store on 'this'
     val thisVar = code.variables.find { it.name == SELF_NAME }
     if (thisVar != null) {
-        var i = 0
-        while (i < code.nodes.size) {
-            val node = code.nodes[i]
-
-            // Replace load_var with missing variable with load_field on `this`
-            if (node is LstLoadVar && node.isUnbound) {
-                val found = findField(thisVar.type, node.name)
-
-                // Replace with LstLoadField
-                if (found != null) {
-                    val loadThis = LstLoadVar(
-                        ref = code.nextRef(),
-                        span = node.span,
-                        block = node.block,
-                        name = SELF_NAME,
-                        path = "",
-                        variable = thisVar,
-                    )
-                    code.nodes.add(i, loadThis)
-                    i++
-
-                    code.nodes[i] = LstLoadField(
-                        ref = node.ref,
-                        span = node.span,
-                        block = node.block,
-                        instance = loadThis.ref,
-                        name = node.name,
-                    )
-                    continue
-                }
-            }
-
-            // Replace store_var with missing variable with store_field on `this`
-            if (node is LstStoreVar && node.isUnbound) {
-                val found = findField(thisVar.type, node.name)
-
-                // Replace with LstStoreField
-                if (found != null) {
-                    val loadThis = LstLoadVar(
-                        ref = code.nextRef(),
-                        span = node.span,
-                        block = node.block,
-                        name = SELF_NAME,
-                        path = "",
-                        variable = thisVar,
-                    )
-                    code.nodes.add(i, loadThis)
-                    i++
-
-                    code.nodes[i] = LstStoreField(
-                        ref = node.ref,
-                        span = node.span,
-                        block = node.block,
-                        instance = loadThis.ref,
-                        name = node.name,
-                        expr = node.expr,
-                    )
-                    continue
-                }
-            }
-
-            i++
-        }
+        addImplicitThis(thisVar)
     }
 
     // Report errors
@@ -543,6 +481,73 @@ fun ParserCtx.bindVariables(code: LstCode) {
             val kind = if (node.path.isNotEmpty()) "Constant" else "Variable"
             collector.report("$kind not found: ${node.name}", node.span)
         }
+    }
+}
+
+fun ParserCtx.addImplicitThis(thisVar: LstVar) {
+    var i = 0
+
+    while (i < code.nodes.size) {
+        val node = code.nodes[i]
+
+        // Replace load_var with missing variable with load_field on `this`
+        if (node is LstLoadVar && node.isUnbound) {
+            val found = findField(thisVar.type, node.name)
+
+            // Replace with LstLoadField
+            if (found != null) {
+                val loadThis = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = node.span,
+                    block = node.block,
+                    name = SELF_NAME,
+                    path = "",
+                    variable = thisVar,
+                )
+                code.nodes.add(i, loadThis)
+                i++
+
+                code.nodes[i] = LstLoadField(
+                    ref = node.ref,
+                    span = node.span,
+                    block = node.block,
+                    instance = loadThis.ref,
+                    name = node.name,
+                )
+                continue
+            }
+        }
+
+        // Replace store_var with missing variable with store_field on `this`
+        if (node is LstStoreVar && node.isUnbound) {
+            val found = findField(thisVar.type, node.name)
+
+            // Replace with LstStoreField
+            if (found != null) {
+                val loadThis = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = node.span,
+                    block = node.block,
+                    name = SELF_NAME,
+                    path = "",
+                    variable = thisVar,
+                )
+                code.nodes.add(i, loadThis)
+                i++
+
+                code.nodes[i] = LstStoreField(
+                    ref = node.ref,
+                    span = node.span,
+                    block = node.block,
+                    instance = loadThis.ref,
+                    name = node.name,
+                    expr = node.expr,
+                )
+                continue
+            }
+        }
+
+        i++
     }
 }
 
@@ -607,7 +612,6 @@ fun <T> ParserCtx.linkVariable(node: T, code: LstCode) where T : LstExpression, 
         }
     }
 }
-
 
 fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
     when (node) {
@@ -869,8 +873,10 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 argTypes += expr.type
             }
 
-            typeEnv.addFindFunctionConstraint(argTypes, node.span) { args ->
-                val options = findBestFunctionMatch(node.fullName, args)
+            typeEnv.addFindFunctionConstraint(argTypes, node.span) { matchArgs ->
+                val thisVar = code.variables.find { it.name == SELF_NAME }
+                val scopeThis = thisVar?.type
+                val options = findBestFunctionMatch(node.fullName, matchArgs, scopeThis)
 
                 if (options.size != 1) {
                     val returnType = node.type
@@ -886,7 +892,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         node.type = typeEnv.invalid(node.span, "Function resolution ambiguity '${node.fullName}'")
                     }
 
-                    args.forEach { arg ->
+                    matchArgs.forEach { arg ->
                         node.concreteArgTypes += node.typeBox!!
                         typeEnv.addAssignableConstraint(node.type, arg, node.span)
                     }
@@ -896,6 +902,12 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 }
 
                 val func = options.first()
+                val args = if (scopeThis != null && func.params.size == matchArgs.size + 1) {
+                    node.usesImplicitThis = thisVar
+                    listOf(scopeThis) + matchArgs
+                } else {
+                    matchArgs
+                }
 
                 if (func.params.size != args.size) {
                     collector.report(

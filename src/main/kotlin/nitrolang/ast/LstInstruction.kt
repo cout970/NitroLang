@@ -608,6 +608,7 @@ class LstFunCall(
     var function: LstFunction? = null,
     val explicitTypeParams: List<LstTypeUsage> = emptyList(),
 ) : LstExpression(ref, span, block) {
+    var usesImplicitThis: LstVar? = null
     val concreteArgTypes = mutableListOf<TypeBox>()
     val typeParamsTypes = mutableListOf<TypeBox>()
     var posibleOptimizations = emptyMap<String, String>()

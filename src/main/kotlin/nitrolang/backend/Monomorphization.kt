@@ -628,6 +628,10 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
             error("Missing attributes on @External annotation")
         }
 
+        if (inst.usesImplicitThis != null) {
+            val thisVar = mono.variableMap[inst.usesImplicitThis!!.ref]!!
+            mono.instructions += MonoLoadVar(mono.nextId(), inst.span, thisVar)
+        }
         inst.arguments.forEach { ref -> consumer(inst.span, ref) }
         mono.instructions += MonoFunCall(mono.nextId(), inst.span, getMonoFunction(function, ctx))
         provider(inst.span, inst.ref, finalType)
@@ -689,6 +693,10 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
         getMonoFunction(function, newCtx)
     }
 
+    if (inst.usesImplicitThis != null) {
+        val thisVar = mono.variableMap[inst.usesImplicitThis!!.ref]!!
+        mono.instructions += MonoLoadVar(mono.nextId(), inst.span, thisVar)
+    }
     inst.arguments.forEach { ref -> consumer(inst.span, ref) }
     mono.instructions += MonoFunCall(mono.nextId(), inst.span, monoFunction)
     provider(inst.span, inst.ref, finalType)
