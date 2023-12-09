@@ -24,7 +24,6 @@ Intended for the developers
 ### Other features to implement
 
 - Improve core library
-- Call lambdas without the `func.invoke(args)` syntax
 - Smart casts
 - Place core in a module for namespacing
 - Assert type has tag `assert tag ToString for List<#Item>`

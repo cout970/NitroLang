@@ -482,7 +482,10 @@ private fun ParserCtx.visitCode(code: LstCode) {
 
         // Variable is used before initialization
         if (inst is LstLoadVar && inst.variable != null && !inst.variable!!.isParam && inst.variable in uninitialized) {
-            collector.report("Variable '${inst.name}' is used, but variable initialization may not happen yet", inst.span)
+            collector.report(
+                "Variable '${inst.name}' is used, but variable initialization may not happen yet",
+                inst.span
+            )
             continue
         }
     }
@@ -1028,6 +1031,42 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             for (arg in node.arguments) {
                 val expr = code.getInst(arg).asExpr(node) ?: error("Missing argument expression")
                 argTypes += expr.type
+            }
+
+            if (node.path == "" && node.explicitTypeParams.isEmpty()) {
+                val variable = findVariable(node.name, node.block, node.ref, code)
+
+                if (variable?.typeBox != null && variable.type.isFunction()) {
+                    val index = code.nodes.indexOf(node)
+                    val variableLoad = LstLoadVar(
+                        ref = code.nextRef(),
+                        span = node.span,
+                        block = node.block,
+                        name = node.name,
+                        path = "",
+                        variable = variable,
+                    )
+
+                    val funcCall = LstFunCall(
+                        ref = node.ref,
+                        span = node.span,
+                        block = node.block,
+                        name = "invoke",
+                        path = "",
+                        arguments = listOf(variableLoad.ref) + node.arguments,
+                    )
+
+                    // Share return type
+                    funcCall.typeBox = node.typeBox
+
+                    code.nodes[index] = funcCall
+                    // Add in the same slot, so the function call is shifted to the next slot
+                    code.nodes.add(index, variableLoad)
+
+                    visitExpression(variableLoad, code)
+                    visitExpression(funcCall, code)
+                    return
+                }
             }
 
             typeEnv.addFindFunctionConstraint(argTypes, node.span) { matchArgs ->

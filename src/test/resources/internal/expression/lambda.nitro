@@ -178,7 +178,7 @@ fun lambda_with_argument(i: Int) {
          i = i + 1
          println(i)
      }
-     lambda.invoke()
+     lambda()
      i = i - 1
      println(i)
 

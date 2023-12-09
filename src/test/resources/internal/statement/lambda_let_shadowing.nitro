@@ -12,5 +12,5 @@ fun main() {
 
     let a = "Hello, World!"
 
-    run.invoke()
+    run()
 }

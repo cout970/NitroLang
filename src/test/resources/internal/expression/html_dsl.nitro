@@ -37,31 +37,31 @@ fun HtmlElement::new(name: String): HtmlElement {
 
 fun html(config: HtmlElement.() -> Nothing) {
     let value = HtmlElement::new("html")
-    config.invoke(value)
+    config(value)
     println(value.to_string())
 }
 
 fun HtmlElement.head(config: HtmlElement.() -> Nothing) {
     let value = HtmlElement::new("head")
-    config.invoke(value)
+    config(value)
     this.children[] = value
 }
 
 fun HtmlElement.body(config: HtmlElement.() -> Nothing) {
     let value = HtmlElement::new("body")
-    config.invoke(value)
+    config(value)
     this.children[] = value
 }
 
 fun HtmlElement.div(config: HtmlElement.() -> Nothing) {
     let value = HtmlElement::new("div")
-    config.invoke(value)
+    config(value)
     this.children[] = value
 }
 
 fun HtmlElement.h1(config: HtmlElement.() -> Nothing) {
     let value = HtmlElement::new("h1")
-    config.invoke(value)
+    config(value)
     this.children[] = value
 }
 
@@ -88,7 +88,7 @@ fun HtmlElement.script(config: HtmlScriptElement.() -> Nothing) {
         src: ""
         async: false
     ]
-    config.invoke(value)
+    config(value)
     element.attributes["async"] = value.async.to_string()
     element.attributes["src"] = value.src
 
