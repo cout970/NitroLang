@@ -121,6 +121,8 @@ LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;
 PLAIN_STRING                    : '"' (~["$\\]|[\\].)* '"' ;
 // String interpolation section
 STRING_START                    : '"'  -> pushMode(STRING_MODE) ;
+// String interpolation section
+STRING2_START                   : 'r#"'-> pushMode(STRING2_MODE) ;
 // Especial case to end string interpolation
 RBRACE                          : '}' {
   if(_modeStack.size() > 0) {
@@ -140,6 +142,11 @@ STRING_INTERP_END               : '}';
 STRING_VAR                      : '$' LOWER_IDENTIFIER ;
 STRING_BLOB                     : ~["$\\]+ ;
 STRING_END                      : '"' -> popMode ;
+
+mode STRING2_MODE;
+STRING2_NL                       : [\n] ;
+STRING2_BLOB                     : .+? ;
+STRING2_END                      : '"#' -> popMode ;
 
 mode BLOCK_MODE;
 BLOCK_END                       : '```' -> popMode ;

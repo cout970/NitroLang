@@ -17,6 +17,7 @@ anyName : LOWER_IDENTIFIER | UPPER_IDENTIFIER ;
 string
     : PLAIN_STRING
     | STRING_START stringContents* STRING_END
+    | STRING2_START string2Contents* STRING2_END
     ;
 
 stringContents
@@ -24,6 +25,11 @@ stringContents
     | STRING_ESCAPE
     | STRING_VAR
     | STRING_INTERP_START expression (STRING_INTERP_END|RBRACE)
+    ;
+
+string2Contents
+    : STRING2_BLOB
+    | STRING2_NL
     ;
 
 // Definitions

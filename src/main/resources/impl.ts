@@ -1,14 +1,14 @@
 import {
-    getInt,
-    setInt,
-    assert,
-    getFloat,
-    getString,
-    createString,
-    setByte,
-    memcopy,
-    dumpMemory,
-    mem, setFloat,
+  getInt,
+  setInt,
+  assert,
+  getFloat,
+  getString,
+  createString,
+  setByte,
+  memcopy,
+  dumpMemory,
+  mem, setFloat, alloc, PTR, setLong, getLong,
 } from './internal.ts'
 
 // @formatter:off
@@ -130,7 +130,7 @@ export function memory_copy_internal(target: number, source: number, len: number
 // fun memory_alloc_trace(Int, Int): Nothing
 export function memory_alloc_trace(amount: number, ptr: number): void {
     // console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
-    console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
+    // console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
 }
 
 // -------------------------------------------------------------------------
@@ -400,6 +400,35 @@ export function string_to_ascii_lowercase(self: number): number {
 // fun to_ascii_uppercase(String): String
 export function string_to_ascii_uppercase(self: number): number {
     return createString(getString(self).toUpperCase());
+}
+
+//
+// -------------------------------------------------------------------------
+// From instant.nitro
+// -------------------------------------------------------------------------
+//
+// At src/main/nitro/core/time/instant.nitro(instant.nitro:143)
+// @Extern [lib="core", name="instant_now"]
+// fun Instant::now(): Instant
+export function instant_now(): number {
+    let preciseClockMs = performance.now() + performance.timeOrigin;
+    let decimals = preciseClockMs % 1000;
+    let seconds = BigInt((preciseClockMs / 1000)|0);
+    let nanos = decimals * 1_000_000;
+
+    let ptr = alloc(PTR * 3);
+    setLong(ptr, seconds);
+    setInt(ptr + 2 * PTR, nanos);
+    return ptr;
+}
+//
+// At src/main/nitro/core/time/instant.nitro(instant.nitro:147)
+// @Extern [lib="core", name="instant_format_to_iso8601"]
+// fun format_to_iso8601(Instant): String
+export function instant_format_to_iso8601(self: number): number {
+    let seconds = Number(getLong(self))
+    let nanos = getInt(self + 2)
+    return createString(new Date(seconds + nanos / 1_000_000_000).toISOString());
 }
 
 // -------------------------------------------------------------------------

@@ -651,11 +651,9 @@ fun ParserCtx.processConstExpr(ctx: MainParser.ConstExprContext): ConstValue {
         ctx.constExpressionLiteral().INT_NUMBER() != null -> {
             val text = ctx.constExpressionLiteral().INT_NUMBER().text
 
-            val intValue = when {
-                text.startsWith("0x") -> text.substring(2).toUInt(16).toInt()
-                text.startsWith("0o") -> text.substring(2).toUInt(8).toInt()
-                text.startsWith("0b") -> text.substring(2).toUInt(2).toInt()
-                else -> text.toInt()
+            val intValue = stringToInt(text) ?: run {
+                collector.report("Invalid int value '${text}'", ctx.span())
+                0
             }
 
             if (text.startsWith("-") || text.startsWith("+")) {
@@ -667,17 +665,18 @@ fun ParserCtx.processConstExpr(ctx: MainParser.ConstExprContext): ConstValue {
 
         ctx.constExpressionLiteral().FLOAT_NUMBER() != null -> {
             val text = ctx.constExpressionLiteral().FLOAT_NUMBER().text
-            val floatValue = text.toFloatOrNull()
+            var floatValue = stringToFloat(text)
 
             if (floatValue == null) {
                 collector.report("Invalid float value '${text}'", ctx.span())
+                floatValue = 0f
             }
 
             if (text.startsWith("-") || text.startsWith("+")) {
                 checkSubPreviousToken(ctx.constExpressionLiteral(), ctx.constExpressionLiteral().FLOAT_NUMBER())
             }
 
-            ConstFloat(floatValue ?: 0f)
+            ConstFloat(floatValue)
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
@@ -711,7 +710,7 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
         }
 
         ctx.LONG_NUMBER() != null -> {
-            val text = ctx.LONG_NUMBER().text.trimEnd('l', 'L')
+            val text = ctx.LONG_NUMBER().text
             var longValue = stringToLong(text)
 
             if (longValue == null) {
@@ -734,8 +733,8 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
         }
 
         ctx.FLOAT_NUMBER() != null -> {
-            val text = ctx.FLOAT_NUMBER().text.trimEnd('f', 'F', 'd', 'D')
-            var floatValue = text.toFloatOrNull()
+            val text = ctx.FLOAT_NUMBER().text
+            var floatValue = stringToFloat(text)
 
             if (floatValue == null) {
                 collector.report("Invalid float value '${text}'", ctx.span())
@@ -814,6 +813,18 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
             span = ctx.span(),
             block = code.currentBlock,
             value = processPlainString(ctx.PLAIN_STRING())
+        )
+        code.nodes += node
+        return node.ref
+    }
+
+    if (ctx.STRING2_START() != null) {
+        val text = ctx.string2Contents().joinToString("") { it.text }
+        val node = LstString(
+            ref = code.nextRef(),
+            span = ctx.span(),
+            block = code.currentBlock,
+            value = text
         )
         code.nodes += node
         return node.ref
@@ -931,7 +942,12 @@ fun unescapeStringLiteral(tokenText: String): String {
     return text
 }
 
-fun ParserCtx.createStructInstance(type: LstTypeUsage, fields: List<Pair<String, Ref>>, code: LstCode, span: Span): Ref {
+fun ParserCtx.createStructInstance(
+    type: LstTypeUsage,
+    fields: List<Pair<String, Ref>>,
+    code: LstCode,
+    span: Span
+): Ref {
     val alloc = LstAlloc(
         ref = code.nextRef(),
         span = span,
@@ -998,11 +1014,10 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
         }
 
         value.FLOAT_NUMBER() != null -> {
-            val text = value.FLOAT_NUMBER().text
-            var floatValue = stringToFloat(text)
+            var floatValue = stringToFloat(value.FLOAT_NUMBER().text)
 
             if (floatValue == null) {
-                collector.report("Invalid float value '${text}'", value.span())
+                collector.report("Invalid float value '${value.FLOAT_NUMBER().text}'", value.span())
                 floatValue = 0f
             }
 
@@ -1822,21 +1837,25 @@ fun ParserCtx.processExpressionTemplateLiteral(ctx: MainParser.TemplateLiteralCo
 }
 
 private fun stringToInt(text: String): Int? {
+    val num = text.replace("_", "")
     return when {
-        text.startsWith("0x") -> text.substring(2).toUIntOrNull(16)?.toInt()
-        text.startsWith("0o") -> text.substring(2).toUIntOrNull(8)?.toInt()
-        text.startsWith("0b") -> text.substring(2).toUIntOrNull(2)?.toInt()
-        else -> text.toIntOrNull()
+        num.startsWith("0x") -> num.substring(2).toUIntOrNull(16)?.toInt()
+        num.startsWith("0o") -> num.substring(2).toUIntOrNull(8)?.toInt()
+        num.startsWith("0b") -> num.substring(2).toUIntOrNull(2)?.toInt()
+        else -> num.toIntOrNull()
     }
 }
 
 private fun stringToLong(text: String): Long? {
+    val num = text.trimEnd('l', 'L').replace("_", "")
     return when {
-        text.startsWith("0x") -> text.substring(2).toULongOrNull(16)?.toLong()
-        text.startsWith("0o") -> text.substring(2).toULongOrNull(8)?.toLong()
-        text.startsWith("0b") -> text.substring(2).toULongOrNull(2)?.toLong()
-        else -> text.toLongOrNull()
+        num.startsWith("0x") -> num.substring(2).toULongOrNull(16)?.toLong()
+        num.startsWith("0o") -> num.substring(2).toULongOrNull(8)?.toLong()
+        num.startsWith("0b") -> num.substring(2).toULongOrNull(2)?.toLong()
+        else -> num.toLongOrNull()
     }
 }
 
-private fun stringToFloat(text: String): Float? = text.toFloatOrNull()
+private fun stringToFloat(text: String): Float? {
+    return text.trimEnd('f', 'F', 'd', 'D').replace("_", "").toFloatOrNull()
+}

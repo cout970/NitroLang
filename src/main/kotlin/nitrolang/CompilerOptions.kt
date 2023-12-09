@@ -5,6 +5,7 @@ import java.io.File
 data class CompilerOptions(
     var source: String = "main.nitro",
     var output: String = "out.wat",
+    var server: String? = null,
     var includes: MutableList<String> = mutableListOf(),
     var profile: Boolean = false,
     var execute: Boolean = false,
@@ -52,6 +53,16 @@ data class CompilerOptions(
                         if (include !in opt.includes) {
                             opt.includes.add(include)
                         }
+                    }
+
+                    "-s", "--server" -> {
+                        i++
+                        if (args.size <= i) {
+                            println("Missing server <ip>:<port>")
+                            return null
+                        }
+                        opt.server = args[i]
+                        i++
                     }
 
                     "-t", "--test" -> {
@@ -122,6 +133,11 @@ data class CompilerOptions(
                 }
             }
 
+            // Server mode ignores the input/output files
+            if (opt.server != null) {
+                return opt
+            }
+
             if (!File(opt.source).exists()) {
                 println("Source file not found: ${opt.source}")
                 return null
@@ -143,6 +159,7 @@ data class CompilerOptions(
             println("  -t, --test                   Run tests")
             println("  -w, --watch <dir>[,<dir2>]   Watch directories for changes")
             println("  -e, --execute                Execute the compiled program")
+            println("  -s, --server                 Start a server at <ip>:<port> (or just <port>)")
             println("  --profile                    Show profiling information")
             println("  --dump-ir                    Dump IR")
             println("  --dump-wasm                  Dump WASM")

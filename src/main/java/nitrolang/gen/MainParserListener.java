@@ -88,6 +88,16 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitStringContents(MainParser.StringContentsContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link MainParser#string2Contents}.
+	 * @param ctx the parse tree
+	 */
+	void enterString2Contents(MainParser.String2ContentsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MainParser#string2Contents}.
+	 * @param ctx the parse tree
+	 */
+	void exitString2Contents(MainParser.String2ContentsContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link MainParser#definition}.
 	 * @param ctx the parse tree
 	 */

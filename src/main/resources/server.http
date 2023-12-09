@@ -1,0 +1,7 @@
+POST localhost:8080/compile
+Content-Type: application/json
+Accept: application/json
+
+{
+  "source": "fun main() { println(\"Hello, World!\") }"
+}

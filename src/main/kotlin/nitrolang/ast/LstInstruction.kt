@@ -30,10 +30,10 @@ sealed class LstConstant(id: Ref, span: Span, block: LstBlock) : LstExpression(i
     abstract fun toRawString(): String
 }
 
-data class LstBoolean(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstBoolean(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val value: Boolean
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value [$typeBox]"
@@ -49,10 +49,10 @@ data class LstBoolean(
     }
 }
 
-data class LstInt(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstInt(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val value: Int
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value [$typeBox]"
@@ -68,10 +68,10 @@ data class LstInt(
     }
 }
 
-data class LstLong(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLong(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val value: Long
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value [$typeBox]"
@@ -87,10 +87,10 @@ data class LstLong(
     }
 }
 
-data class LstFloat(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstFloat(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val value: Float
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = $value [$typeBox]"
@@ -106,10 +106,10 @@ data class LstFloat(
     }
 }
 
-data class LstString(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstString(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val value: String
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = \"${value.replace("\n", "\\n")}\" [$typeBox]"
@@ -125,10 +125,10 @@ data class LstString(
     }
 }
 
-data class LstNothing(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstNothing(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
 ) : LstConstant(ref, span, block) {
     override fun toString(): String = "$ref = nothing [$typeBox]"
 
@@ -142,10 +142,10 @@ data class LstNothing(
     }
 }
 
-data class LstIfStart(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstIfStart(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val cond: Ref,
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String {
@@ -160,10 +160,10 @@ data class LstIfStart(
     }
 }
 
-data class LstIfElse(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstIfElse(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String {
         return "$ref else"
@@ -176,10 +176,10 @@ data class LstIfElse(
     }
 }
 
-data class LstIfEnd(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstIfEnd(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String {
         return "$ref end-if"
@@ -193,10 +193,10 @@ data class LstIfEnd(
 }
 
 
-data class LstIfChoose(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstIfChoose(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val cond: Ref,
     val ifTrue: Ref,
     val ifFalse: Ref
@@ -214,10 +214,10 @@ data class LstIfChoose(
     }
 }
 
-data class LstWhenStart(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstWhenStart(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
 ) : LstInstruction(ref, span, block) {
     val name: String get() = "\$when-${ref.id}"
 
@@ -239,10 +239,10 @@ data class LstWhenStart(
     }
 }
 
-data class LstWhenJump(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstWhenJump(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val whenBlock: LstBlock,
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String {
@@ -257,10 +257,10 @@ data class LstWhenJump(
     }
 }
 
-data class LstWhenStore(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstWhenStore(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val expr: Ref,
     val start: LstWhenStart,
 ) : LstInstruction(ref, span, block) {
@@ -282,10 +282,10 @@ data class LstWhenStore(
     }
 }
 
-data class LstWhenEnd(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstWhenEnd(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val isStatement: Boolean,
     val branchStores: List<LstWhenStore> = emptyList(),
     val start: LstWhenStart,
@@ -302,10 +302,10 @@ data class LstWhenEnd(
     }
 }
 
-data class LstLoopStart(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLoopStart(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val breakBlock: LstBlock,
     val continueBlock: LstBlock,
 ) : LstInstruction(ref, span, block) {
@@ -318,10 +318,10 @@ data class LstLoopStart(
     }
 }
 
-data class LstLoopEnd(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock
+class LstLoopEnd(
+    ref: Ref,
+    span: Span,
+    block: LstBlock
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String = "$ref end-loop :$block"
 
@@ -332,10 +332,10 @@ data class LstLoopEnd(
     }
 }
 
-data class LstLoopJump(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLoopJump(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val backwards: Boolean,
     var loopBlock: LstBlock? = null
 ) : LstInstruction(ref, span, block) {
@@ -350,10 +350,10 @@ data class LstLoopJump(
     }
 }
 
-data class LstIsType(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstIsType(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val expr: Ref,
     val typePattern: LstTypePattern
 ) : LstExpression(ref, span, block) {
@@ -369,10 +369,10 @@ data class LstIsType(
     }
 }
 
-data class LstAsType(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstAsType(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val expr: Ref,
     val typeUsage: LstTypeUsage
 ) : LstExpression(ref, span, block) {
@@ -389,10 +389,10 @@ data class LstAsType(
     }
 }
 
-data class LstReturn(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstReturn(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val expr: Ref
 ) : LstExpression(ref, span, block) {
     override fun toString(): String = "$ref = return $expr [$typeBox]"
@@ -406,10 +406,10 @@ data class LstReturn(
     }
 }
 
-data class LstSizeOf(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstSizeOf(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val typeUsage: LstTypeUsage,
 ) : LstExpression(ref, span, block) {
     var typeUsageBox: TypeBox? = null
@@ -433,10 +433,10 @@ interface HasVarRef {
     var constant: LstConst?
 }
 
-data class LstLetVar(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLetVar(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val variable: LstVar,
 ) : LstInstruction(ref, span, block) {
     override fun toString(): String = "$ref let ${variable.name} (${variable.ref})"
@@ -449,10 +449,10 @@ data class LstLetVar(
     }
 }
 
-data class LstLoadVar(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLoadVar(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     override val name: String,
     override val path: Path,
     override var variable: LstVar? = null
@@ -474,10 +474,10 @@ data class LstLoadVar(
     }
 }
 
-data class LstStoreVar(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstStoreVar(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     override val name: String,
     override val path: Path,
     val expr: Ref,
@@ -509,10 +509,10 @@ interface HasFieldRef {
     var fieldRef: FieldRef?
 }
 
-data class LstLoadField(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLoadField(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     override val instance: Ref,
     override val name: String
 ) : LstExpression(ref, span, block), HasFieldRef {
@@ -533,10 +533,10 @@ data class LstLoadField(
     }
 }
 
-data class LstStoreField(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstStoreField(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     override val name: String,
     override val instance: Ref,
     val expr: Ref
@@ -559,10 +559,10 @@ data class LstStoreField(
     }
 }
 
-data class LstAlloc(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstAlloc(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val typeUsage: LstTypeUsage,
 ) : LstExpression(ref, span, block) {
     var typeUsageBox: TypeBox? = null
@@ -580,10 +580,10 @@ data class LstAlloc(
     }
 }
 
-data class LstLambdaInit(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstLambdaInit(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val lambda: LstLambdaFunction,
 ) : LstExpression(ref, span, block) {
 
@@ -598,9 +598,9 @@ data class LstLambdaInit(
 }
 
 class LstFunCall(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val name: String,
     val path: Path,
     val arguments: List<Ref>,
@@ -630,10 +630,10 @@ class LstFunCall(
     }
 }
 
-data class LstComment(
-    override val ref: Ref,
-    override val span: Span,
-    override val block: LstBlock,
+class LstComment(
+    ref: Ref,
+    span: Span,
+    block: LstBlock,
     val comment: String
 ) : LstInstruction(ref, span, block) {
 

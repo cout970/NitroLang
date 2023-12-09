@@ -28,7 +28,17 @@ data class Span(
 
     override fun toString(): String {
         // Make Intellij links clickable
-        return "${file.path}(${file.path.substringAfterLast("/")}:${line + 1})"
+        val path = if (file.path.contains("/src/")) {
+            file.path.substringAfter("/src/")
+        } else {
+            file.path
+        }
+        return "$path(${file.path.substringAfterLast("/")}:${line + 1})"
+    }
+
+    fun toLinkString(): String {
+        val filename = file.path.substringAfterLast("/")
+        return "$filename($filename:${line + 1})"
     }
 
     fun isInternal(): Boolean = file.length == 0

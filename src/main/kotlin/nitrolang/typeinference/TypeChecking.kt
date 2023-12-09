@@ -890,10 +890,24 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         collector.report("Function '${node.fullName}' not found", node.span)
                         node.type = typeEnv.invalid(node.span, "Function not found '${node.fullName}'")
                     } else {
-                        collector.report(
-                            "Function resolution ambiguity '${node.fullName}':\n  - ${options.joinToString("\n  - ") { it.span.toString() }}",
-                            node.span
-                        )
+
+                        // If one of the input types is invalid, don't report the ambiguity
+                        if (!matchArgs.any { it is TInvalid }) {
+                            if (options.size < 4) {
+                                val list = "\n  - ${
+                                    options.joinToString("\n  - ") {
+                                        it.toSignature() + " at " + it.span.toLinkString()
+                                    }
+                                }"
+                                collector.report("Function resolution ambiguity '${node.fullName}':$list", node.span)
+                            } else {
+                                collector.report(
+                                    "Function resolution ambiguity '${node.fullName}' with ${options.size} posible matches",
+                                    node.span
+                                )
+                            }
+                        }
+
                         node.type = typeEnv.invalid(node.span, "Function resolution ambiguity '${node.fullName}'")
                     }
 

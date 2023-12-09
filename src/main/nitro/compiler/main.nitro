@@ -1,2 +1,11 @@
 
-fun main() {}
+fun main() {
+    let start = Instant::now()
+    repeat 2_000_000 {
+         repeat 200 {
+            1 + 1
+         }
+    }
+    let end = Instant::now()
+    println(end.elapsed_since(start));
+}

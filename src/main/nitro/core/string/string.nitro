@@ -184,6 +184,11 @@ fun String.split(separator: String): List<String> {
     let sep_len = separator.byte_len()
 
     while cursor < total_len {
+        if sep_len == 0 && start == cursor {
+            cursor += 1
+            continue
+        }
+
         if this.contains_substring_at(cursor, separator) {
             list[] = this.sub_string(start, cursor)
             start = cursor + sep_len
@@ -263,3 +268,23 @@ fun String.mul(amount: Int): String {
 
 // Implementation of the ToString tag for strings
 fun String.to_string(): String = this
+
+// Converts a string to an integer
+fun String.to_int(): Optional<Int> {
+    let result = 0
+    let total_len = this.len()
+    let cursor = 0
+
+    while cursor < total_len {
+        let byte = this[cursor].to_int()
+
+        if byte < 48 || byte > 57 {
+            ret None()
+        }
+
+        result = result * 10 + (byte - 48)
+        cursor += 1
+    }
+
+    ret Some(result)
+}

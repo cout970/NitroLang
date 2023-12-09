@@ -59,6 +59,12 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStringContents(MainParser.StringContentsContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link MainParser#string2Contents}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitString2Contents(MainParser.String2ContentsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MainParser#definition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

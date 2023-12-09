@@ -50,3 +50,19 @@ fun Pair<#A, #B>.map_second<#C>(func: (#B) -> #C): Pair<#A, #C> {
 fun <#A: ToString, #B: ToString> Pair<#A, #B>.to_string(): String {
     ret "(${this.first}, ${this.second})"
 }
+
+// Compare the pair to another pair
+fun <#A: MapKey, #B: MapKey> Pair<#A, #B>.get_ordering(other: Pair<#A, #B>): Ordering {
+    let a_ordering = this.first.get_ordering(other.first)
+
+    if a_ordering is Ordering::Equals {
+        ret this.second.get_ordering(other.second)
+    }
+
+    ret a_ordering
+}
+
+// Get the hash code for the pair
+fun <#A: MapKey, #B: MapKey> Pair<#A, #B>.get_hash(): Int {
+    ret this.first.get_hash() * 31 + this.second.get_hash()
+}

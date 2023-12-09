@@ -9,7 +9,7 @@ import nitrolang.typeinference.TType
 import nitrolang.typeinference.TypeEnv
 import nitrolang.util.*
 
-class LstProgram(val compilerOptions: CompilerOptions) : Dumpable {
+class LstProgram(var compilerOptions: CompilerOptions) : Dumpable {
     val collector = ErrorCollector()
     val typeEnv = TypeEnv(collector)
 

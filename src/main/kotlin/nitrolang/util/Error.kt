@@ -1,5 +1,7 @@
 package nitrolang.util
 
+import com.google.gson.Gson
+
 
 class ErrorCollector {
     private val errors = mutableListOf<ErrorInfo>()
@@ -14,6 +16,10 @@ class ErrorCollector {
 
     fun isEmpty(): Boolean = errors.isEmpty()
     fun isNotEmpty(): Boolean = errors.isNotEmpty()
+
+    fun toJson(gson: Gson): String {
+        return gson.toJson(errors)
+    }
 
     override fun toString(): String {
         return errors.joinToString("\n")
@@ -39,7 +45,7 @@ open class ErrorInfo(
         }
 
         appendLine("Report source: $source")
-        appendLine(span)
+        appendLine("At $span")
         appendLine(message)
 
         var lineStart = span.start

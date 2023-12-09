@@ -17,7 +17,6 @@ import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
-
 fun main(args: Array<String>) {
     val opts = CompilerOptions.fromArgs(args)
     if (opts == null) {
@@ -25,8 +24,13 @@ fun main(args: Array<String>) {
         return
     }
 
+    if (opts.server != null) {
+        listen(opts)
+        return
+    }
+
     try {
-        if (compile(opts) && opts.execute) {
+        if (compileToWat(opts).collector.isEmpty() && opts.execute) {
             execute(File(opts.output))
         }
     } catch (e: Throwable) {
@@ -50,7 +54,7 @@ fun main(args: Array<String>) {
             }
 
             try {
-                if (compile(opts) && opts.execute) {
+                if (compileToWat(opts).collector.isEmpty() && opts.execute) {
                     execute(File(opts.output))
                 }
             } catch (e: Throwable) {
@@ -60,7 +64,7 @@ fun main(args: Array<String>) {
     }
 }
 
-fun compile(opt: CompilerOptions): Boolean {
+fun compileToWat(opt: CompilerOptions): LstProgram {
     Prof.start("compile")
     Prof.start("program")
     val program = LstProgram(opt)
@@ -157,7 +161,7 @@ fun compile(opt: CompilerOptions): Boolean {
 
         System.err.println(program.collector.toString())
         Prof.end()
-        return false
+        return program
     }
 
     Prof.next("mark_code")
@@ -186,11 +190,11 @@ fun compile(opt: CompilerOptions): Boolean {
     if (program.collector.isNotEmpty()) {
         System.err.println(program.collector.toString())
         Prof.end()
-        return false
+        return program
     }
 
     Prof.end()
-    return true
+    return program
 }
 
 fun dumpIr(program: LstProgram) {
@@ -212,15 +216,21 @@ fun dumpIr(program: LstProgram) {
     }
 }
 
+fun compileToWasm(watFile: File, wasmFile: File): Boolean {
+    val status = ProcessBuilder("wat2wasm", "--enable-code-metadata", watFile.path, "-o", wasmFile.path)
+        .inheritIO()
+        .start()
+        .waitFor()
+
+    return status == 0
+}
+
 fun execute(watFile: File) {
     Prof.start("run")
     val wasmFile = File(watFile.parentFile, "compiled.wasm")
 
     Prof.start("wat2wasm")
-    ProcessBuilder("wat2wasm", "--enable-code-metadata", watFile.path, "-o", wasmFile.path)
-        .inheritIO()
-        .start()
-        .waitFor()
+    compileToWasm(watFile, wasmFile)
     Prof.end()
 
     Prof.start("deno")

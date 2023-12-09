@@ -104,7 +104,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.set(key: #Key, value: #Value) {
             ret
         }
 
-        index = index + 1
+        index = (index + 1).modulo(this.capacity)
     }
 
     unreachable()
@@ -152,7 +152,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<Pair<#Key, #
         }
 
         // Check next slot
-        index = index + 1
+        index = (index + 1).modulo(this.capacity)
     }
 
     // Not found
@@ -196,7 +196,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
         }
 
         // Check next slot
-        index = index + 1
+        index = (index + 1).modulo(this.capacity)
     }
 
     // Not found
