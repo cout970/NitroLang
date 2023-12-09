@@ -17,3 +17,8 @@ fun Byte.get_ordering(other: Byte): Ordering {
 
     return this_int.get_ordering(other_int)
 }
+
+// Convert a byte to a string
+fun Byte.to_string(): String {
+    return this.to_int().to_string()
+}

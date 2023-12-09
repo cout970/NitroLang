@@ -51,6 +51,19 @@ fun ParserCtx.doAllTypeChecking() {
         func.typeParameters.forEach { tp ->
             tp.requiredTags += tp.bounds.mapNotNull { findTag(it) }
         }
+
+        // Detect getters
+        if (func.name.startsWith("get_") && func.params.size == 1 && func.hasReceiver && !func.returnType.isNothing() && !func.returnType.isNever()) {
+            val propName = func.name.substring(4)
+            program.propertyGetters += Triple(func.params.first().type, propName, func)
+        }
+
+        // Detect setters
+        if (func.name.startsWith("set_") && func.params.size == 2 && func.hasReceiver && (func.returnType.isNothing() || func.returnType == func.params.first().type)) {
+            val propName = func.name.substring(4)
+            program.propertySetters += Triple(func.params.first().type, propName, func)
+        }
+
         currentTag = null
     }
 
@@ -113,23 +126,23 @@ fun ParserCtx.doAllTypeChecking() {
     }
 
     Prof.next("check_func_bodies")
-    val allSignatures = mutableMapOf<TFunctionSignature, LstFunction>()
+
     program.functions.forEach { func ->
         if (func.codeChecked) return@forEach
         func.codeChecked = true
 
         if (func.tag == null) {
-            val signature = func.toSignature()
+            val signature = func.toSignatureWithoutReturn()
 
             if (signature != null) {
-                if (signature in allSignatures) {
-                    val dupFunc = allSignatures[signature]!!
+                if (signature in program.allFunctionSignatures) {
+                    val dupFunc = program.allFunctionSignatures[signature]!!
                     collector.report(
                         "Duplicated function signature: $signature\nDup at ${dupFunc.span}",
                         func.span
                     )
                 }
-                allSignatures[signature] = func
+                program.allFunctionSignatures[signature] = func
             }
         }
 
@@ -381,7 +394,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
 
     Prof.next("nodes")
     // Resolve the type of every expression and check other requirements
-    code.nodes.forEach { node ->
+    code.nodes.toList().forEach { node ->
         when (node) {
             is LstIfStart -> {
                 val cond = code.getInst(node.cond).asExpr(node) ?: return
@@ -497,6 +510,7 @@ fun ParserCtx.addImplicitThis(thisVar: LstVar) {
 
         // Replace load_var with missing variable with load_field on `this`
         if (node is LstLoadVar && node.isUnbound) {
+            // Try to find the field in the struct
             val found = findField(thisVar.type, node.name)
 
             // Replace with LstLoadField
@@ -521,10 +535,42 @@ fun ParserCtx.addImplicitThis(thisVar: LstVar) {
                 )
                 continue
             }
+
+            // Try to find a property getter
+            val getter = program.propertyGetters
+                .find { (propType, propName, _) -> propType == thisVar.type && propName == node.name }
+                ?.let { (_, _, propGetter) -> propGetter }
+
+            if (getter != null) {
+                val loadThis = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = node.span,
+                    block = node.block,
+                    name = SELF_NAME,
+                    path = "",
+                    variable = thisVar,
+                )
+                code.nodes.add(i, loadThis)
+                i++
+
+                code.nodes[i] = LstFunCall(
+                    ref = node.ref,
+                    span = node.span,
+                    block = node.block,
+                    name = getter.name,
+                    path = getter.path,
+                    arguments = listOf(loadThis.ref),
+                    funRef = getter.ref,
+                    function = getter,
+                    explicitTypeParams = emptyList(),
+                )
+                continue
+            }
         }
 
         // Replace store_var with missing variable with store_field on `this`
         if (node is LstStoreVar && node.isUnbound) {
+            // Try to find the field in the struct
             val found = findField(thisVar.type, node.name)
 
             // Replace with LstStoreField
@@ -547,6 +593,37 @@ fun ParserCtx.addImplicitThis(thisVar: LstVar) {
                     instance = loadThis.ref,
                     name = node.name,
                     expr = node.expr,
+                )
+                continue
+            }
+
+            // Try to find a property setter
+            val setter = program.propertySetters
+                .find { (propType, propName, _) -> propType == thisVar.type && propName == node.name }
+                ?.let { (_, _, propSetter) -> propSetter }
+
+            if (setter != null) {
+                val loadThis = LstLoadVar(
+                    ref = code.nextRef(),
+                    span = node.span,
+                    block = node.block,
+                    name = SELF_NAME,
+                    path = "",
+                    variable = thisVar,
+                )
+                code.nodes.add(i, loadThis)
+                i++
+
+                code.nodes[i] = LstFunCall(
+                    ref = node.ref,
+                    span = node.span,
+                    block = node.block,
+                    name = setter.name,
+                    path = setter.path,
+                    arguments = listOf(loadThis.ref, node.expr),
+                    funRef = setter.ref,
+                    function = setter,
+                    explicitTypeParams = emptyList(),
                 )
                 continue
             }
@@ -779,6 +856,30 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 val found = findField(ty, node.name)
 
                 if (found == null) {
+                    val getter = program.propertyGetters
+                        .find { (propType, propName, _) -> propType == ty && propName == node.name }
+                        ?.let { (_, _, propGetter) -> propGetter }
+
+                    // Replace with function call to getter
+                    if (getter != null) {
+                        val lstFunCall = LstFunCall(
+                            ref = node.ref,
+                            span = node.span,
+                            block = node.block,
+                            name = getter.name,
+                            path = getter.path,
+                            arguments = listOf(node.instance),
+                            funRef = getter.ref,
+                            function = getter,
+                            explicitTypeParams = emptyList(),
+                        )
+                        lstFunCall.typeBox = node.typeBox
+                        val index = code.nodes.indexOf(node)
+                        code.nodes[index] = lstFunCall
+                        visitExpression(lstFunCall, code)
+                        return@addFindFieldConstraint
+                    }
+
                     collector.report("Type '${ty}' ha no field named '${node.name}'", node.span)
                     typeEnv.addEqualConstraint(node.type, typeEnv.invalid(node.span), node.span)
                     return@addFindFieldConstraint
@@ -820,18 +921,38 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                     return@addFindFieldConstraint
                 }
 
-                val struct = when (ty.base) {
-                    is TStruct -> ty.base.instance
-                    is TOptionItem -> ty.base.instance
-                    else -> error("Invalid type base: ${ty.base}")
-                }
-                val field = struct.fields.values.find { it.name == node.name }
+                val found = findField(ty, node.name)
 
-                if (field == null) {
-                    collector.report("Type '${ty}' has no field named '${node.name}'", node.span)
-                    typeEnv.addEqualConstraint(ty, typeEnv.invalid(node.span), node.span)
+                if (found == null) {
+                    val setter = program.propertySetters
+                        .find { (propType, propName, _) -> propType == ty && propName == node.name }
+                        ?.let { (_, _, propSetter) -> propSetter }
+
+                    // Replace with function call to setter
+                    if (setter != null) {
+                        val lstFunCall = LstFunCall(
+                            ref = node.ref,
+                            span = node.span,
+                            block = node.block,
+                            name = setter.name,
+                            path = setter.path,
+                            arguments = listOf(node.instance, node.expr),
+                            funRef = setter.ref,
+                            function = setter,
+                            explicitTypeParams = emptyList(),
+                        )
+                        val index = code.nodes.indexOf(node)
+                        code.nodes[index] = lstFunCall
+                        visitExpression(lstFunCall, code)
+                        return@addFindFieldConstraint
+                    }
+
+                    collector.report("Type '${ty}' ha no field named '${node.name}'", node.span)
+                    typeEnv.addEqualConstraint(node.type, typeEnv.invalid(node.span), node.span)
                     return@addFindFieldConstraint
                 }
+
+                val (struct, field) = found
 
                 node.struct = struct
                 node.field = field
@@ -868,8 +989,10 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
         }
 
         is LstFunCall -> {
-            val unresolved = typeEnv.unresolved(node.span, "Function call return type")
-            node.typeBox = typeEnv.box(unresolved, node.span)
+            if (node.typeBox == null) {
+                val unresolved = typeEnv.unresolved(node.span, "Function call return type")
+                node.typeBox = typeEnv.box(unresolved, node.span)
+            }
 
             val argTypes = mutableListOf<TType>()
 

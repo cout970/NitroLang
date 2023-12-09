@@ -326,9 +326,9 @@ expressionBinaryOp
 expressionSimple
     : expressionWithSuffix AS typeUsage
     | expressionWithSuffix IS typePattern
-    | expressionWithSuffix NOT_IS typePattern
+    | expressionWithSuffix NOT IS typePattern
     | expressionWithSuffix IN expressionWithSuffix
-    | expressionWithSuffix NOT_IN expressionWithSuffix
+    | expressionWithSuffix NOT IN expressionWithSuffix
     | expressionWithSuffix
     | notExpr
     | minusExpr

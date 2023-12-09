@@ -3,10 +3,7 @@ package nitrolang.ast
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import nitrolang.CompilerOptions
-import nitrolang.typeinference.TComposite
-import nitrolang.typeinference.TGeneric
-import nitrolang.typeinference.TType
-import nitrolang.typeinference.TypeEnv
+import nitrolang.typeinference.*
 import nitrolang.util.*
 
 class LstProgram(var compilerOptions: CompilerOptions) : Dumpable {
@@ -19,8 +16,11 @@ class LstProgram(var compilerOptions: CompilerOptions) : Dumpable {
     val consts = mutableListOf<LstConst>()
     val tags = mutableListOf<LstTag>()
     val functions = mutableListOf<LstFunction>()
+    val propertyGetters = mutableListOf<Triple<TType, String, LstFunction>>()
+    val propertySetters = mutableListOf<Triple<TType, String, LstFunction>>()
     val lambdaFunctions = mutableListOf<LstLambdaFunction>()
     val definedNames = mutableMapOf<Path, Span>()
+    val allFunctionSignatures = mutableMapOf<TFunctionSignature, LstFunction>()
 
     val includedFiles = mutableSetOf<String>()
     var usesAlloc: Boolean = false

@@ -46,15 +46,37 @@ fun <#Value, #Target> Ptr<#Value>.unsafe_cast(): Ptr<#Target> {}
 fun Ptr<Ptr<#Value>>.write(value: Ptr<#Value>) {}
 
 // Writes a copy of the value provided into the memory pointed to by this pointer
-fun Ptr<#Value>.write_copy(value: #Value) {
-    if is_encoded_in_ref<#Value>() {
-        this.unsafe_cast().write(ptr_of(value))
-    } else {
+fun Ptr<#Value>.write_memory(value: #Value) {
+    // If the value is not encoded in a reference, e.g. a struct
+    // we can just use the pointer to the slot in the array as the reference to the actual value
+    if !is_encoded_in_ref<#Value>() {
         get_memory().copy_within(
             this.unsafe_cast(),
             ptr_of(value).unsafe_cast(),
             size_of<#Value>
         )
+    }
+
+    when (size_of<#Value>) {
+        0 -> {
+            // Do nothing
+        }
+        1 -> {
+            let raw_value: Int = ptr_of(value).get_address()
+            get_memory().write_byte(this.unsafe_cast(), raw_value.to_byte())
+        }
+        2 -> {
+            let raw_value: Int = ptr_of(value).get_address()
+            get_memory().write_byte(this.unsafe_cast().offset_in_bytes(0), (raw_value >> 8).to_byte())
+            get_memory().write_byte(this.unsafe_cast().offset_in_bytes(1), raw_value.to_byte())
+        }
+        4 -> {
+            let raw_value: Int = ptr_of(value).get_address()
+            get_memory().write_int(this.unsafe_cast(), raw_value)
+        }
+        else -> {
+            crash("write_memory: size of value is not supported")
+        }
     }
 }
 
@@ -63,6 +85,38 @@ fun Ptr<#Value>.write_copy(value: #Value) {
 // `int * read(int **this) { return *this; }`
 @Extern [lib: "core", name: "ptr_read"]
 fun Ptr<Ptr<#Value>>.read(): Ptr<#Value> {}
+
+// Writes a copy of the value provided into the memory pointed to by this pointer
+fun Ptr<#Value>.read_memory(): #Value {
+    // If the value is not encoded in a reference, e.g. a struct
+    // we can just use the pointer to the slot in the array as the reference to the actual value
+    if !is_encoded_in_ref<#Value>() {
+        ret this.unsafe_as_ref()
+    }
+
+    when (size_of<#Value>) {
+        0 -> {
+            ret null_ptr<#Value>().unsafe_as_ref()
+        }
+        1 -> {
+            let raw_value: Int = get_memory().read_byte(this.unsafe_cast()).to_int()
+            ret ptr_from_address<#Value>(raw_value).unsafe_as_ref()
+        }
+        2 -> {
+            let raw_value: Int = 0
+            raw_value = raw_value | get_memory().read_byte(this.unsafe_cast().offset_in_bytes(0)).to_int() << 8
+            raw_value = raw_value | get_memory().read_byte(this.unsafe_cast().offset_in_bytes(1)).to_int()
+            ret ptr_from_address<#Value>(raw_value).unsafe_as_ref()
+        }
+        4 -> {
+            let raw_value: Int = get_memory().read_int(this.unsafe_cast())
+            ret ptr_from_address<#Value>(raw_value).unsafe_as_ref()
+        }
+        else -> {
+            crash("read_memory: size of value is not supported")
+        }
+    }
+}
 
 // Creates a new pointer that is [num_bytes] ahead of this
 fun Ptr<#Value>.offset_in_bytes(num_bytes: Int): Ptr<#Value> {

@@ -27,20 +27,13 @@ fun RawArray<#Item>.get_ptr(index: Int): Ptr<#Item> {
 // Gets a reference to a value in the array
 // The array bounds are not checked
 fun RawArray<#Item>.get(index: Int): #Item {
-    let ptr: Ptr<#Item> = this.get_ptr(index)
-
-    // Some values are encoded in the reference, so a ref to the array position is no enough
-    if is_encoded_in_ref<#Item>() {
-        ret ptr.unsafe_cast<#Item, Ptr<#Item>>().read().unsafe_as_ref()
-    } else {
-        ret ptr.unsafe_as_ref()
-    }
+    ret this.get_ptr(index).read_memory()
 }
 
 // Sets a value in the array at the given index
 // The array bounds are not checked
 fun RawArray<#Item>.set(index: Int, value: #Item) {
-    this.get_ptr(index).write_copy(value)
+    this.get_ptr(index).write_memory(value)
 }
 
 // Copy a number of items from one array into another

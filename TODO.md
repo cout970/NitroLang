@@ -23,7 +23,6 @@ Intended for the developers
 
 ### Other features to implement
 
-- Add automatic properties by detecting functions with the pattern get_<property> and set_property
 - Improve core library
 - Check for read of uninitialized variables
 - Call lambdas without the `func.invoke(args)` syntax

@@ -60,3 +60,12 @@ fun LstFunction.toSignature(): TFunctionSignature? {
     return "${this.fullName}(${aux.joinToString(", ")}): $ret"
 }
 
+fun LstFunction.toSignatureWithoutReturn(): TFunctionSignature? {
+    val aux = mutableListOf<TFunctionSignature>()
+    for (param in this.params) {
+        aux += param.type.toSignature() ?: return null
+    }
+
+    return "${this.fullName}(${aux.joinToString(", ")})"
+}
+

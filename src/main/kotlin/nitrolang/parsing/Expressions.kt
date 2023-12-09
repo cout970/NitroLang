@@ -195,83 +195,77 @@ fun ParserCtx.processExpressionSimple(simple: MainParser.ExpressionSimpleContext
             val typePattern = resolveTypePattern(simple.typePattern())
             val expr = processExpressionWithSuffix(simple.expressionWithSuffix(0))
 
-            val node = LstIsType(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                expr = expr,
-                typePattern = typePattern,
-            )
-            code.nodes += node
-            node.ref
-        }
+            if (simple.NOT() != null) {
+                val node = LstIsType(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    expr = expr,
+                    typePattern = typePattern,
+                )
+                code.nodes += node
 
-        simple.NOT_IS() != null -> {
-            val typePattern = resolveTypePattern(simple.typePattern())
-            val expr = processExpressionWithSuffix(simple.expressionWithSuffix(0))
-
-            val node = LstIsType(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                expr = expr,
-                typePattern = typePattern,
-            )
-            code.nodes += node
-
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                name = "logical_not",
-                path = "",
-                arguments = listOf(node.ref)
-            )
-            code.nodes += call
-            call.ref
+                val call = LstFunCall(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    name = "logical_not",
+                    path = "",
+                    arguments = listOf(node.ref)
+                )
+                code.nodes += call
+                call.ref
+            } else {
+                val node = LstIsType(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    expr = expr,
+                    typePattern = typePattern,
+                )
+                code.nodes += node
+                node.ref
+            }
         }
 
         simple.IN() != null -> {
             val value = processExpressionWithSuffix(simple.expressionWithSuffix(0))
             val collection = processExpressionWithSuffix(simple.expressionWithSuffix(1))
 
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                name = "contains",
-                path = "",
-                arguments = listOf(collection, value),
-            )
-            code.nodes += call
-            call.ref
-        }
+            if (simple.NOT() != null) {
+                val call = LstFunCall(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    name = "contains",
+                    path = "",
+                    arguments = listOf(collection, value),
+                )
+                code.nodes += call
 
-        simple.NOT_IN() != null -> {
-            val value = processExpressionWithSuffix(simple.expressionWithSuffix(0))
-            val collection = processExpressionWithSuffix(simple.expressionWithSuffix(1))
-
-            val call = LstFunCall(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                name = "contains",
-                path = "",
-                arguments = listOf(collection, value),
-            )
-            code.nodes += call
-
-            // not
-            val call2 = LstFunCall(
-                ref = code.nextRef(),
-                span = simple.span(),
-                block = code.currentBlock,
-                name = "logical_not",
-                path = "",
-                arguments = listOf(call.ref),
-            )
-            code.nodes += call2
-            call2.ref
+                // not
+                val call2 = LstFunCall(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    name = "logical_not",
+                    path = "",
+                    arguments = listOf(call.ref),
+                )
+                code.nodes += call2
+                call2.ref
+            } else {
+                val call = LstFunCall(
+                    ref = code.nextRef(),
+                    span = simple.span(),
+                    block = code.currentBlock,
+                    name = "contains",
+                    path = "",
+                    arguments = listOf(collection, value),
+                )
+                code.nodes += call
+                call.ref
+            }
         }
 
         simple.notExpr() != null -> {
