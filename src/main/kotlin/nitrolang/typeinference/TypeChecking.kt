@@ -458,6 +458,35 @@ private fun ParserCtx.visitCode(code: LstCode) {
         code.nodes.removeAt(i)
     }
 
+    Prof.next("check_uninitialized")
+    val uninitialized = mutableSetOf<LstVar>()
+    var j = 0
+
+    while (j < code.nodes.size) {
+        val inst = code.nodes[j]
+        j++
+
+        // Variable is defined
+        if (inst is LstLetVar && !inst.variable.isParam) {
+            uninitialized += inst.variable
+            continue
+        }
+
+        // Variable is initialized
+        // Note: We do not check if the variable is initialized inside an inner block, like an if statement,
+        // because there is a chance that the variable is not initialized in all branches
+        if (inst is LstStoreVar && inst.variable != null && inst.block.depth == inst.variable!!.block.depth) {
+            uninitialized -= inst.variable!!
+            continue
+        }
+
+        // Variable is used before initialization
+        if (inst is LstLoadVar && inst.variable != null && !inst.variable!!.isParam && inst.variable in uninitialized) {
+            collector.report("Variable '${inst.name}' is used, but variable initialization may not happen yet", inst.span)
+            continue
+        }
+    }
+
     Prof.end()
 }
 

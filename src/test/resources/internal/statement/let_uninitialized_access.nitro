@@ -1,0 +1,11 @@
+
+fun main() {
+    let i: List<Int>
+
+    if (RngPcg32::new().next_boolean()) {
+        i = [1, 2, 3]
+    }
+
+    // Generates an error, `i` may be uninitialised
+    println(i)
+}

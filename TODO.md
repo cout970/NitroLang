@@ -24,7 +24,6 @@ Intended for the developers
 ### Other features to implement
 
 - Improve core library
-- Check for read of uninitialized variables
 - Call lambdas without the `func.invoke(args)` syntax
 - Smart casts
 - Place core in a module for namespacing

@@ -61,4 +61,9 @@ class ParseStatementTest {
         assertCompilationSuccess("internal/statement/operator_assign.nitro")
     }
 
+    @Test
+    fun let_uninitialized_access() {
+        assertCompilationError("internal/statement/let_uninitialized_access.nitro")
+    }
+
 }
