@@ -250,7 +250,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.get_or_compute(key: #Key, func: () -> #Valu
         ret this[key]!!
     }
 
-    let value = func.invoke()
+    let value = func()
     this[key] = value
     ret value
 }
@@ -267,7 +267,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.for_each_entry(func: (#Key, #Value) -> Noth
 
         if slot.is_some() {
             let entry: Pair<#Key, #Value> = slot!!
-            func.invoke(entry.first, entry.second)
+            func(entry.first, entry.second)
         }
     }
 }
@@ -279,7 +279,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.for_each_value(func: (#Value) -> Nothing) {
 
         if slot.is_some() {
             let entry: Pair<#Key, #Value> = slot!!
-            func.invoke(entry.second)
+            func(entry.second)
         }
     }
 }
@@ -291,7 +291,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.for_each_key(func: (#Key) -> Nothing) {
 
         if slot.is_some() {
             let entry: Pair<#Key, #Value> = slot!!
-            func.invoke(entry.first)
+            func(entry.first)
         }
     }
 }
@@ -334,7 +334,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.map(func: (#Key, #Value) -> #Value): List<#
 
         if slot.is_some() {
             let entry: Pair<#Key, #Value> = slot!!
-            res[] = func.invoke(entry.first, entry.second)
+            res[] = func(entry.first, entry.second)
         }
     }
     ret res

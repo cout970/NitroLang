@@ -8,38 +8,38 @@ struct Function {}
 
 // Invokes a function with no parameters
 @Intrinsic
-fun invoke(func: () -> #R): #R {}
+fun call(func: () -> #R): #R {}
 
 // Invokes a function with 1 parameter
 @Intrinsic
-fun invoke(func: (#A) -> #R, a: #A): #R {}
+fun call(func: (#A) -> #R, a: #A): #R {}
 
 // Invokes a function with 2 parameters
 @Intrinsic
-fun invoke(func: (#A, #B) -> #R, a: #A, b: #B): #R {}
+fun call(func: (#A, #B) -> #R, a: #A, b: #B): #R {}
 
 // Invokes a function with 3 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C) -> #R, a: #A, b: #B, c: #C): #R {}
+fun call(func: (#A, #B, #C) -> #R, a: #A, b: #B, c: #C): #R {}
 
 // Invokes a function with 4 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C, #D) -> #R, a: #A, b: #B, c: #C, d: #D): #R {}
+fun call(func: (#A, #B, #C, #D) -> #R, a: #A, b: #B, c: #C, d: #D): #R {}
 
 // Invokes a function with 5 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C, #D, #E) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E): #R {}
+fun call(func: (#A, #B, #C, #D, #E) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E): #R {}
 
 // Invokes a function with 6 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C, #D, #E, #F) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F): #R {}
+fun call(func: (#A, #B, #C, #D, #E, #F) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F): #R {}
 
 // Invokes a function with 7 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C, #D, #E, #F, #G) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F, g: #G): #R {}
+fun call(func: (#A, #B, #C, #D, #E, #F, #G) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F, g: #G): #R {}
 
 // Invokes a function with 8 parameters
 @Intrinsic
-fun invoke(func: (#A, #B, #C, #D, #E, #F, #G, #H) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F, g: #G, h: #H): #R {}
+fun call(func: (#A, #B, #C, #D, #E, #F, #G, #H) -> #R, a: #A, b: #B, c: #C, d: #D, e: #E, f: #F, g: #G, h: #H): #R {}
 
 // If you need more than 8 parameters, consider using a single struct/list/map parameter instead

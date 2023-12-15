@@ -154,7 +154,7 @@ fun List<#Item>.map(func: (#Item) -> #Other): List<#Other> {
     let result = List::new<#Other>(this.len)
 
     repeat this.len {
-        result[] = func.invoke(this[it]!!)
+        result[] = func(this[it]!!)
     }
 
     ret result
@@ -165,7 +165,7 @@ fun List<#Item>.flat_map(func: (#Item) -> List<#Other>): List<#Other> {
     let result = List::new<#Other>(this.len)
 
     repeat this.len {
-        let items = func.invoke(this[it]!!)
+        let items = func(this[it]!!)
         repeat items.len {
             result[] = items[it]!!
         }
@@ -179,7 +179,7 @@ fun List<#Item>.filter(func: (#Item) -> Boolean): List<#Item> {
     let result = List::new<#Item>(this.len)
 
     repeat this.len {
-        if func.invoke(this[it]!!) {
+        if func(this[it]!!) {
             result[] = this[it]!!
         }
     }
@@ -206,7 +206,7 @@ fun <#Item: GetOrdering> List<#Item>.count(predicate: (#Item) -> Boolean): Int {
     let count = 0
 
     repeat this.len {
-        if predicate.invoke(this[it]!!) {
+        if predicate(this[it]!!) {
             count = count + 1
         }
     }
@@ -218,7 +218,7 @@ fun <#Item: GetOrdering> List<#Item>.count(predicate: (#Item) -> Boolean): Int {
 // If the list is empty, returns true
 fun <#Item: GetOrdering> List<#Item>.all(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
-        if !predicate.invoke(this[it]!!) {
+        if !predicate(this[it]!!) {
             ret false
         }
     }
@@ -230,7 +230,7 @@ fun <#Item: GetOrdering> List<#Item>.all(predicate: (#Item) -> Boolean): Boolean
 // If the list is empty, returns false
 fun <#Item: GetOrdering> List<#Item>.any(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
-        if predicate.invoke(this[it]!!) {
+        if predicate(this[it]!!) {
             ret true
         }
     }
@@ -242,7 +242,7 @@ fun <#Item: GetOrdering> List<#Item>.any(predicate: (#Item) -> Boolean): Boolean
 // If the list is empty, returns true
 fun <#Item: GetOrdering> List<#Item>.none(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
-        if predicate.invoke(this[it]!!) {
+        if predicate(this[it]!!) {
             ret false
         }
     }
@@ -282,7 +282,7 @@ fun <#Item: GetOrdering> List<#Item>.last(): Optional<#Item> {
 // Finds the first item in the list that matches the given predicate, if no item matches, returns `None`
 fun <#Item: GetOrdering> List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
     repeat this.len {
-        if predicate.invoke(this[it]!!) {
+        if predicate(this[it]!!) {
             ret Some(this[it]!!)
         }
     }
@@ -293,7 +293,7 @@ fun <#Item: GetOrdering> List<#Item>.find(predicate: (#Item) -> Boolean): Option
 // Finds the index of the first item in the list that matches the given predicate, if no item matches, returns `None`
 fun <#Item: GetOrdering> List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
     repeat this.len {
-        if predicate.invoke(this[it]!!) {
+        if predicate(this[it]!!) {
             ret Some(it)
         }
     }
@@ -332,7 +332,7 @@ fun <#Item: ToString> List<#Item>.to_string(): String {
 // ```
 fun List<#Item>.for_each(func: (#Item) -> Nothing) {
     repeat this.len() {
-        func.invoke(this[it]!!)
+        func(this[it]!!)
     }
 }
 
@@ -344,7 +344,7 @@ fun List<#Item>.for_each(func: (#Item) -> Nothing) {
 // }
 fun List<#Item>.for_each_entry(func: (Int, #Item) -> Nothing) {
     repeat this.len() {
-        func.invoke(it, this[it]!!)
+        func(it, this[it]!!)
     }
 }
 

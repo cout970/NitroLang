@@ -38,12 +38,12 @@ fun Pair<#A, #A>.to_list(): List<#A> {
 
 // Transform the first element of the pair
 fun Pair<#A, #B>.map_first<#C>(func: (#A) -> #C): Pair<#C, #B> {
-    ret Pair<#C, #B> @[first: func.invoke(this.first), second: this.second]
+    ret Pair<#C, #B> @[first: func(this.first), second: this.second]
 }
 
 // Transform the second element of the pair
 fun Pair<#A, #B>.map_second<#C>(func: (#B) -> #C): Pair<#A, #C> {
-    ret Pair<#A, #C> @[first: this.first, second: func.invoke(this.second)]
+    ret Pair<#A, #C> @[first: this.first, second: func(this.second)]
 }
 
 // Convert the pair to a string

@@ -18,6 +18,7 @@ const val ANNOTATION_WASM_NAME = "WasmName"
 const val ANNOTATION_WASM_INLINE = "WasmInline"
 const val ANNOTATION_VALUE_TYPE = "ValueType"
 const val MAIN_FUNCTION_NAME = "main"
+const val LAMBDA_CALL_FUNCTION = "call"
 const val VARIANT_FIELD_NAME = "variant"
 
 data class ParserCtx(

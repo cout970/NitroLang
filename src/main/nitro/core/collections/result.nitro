@@ -51,7 +51,7 @@ fun Result<#Ok, #Err>.get_or_compute(func: () -> #Ok): #Ok {
         ret this!!
     }
 
-    ret func.invoke()
+    ret func()
 }
 
 // Get the ok value of the result if it is Ok, otherwise None

@@ -1,6 +1,7 @@
 package nitrolang.typeinference
 
 import nitrolang.ast.*
+import nitrolang.parsing.LAMBDA_CALL_FUNCTION
 import nitrolang.parsing.ParserCtx
 import nitrolang.parsing.SELF_NAME
 import nitrolang.util.Prof
@@ -1051,7 +1052,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         ref = node.ref,
                         span = node.span,
                         block = node.block,
-                        name = "invoke",
+                        name = LAMBDA_CALL_FUNCTION,
                         path = "",
                         arguments = listOf(variableLoad.ref) + node.arguments,
                     )

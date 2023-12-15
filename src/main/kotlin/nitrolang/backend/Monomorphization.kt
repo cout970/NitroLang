@@ -3,6 +3,7 @@ package nitrolang.backend
 import nitrolang.ast.*
 import nitrolang.backend.wasm.heapSize
 import nitrolang.parsing.ANNOTATION_EXTERN
+import nitrolang.parsing.LAMBDA_CALL_FUNCTION
 import nitrolang.typeinference.TType
 import nitrolang.util.Span
 
@@ -639,7 +640,7 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
     }
 
     // Lambda dynamic dispatch
-    if (function.isIntrinsic && function.fullName == "invoke") {
+    if (function.isIntrinsic && function.fullName == LAMBDA_CALL_FUNCTION) {
         val lambdaParam = inst.arguments.first()
         val lambdaType = typeOf(lambdaParam)
         val intType = typeToMonoType(program.typeEnv.find("Int"), ctx)

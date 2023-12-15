@@ -29,21 +29,21 @@ fun int_up_value() {
 
     println("int_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
 
     i = i + 100
     j = j + 100
     println("int_up_value i: $i, j: $j")
 
-    invoke(incI)
+    incI()
 
-    invoke(incJ)
+    incJ()
 
     i = 0
     j = 0
     println("int_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
     check(i == 1, "i should be 1")
     check(j == 1, "j should be 1")
 }
@@ -70,21 +70,21 @@ fun float_up_value() {
 
     println("float_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
 
     i = i + 100f
     j = j + 100f
     println("float_up_value i: $i, j: $j")
 
-    invoke(incI)
+    incI()
 
-    invoke(incJ)
+    incJ()
 
     i = -1f
     j = -1f
     println("float_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
     check(i == 1f, "i should be 0")
     check(j == 1f, "j should be 0")
 }
@@ -111,21 +111,21 @@ fun long_up_value() {
 
     println("long_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
 
     i = i + 10l
     j = j + 10l
     println("long_up_value i: $i, j: $j")
 
-    invoke(incI)
+    incI()
 
-    invoke(incJ)
+    incJ()
 
     i = 0l
     j = 0l
     println("long_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
     check(i == 1l, "i should be 1")
     check(j == 1l, "j should be 1")
 }
@@ -152,21 +152,21 @@ fun string_up_value() {
 
     println("string_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
 
     i = i.concat("m")
     j = j.concat("m")
     println("string_up_value i: $i, j: $j")
 
-    invoke(incI)
+    incI()
 
-    invoke(incJ)
+    incJ()
 
     i = "m"
     j = "m"
     println("string_up_value i: $i, j: $j")
 
-    invoke(incEach)
+    incEach()
 
     check(i == "aimim", "i should be aimim")
     check(j == "ajmjm", "j should be ajmjm")

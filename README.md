@@ -182,9 +182,9 @@ fun main() {
         println("- $i, $j")
     }
     
-    // Invoke the lambda (temporary syntax)
-    my_lambda.invoke(42)
-    my_other_lambda.invoke(42, 43)
+    // Call the lambda functions
+    my_lambda(42)
+    my_other_lambda(42, 43)
     
     // Pass the lambda as the last parameter to a function
     for_each([1, 2, 3, 4]) @{ i: Int ->

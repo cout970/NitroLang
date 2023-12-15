@@ -403,7 +403,7 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
                 span = ctx.parenthesizedExpression().expression().span(),
                 receiver = prev,
                 path = "",
-                name = "invoke",
+                name = LAMBDA_CALL_FUNCTION,
                 params = ctx.functionCallParams(),
                 end = ctx.functionCallEnd(),
                 code = code
@@ -417,7 +417,7 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
                 span = ctx.expressionLiteral().span(),
                 receiver = prev,
                 path = "",
-                name = "invoke",
+                name = LAMBDA_CALL_FUNCTION,
                 params = ctx.functionCallParams(),
                 end = ctx.functionCallEnd(),
                 code = code
@@ -431,7 +431,7 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
                 span = ctx.structInstanceExpr().upperName().span(),
                 receiver = prev,
                 path = "",
-                name = "invoke",
+                name = LAMBDA_CALL_FUNCTION,
                 params = ctx.functionCallParams(),
                 end = ctx.functionCallEnd(),
                 code = code
@@ -451,7 +451,7 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
                 span = ctx.span(),
                 receiver = load.ref,
                 path = "",
-                name = "invoke",
+                name = LAMBDA_CALL_FUNCTION,
                 params = ctx.functionCallParams(),
                 end = ctx.functionCallEnd(),
                 code = code
