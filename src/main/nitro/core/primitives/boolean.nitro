@@ -40,9 +40,9 @@ fun Boolean.is_not_equal(other: Boolean): Boolean {}
 // that represents the sorting order of the values
 fun Boolean.get_ordering(other: Boolean): Ordering {
     ret when {
-        this && not other -> Ordering::Greater @[]
-        not this && other -> Ordering::Less @[]
-        else -> Ordering::Equals @[]
+        this && not other -> Ordering::Greater
+        not this && other -> Ordering::Less
+        else -> Ordering::Equals
     }
 }
 

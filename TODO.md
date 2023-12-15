@@ -23,6 +23,7 @@ Intended for the developers
 
 ### Other features to implement
 
+- `it?.func()` to call a function on an optional value
 - Improve core library
 - Smart casts
 - Place core in a module for namespacing

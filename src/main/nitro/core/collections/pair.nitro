@@ -55,7 +55,7 @@ fun <#A: ToString, #B: ToString> Pair<#A, #B>.to_string(): String {
 fun <#A: MapKey, #B: MapKey> Pair<#A, #B>.get_ordering(other: Pair<#A, #B>): Ordering {
     let a_ordering = this.first.get_ordering(other.first)
 
-    if a_ordering is Ordering::Equals {
+    if a_ordering == Ordering::Equals {
         ret this.second.get_ordering(other.second)
     }
 

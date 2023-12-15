@@ -221,12 +221,12 @@ fun Int.to_string_in_base(radix: Int): String {}
 // that represents the sorting order of the values
 fun Int.get_ordering(other: Int): Ordering {
     if this == other {
-        ret Ordering::Equals @[]
+        ret Ordering::Equals
     } else {
         if this > other {
-            ret Ordering::Greater @[]
+            ret Ordering::Greater
         } else {
-            ret Ordering::Less @[]
+            ret Ordering::Less
         }
     }
 }

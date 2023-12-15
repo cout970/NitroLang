@@ -5,12 +5,6 @@ struct Instant {
     nanoseconds: Int
 }
 
-// Represents the duration between two instants
-struct Duration {
-    seconds: Long
-    nanoseconds: Int
-}
-
 // Return the current instant
 @Extern [lib: "core", name: "instant_now"]
 fun Instant::now(): Instant {}
@@ -67,70 +61,14 @@ fun Instant.add_duration(duration: Duration): Instant {
 
 fun Instant.get_ordering(other: Instant): Ordering {
     ret when {
-        this.seconds < other.seconds -> Ordering::Less @[]
-        this.seconds > other.seconds -> Ordering::Greater @[]
-        this.nanoseconds < other.nanoseconds -> Ordering::Less @[]
-        this.nanoseconds > other.nanoseconds -> Ordering::Greater @[]
-        else -> Ordering::Equals @[]
+        this.seconds < other.seconds -> Ordering::Less
+        this.seconds > other.seconds -> Ordering::Greater
+        this.nanoseconds < other.nanoseconds -> Ordering::Less
+        this.nanoseconds > other.nanoseconds -> Ordering::Greater
+        else -> Ordering::Equals
     }
 }
 
 fun Instant.to_string(): String {
     ret "Instant @[seconds: ${this.seconds}, nanoseconds: ${this.nanoseconds}]"
-}
-
-fun Duration::from_nanoseconds(nanoseconds: Long): Duration {
-    ret Duration @[
-        seconds: nanoseconds / 1_000_000_000L
-        nanoseconds: (nanoseconds % 1_000_000_000L).to_int()
-    ]
-}
-
-fun Duration::from_seconds(seconds: Long): Duration {
-    ret Duration @[
-        seconds: seconds
-        nanoseconds: 0
-    ]
-}
-
-fun Duration.to_days(): Float {
-    ret this.seconds.to_float() / 60.0 / 60.0 / 24.0 + this.nanoseconds.to_float() / 60_000_000_000.0
-}
-
-fun Duration.to_hours(): Float {
-    ret this.seconds.to_float() / 60.0 / 60.0 + this.nanoseconds.to_float() / 60_000_000_000.0
-}
-
-fun Duration.to_minutes(): Float {
-    ret this.seconds.to_float() / 60.0 + this.nanoseconds.to_float() / 60_000_000_000.0
-}
-
-fun Duration.to_seconds(): Float {
-    ret this.seconds.to_float() + this.nanoseconds.to_float() / 1_000_000_000.0
-}
-
-fun Duration.to_milliseconds(): Float {
-    ret this.seconds.to_float() * 1_000.0 + this.nanoseconds.to_float() / 1_000_000.0
-}
-
-fun Duration.to_microseconds(): Float {
-    ret this.seconds.to_float() * 1_000_000.0 + this.nanoseconds.to_float() / 1_000.0
-}
-
-fun Duration.to_nanoseconds(): Float {
-    ret this.seconds.to_float() * 1_000_000_000.0 + this.nanoseconds.to_float()
-}
-
-fun Duration.get_ordering(other: Duration): Ordering {
-    ret when {
-        this.seconds < other.seconds -> Ordering::Less @[]
-        this.seconds > other.seconds -> Ordering::Greater @[]
-        this.nanoseconds < other.nanoseconds -> Ordering::Less @[]
-        this.nanoseconds > other.nanoseconds -> Ordering::Greater @[]
-        else -> Ordering::Equals @[]
-    }
-}
-
-fun Duration.to_string(): String {
-    ret "Duration @[seconds: ${this.seconds}, nanoseconds: ${this.nanoseconds}]"
 }

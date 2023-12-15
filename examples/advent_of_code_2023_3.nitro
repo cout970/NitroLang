@@ -243,11 +243,11 @@ fun TokenPos.to_string(): String {
 
 fun TokenPos.get_ordering(other: TokenPos): Ordering {
     return when {
-        row < other.row -> Ordering::Less @[]
-        row > other.row -> Ordering::Greater @[]
-        col < other.col -> Ordering::Less @[]
-        col > other.col -> Ordering::Greater @[]
-        else -> Ordering::Equals @[]
+        row < other.row -> Ordering::Less
+        row > other.row -> Ordering::Greater
+        col < other.col -> Ordering::Less
+        col > other.col -> Ordering::Greater
+        else -> Ordering::Equals
     }
 }
 
