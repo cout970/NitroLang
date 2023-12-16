@@ -3,7 +3,9 @@ lexer grammar MainLexer ;
 
 // Reserved
 RESERVED : 'self' | 'Self' | 'function' | 'var' | 'val' | 'module' | 'class' | 'type' | 'recv' | 'receiver' | 'trait'
-| 'interface' | 'either' | 'ref_mut' | 'ref' | 'copy';
+| 'interface' | 'either' | 'ref_mut' | 'ref' | 'copy' | 'final' | 'local' | 'object' | 'package' | 'super' | 'throw'
+| 'try' | 'typeof' | 'finally' | 'then' | 'annotation' | 'inline' | 'expect' | 'infix' | 'private' | 'public' | 'protected'
+| 'suspend' | 'vararg' ;
 
 RANGE_IN                        : '..=' ;
 RANGE_EX                        : '..<' ;
@@ -64,6 +66,7 @@ STRUCT                          : 'struct';
 RETURN                          : 'ret'     | 'return' ;
 SIZE_OF                         : 'size_of' | 'sizeOf' | 'sizeof' ;
 OPTION                          : 'option' ;
+INTERNAL                        : 'internal' ;
 REC                             : 'rec' ;
 TAG                             : 'tag' ;
 DEFER                           : 'defer' ;

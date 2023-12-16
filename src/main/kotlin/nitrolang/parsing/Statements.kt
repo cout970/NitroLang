@@ -74,15 +74,15 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
 
                     subSubCtx.collectionIndexingSuffix() != null -> {
                         val receiver = processExpression(subSubCtx.expression())
-                        val index = processExpression(subSubCtx.collectionIndexingSuffix().expression())
+                        val indexRefs = subSubCtx.collectionIndexingSuffix().expression().map { processExpression(it) }
                         var value = processExpression(subCtx.expression())
 
                         if (operation != null) {
                             val load = code.call(
-                                span = subSubCtx.collectionIndexingSuffix().expression().span(),
+                                span = subSubCtx.collectionIndexingSuffix().span(),
                                 path = "",
                                 name = "get",
-                                arguments = listOf(receiver, index),
+                                arguments = listOf(receiver) + indexRefs,
                             )
                             value = code.call(
                                 span = subCtx.span(),
@@ -93,10 +93,10 @@ fun ParserCtx.processStatement(ctx: MainParser.StatementContext) {
                         }
 
                         code.call(
-                            span = subSubCtx.collectionIndexingSuffix().expression().span(),
+                            span = subSubCtx.collectionIndexingSuffix().span(),
                             path = "",
                             name = "set",
-                            arguments = listOf(receiver, index, value),
+                            arguments = listOf(receiver) + indexRefs + listOf(value),
                         )
                     }
 

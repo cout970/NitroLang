@@ -62,6 +62,11 @@ class ParseExpressionTest {
     }
 
     @Test
+    fun operatorPrecedence() {
+        assertExecutionSuccess("internal/expression/operator_precedence.nitro")
+    }
+
+    @Test
     fun lambda() {
         assertCompilationSuccess("internal/expression/lambda.nitro")
     }

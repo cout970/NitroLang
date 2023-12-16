@@ -337,9 +337,9 @@ fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixCo
 
         ctx.collectionIndexingSuffix() != null -> {
             val prevRef = processExpressionWithSuffix(ctx.expressionWithSuffix())
-            val indexRef = processExpression(ctx.collectionIndexingSuffix().expression())
+            val indexRefs = ctx.collectionIndexingSuffix().expression().map { processExpression(it) }
 
-            code.call(ctx.collectionIndexingSuffix().span(), "", "get", listOf(prevRef, indexRef))
+            code.call(ctx.collectionIndexingSuffix().span(), "", "get", listOf(prevRef) + indexRefs)
         }
 
         ctx.structFieldAccessSuffix() != null -> {

@@ -111,7 +111,7 @@ structBody
 
 // E.g. value: Int,
 structField
-    : anyName COLON typeUsage;
+    : INTERNAL? anyName COLON typeUsage;
 
 // E.g. type Optional<T> {}
 optionDefinition
@@ -181,7 +181,9 @@ functionReceiver
 
 // E.g. : Int
 functionReturnType
-    : COLON typeUsage ;
+    : COLON typeUsage
+    | ARROW typeUsage
+    ;
 
 // E.g. count: Int,
 functionParameter
@@ -314,7 +316,7 @@ expressionAnd
 
 // E.g. 1.0 + math::PI * 4.0
 expressionBinaryOp
-    : expressionSimple (binaryOperator expressionSimple)* ;
+    : expressionSimple (binaryOperator NL* expressionSimple)* ;
 
 // E.g. var as Int
 // E.g. var is Int
@@ -373,7 +375,7 @@ assertSuffix
     : BANGBANG ;
 
 collectionIndexingSuffix
-    : LBRACKET NL* expression NL* RBRACKET ;
+    : LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET ;
 
 structFieldAccessSuffix
     : NL? DOT anyName ;

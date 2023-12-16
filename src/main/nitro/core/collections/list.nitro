@@ -9,7 +9,7 @@
 // ```
 // or using the `List::new()` function:
 // ```
-// let my_list = List<Int>::new()
+// let my_list = List::new<Int>()
 // my_list[] = 1
 // my_list[] = 2
 // my_list[] = 3
@@ -60,7 +60,7 @@ fun List<#Item>.ensure_capacity(capacity: Int) {
     this.capacity = new_capacity
 }
 
-// This function adds an item to the end of the list
+// Adds the given item to the list
 // Can be called using the `list[] = value` syntax:
 // `my_list[] = 1` is equivalent to `my_list.add(1)`
 //
@@ -70,7 +70,19 @@ fun List<#Item>.add(item: #Item) {
 
     let item_ptr = this.items.get_ptr(this.len)
     item_ptr.write(ptr_of<#Item>(item))
-    this.len = this.len + 1
+    this.len += 1
+}
+
+// Adds the given item to the list `count` times
+fun List<#Item>.add_multiple_times(item: #Item, count: Int) {
+    // Expand list if needed
+    this.ensure_capacity(this.len + count)
+
+    // Write the item `count` times
+    repeat count {
+        this.items.get_ptr(this.len).write(ptr_of<#Item>(item))
+        this.len += 1
+    }
 }
 
 // Get the item at the given index, if the index is out of bounds, returns `None`
@@ -98,17 +110,62 @@ fun List<#Item>.set(index: Int, item: #Item) {
     item_ptr.write(ptr_of<#Item>(item))
 }
 
+// Swaps the items at the given indexes
+fun List<#Item>.swap(index1: Int, index2: Int) {
+    let temp = this[index1]!!
+    this[index1] = this[index2]!!
+    this[index2] = temp
+}
+
+// Insert a new item at the given index, if the index is out of bounds, the program crashes
+fun List<#Item>.insert(index: Int, value: #Item) {
+    if index < 0 || index >= this.len {
+        crash("Invalid list index: $index, len: ${this.len}")
+    }
+
+    // Expand list if needed
+    this.ensure_capacity(this.len + 1)
+
+    // Add a new item slot at the end
+    this.len += 1
+
+    // Move every item one place to the right
+    repeat this.len - index {
+        this.swap(this.len - it - 1, this.len - it)
+    }
+
+    // Finish by inserting the new item
+    this[index] = value
+}
+
+// Creates a new list with the given item added at the end
+fun List<#Item>.plus(item: #Item): List<#Item> {
+    let result = this.to_list()
+    result[] = item
+    ret result
+}
+
+// Crea a new list with the given items added at the end
+fun List<#Item>.plus(other: List<#Item>): List<#Item> {
+    let result = this.to_list()
+
+    repeat other.len {
+        result[] = other[it]!!
+    }
+
+    ret result
+}
+
 // Removes the item at the given index, if the index is out of bounds, the program crashes
 fun List<#Item>.remove_at(index: Int) {
     if index < 0 || index >= this.len {
         crash("Invalid list index: $index, len: ${this.len}")
     }
 
-    // Shift all items after the index one position to the left
-    repeat this.len - index - 1 {
-        let ptr = this.items.get_ptr(index + it + 1).read()
-        this.items.get_ptr(index + it).write(ptr)
-    }
+    // Move every item one place to the left
+        repeat this.len - index {
+            this.swap(index + it, index + it + 1)
+        }
 
     this.len = this.len - 1
 }
@@ -119,6 +176,22 @@ fun <#Item: GetOrdering> List<#Item>.remove_value(item: #Item) {
 
     if index.is_some() {
         this.remove_at(index!!)
+    }
+}
+
+fun List<#Item>.clear() {
+    this.len = 0
+}
+
+fun <#Item: GetOrdering> List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
+    let i = 0
+
+    while i < this.len {
+        if predicate(this[i]!!) {
+            this.remove_at(i)
+        } else {
+            i += 1
+        }
     }
 }
 
@@ -207,7 +280,7 @@ fun <#Item: GetOrdering> List<#Item>.count(predicate: (#Item) -> Boolean): Int {
 
     repeat this.len {
         if predicate(this[it]!!) {
-            count = count + 1
+            count += 1
         }
     }
 
@@ -390,7 +463,7 @@ fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
 
     while i < end {
         sublist[] = this[i]!!
-        i = i + 1
+        i += 1
     }
 
     ret sublist
@@ -405,13 +478,6 @@ fun List<#Item>.to_list(): List<#Item> {
     }
 
     ret list
-}
-
-// Swaps the items at the given indexes
-fun <#Item: GetOrdering> List<#Item>.swap(index1: Int, index2: Int) {
-    let temp = this[index1]!!
-    this[index1] = this[index2]!!
-    this[index2] = temp
 }
 
 // Sorts the list in place, without allocating a new list

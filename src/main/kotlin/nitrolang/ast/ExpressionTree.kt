@@ -5,14 +5,18 @@ import nitrolang.util.Span
 
 sealed class ExpressionTree {
 
-    data class Leaf(val ctx: ExpressionSimpleContext) : ExpressionTree()
+    data class Leaf(val ctx: ExpressionSimpleContext) : ExpressionTree() {
+        override fun toString(): String = ctx.text
+    }
 
     data class Operation(
         val left: ExpressionTree,
         val right: ExpressionTree,
         val operator: Operator,
         val span: Span,
-    ) : ExpressionTree()
+    ) : ExpressionTree() {
+        override fun toString(): String = "($left ${operator.text} $right)"
+    }
 
     fun collect(list: MutableList<Ref>, code: LstCode, func: (ExpressionSimpleContext) -> Ref) {
         when (this) {

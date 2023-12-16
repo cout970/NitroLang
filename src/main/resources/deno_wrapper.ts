@@ -5,7 +5,11 @@ import {run} from './run.ts'
 const __dirname = new URL('.', import.meta.url).pathname;
 
 try {
-  run(`file://${__dirname}output/compiled.wasm`);
+  let path = Deno.args.length
+    ? Deno.args[0]
+    : `file://${__dirname}output/compiled.wasm`;
+
+  run(path);
 } catch (e) {
   console.error(e);
   Deno.exit(0);

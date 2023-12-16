@@ -77,8 +77,10 @@ fun ParserCtx.resolvePrecedence(
         return func(exprs.first())
     }
 
-    val root = resolvePrecedence(exprs.map { ExpressionTree.Leaf(it) },
-        ops.map { getBinaryOperator(it.first) to it.second })
+    val root = resolvePrecedence(
+        exprs.map { ExpressionTree.Leaf(it) },
+        ops.map { getBinaryOperator(it.first) to it.second }
+    )
     val list = mutableListOf<Ref>()
 
     root.collect(list, code, func)
@@ -110,9 +112,9 @@ private fun resolvePrecedence(
         )
     }
 
-    ops.forEachIndexed { index, operator ->
+    for ((index, operator) in ops.withIndex()) {
         // Left fold items with more precedence than the current operator
-        while (opStack.isNotEmpty() && operator.first.precedence > opStack.last().first.precedence) {
+        while (opStack.isNotEmpty() && operator.first.precedence >= opStack.last().first.precedence) {
             fold()
         }
 
