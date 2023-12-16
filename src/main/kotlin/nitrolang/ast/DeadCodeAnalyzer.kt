@@ -23,6 +23,7 @@ class DeadCodeAnalyzer(val program: LstProgram) {
             }
 
             if (program.compilerOptions.runTests) {
+                deadCodeAnalyzer.visitFunction(program.getFunction("run_test"))
                 program.functions.filter { it.isTest }.forEach {
                     deadCodeAnalyzer.visitFunction(it)
                 }

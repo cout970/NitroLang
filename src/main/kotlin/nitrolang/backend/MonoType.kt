@@ -19,6 +19,9 @@ data class MonoType(
     fun isFloat() = isNamed("Float")
     fun isBoolean() = isNamed("Boolean")
     fun isFunction() = isNamed("Function")
+    fun isByte() = isNamed("Byte")
+    fun isPtr() = isNamed("Ptr")
+    fun isRawArray() = isNamed("RawArray")
     fun isNumber() = isFloat() || isInt() || isLong()
     fun isLambda() = base is MonoLambda
     fun isOption() = base is MonoOption
@@ -26,6 +29,11 @@ data class MonoType(
     fun isOptionOrOptionItem() = isOption() || isOptionItem()
     fun isValueType() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_VALUE_TYPE) != null
     fun isIntrinsic() = base is MonoStruct && base.instance.getAnnotation(ANNOTATION_INTRINSIC) != null
+
+    fun isEncodedInRef(): Boolean {
+        return isFloat() || isLong() || isInt() || isBoolean() || isNever()
+                || isNothing() || isByte() || isPtr() || isRawArray()
+    }
 
     fun isNamed(name: String) = base is MonoStruct && base.instance.fullName == name
 

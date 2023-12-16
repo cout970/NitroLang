@@ -52,6 +52,7 @@ fun MonoBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
     }
 
     key.function = func
+    func.isDeadCode = false
 
     return getOrCreateMonoFunction(key) { mono ->
         createMonoFunction(mono, func, key, ctx)
@@ -376,6 +377,10 @@ fun MonoBuilder.processInst(
 
                 consumer(inst.span, inst.expr)
                 int(inst.span, index + 1)
+                if (!initIsTypeInternal) {
+                    initIsTypeInternal = true
+                    getMonoFunction(program.getFunction("is_type_internal"), ctx)
+                }
                 call(inst.span, "is_type_internal", ctx)
                 provider(inst.span, inst.ref, type)
             } else {
@@ -410,6 +415,10 @@ fun MonoBuilder.processInst(
 
                 consumer(inst.span, inst.expr)
                 int(inst.span, index + 1)
+                if (!initAsTypeInternal) {
+                    initAsTypeInternal = true
+                    getMonoFunction(program.getFunction("as_type_internal"), ctx)
+                }
                 call(inst.span, "as_type_internal", ctx)
                 provider(inst.span, inst.ref, type)
             } else {
@@ -538,6 +547,10 @@ fun MonoBuilder.processInst(
             if (fieldType.isValueType() && !fieldType.isIntrinsic()) {
                 // Copy value
                 int(inst.span, fieldType.heapSize())
+                if (!initMemoryCopyInternal) {
+                    initMemoryCopyInternal = true
+                    getMonoFunction(program.getFunction("memory_copy_internal"), ctx)
+                }
                 call(inst.span, "memory_copy_internal", ctx)
                 drop(inst.span, fieldType)
             } else {

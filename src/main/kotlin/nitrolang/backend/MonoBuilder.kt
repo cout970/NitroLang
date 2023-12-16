@@ -30,13 +30,16 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
     val globalNames = mutableMapOf<String, Int>()
     val funcRefTable = mutableListOf<MonoLambda>()
 
+    var initMemoryCopyInternal = false
+    var initAsTypeInternal = false
+    var initIsTypeInternal = false
     var current: MonoCode? = null
 
     fun compileAll() {
         builder.init(this)
-        compileImports()
         compileConsts()
         compileFunctions()
+        compileImports()
         builder.finish()
     }
 
@@ -69,6 +72,13 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
             processCode(monoConst.code, ctx)
             consts[const.ref.id] = monoConst
 
+            if (!type.isIntrinsic() && !type.isEncodedInRef()) {
+                if (!initMemoryCopyInternal) {
+                    initMemoryCopyInternal = true
+                    getMonoFunction(program.getFunction("memory_copy_internal"), MonoCtx())
+                }
+            }
+
             builder.compileConst(const, monoConst)
         }
     }
@@ -80,6 +90,7 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
         }
 
         if (program.compilerOptions.runTests) {
+            getMonoFunction(program.getFunction("run_test"), root)
             program.functions.filter { it.isTest }.forEach {
                 getMonoFunction(it, root)
             }

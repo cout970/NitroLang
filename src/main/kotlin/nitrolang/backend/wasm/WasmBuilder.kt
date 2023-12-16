@@ -149,7 +149,6 @@ open class WasmBuilder(
         )
 
         compileConstInit(mono, wasmFunction)
-
         module.initializers += mono to wasmFunction
     }
 
@@ -526,10 +525,6 @@ open class WasmBuilder(
             isInt() -> WasmPrimitive.i32
             else -> WasmPrimitive.i32
         }
-    }
-
-    fun MonoType.isEncodedInRef(): Boolean {
-        return isFloat() || isLong() || isInt()
     }
 
     fun funcTypeToWasm(mono: MonoType, lambda: Boolean): String {

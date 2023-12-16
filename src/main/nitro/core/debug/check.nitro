@@ -20,7 +20,6 @@ fun <#Any: GetOrdering, ToString> check_not_equal(a: #Any, b: #Any, message: Str
     }
 }
 
-@Required
 @WasmName [name: "run_test"]
 @Extern [lib: "core", name: "run_test"]
 fun run_test(internal_function_name: String, test_name: String): Boolean {}
