@@ -38,12 +38,16 @@ fun MonoBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
         }
         val returnType = typeToMonoType(program.removeAllGenerics(func.returnType), ctx)
 
-        MonoFuncSignature(func.ref, func.fullName, params, returnType)
+        MonoFuncSignature(func.ref, func.fullName, params, returnType, emptyList())
     } else {
+        val typeParams = func.typeParameters.map {
+            typeToMonoType(program.typeEnv.generic(it), ctx)
+        }
         MonoFuncSignature(
             func.ref, func.fullName,
             func.params.map { typeToMonoType(it.type, ctx) },
-            typeToMonoType(func.returnType, ctx)
+            typeToMonoType(func.returnType, ctx),
+            typeParams
         )
     }
 
@@ -60,6 +64,7 @@ fun MonoBuilder.getMonoLambdaFunction(lambda: LstLambdaFunction, ctx: MonoCtx): 
         lambda.ref, "lambda-${lambda.ref.id}",
         lambda.params.map { typeToMonoType(it.type, ctx) },
         typeToMonoType(lambda.returnType, ctx),
+        emptyList()
     )
     key.lambda = lambda
 

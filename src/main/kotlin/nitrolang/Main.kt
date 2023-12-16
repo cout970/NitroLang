@@ -17,6 +17,8 @@ import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
+const val DEBUG: Boolean = true
+
 fun main(args: Array<String>) {
     val opts = CompilerOptions.fromArgs(args)
     if (opts == null) {

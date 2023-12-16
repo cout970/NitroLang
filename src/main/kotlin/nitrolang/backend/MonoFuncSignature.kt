@@ -9,7 +9,8 @@ class MonoFuncSignature(
     val funRef: FunRef,
     val fullName: String,
     val paramTypes: List<MonoType>,
-    val returnType: MonoType
+    val returnType: MonoType,
+    val typeParams: List<MonoType>,
 ) {
     var function: LstFunction? = null
     var lambda: LstLambdaFunction? = null
@@ -21,6 +22,7 @@ class MonoFuncSignature(
         if (funRef.id != other.funRef.id) return false
         if (paramTypes != other.paramTypes) return false
         if (returnType != other.returnType) return false
+        if (typeParams != other.typeParams) return false
 
         return true
     }
@@ -29,10 +31,13 @@ class MonoFuncSignature(
         var result = funRef.id
         result = 31 * result + paramTypes.hashCode()
         result = 31 * result + returnType.hashCode()
+        result = 31 * result + typeParams.hashCode()
         return result
     }
 
     override fun toString(): String {
-        return "${fullName}(${paramTypes.joinToString(", ")}): $returnType"
+        var tp = typeParams.joinToString(", ")
+        tp = if (tp.isNotEmpty()) "<$tp> " else ""
+        return "$tp${fullName}(${paramTypes.joinToString(", ")}): $returnType"
     }
 }

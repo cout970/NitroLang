@@ -55,6 +55,7 @@ fun Ptr<#Value>.write_memory(value: #Value) {
             ptr_of(value).unsafe_cast(),
             size_of<#Value>
         )
+        ret
     }
 
     when (size_of<#Value>) {
@@ -75,7 +76,7 @@ fun Ptr<#Value>.write_memory(value: #Value) {
             get_memory().write_int(this.unsafe_cast(), raw_value)
         }
         else -> {
-            crash("write_memory: size of value is not supported")
+            crash("write_memory: size of value is not supported (${size_of<#Value>}, ${is_encoded_in_ref<#Value>()})")
         }
     }
 }
@@ -113,7 +114,7 @@ fun Ptr<#Value>.read_memory(): #Value {
             ret ptr_from_address<#Value>(raw_value).unsafe_as_ref()
         }
         else -> {
-            crash("read_memory: size of value is not supported")
+            crash("read_memory: size of value is not supported (${size_of<#Value>})")
         }
     }
 }

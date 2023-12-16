@@ -1,0 +1,92 @@
+struct Matrix3 {
+    grid: List<Int>
+}
+
+fun Matrix3::new(): Matrix3 {
+    let grid = []
+
+    grid.add_multiple_times(0, 9)
+
+    return Matrix3 @[ grid ]
+}
+
+fun Matrix3.get(row: Int, column: Int): Int {
+    return grid[row * 3 + column]!!
+}
+
+fun Matrix3.set(row: Int, column: Int, value: Int) {
+    grid[row * 3 + column] = value
+}
+
+fun Matrix3.get_determinant(): Int {
+    let a = get(0, 0) * (get(1, 1) * get(2, 2) - get(2, 1) * get(1, 2))
+    let b = get(0, 1) * (get(1, 0) * get(2, 2) - get(2, 0) * get(1, 2))
+    let c = get(0, 2) * (get(1, 0) * get(2, 1) - get(2, 0) * get(1, 1))
+
+    ret a - b + c
+}
+
+fun Matrix3.to_string(): String {
+    let result: String = ""
+
+    repeat 3 {
+        let row: String = ""
+        let x = it
+
+        repeat 3 {
+            let y = it
+
+            row += this[x, y].to_string()
+            row += " "
+        }
+
+        result += row
+        result += "\n"
+    }
+
+    ret result
+}
+
+fun Matrix3::from_string(str: String): Matrix3 {
+    let lines = str.trim().split("\n")
+    let rows = lines.len()
+
+    if rows != 3 {
+        crash("Matrix must have 3 rows")
+    }
+
+    let columns = lines[0]!!.trim().split(" ").len()
+
+    if columns != 3 {
+        crash("Matrix must have 3 columns")
+    }
+
+    let result = Matrix3::new()
+
+    repeat rows {
+        let row = it
+        let line = lines[it]!!.trim()
+        let numbers = line.split(" ")
+
+        repeat columns {
+            let column = it
+            let number = numbers[it]!!
+
+            result[row, column] = number.to_int()!!
+        }
+    }
+
+    return result
+}
+
+fun main() {
+    let matrix = Matrix3::from_string(r#"
+        1 2 3
+        4 5 6
+        7 8 9
+    "#)
+
+//    println(matrix)
+    check_equal(matrix.determinant, 0, "Determinant must be 0")
+    println("PASS")
+}

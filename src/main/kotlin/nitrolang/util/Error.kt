@@ -1,6 +1,7 @@
 package nitrolang.util
 
 import com.google.gson.Gson
+import nitrolang.DEBUG
 
 
 class ErrorCollector {
@@ -44,7 +45,9 @@ open class ErrorInfo(
             return@buildString
         }
 
-        appendLine("Report source: $source")
+        if (DEBUG) {
+            appendLine("Report source: $source")
+        }
         appendLine("At $span")
         appendLine(message)
 
