@@ -3,9 +3,14 @@
 //
 import {run} from './run.ts'
 
-try {
-  run("./output/compiled.wasm");
-} catch (e) {
-  console.error(e);
-  window.alert('Crashed');
+// Export for reuse in the browser console
+window.runWasm = run;
+
+if (!window.disableWasmRun) {
+  try {
+    run("./output/compiled.wasm");
+  } catch (e) {
+    console.error(e);
+    window.alert('Crashed');
+  }
 }

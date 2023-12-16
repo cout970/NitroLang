@@ -157,18 +157,18 @@ class MyHandler(val opts: CompilerOptions) : HttpHandler {
         val response = gson.toJson(
             mapOf(
                 "error" to message,
-                "info" to collector.toJson(gson),
+                "info" to collector.toString(),
             )
-        )
+        ).toByteArray()
         t.responseHeaders.add("Content-Type", "application/json")
-        t.sendResponseHeaders(400, response.length.toLong())
-        t.responseBody.write(response.toByteArray())
+        t.sendResponseHeaders(400, response.size.toLong())
+        t.responseBody.write(response)
         t.responseBody.close()
 
         val end = Instant.now()
         val start = startTime.get()
         val elapsed = end.toEpochMilli() - start.toEpochMilli()
-        println("[$end] Response: ${t.requestMethod} ${t.requestURI} HTTP 400 $message (${response.length} bytes, $elapsed ms)")
+        println("[$end] Response: ${t.requestMethod} ${t.requestURI} HTTP 400 $message (${response.size} bytes, $elapsed ms)")
     }
 
     private fun sendError(t: HttpExchange, code: Int, message: String) {
@@ -176,15 +176,15 @@ class MyHandler(val opts: CompilerOptions) : HttpHandler {
             mapOf(
                 "error" to message
             )
-        )
+        ).toByteArray()
         t.responseHeaders.add("Content-Type", "application/json")
-        t.sendResponseHeaders(code, response.length.toLong())
-        t.responseBody.write(response.toByteArray())
+        t.sendResponseHeaders(code, response.size.toLong())
+        t.responseBody.write(response)
         t.responseBody.close()
 
         val end = Instant.now()
         val start = startTime.get()
         val elapsed = end.toEpochMilli() - start.toEpochMilli()
-        println("[$end] Response: ${t.requestMethod} ${t.requestURI} HTTP $code $message (${response.length} bytes, $elapsed ms)")
+        println("[$end] Response: ${t.requestMethod} ${t.requestURI} HTTP $code $message (${response.size} bytes, $elapsed ms)")
     }
 }

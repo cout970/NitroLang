@@ -1,16 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Web editor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style media="screen">
         * {
             box-sizing: border-box;
         }
 
+        ::-webkit-scrollbar {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            -webkit-border-radius: 0;
+        }
+
+        html, body {
+            height: 100%;
+            font-size: 16px;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -18,37 +34,154 @@
             background: #282935;
         }
 
-        button {
-            background: #50fa7b;
-            border: none;
-            border-radius: 0.25rem;
-            padding: 0.25rem 0.75rem;
-            color: #282935;
-            font-size: 1.4rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-
         #toolbar {
             display: flex;
             justify-content: start;
             padding: 0.25rem 1rem;
+            margin-top: 4px;
             width: 100%;
+            border-bottom: 1px solid #444;
+
+            background: #333;
+            color: #fff;
+        }
+
+        #run {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-flow: row nowrap;
+            background: #50fa7b;
+            border: none;
+            border-radius: 0.25rem;
+            padding: 0;
+            color: #282935;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            height: 24px;
+            width: 24px;
+        }
+
+        #run.waiting {
+            background: hsl(135 60% 30% / 1);
+            color: #000;
+        }
+
+        #run svg {
+            height: 24px;
+            width: 24px;
+        }
+
+        #min {
+
         }
 
         #editor {
             width: 100%;
             flex-grow: 1;
         }
+
+        #log {
+            background: #333;
+            color: #fff;
+            width: 100%;
+            white-space: pre;
+            overflow: auto;
+            padding: 0.5rem 0.5rem 1rem;
+            flex-grow: 1;
+        }
+
+        .log-line.error {
+            color: #ff8888;
+        }
+
+        .log-line.debug {
+            color: #3388ff;
+        }
+
+        .bottom {
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 10rem;
+        }
+
+        .bottom::after {
+            content: '';
+            background-color: #444;
+            position: absolute;
+            top: 0;
+            height: 4px;
+            width: 100%;
+            cursor: n-resize;
+        }
+
+        #min {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .bottom #min .bi-chevron-up {
+            display: none;
+        }
+
+        .bottom #min .bi-chevron-down {
+            display: block;
+        }
+
+        .bottom.hidden #log {
+            display: none;
+        }
+
+        .bottom.hidden {
+            max-height: 35px !important;
+        }
+
+        .bottom.hidden #min .bi-chevron-up {
+            display: block;
+        }
+
+        .bottom.hidden #min .bi-chevron-down {
+            display: none;
+        }
+
     </style>
 </head>
 <body>
 
-<div id="toolbar">
-    <button id="run">Compile</button>
-</div>
 <div id="editor"></div>
+
+<div class="bottom hidden">
+    <div id="toolbar">
+        <button id="run">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-play"
+                 viewBox="0 0 16 16">
+                <path d="M10.804 8 5 4.633v6.734zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696z"/>
+            </svg>
+        </button>
+
+        <button id="min">
+            <svg class="bi bi-chevron-down"
+                 xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                      d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
+
+            <svg class="bi bi-chevron-up"
+                 xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                      d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div id="log"></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"
         type="text/javascript"
@@ -60,822 +193,131 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/theme-dracula.js" type="text/javascript"
         charset="utf-8"></script>
 
+<script>window.disableWasmRun = true;</script>
+
+<script src="/output/build.js" type="text/javascript" charset="utf-8"></script>
+
+<script src="/mode-nitro.js" type="text/javascript" charset="utf-8"></script>
+
 <script>
-  // @see https://medium.com/@jackub/writing-custom-ace-editor-mode-5a7aa83dbe50
-  ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop', 'ace/mode/text_highlight_rules'], (acequire, exports) => {
-    const oop = acequire('ace/lib/oop');
-    const TextHighlightRules = acequire('ace/mode/text_highlight_rules').TextHighlightRules;
 
-    const NitroHighlightRules = function NitroHighlightRules() {
-      // regexp must not have capturing parentheses. Use (?:) instead.
-      // regexps are ordered -> the first match is used
+  const currentHost = `${window.location.protocol}//${window.location.hostname}`;
+  const serverPort = '8080';
+  const compilationEndpoint = `${currentHost}:${serverPort}/compile`;
 
-      const keywordMapper = this.$keywords = this.createKeywordMapper({
-        "keyword": "Self|function|var|val|module|class|type|recv|receiver|trait|interface|either|ref_mut|ref|copy|or|and|xor|not|This|fun|let|mod|struct|ret|return|size_of|sizeOf|sizeof|option|rec|tag|defer|type_alias|typeAlias|typealias|enum|when|match|alias|if|else|for|in|while|repeat|loop|is|as|include|break|continue|use|mut",
-        "constant.language.nitro": "true|false|null|this|nothing|self",
-      }, "identifier");
+  const run = document.getElementById('run');
+  const min = document.getElementById('min');
+  const log = document.getElementById('log');
 
-      const restart = (currentState, stack) => {
-        while (stack && stack.length > 0) {
-          stack.shift();
-        }
-        return "start";
-      };
+  const oldInfo = console.info;
+  console.info = (...args) => {
+    oldInfo(...args);
+    const div = document.createElement('div');
+    div.classList.add('log-line');
+    div.classList.add('info');
+    div.textContent = args.join(' ');
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
 
-      const restart_to = (to_state) => {
-        return (currentState, stack) => {
-          while (stack && stack.length > 0 && stack[stack.length - 1] !== to_state) {
-            stack.shift();
-          }
-          return to_state;
-        };
+  const oldDebug = console.debug;
+  console.debug = (...args) => {
+    oldDebug(...args);
+    const div = document.createElement('div');
+    div.classList.add('log-line');
+    div.classList.add('debug');
+    div.textContent = args.join(' ');
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  const oldError = console.error;
+  console.error = (...args) => {
+    oldError(...args);
+    const div = document.createElement('div');
+    div.classList.add('log-line');
+    div.classList.add('error');
+    div.textContent = args.join(' ');
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  async function compile(code) {
+    const start = performance.now();
+
+    try {
+      console.info('--- Compiling ---');
+
+      const result = await fetch(compilationEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/wasm'
+        },
+        cors: 'no-cors',
+        body: JSON.stringify({source: code})
+      });
+
+      const contents = result.ok
+        ? await result.blob()
+        : await result.json()
+
+      const end = performance.now();
+      const diff = (end - start) | 0;
+
+      console.info(`--- Server response ${result.status} (${diff} ms) ---`);
+
+      return result.ok
+        ? {status: 'ok', contents}
+        : {status: 'error', contents};
+    } catch (e) {
+      console.info('--- Connection error ---');
+      return Promise.reject(e);
+    }
+  }
+
+  async function execute(blob) {
+    const url = URL.createObjectURL(blob);
+
+    try {
+      console.info('--- Running ---');
+      const start_run = performance.now();
+
+      window.runWasm(url);
+
+      const end_run = performance.now();
+      console.info(`--- Finished (${(end_run - start_run) | 0} ms) ---`);
+    } catch (e) {
+      console.info('--- Execution error ---', e);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function compilerAndExecute(code) {
+    run.classList.add('waiting');
+
+    let result;
+
+    try {
+      result = await compile(code);
+    } catch (e) {
+      return;
+    } finally {
+      run.classList.remove('waiting');
+    }
+
+    if (result.status === 'error') {
+      let data = result.contents;
+      console.info(`--- ${data.error} ---`);
+      if (data.info) {
+        console.error(data.info);
       }
+      return;
+    }
 
-      this.$rules = {
-        "start": [
-          {
-            include: "#comments"
-          },
-          {
-            include: "#annotation"
-          },
-          {
-            include: "#struct"
-          },
-          {
-            include: "#option"
-          },
-          {
-            include: "#tag"
-          },
-          {
-            include: "#function_header"
-          },
-          {
-            include: "#statements"
-          },
-          {
-            include: "#expressions"
-          },
-          {
-            token: keywordMapper,
-            regex: /[a-zA-Z]\w*\b/
-          },
-          {
-            token: "paren.lparen",
-            regex: /[{(\[]/
-          },
-          {
-            token: "paren.rparen",
-            regex: /[})\]]/
-          }
-        ],
-        "#comments": [
-          {
-            token: "comment",
-            regex: /\/\*/,
-            push: [
-              {
-                token: "comment",
-                regex: /\*\//,
-                next: "pop"
-              },
-              {
-                defaultToken: "comment"
-              }
-            ]
-          },
-          {
-            token: [
-              "text",
-              "comment"
-            ],
-            regex: /(\s*)(\/\/.*$)/
-          }
-        ],
-        "#annotation": [
-          {
-            token: ["storage.type.annotation.nitro", "text", "punctuation.annotation.start"],
-            regex: /(@\w+)(\s*)(\[)/,
-            push: [
-              {
-                token: "punctuation.annotation.end",
-                regex: /\]/,
-                next: restart,
-              },
-              {
-                include: "#instantiation_field"
-              },
-              {
-                token: "punctuation",
-                regex: /,/
-              },
-              {
-                token: "text",
-                regex: /\s+/
-              },
-            ],
-          },
-          {
-            token: "storage.type.annotation.nitro",
-            regex: /@\w+/,
-          }
-        ],
-        "#constants": [
-          {
-            token: "constant.numeric.nitro",
-            regex: /\b(?:0(?:[xbo])[0-9a-fA-F]*|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:(?:[eE])(?:\+|-)?[0-9]+)?)(?:[LlFfUuDd]|UL|ul)?\b/
-          },
-          {
-            token: "constant.other.nitro",
-            regex: /\b[A-Z][A-Z0-9_]+\b/
-          }
-        ],
-        "#expressions": [
-          {
-            include: "#strings"
-          },
-          {
-            include: "#constants"
-          },
-          {
-            include: "#keywords"
-          }
-        ],
-        "#generics": [
-          {
-            token: "punctuation",
-            regex: /</,
-            push: [
-              {
-                token: "punctuation",
-                regex: />/,
-                next: "pop"
-              },
-              {
-                token: "storage.type.generic.nitro",
-                regex: /#\w+/
-              },
-              {
-                token: "keyword.operator",
-                regex: /:/
-              },
-              {
-                token: "punctuation",
-                regex: /,/
-              },
-              {
-                include: "#generics"
-              }
-            ]
-          }
-        ],
-        "#definition_generics": [
-          {
-            token: "punctuation.definition_generics.start",
-            regex: /</,
-            push: [
-              {
-                token: "punctuation.definition_generics.end",
-                regex: />/,
-                next: "pop"
-              },
-              {
-                token: "storage.type.generic.nitro",
-                regex: /#\w+/
-              },
-              {
-                token: "punctuation",
-                regex: /,/
-              },
-              {
-                token: "punctuation",
-                regex: /:/
-              },
-              {
-                token: "storage.type.regular.nitro",
-                regex: /\w+/
-              },
-              {
-                token: "text",
-                regex: /\s+/
-              }
-            ],
-          }
-        ],
-        "#usage_generics": [
-          {
-            token: "punctuation.definition_generics.start",
-            regex: /</,
-            push: [
-              {
-                token: "punctuation.definition_generics.end",
-                regex: />/,
-                next: "pop"
-              },
-              {
-                include: "#types",
-              },
-              {
-                token: "punctuation",
-                regex: /,/
-              },
-              {
-                token: "text",
-                regex: /\s+/
-              }
-            ],
-          }
-        ],
-        "#types": [
-          {
-            include: "#defaultTypes"
-          },
-          {
-            token: "storage.type.generic.nitro",
-            regex: /#\w+/
-          },
-          {
-            token: "storage.type.regular.nitro",
-            regex: /\w+/
-          },
-          {
-            token: "paren.lparen.funtion_type.nitro",
-            regex: /\(/,
-            push: [
-              {
-                token: ["paren.rparen.funtion_type.nitro", "text", "punctuation.funtion_type.nitro", "text"],
-                regex: /(\))(\s*)(->)(\s*)/,
-                next: "pop",
-              },
-              {
-                include: "#types",
-              },
-              {
-                token: "punctuation",
-                regex: /,/
-              },
-              {
-                token: "text",
-                regex: /\s+/
-              },
-              {
-                token: "text",
-                regex: /(?=$|\))/,
-                next: "pop",
-              }
-            ]
-          },
-          {
-            token: "punctuation",
-            regex: /\./
-          },
-          {
-            include: "#usage_generics"
-          }
-        ],
-        "#defaultTypes": [
-          {
-            token: "storage.type.buildin.nitro",
-            regex: /\b(Any|Arena|Array|ArrayList|Boolean|Box|Buffer|Byte|Char|Console|Deque|Entry|Float|Fun0|Fun1|Fun2|Fun3|Fun4|Fun5|Fun6|Fun7|Fun8|Fun9|HashMap|Int|Iter|Iterator|Json|List|Map|MapEntry|Math|Memory|MemoryArena|Nothing|Null|Number|Object|Optional|Ordering|Ptr|Queue|Raw|RawArray|Ref|Result|Set|Short|Slice|Stack|String|StringMap|StringMapEntry|Unit|Vec|Pair)\b/
-          },
-          {
-            token: "storage.type.special.nitro",
-            regex: /\b(This|Self)\b/
-          }
-        ],
-        "#struct": [
-          {
-            token: "keyword.struct.nitro",
-            regex: /\bstruct\b/,
-            push: [
-              {
-                token: "punctuation.struct.start",
-                regex: /\{/,
-                next: "#struct_body",
-              },
-              {
-                token: "storage.type.struct.nitro",
-                regex: /\w+/,
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                include: "#definition_generics"
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                token: "text",
-                regex: /(?=$|\{|\}|=|,)/,
-                next: "pop",
-              },
-            ],
-          }
-        ],
-        "#struct_body": [
-          {
-            token: "punctuation.struct.end",
-            regex: /\}/,
-            next: restart,
-          },
-          {
-            token: ["entity.name.variable.nitro", "text", "punctuation", "text"],
-            regex: /(\w+)(\s*)(:)(\s*)/,
-            push: [
-              {
-                include: "#types",
-              },
-              {
-                token: "text",
-                regex: /(?=$|,|}|\n)/,
-                next: "pop",
-              }
-            ],
-          },
-          {
-            token: "punctuation",
-            regex: /,/,
-          },
-          {
-            token: "text",
-            regex: /\s+/,
-          },
-        ],
-        "#option": [
-          {
-            token: "keyword.option.nitro",
-            regex: /\boption\b/,
-            push: [
-              {
-                token: "punctuation.option.start",
-                regex: /\{/,
-                next: "#option_body",
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                token: "storage.type.option.nitro",
-                regex: /\w+/,
-              },
-              {
-                include: "#definition_generics"
-              },
-              {
-                token: "text",
-                regex: /(?=$|\{|\}|=|,)/,
-                next: "pop",
-              },
-            ],
-          }
-        ],
-        "#option_body": [
-          {
-            token: "punctuation.option.end",
-            regex: /\}/,
-            next: restart,
-          },
-          {
-            token: ["storage.type.option.item.nitro", "text", "punctuation.option.item.start", "text"],
-            regex: /(\w+)(\s*)(\{)(\s*)/,
-            next: "#option_item_body",
-          },
-          {
-            token: ["storage.type.option.item.nitro", "text"],
-            regex: /(\w+)(\s*)/,
-          }
-        ],
-        "#option_item_body": [
-          {
-            token: "punctuation.option.item.end",
-            regex: /\}/,
-            next: restart_to("#option_body"),
-          },
-          {
-            token: ["entity.name.variable.nitro", "text", "punctuation", "text"],
-            regex: /(\w+)(\s*)(:)(\s*)/,
-            push: [
-              {
-                include: "#types",
-              },
-              {
-                token: "text",
-                regex: /(?=$|,|}|\n)/,
-                next: "pop",
-              }
-            ],
-          },
-          {
-            token: "punctuation",
-            regex: /,/,
-          },
-          {
-            token: "text",
-            regex: /\s+/,
-          },
-        ],
-        "#tag": [
-          {
-            token: "keyword.tag.nitro",
-            regex: /\btag\b/,
-            push: [
-              {
-                token: "punctuation.tag.start",
-                regex: /\{/,
-                next: "#tag_body",
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                token: "storage.type.option.nitro",
-                regex: /\w+/,
-              },
-              {
-                include: "#definition_generics"
-              },
-              {
-                token: "text",
-                regex: /(?=$|\{|\}|=|,)/,
-                next: "pop",
-              },
-            ],
-          }
-        ],
-        "#tag_body": [
-          {
-            token: "punctuation.tag.end",
-            regex: /\}/,
-            next: restart,
-          },
-          {
-            include: "#function_header"
-          }
-        ],
-        "#function_header": [
-          {
-            token: "keyword.function.nitro",
-            regex: /\bfun\b/,
-            push: [
-              {
-                token: ["entity.name.function.nitro", "text", "punctuation.function_params.start", "text"],
-                regex: /(\w+)(\s*)(\()(\s*)/,
-                next: "#function_header_params",
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                include: "#definition_generics",
-              },
-              {
-                token: "punctuation.namespace.nitro",
-                regex: /::/,
-              },
-              {
-                include: "#types",
-              },
-              {
-                token: "punctuation",
-                regex: /\./,
-              },
-              {
-                token: "text",
-                regex: /(?=$|\{|=)/,
-                next: "pop",
-              },
-            ],
-          }
-        ],
-        "#function_header_params": [
-          {
-            token: "punctuation.function_params.end",
-            regex: /\)/,
-            next: "#function_end",
-          },
-          {
-            token: ["entity.name.variable.nitro", "text", "punctuation", "text"],
-            regex: /(\w+)(\s*)(:)(\s*)/,
-            push: [
-              {
-                include: "#types",
-              },
-              {
-                token: "text",
-                regex: /(?=$|,|\))/,
-                next: "pop",
-              }
-            ],
-          },
-          {
-            token: "punctuation",
-            regex: /,/,
-          },
-          {
-            token: "text",
-            regex: /\s+/,
-          },
-          {
-            token: "text.any",
-            regex: /.+/,
-          }
-        ],
-        '#function_end': [
-          {
-            token: "punctuation",
-            regex: /:/,
-          },
-          {
-            include: "#types",
-          },
-          {
-            token: "text",
-            regex: /(?=$|\n|\{|=)/,
-            next: "pop",
-          }
-        ],
-        "#statements": [
-          {
-            token: ["keyword.let.nitro", "text", "keyword.mut.nitro", "text", "entity.name.variable.nitro", "text"],
-            regex: /(\blet\b)(\s*)(mut)?(\s*)(\w+)(\s*)/,
-            push: [
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                token: "keyword.operator.assignment.nitro",
-                regex: /=/,
-                next: "pop",
-              },
-              {
-                token: "punctuation",
-                regex: /:/,
-                push: [
-                  {
-                    include: "#types"
-                  },
-                  {
-                    token: "punctuation",
-                    regex: /=|,|\n|$/,
-                    next: "pop",
-                  },
-                ]
-              },
-              {
-                token: "text",
-                regex: /./,
-                next: "pop"
-              }
-            ]
-          },
-          {
-            token: "keyword.if.nitro",
-            regex: /\bif\b/,
-          },
-          {
-            token: "keyword.else.nitro",
-            regex: /\belse\b/,
-          },
-          {
-            token: "keyword.repeat.nitro",
-            regex: /\brepeat\b/,
-          },
-          {
-            token: "keyword.while.nitro",
-            regex: /\bwhile\b/,
-          },
-          {
-            token: "keyword.for.nitro",
-            regex: /\bfor\b/,
-          },
-          {
-            token: "keyword.defer.nitro",
-            regex: /\bdefer\b/,
-          },
-          {
-            token: "keyword.defer.nitro",
-            regex: /\bdefer\b/,
-          },
-        ],
-        "#keywords": [
-          {
-            token: "keyword.operator.nitro",
-            regex: /==|!=|===|!==|<=|>=|<|>|=>|->|::|\?:/
-          },
-          {
-            token: "keyword.operator.assignment.nitro",
-            regex: /=/
-          },
-          {
-            token: "keyword.operator.declaration.nitro",
-            regex: /:/,
-            push: [
-              {
-                token: "text",
-                regex: /(?=$|{|=|,)/,
-                next: "pop"
-              },
-              {
-                include: "#types"
-              }
-            ]
-          },
-          {
-            token: "keyword.operator.dot.nitro",
-            regex: /\./
-          },
-          {
-            token: "keyword.operator.increment-decrement.nitro",
-            regex: /\-\-|\+\+/
-          },
-          {
-            token: "keyword.operator.arithmetic.nitro",
-            regex: /[\-+*/%]/
-          },
-          {
-            token: "keyword.operator.arithmetic.assign.nitro",
-            regex: /\+=|\-=|\*=|\/=/
-          },
-          {
-            token: "keyword.operator.logical.nitro",
-            regex: /not|xor|or|!|&&|\|\|/
-          },
-          {
-            token: "keyword.operator.range.nitro",
-            regex: /\.\.[=<]/
-          },
-          {
-            token: "punctuation",
-            regex: /[;,]/
-          }
-        ],
-        "#strings": [
-          {
-            token: "string",
-            regex: /"""/,
-            push: [
-              {
-                token: "string",
-                regex: /"""/,
-                next: "pop"
-              },
-              {
-                token: "variable.parameter.template.nitro",
-                regex: /\$\w+|\${[^}]+}/
-              },
-              {
-                token: "constant.character.escape.nitro",
-                regex: /\\./
-              },
-              {
-                defaultToken: "string"
-              }
-            ]
-          },
-          {
-            token: "string",
-            regex: /"/,
-            push: [{
-              token: "string",
-              regex: /"/,
-              next: "pop"
-            },
-              {
-                token: "variable.parameter.template.nitro",
-                regex: /\$\w+|\$\{[^\}]+\}/
-              },
-              {
-                token: "constant.character.escape.nitro",
-                regex: /\\./
-              },
-              {
-                defaultToken: "string"
-              }
-            ]
-          },
-          {
-            token: "string",
-            regex: /```/,
-            push: [
-              {
-                token: "string",
-                regex: /```/,
-                next: "pop"
-              },
-              {
-                defaultToken: "string"
-              }
-            ]
-          }
-        ],
-        "#instantiation_field": [
-          {
-            token: "entity.name.variable.nitro",
-            regex: /\w+/,
-          },
-          {
-            token: "punctuation",
-            regex: /:/
-          },
-          {
-            include: "#expressions"
-          },
-          {
-            defaultToken: "text"
-          }
-        ],
-        "#fields_definition": [
-          {
-            token: "punctuation",
-            regex: /{/,
-            push: [
-              {
-                token: "punctuation",
-                regex: /}/,
-                next: "pop",
-              },
-              {
-                include: "#field_definition",
-              },
-              {
-                token: "punctuation",
-                regex: /,/,
-              },
-              {
-                token: "text",
-                regex: /\s+/,
-              }
-            ]
-          },
-        ],
-        "#field_definition": [
-          {
-            token: "entity.name.variable.nitro",
-            regex: /\w+/,
-            push: [
-              {
-                token: "text",
-                regex: /\s+/,
-              },
-              {
-                token: "punctuation",
-                regex: /:/,
-                next: "pop",
-                push: [
-                  {
-                    token: "text",
-                    regex: /\s+/,
-                  },
-                  {
-                    include: "#types",
-                  },
-                  {
-                    token: "punctuation",
-                    regex: /,|\n|$/,
-                    next: "pop",
-                  },
-                ]
-              },
-            ]
-          },
-        ],
-      };
-
-      this.normalizeRules();
-    };
-
-    NitroHighlightRules.metaData = {
-      fileTypes: ["nl", "nitro"],
-      name: "Nitro",
-      scopeName: "source.Nitro"
-    };
-
-    oop.inherits(NitroHighlightRules, TextHighlightRules);
-
-    exports.NitroHighlightRules = NitroHighlightRules;
-  });
-
-  ace.define("ace/mode/nitro", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/mode/nitro_highlight_rules", "ace/mode/folding/text"], (require, exports, module) => {
-    const oop = require("../lib/oop");
-    const TextMode = require("./text").Mode;
-    const NitroHighlightRules = require("./nitro_highlight_rules").NitroHighlightRules;
-
-    const Mode = function () {
-      this.HighlightRules = NitroHighlightRules;
-      this.$behaviour = this.$defaultBehaviour;
-    };
-    oop.inherits(Mode, TextMode);
-    exports.Mode = Mode;
-  });
+    await execute(result.contents);
+  }
 
   const defaultText = `
 
@@ -885,7 +327,7 @@ fun main() {
 
 `;
 
-  const editor = ace.edit("editor");
+  editor = ace.edit("editor");
   editor.setTheme("ace/theme/dracula");
   editor.session.setMode("ace/mode/nitro");
   editor.setValue(
@@ -905,31 +347,43 @@ fun main() {
   }, 1000);
 
   // On click send the code to the server to compile it
-  run.onclick = () => {
-    const code = editor.getValue();
-    const start = new Date();
+  run.onclick = () => compilerAndExecute(editor.getValue());
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      compilerAndExecute(editor.getValue());
+    }
+  });
 
-    console.info('Sending code to server...');
+  min.onclick = () => {
+    const bottom = document.querySelector('.bottom');
+    bottom.classList.toggle('hidden');
+  };
 
-    fetch('http://localhost:8080/compile', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/wasm'
-      },
-      cors: 'no-cors',
-      body: JSON.stringify({source: code})
-    })
-      .then(res => res.blob())
-      .then(res => {
-        const end = new Date();
-        const diff = end.getTime() - start.getTime();
-        console.info(`Compiled in ${diff}ms`);
-      })
-      .catch(err => {
-        console.error(err);
-      });
+  // Drag edge of .bottom to increase vertical size
+  const BORDER_SIZE = 4;
+  const bottom = document.querySelector(".bottom");
+
+  let m_pos;
+
+  function resize(e) {
+    if (bottom.classList.contains('hidden')) {
+      return;
+    }
+    const dy = m_pos - e.y;
+    m_pos = e.y;
+    bottom.style.height = (parseInt(getComputedStyle(bottom, '').height) + dy) + "px";
   }
+
+  bottom.addEventListener("mousedown", function (e) {
+    if (e.offsetY < BORDER_SIZE) {
+      m_pos = e.y;
+      document.addEventListener("mousemove", resize, false);
+    }
+  }, false);
+
+  document.addEventListener("mouseup", function () {
+    document.removeEventListener("mousemove", resize, false);
+  }, false);
 
 </script>
 </body>
