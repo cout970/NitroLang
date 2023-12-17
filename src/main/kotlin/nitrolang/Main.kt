@@ -67,6 +67,7 @@ fun main(args: Array<String>) {
 }
 
 fun compileToWat(opt: CompilerOptions): LstProgram {
+    Prof.enable = opt.profile
     Prof.start("compile")
     Prof.start("program")
     val program = LstProgram(opt)
@@ -195,6 +196,7 @@ fun compileToWat(opt: CompilerOptions): LstProgram {
         return program
     }
 
+    Prof.end()
     Prof.end()
     return program
 }

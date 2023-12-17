@@ -1,0 +1,10 @@
+
+struct Span {
+    offset: Int
+    source: String
+    file: String
+}
+
+fun Span.to_string(): String {
+    ret "($file:$offset)"
+}

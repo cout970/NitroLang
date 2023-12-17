@@ -109,8 +109,18 @@ export function alloc(bytes: number): number {
   const pad = (ptr_size - next) % ptr_size;
   next = next + (pad < 0 ? pad + ptr_size : pad);
 
-  setInt(8, next + bytes);
-  const result = getInt(12) + next;
+  let inUse = next + bytes;
+  setInt(8, inUse);
+  const start = getInt(12);
+  const result = start + next;
+
+  const end = result + bytes;
+  const capacity = getInt(4);
+
+  if (end > start + capacity) {
+    throw new Error(`Out of memory while trying to allocate ${bytes} bytes, current usage is ${inUse} bytes`);
+  }
+
   // console.debug(`alloc(${bytes}) => 0x${result.toString(16).padStart(4, '0')} (${result})`);
   return result;
 }

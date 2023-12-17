@@ -11,7 +11,6 @@ class TypeEnv(val collector: ErrorCollector) {
     private var nextSubId = 0
     private var nextConsId = 0
 
-    private var allTypes = mutableMapOf<Int, TType>()
     private val allTypeBases = mutableMapOf<Int, TTypeBase>()
     private var tComposite = mutableMapOf<String, TComposite>()
     private var tGeneric = mutableMapOf<String, TGeneric>()
@@ -31,7 +30,6 @@ class TypeEnv(val collector: ErrorCollector) {
     private var currentConstraint: TConstraint? = null
 
     fun print() {
-        println("allTypes:\n - ${allTypes.values.joinToString("\n - ")}")
         println("allTypeBases:\n - ${allTypeBases.values.joinToString("\n - ")}")
         println("constrains:\n - ${constrains.joinToString("\n - ")}")
         println("unresolved:\n - ${unresolved.size}")
@@ -47,19 +45,17 @@ class TypeEnv(val collector: ErrorCollector) {
         return TypeBox(this, type, span).also { boxes += it }
     }
 
-    fun find(name: String): TType = allTypes.values.find {
-        it is TComposite &&
-                ((it.base is TStruct && it.base.instance.fullName == name) ||
-                        (it.base is TOption && it.base.instance.fullName == name) ||
-                        (it.base is TOptionItem && it.base.instance.fullName == name)) &&
+    fun find(name: String): TType = tComposite.values.find {
+        ((it.base is TStruct && it.base.instance.fullName == name) ||
+                (it.base is TOption && it.base.instance.fullName == name) ||
+                (it.base is TOptionItem && it.base.instance.fullName == name)) &&
                 it.params.isEmpty()
     }!!
 
-    fun find(name: String, arg1: String): TType = allTypes.values.find {
-        it is TComposite &&
-                ((it.base is TStruct && it.base.instance.fullName == name) ||
-                        (it.base is TOption && it.base.instance.fullName == name) ||
-                        (it.base is TOptionItem && it.base.instance.fullName == name)) &&
+    fun find(name: String, arg1: String): TType = tComposite.values.find {
+        ((it.base is TStruct && it.base.instance.fullName == name) ||
+                (it.base is TOption && it.base.instance.fullName == name) ||
+                (it.base is TOptionItem && it.base.instance.fullName == name)) &&
                 it.params.size == 1 &&
                 it.params[0].let { param ->
                     param is TComposite && param.base is TStruct && param.base.instance.fullName == arg1
@@ -73,23 +69,34 @@ class TypeEnv(val collector: ErrorCollector) {
     }!!
 
     fun replaceAll(find: TType, replacement: TType) {
-        boxes.forEach { it.replace(find, replacement) }
-        val old = allTypes.toMap()
-        val new = mutableMapOf<Int, TType>()
+        Prof.start("replaceAll (${boxes.size})")
 
-        old.forEach { (k, v) ->
-            if (k == find.id) return@forEach
-            val value = v.replace(find, replacement)
-            new[value.id] = value
-        }
+        when (find) {
+            is TUnresolved -> {
+                boxes.forEach {
+                    if (it.hasUnresolved) {
+                        it.replace(find, replacement)
+                        it.hasUnresolved = it.type.hasUnresolved()
+                    }
+                }
+                unresolved.remove(find)
+            }
 
-        allTypes = new
-        if (find is TUnresolved) {
-            unresolved.remove(find)
+            is TUnresolvedFunction -> {
+                boxes.forEach {
+                    if (it.unresolvedFunction) {
+                        it.replace(find, replacement)
+                        it.unresolvedFunction = it.type.hasUnresolvedFunction()
+                    }
+                }
+                unresolvedFunction.remove(find)
+            }
+
+            else -> {
+                boxes.forEach { it.replace(find, replacement) }
+            }
         }
-        if (find is TUnresolvedFunction) {
-            unresolvedFunction.remove(find)
-        }
+        Prof.end()
     }
 
     fun addAssignableConstraint(expected: TType, found: TType, span: Span) {
@@ -234,7 +241,6 @@ class TypeEnv(val collector: ErrorCollector) {
     private inline fun <T : TType> type(func: (Int) -> T): T {
         val id = nextId()
         val ty = func(id)
-        allTypes[id] = ty
         when (ty) {
             is TComposite -> tComposite[ty.indexKey] = ty
             is TGeneric -> tGeneric[ty.indexKey] = ty
@@ -266,22 +272,24 @@ class TypeEnv(val collector: ErrorCollector) {
         }
     }
 
-    fun TType.replace(find: TType, replacement: TType): TType = when (this) {
-        is TUnion -> {
-            if (find == this) replacement else {
-                val options = options.map { it.replace(find, replacement) }.toSet()
-                if (this.options != options) union(options) else this
+    fun TType.replace(find: TType, replacement: TType): TType {
+        return when (this) {
+            is TUnion -> {
+                if (find == this) replacement else {
+                    val options = options.map { it.replace(find, replacement) }.toSet()
+                    if (this.options != options) union(options) else this
+                }
             }
-        }
 
-        is TComposite -> {
-            if (find == this) replacement else {
-                val params = params.map { it.replace(find, replacement) }
-                if (this.params != params) composite(base, params) else this
+            is TComposite -> {
+                if (find == this) replacement else {
+                    val params = params.map { it.replace(find, replacement) }
+                    if (this.params != params) composite(base, params) else this
+                }
             }
-        }
 
-        else -> if (find == this) replacement else this
+            else -> if (find == this) replacement else this
+        }
     }
 
     fun TType.removeUnresolved(key: TUnresolved): TType {
@@ -530,8 +538,7 @@ class TypeEnv(val collector: ErrorCollector) {
         unresolved.forEach {
             val debug = if (it.debugName.isEmpty()) {
                 "${it.id}"
-            }
-            else {
+            } else {
                 "${it.debugName}: ${it.id}"
             }
             collector.report("Not enough information to infer the type ($debug)", it.span)
@@ -539,8 +546,7 @@ class TypeEnv(val collector: ErrorCollector) {
         unresolvedFunction.forEach {
             val debug = if (it.debugName.isEmpty()) {
                 "${it.id}"
-            }
-            else {
+            } else {
                 "${it.debugName}: ${it.id}"
             }
             collector.report("Not enough information to infer the type ($debug)", it.span)

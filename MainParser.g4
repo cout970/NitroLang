@@ -404,6 +404,7 @@ expressionBase
 
 templateLiteral
     : anyName typeParamArg? STRING_START stringContents* STRING_END
+    | anyName typeParamArg? PLAIN_STRING
     ;
 
 // json {"key": ["val1", 1, true, null]}

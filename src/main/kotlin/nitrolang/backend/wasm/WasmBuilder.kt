@@ -82,7 +82,7 @@ open class WasmBuilder(
         // @formatter:off
         module.sectionOffset = pad(module.sectionOffset)
         val memoryInstance = byteArrayOf(
-            /* capacity */ *intToWasm(16 * 64 * 1024 - module.sectionOffset),
+            /* capacity */ *intToWasm(module.memoryCapacity - module.sectionOffset),
             /* len      */ *intToWasm(0),
             /* bytes    */ *intToWasm(module.sectionOffset)
         )

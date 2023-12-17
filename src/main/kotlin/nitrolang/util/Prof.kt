@@ -4,11 +4,11 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 object Prof {
-    private const val ENABLE: Boolean = false
+    var enable: Boolean = false
     private val stack = ArrayDeque<Pair<String, Instant>>()
 
     fun start(name: String) {
-        if (ENABLE) stack.add(name to Instant.now())
+        if (enable) stack.add(name to Instant.now())
     }
 
     fun next(name: String) {
@@ -17,7 +17,7 @@ object Prof {
     }
 
     fun end() {
-        if (!ENABLE) return
+        if (!enable) return
         val (name, start) = stack.removeLastOrNull() ?: return
         val depth = stack.size
         val end = Instant.now()
@@ -26,5 +26,12 @@ object Prof {
         if (interval > 0) {
             println("${"| ".repeat(depth)}$name: $interval ms")
         }
+    }
+
+    inline fun <T> run(name: String, op: () -> T): T {
+        start(name)
+        val result = op()
+        end()
+        return result
     }
 }

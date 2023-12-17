@@ -39,7 +39,7 @@ fun CodePrinter.wasmModule(module: WasmModule) {
     string("memory")
     +")"
     sep()
-    +(16 * 10).toString() // 10 MB
+    +(module.memoryCapacity / (64 * 1024)).toString()
     +")"
     nl()
 

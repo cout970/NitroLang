@@ -1,4 +1,40 @@
 
+include "./lexer/lexer.nitro"
+include "./lexer/token.nitro"
+include "./test.nitro"
+
 fun main() {
-    println("Hello world")
+    let lexer = Lexer::new(source_code)
+
+    while lexer.next() {}
+
+    let tmp = ""
+    for token in lexer.tokens {
+        when {
+            token.extra.len() > 0 -> {
+                tmp += "'"
+                tmp += token.extra
+                tmp += "' "
+            }
+            token.kind == TokenKind::NL -> {
+                println(tmp)
+                tmp = ""
+            }
+            else -> {
+                tmp += token.kind.text
+                tmp += " "
+            }
+        }
+    }
+    println(tmp)
+    println("----")
+    for token in lexer.tokens {
+        println(token)
+    }
+
+
+
+//    for token in lexer.comments {
+//        println(token)
+//    }
 }

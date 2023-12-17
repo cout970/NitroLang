@@ -1,12 +1,11 @@
 
 import * as internal from './internal.ts'
 import * as core from './impl.ts'
-import * as compiler from '../nitro/compiler/extern.ts'
 
 export async function run(url: string) {
     const res = await WebAssembly.instantiateStreaming(
         fetch(url),
-        {core, compiler}
+        {core}
     );
     const wasmExports = res.instance.exports;
     const memory: WebAssembly.Memory = wasmExports.memory as WebAssembly.Memory;

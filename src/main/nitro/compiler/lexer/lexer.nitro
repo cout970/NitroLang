@@ -1,0 +1,1066 @@
+
+struct Lexer {
+    // Original source code
+    internal src: String
+    // Current position in the source code
+    internal cur: Int
+    // Map of identifier strings to keyword tokens
+    internal keyword_map: Map<String, TokenKind>
+    // State stack, 0 is normal mode, 1 is string mode
+    internal state: List<Int>
+    // All the collected tokens
+    tokens: List<Token>
+    // All the ignored tokens, useful for documentation extractors, but unused by the compiler
+    comments: List<Token>
+}
+
+// Creates a new lexer
+fun Lexer::new(src: String): Lexer {
+    let keyword_map = #[
+        "this": TokenKind::THIS,
+        "This": TokenKind::THIS_TYPE,
+        "fun": TokenKind::FUN,
+        "let": TokenKind::LET,
+        "mod": TokenKind::MODULE,
+        "struct": TokenKind::STRUCT,
+        "ret": TokenKind::RETURN, 
+        "return": TokenKind::RETURN,
+        "size_of": TokenKind::SIZE_OF,
+        "sizeOf": TokenKind::SIZE_OF,
+        "sizeof": TokenKind::SIZE_OF,
+        "option": TokenKind::OPTION,
+        "internal": TokenKind::INTERNAL,
+        "rec": TokenKind::REC,
+        "tag": TokenKind::TAG,
+        "defer": TokenKind::DEFER,
+        "type_alias": TokenKind::TYPE_ALIAS,
+        "typeAlias": TokenKind::TYPE_ALIAS, 
+        "typealias": TokenKind::TYPE_ALIAS,
+        "enum": TokenKind::ENUM,
+        "nothing": TokenKind::NOTHING,
+        "when": TokenKind::WHEN,
+        "match": TokenKind::MATCH,
+        "alias": TokenKind::ALIAS,
+        "if": TokenKind::IF,
+        "else": TokenKind::ELSE,
+        "for": TokenKind::FOR,
+        "in": TokenKind::IN,
+        "while": TokenKind::WHILE,
+        "repeat": TokenKind::REPEAT,
+        "loop": TokenKind::LOOP,
+        "is": TokenKind::IS,
+        "as": TokenKind::AS,
+        "true": TokenKind::TRUE,
+        "false": TokenKind::FALSE,
+        "null": TokenKind::NULL,
+        "include": TokenKind::INCLUDE,
+        "break": TokenKind::BREAK,
+        "continue": TokenKind::CONTINUE,
+        "use": TokenKind::USE,
+        "mut": TokenKind::MUT,
+        "json!": TokenKind::JSON,
+        "test!": TokenKind::TEST,
+        "not": TokenKind::NOT,
+        "or": TokenKind::OROR,
+        "and": TokenKind::ANDAND,
+        "xor": TokenKind::XORXOR,
+        // Reserved
+        "self": TokenKind::RESERVED,
+        "Self": TokenKind::RESERVED,
+        "function": TokenKind::RESERVED,
+        "var": TokenKind::RESERVED,
+        "val": TokenKind::RESERVED,
+        "module": TokenKind::RESERVED,
+        "class": TokenKind::RESERVED,
+        "type": TokenKind::RESERVED,
+        "recv": TokenKind::RESERVED,
+        "receiver": TokenKind::RESERVED,
+        "trait": TokenKind::RESERVED,
+        "interface": TokenKind::RESERVED,
+        "either": TokenKind::RESERVED,
+        "ref_mut": TokenKind::RESERVED,
+        "ref": TokenKind::RESERVED,
+        "copy": TokenKind::RESERVED,
+        "final": TokenKind::RESERVED,
+        "local": TokenKind::RESERVED,
+        "object": TokenKind::RESERVED,
+        "package": TokenKind::RESERVED,
+        "super": TokenKind::RESERVED,
+        "throw": TokenKind::RESERVED,
+        "try": TokenKind::RESERVED,
+        "typeof": TokenKind::RESERVED,
+        "finally": TokenKind::RESERVED,
+        "then": TokenKind::RESERVED,
+        "annotation": TokenKind::RESERVED,
+        "inline": TokenKind::RESERVED,
+        "expect": TokenKind::RESERVED,
+        "infix": TokenKind::RESERVED,
+        "private": TokenKind::RESERVED,
+        "public": TokenKind::RESERVED,
+        "protected": TokenKind::RESERVED,
+        "suspend": TokenKind::RESERVED,
+        "vararg": TokenKind::RESERVED,
+    ]
+
+    ret Lexer @[
+        src,
+        cur: 0,
+        keyword_map,
+        state: [],
+        tokens: [],
+        comments: [],
+    ]
+}
+
+// Returns the current byte in the source code
+fun Lexer.get_current_byte(): Int {
+    ret src.get_byte(cur).to_int()
+}
+
+// Returns the next byte in the source code
+fun Lexer.get_next_byte(): Int {
+    ret src.get_byte(cur + 1).to_int()
+}
+
+// Returns the byte next to the next byte
+fun Lexer.get_next_next_byte(): Int {
+    ret src.get_byte(cur + 2).to_int()
+}
+
+// Tries to read the next token, returns true if there are more tokens to read
+fun Lexer.next(): Boolean {
+    if (cur >= src.len()) {
+        tokens[] = Token::new(TokenKind::EOF, cur)
+        ret false
+    }
+
+    let cur_state = if state.len() > 0 { state.last()!! } else { 0 }
+
+    if cur_state == 1 {
+        read_string_blob()
+        ret true
+    }
+
+    strip_whitespace()
+
+    let c0: Int = current_byte
+
+    when {
+        // NL
+        c0 == a"\n" -> {
+            tokens[] = Token::new(TokenKind::NL, cur)
+            cur += 1
+        }
+        // NL ;
+        c0 == a";" -> {
+            tokens[] = Token::new(TokenKind::NL, cur)
+            cur += 1
+        }
+        // QUESTION_MARK    '?'
+        c0 == a"?" -> {
+            tokens[] = Token::new(TokenKind::QUESTION_MARK, cur)
+            cur += 1
+        }
+        // UNDERSCORE       '_'
+        c0 == a"_" -> {
+            tokens[] = Token::new(TokenKind::UNDERSCORE, cur)
+            cur += 1
+        }
+        // DOT              '.'
+        c0 == a"." -> {
+            let c1: Int = next_byte
+
+            // Float .5
+            if c1 >= a"0" && c1 <= a"9" {
+                read_number()
+                ret true
+            }
+
+            // Range ..< or ..=
+            if c1 == a"." {
+                let c2: Int = next_next_byte
+
+                if c2 == a"<" {
+                    tokens[] = Token::new(TokenKind::RANGE_EXCLUSIVE, cur)
+                    cur += 3
+                    ret true
+                }
+
+                if c2 == a"=" {
+                    tokens[] = Token::new(TokenKind::RANGE_INCLUSIVE, cur)
+                    cur += 3
+                    ret true
+                }
+            }
+
+            tokens[] = Token::new(TokenKind::DOT, cur)
+            cur += 1
+        }
+        // LPAREN           '('
+        c0 == a"(" -> {
+            tokens[] = Token::new(TokenKind::LPAREN, cur)
+            cur += 1
+        }
+        // RPAREN           ')'
+        c0 == a")" -> {
+            tokens[] = Token::new(TokenKind::RPAREN, cur)
+            cur += 1
+        }
+        // LBRACE           '{'
+        c0 == a"{" -> {
+            tokens[] = Token::new(TokenKind::LBRACE, cur)
+            cur += 1
+        }
+        // LBRACE           '{'
+        c0 == a"}" -> {
+
+            // If we are inside a string interpolation, we need to close it
+            if state.len() > 0 {
+                state.remove_last()
+
+                cur_state = if state.len() > 0 { state[state.len() - 1]!! } else { 0 }
+
+                if cur_state != 0 {
+                    tokens[] = Token::new(TokenKind::STRING_INTERP_END, cur)
+                    cur += 1
+                    ret true
+                }
+            }
+
+            tokens[] = Token::new(TokenKind::RBRACE, cur)
+            cur += 1
+        }
+        // LBRACKET         '['
+        c0 == a"[" -> {
+            tokens[] = Token::new(TokenKind::LBRACKET, cur)
+            cur += 1
+        }
+        // RBRACKET         ']'
+        c0 == a"]" -> {
+            tokens[] = Token::new(TokenKind::RBRACKET, cur)
+            cur += 1
+        }
+        // COMMA            ','
+        c0 == a"," -> {
+            tokens[] = Token::new(TokenKind::COMMA, cur)
+            cur += 1
+        }
+        // COLON            ':'
+        c0 == a":" -> {
+            let c1: Int = next_byte
+
+            // ::
+            if c1 == a":" {
+                tokens[] = Token::new(TokenKind::DOUBLE_COLON, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::COLON, cur)
+            cur += 1
+        }
+        // ADD              '+'
+        c0 == a"+" -> {
+            let c1: Int = next_byte
+
+            // +5
+            if c1 >= a"0" && c1 <= a"9" {
+                read_number()
+                ret true
+            }
+
+            // +=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::ADD_ASSIGN, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::ADD, cur)
+            cur += 1
+        }
+        // SUB              '-'
+        c0 == a"-" -> {
+            let c1: Int = next_byte
+
+            // -5
+            if c1 >= a"0" && c1 <= a"9" {
+                read_number()
+                ret true
+            }
+
+            // ->
+            if c1 == a">" {
+                let c2: Int = next_next_byte
+
+                // >=
+                if c2 == a"=" {
+                    tokens[] = Token::new(TokenKind::GEQ, cur)
+                    cur += 3
+                    ret true
+                }
+
+                tokens[] = Token::new(TokenKind::ARROW, cur)
+                cur += 2
+                ret true
+            }
+
+            // -=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::SUB_ASSIGN, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::SUB, cur)
+            cur += 1
+        }
+        // MUL              '*'
+        c0 == a"*" -> {
+            let c1: Int = next_byte
+
+            // *=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::MUL_ASSIGN, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::MUL, cur)
+            cur += 1
+        }
+        // DIV              '/'
+        c0 == a"/" -> {
+            let c1: Int = next_byte
+
+            // /=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::DIV_ASSIGN, cur)
+                cur += 2
+                ret true
+            }
+
+            // //
+            if c1 == a"/" {
+                read_line_comment()
+                ret true
+            }
+
+            // /*
+            if c1 == a"*" {
+                read_block_comment()
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::DIV, cur)
+            cur += 1
+        }
+        // XOR              '^'
+        c0 == a"^" -> {
+            let c1: Int = next_byte
+
+            // ^^
+            if c1 == a"^" {
+                tokens[] = Token::new(TokenKind::XORXOR, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::XOR, cur)
+            cur += 1
+        }
+        // DOLAR            '$'
+        c0 == a"\$" -> {
+            tokens[] = Token::new(TokenKind::DOLAR, cur)
+            cur += 1
+        }
+        // MOD              '%'
+        c0 == a"%" -> {
+            let c1: Int = next_byte
+
+            // %=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::MOD_ASSIGN, cur)
+                cur += 2
+                ret true
+            }
+
+            // %[
+            if c1 == a"[" {
+                tokens[] = Token::new(TokenKind::SET_START, cur)
+                cur += 2
+                ret true
+            }
+
+
+            tokens[] = Token::new(TokenKind::MOD, cur)
+            cur += 1
+        }
+        // AT               '@'
+        c0 == a"@" -> {
+            let c1: Int = next_byte
+
+            // @[
+            if c1 == a"[" {
+                tokens[] = Token::new(TokenKind::STRUCT_START, cur)
+                cur += 2
+                ret true
+            }
+
+            // @{
+            if c1 == a"{" {
+                tokens[] = Token::new(TokenKind::LAMBDA_START, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::AT, cur)
+            cur += 1
+        }
+        // HASH             '#'
+        c0 == a"#" -> {
+            let c1: Int = next_byte
+
+            // #[
+            if c1 == a"[" {
+                tokens[] = Token::new(TokenKind::MAP_START, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::HASH, cur)
+            cur += 1
+        }
+        // OR               '|'
+        c0 == a"|" -> {
+            let c1: Int = next_byte
+
+            // ||
+            if c1 == a"|" {
+                tokens[] = Token::new(TokenKind::OROR, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::OR, cur)
+            cur += 1
+        }
+        // AND              '&'
+        c0 == a"&" -> {
+            let c1: Int = next_byte
+
+            // &&
+            if c1 == a"&" {
+                tokens[] = Token::new(TokenKind::ANDAND, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::AND, cur)
+            cur += 1
+        }
+        // NOT               '!' ;
+        c0 == a"!" -> {
+            let c1: Int = next_byte
+
+            // !=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::NEQ, cur)
+                cur += 2
+                ret true
+            }
+
+            // !!
+            if c1 == a"!" {
+                tokens[] = Token::new(TokenKind::BANGBANG, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::NOT, cur)
+            cur += 2
+        }
+        // ASSIGN            '=' ;
+        c0 == a"=" -> {
+            let c1: Int = next_byte
+
+            // ==
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::EQ, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::ASSIGN, cur)
+            cur += 1
+        }
+        // LTH               '<' ;
+        c0 == a"<" -> {
+            let c1: Int = next_byte
+
+            // <=>
+            if c1 == a"=" {
+                let c2: Int = next_next_byte
+
+                if c2 == a">" {
+                    tokens[] = Token::new(TokenKind::COMPARE, cur)
+                    cur += 3
+                    ret true
+                }
+            }
+
+            // <=
+            if c1 == a"=" {
+                tokens[] = Token::new(TokenKind::LEQ, cur)
+                cur += 2
+                ret true
+            }
+
+            tokens[] = Token::new(TokenKind::LTH, cur)
+            cur += 1
+        }
+        // GTH               '>' ;
+        c0 == a">" -> {
+            tokens[] = Token::new(TokenKind::GTH, cur)
+            cur += 1
+        }
+        // string
+        c0 == a"\"" -> {
+            read_string()
+            ret true
+        }
+        // number
+        c0 >= a"0" && c0 <= a"9" -> {
+            read_number()
+            ret true
+        }
+        // identifier
+        c0 >= a"a" && c0 <= a"z" || c0 >= a"A" && c0 <= a"Z" -> {
+            // r#"
+            if c0 == a"r" && next_byte == a"#" && next_next_byte == a"\"" {
+                read_string2()
+                ret true
+            }
+
+            read_identifier()
+            ret true
+        }
+
+        c0 == a"`" -> {
+            let c1: Int = next_byte
+            let c2: Int = next_next_byte
+
+            if c1 == a"`" && c2 == a"`" {
+                read_foreign_block()
+                ret true
+            }
+
+            cur += 1
+        }
+
+        else -> {
+            tokens[] = Token::new(TokenKind::ERROR_CHARACTER, cur)
+            cur += 1
+        }
+    }
+
+    ret true
+}
+
+// Skip whitespaces
+fun Lexer.strip_whitespace() {
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        // c is ' ', '\t', '\r'
+        if c == 32 || c == 9 || c == 13 {
+            cur += 1
+        } else {
+            break
+        }
+    }
+}
+
+// Read a single line comment
+//
+// // This is a line comment
+//
+fun Lexer.read_line_comment() {
+    let start = cur
+
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        if c == a"\n" {
+            break
+        }
+
+        cur += 1
+    }
+
+    let extra = src.substring(start, cur)
+    comments[] = Token::new_with_extra(TokenKind::LINE_COMMENT, start, extra)
+}
+
+// Read a block comment
+//
+// /**
+//  * This is a documentation block comment
+//  */
+// or
+// /*
+//  * This is a regular block comment
+//  */
+//
+fun Lexer.read_block_comment() {
+    // skip "/*"
+    cur += 2
+    let start = cur
+    let max = src.byte_len() - 1
+
+    while cur < max {
+        let c: Int = current_byte
+
+        if c == a"*" {
+            let c1: Int = next_byte
+
+            if c1 == a"/" {
+                break
+            }
+        }
+
+        cur += 1
+    }
+
+    let extra = src.substring(start, cur)
+    cur += 2
+
+    // Detect /** vs /* at the beginning of a comment
+    let kind = if extra.len() > 1 && extra.get_byte(0).to_int() == a"*" {
+        TokenKind::DOC_COMMENT
+    } else {
+        TokenKind::BLOCK_COMMENT
+    }
+
+    comments[] = Token::new_with_extra(kind, start, extra)
+}
+
+// Read a foreign block
+//
+// This special kind of comment block allows to embed foreign code: markdown, javascript, etc.
+//
+// ```md
+// # Inline doc
+// - Step 1
+// - Step 2
+// - Step 3
+// ```
+fun Lexer.read_foreign_block() {
+    // skip ```
+    cur += 3
+
+    let start = cur
+    let max = src.byte_len()
+
+    while cur < max {
+        let c: Int = current_byte
+
+        if current_byte == a"`" && next_byte == a"`" && next_next_byte == a"`"{
+            break
+        }
+
+        cur += 1
+    }
+
+    let extra = src.substring(start, cur)
+
+    // skip ```
+    cur += 3
+
+    comments[] = Token::new_with_extra(TokenKind::FOREIGN_BLOCK, start, extra)
+}
+
+// Read a string
+//
+// There are two kinds of strings:
+// - plain strings: "foo"
+// - interpolated strings: "foo $bar ${1 + 2} baz"
+//
+// Plain strings are simple strings without any interpolation, may contain escape characters.
+// Interpolated strings can contain expressions inside `${}` or `$name` and require special handling.
+//
+fun Lexer.read_string() {
+    // skip '"'
+    cur += 1
+    let start = cur
+    let is_plain = true
+
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        if c == a"\"" {
+            break
+        }
+
+        if c == a"\$" || c == a"\\" {
+            is_plain = false
+            break
+        }
+
+        cur += 1
+    }
+
+    if is_plain {
+
+    let extra = src.substring(start, cur)
+        // skip '"'
+        cur += 1
+        tokens[] = Token::new_with_extra(TokenKind::PLAIN_STRING, start, extra)
+        ret
+    }
+
+    // Try again but with interpolation
+    cur = start
+    tokens[] = Token::new(TokenKind::STRING_START, cur)
+    state[] = 1
+}
+
+// Read a string contents
+//
+// The contents of a string can be:
+// - a blob of text
+// - an escape character
+// - a variable name
+// - an interpolation expression
+// The string ends with a double quote.
+//
+// This function generates a single token for each of the above cases.
+//
+fun Lexer.read_string_blob() {
+    let start = cur
+    let c0 = current_byte
+
+    if c0 == a"\"" {
+        cur += 1
+        tokens[] = Token::new(TokenKind::STRING_END, start)
+        state.remove_last()
+        ret
+    }
+
+    if c0 == a"\\" {
+        cur += 2
+        let extra = src.substring(start, cur)
+        tokens[] = Token::new_with_extra(TokenKind::STRING_ESCAPE, start, extra)
+        ret
+    }
+
+    if c0 == a"\$" {
+        let c1 = next_byte
+
+        if c1 == a"{" {
+            cur += 2
+            tokens[] = Token::new(TokenKind::STRING_INTERP_START, start)
+            state[] = 0
+            ret
+        }
+
+        if c1 >= a"a" && c1 <= a"z" {
+            cur += 1
+            let start2 = cur
+
+            while cur < src.byte_len() {
+                let c: Int = current_byte
+
+                if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
+                    cur += 1
+                } else {
+                    break
+                }
+            }
+
+            let extra = src.substring(start2, cur)
+            tokens[] = Token::new_with_extra(TokenKind::STRING_VAR, start2, extra)
+            ret
+        }
+    }
+
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        if c == a"\$" || c == a"\\" || c == a"\"" {
+            break
+        }
+
+        cur += 1
+    }
+    let extra = src.substring(start, cur)
+
+    tokens[] = Token::new_with_extra(TokenKind::STRING_BLOB, start, extra)
+}
+
+
+// Read a raw string without escape characters and without interpolation
+//
+// r#"
+// This is a raw string
+// "#
+//
+fun Lexer.read_string2() {
+    // skip r#"
+    cur += 3
+    tokens[] = Token::new(TokenKind::STRING2_START, cur)
+
+    let start = cur
+    let max = src.byte_len() - 2
+
+    while cur < max {
+        let c: Int = current_byte
+
+        if c == a"\"" {
+            let c1: Int = next_byte
+            let c2: Int = next_next_byte
+
+            if c1 == a"#" && c2 == a"\"" {
+                break
+            }
+        }
+
+        cur += 1
+    }
+
+    let extra = src.substring(start, cur - 2)
+    tokens[] = Token::new_with_extra(TokenKind::STRING2_BLOB, start, extra)
+    tokens[] = Token::new(TokenKind::STRING2_END, cur)
+}
+
+// Read an identifier
+//
+// There are two kinds of identifiers:
+// - lower case identifiers: `foo`
+// - upper case identifiers: `Foo`
+//
+// Identifiers can contain letters, digits and underscores, but cannot start with a digit or underscore.
+// Also identifiers cannot end with an underscore.
+//
+fun Lexer.read_identifier() {
+    let start = cur
+
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
+            cur += 1
+        } else {
+            break
+        }
+    }
+
+    let extra = src.substring(start, cur)
+
+    // Identifiers cannot end in '_'
+    if extra.get_byte(extra.byte_len() - 1).to_int() == a"_" {
+        cur -= 1
+        extra = src.substring(start, cur)
+    }
+
+    // Keyword
+    let keyword = keyword_map[extra]
+
+    if keyword.is_some() {
+        tokens[] = Token::new(keyword!!, start)
+        ret
+    }
+
+    if current_byte == a"!" {
+        // test!
+        if extra == "test" {
+            tokens[] = Token::new(TokenKind::TEST, start)
+            cur += 1
+            ret
+        }
+
+        // json!
+        if extra == "json" {
+            tokens[] = Token::new(TokenKind::JSON, start)
+            cur += 1
+            ret
+        }
+    }
+
+    // Identifier
+    let first = extra.get_byte(0).to_int()
+    let lower = first >= a"a" && first <= a"z"
+    let kind = if lower { TokenKind::LOWER_IDENTIFIER } else { TokenKind::UPPER_IDENTIFIER }
+
+    tokens[] = Token::new_with_extra(kind, start, extra)
+}
+
+// Read a number
+//
+// A number can be an integer, long or float.
+//
+// Integers can be written in decimal, hexadecimal, octal or binary, using the following prefixes:
+// - 0x for hexadecimal
+// - 0o for octal
+// - 0b for binary
+// - no prefix for decimal
+//
+// Floats look like this:
+// - 1.0
+// - .025
+// - 1.0f
+// - +1f
+// - -1f
+// - -1.23e10
+// - -1.23e+10
+// - 1.23e-10F
+// - +1.23e-10d
+//
+fun Lexer.read_number() {
+    let start = cur
+
+    // hex number 0xFF
+    if current_byte == a"0" && next_byte == a"x" {
+        cur += 2
+
+        while cur < src.byte_len() {
+            let c: Int = current_byte
+
+            if c >= a"0" && c <= a"9" || c >= a"a" && c <= a"f" || c >= a"A" && c <= a"F" || c == a"_" {
+                cur += 1
+            } else {
+                break
+            }
+        }
+
+        let extra = src.substring(start, cur)
+        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        ret
+    }
+
+    // octal number 0o777
+    if current_byte == a"0" && next_byte == a"o" {
+        cur += 2
+
+        while cur < src.byte_len() {
+            let c: Int = current_byte
+
+            if c >= a"0" && c <= a"7" || c == a"_" {
+                cur += 1
+            } else {
+                break
+            }
+        }
+
+        let extra = src.substring(start, cur)
+        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        ret
+    }
+
+    // binary number 0b111
+    if current_byte == a"0" && next_byte == a"b" {
+        cur += 2
+
+        while cur < src.byte_len() {
+            let c: Int = current_byte
+
+            if c >= a"0" && c <= a"1" || c == a"_" {
+                cur += 1
+            } else {
+                break
+            }
+        }
+
+        let extra = src.substring(start, cur)
+        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        ret
+    }
+
+    if current_byte == a"+" {
+       cur += 1
+    }
+
+    if current_byte == a"-" {
+        cur += 1
+    }
+
+    let is_float = false
+    let dot_read = false
+
+    // '.' DIGITS | DIGITS ('.' DIGITS)?
+    if current_byte == a"." {
+        is_float = true
+        dot_read = true
+        cur += 1
+    }
+
+    read_digits()
+
+    if !dot_read && current_byte == a"." {
+        is_float = true
+        cur += 1
+
+        read_digits()
+    }
+
+    // [eE][+-]?DIGITS
+    if current_byte == a"e" || current_byte == a"E" {
+        is_float = true
+        cur += 1
+
+        if current_byte == a"+" || current_byte == a"-" {
+            cur += 1
+        }
+
+        read_digits()
+    }
+
+    // [fFdD]
+    if current_byte == a"f" || current_byte == a"F" || current_byte == a"d" || current_byte == a"D" {
+        is_float = true
+        cur += 1
+    }
+
+    // [lL]
+    if !is_float && (current_byte == a"l" || current_byte == a"L") {
+        cur += 1
+
+        let extra = src.substring(start, cur)
+        tokens[] = Token::new_with_extra(TokenKind::LONG_NUMBER, start, extra)
+        ret
+    }
+
+    let extra = src.substring(start, cur)
+    let kind = if is_float { TokenKind::FLOAT_NUMBER } else { TokenKind::INT_NUMBER }
+
+    tokens[] = Token::new_with_extra(kind, start, extra)
+}
+
+// Read a sequence of consecutive digits
+// Returns true if at least one digit was read
+fun Lexer.read_digits(): Boolean {
+    let start = cur
+
+    while cur < src.byte_len() {
+        let c: Int = current_byte
+
+        if c >= a"0" && c <= a"9" {
+            cur += 1
+        } else {
+            break
+        }
+    }
+
+    ret start != cur
+}
+
+// Give the ascii (Int) value of the first char of the given string
+//
+// This is a temporary hack until we support the following syntax:
+// - a"M" for the ascii value of 'M'
+// - c"M" for the char 'M'
+// - b"ABC" gives a byte array with the contents of the string in UTF8
+//
+fun a(str: List<String>): Int {
+    ret str[0]!!.get_byte(0).to_int()
+}

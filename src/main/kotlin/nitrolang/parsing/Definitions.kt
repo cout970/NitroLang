@@ -640,6 +640,50 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
 
     val none = fromVariant.call(span, "", "None")
     fromVariant.lastExpression = fromVariant.returnExpr(span, none)
+
+    // fun Direction.get_ordering(other: Direction): Ordering {
+    //     ret this.variant.get_ordering(other.variant)
+    // }
+    val getOrdering = LstCode()
+    val params = listOf(
+        LstFunctionParam(
+            span = span,
+            name = SELF_NAME,
+            index = 0,
+            typeUsage = tu,
+        ).apply { createVariable(getOrdering) },
+        LstFunctionParam(
+            span = span,
+            name = "other",
+            index = 1,
+            typeUsage = tu,
+        ).apply { createVariable(getOrdering) }
+    )
+
+    program.functions += LstFunction(
+        span = span,
+        name = "get_ordering",
+        path = enumFullName,
+        hasReceiver = true,
+        params = params,
+        returnTypeUsage = LstTypeUsage.simple("Ordering"),
+        typeParameters = emptyList(),
+        body = getOrdering,
+        annotations = mutableListOf(
+            LstAnnotation(
+                span = span,
+                name = ANNOTATION_AUTO_GENERATED
+            )
+        ),
+        ref = program.nextFunctionRef()
+    )
+
+    val loadSelf = getOrdering.loadVar(span, "", SELF_NAME)
+    val loadSelfVariant = getOrdering.loadField(span, loadSelf, VARIANT_FIELD_NAME)
+    val loadOther = getOrdering.loadVar(span, "", "other")
+    val loadOtherVariant = getOrdering.loadField(span, loadOther, VARIANT_FIELD_NAME)
+    val loadSelfVariantOrdering = getOrdering.call(span, "", "get_ordering", listOf(loadSelfVariant, loadOtherVariant))
+    getOrdering.lastExpression = getOrdering.returnExpr(span, loadSelfVariantOrdering)
 }
 
 fun ParserCtx.processTestDefinition(ctx: MainParser.TestDefinitionContext) {

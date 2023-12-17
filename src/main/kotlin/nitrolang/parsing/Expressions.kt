@@ -802,41 +802,21 @@ fun ParserCtx.processPlainString(ctx: TerminalNode): String {
 
 fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     if (ctx.PLAIN_STRING() != null) {
-        val node = LstString(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            value = processPlainString(ctx.PLAIN_STRING())
-        )
-        code.nodes += node
-        return node.ref
+        return code.string(ctx.span(), processPlainString(ctx.PLAIN_STRING()))
     }
 
     if (ctx.STRING2_START() != null) {
         val text = ctx.string2Contents().joinToString("") { it.text }
-        val node = LstString(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            value = text
-        )
-        code.nodes += node
-        return node.ref
+        return code.string(ctx.span(), text)
     }
 
     val buff = StringBuilder()
     val allParts = mutableListOf<Ref>()
 
     fun endChunk() {
-        val part = LstString(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            value = unescapeStringLiteral(buff.toString())
-        )
-        code.nodes += part
+        val part = code.string(ctx.span(), unescapeStringLiteral(buff.toString()))
         buff.clear()
-        allParts += part.ref
+        allParts += part
     }
 
     ctx.stringContents().forEach { item ->
@@ -870,15 +850,9 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     }
 
     if (buff.isNotEmpty() || allParts.isEmpty()) {
-        val node = LstString(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            value = unescapeStringLiteral(buff.toString())
-        )
-        code.nodes += node
+        val ref = code.string(ctx.span(), unescapeStringLiteral(buff.toString()))
         buff.clear()
-        allParts += node.ref
+        allParts += ref
     }
 
     if (allParts.size == 1) {
@@ -1090,14 +1064,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 val keyRef = if (pair.string() != null) {
                     processString(pair.string())
                 } else {
-                    val entryKey = LstString(
-                        ref = code.nextRef(),
-                        span = value.span(),
-                        block = code.currentBlock,
-                        value = pair.anyName().text
-                    )
-                    code.nodes += entryKey
-                    entryKey.ref
+                    code.string(pair.anyName().span(), pair.anyName().text)
                 }
 
                 val valueRef = processJsonValue(pair.jsonValue())
@@ -1775,48 +1742,58 @@ fun ParserCtx.processExpressionTemplateLiteral(ctx: MainParser.TemplateLiteralCo
 
     arguments += newList
 
-    ctx.stringContents().forEach { item ->
-        when {
-            item.STRING_BLOB() != null -> {
-                val str = code.string(span, unescapeStringLiteral(item.STRING_BLOB().text))
-                code.call(
-                    span = span,
-                    path = "",
-                    name = "add",
-                    arguments = listOf(newList, str),
-                )
-            }
+    if (ctx.PLAIN_STRING() != null) {
+        val str = code.string(span, processPlainString(ctx.PLAIN_STRING()))
+        code.call(
+            span = span,
+            path = "",
+            name = "add",
+            arguments = listOf(newList, str),
+        )
+    } else {
+        ctx.stringContents().forEach { item ->
+            when {
+                item.STRING_BLOB() != null -> {
+                    val str = code.string(span, unescapeStringLiteral(item.STRING_BLOB().text))
+                    code.call(
+                        span = span,
+                        path = "",
+                        name = "add",
+                        arguments = listOf(newList, str),
+                    )
+                }
 
-            item.STRING_ESCAPE() != null -> {
-                val str = code.string(span, unescapeStringLiteral(item.STRING_ESCAPE().text))
-                code.call(
-                    span = span,
-                    path = "",
-                    name = "add",
-                    arguments = listOf(newList, str),
-                )
-            }
+                item.STRING_ESCAPE() != null -> {
+                    val str = code.string(span, unescapeStringLiteral(item.STRING_ESCAPE().text))
+                    code.call(
+                        span = span,
+                        path = "",
+                        name = "add",
+                        arguments = listOf(newList, str),
+                    )
+                }
 
-            item.STRING_VAR() != null -> {
-                val variable = code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
+                item.STRING_VAR() != null -> {
+                    val variable = code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
 
-                arguments += code.call(
-                    span = ctx.span(),
-                    path = "",
-                    name = "to_string",
-                    arguments = listOf(variable)
-                )
-            }
+                    arguments += code.call(
+                        span = ctx.span(),
+                        path = "",
+                        name = "to_string",
+                        arguments = listOf(variable)
+                    )
+                }
 
-            item.STRING_INTERP_START() != null -> {
-                val ref = processExpression(item.expression())
+                item.STRING_INTERP_START() != null -> {
+                    val ref = processExpression(item.expression())
 
-                arguments += code.call(
-                    span = ctx.span(),
-                    path = "",
-                    name = "to_string",
-                    arguments = listOf(ref)
-                )
+                    arguments += code.call(
+                        span = ctx.span(),
+                        path = "",
+                        name = "to_string",
+                        arguments = listOf(ref)
+                    )
+                }
             }
         }
     }

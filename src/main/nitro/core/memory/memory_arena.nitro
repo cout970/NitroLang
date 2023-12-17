@@ -13,10 +13,17 @@ fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let next = this.len
 
     let pad = (ptr_size - next) % ptr_size;
-    next = next + (if pad.less_than_signed(0) { pad + ptr_size } else { pad })
+    next = next + (if pad < 0 { pad + ptr_size } else { pad })
 
     this.len = next + bytes
     let result = this.bytes.get_ptr(next)
+
+    let end = result.get_address() + this.bytes.get_address()
+    let limit = this.bytes.get_address() + this.capacity
+
+    if (end > limit) {
+        crash("Out of memory while trying to allocate ${bytes} bytes, current usage is ${this.len} bytes")
+    }
 
     memory_alloc_trace(bytes, result.get_address())
     ret result

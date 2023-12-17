@@ -23,6 +23,7 @@ Intended for the developers
 
 ### Other features to implement
 
+- Fix missing field in struct creation does not produce an error
 - `it?.func()` to call a function on an optional value
 - Optional arguments 
 - Improve core library

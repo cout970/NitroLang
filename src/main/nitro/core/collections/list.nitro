@@ -170,6 +170,16 @@ fun List<#Item>.remove_at(index: Int) {
     this.len = this.len - 1
 }
 
+// Removes the last item in the array
+// If the array is empty, the program crashes
+fun List<#Item>.remove_last() {
+    if this.len == 0 {
+        crash("Cannot remove last item from empty list")
+    }
+
+    this.len = this.len - 1
+}
+
 // Removes the given item from the list, if the item is not in the list, nothing happens
 fun <#Item: GetOrdering> List<#Item>.remove_value(item: #Item) {
     let index = this.index_of(item)
@@ -183,7 +193,7 @@ fun List<#Item>.clear() {
     this.len = 0
 }
 
-fun <#Item: GetOrdering> List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
+fun List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
     let i = 0
 
     while i < this.len {
@@ -275,7 +285,7 @@ fun List<List<#Item>>.flatten(): List<#Item> {
 }
 
 // Counts the number of items in the list that match the given predicate
-fun <#Item: GetOrdering> List<#Item>.count(predicate: (#Item) -> Boolean): Int {
+fun List<#Item>.count(predicate: (#Item) -> Boolean): Int {
     let count = 0
 
     repeat this.len {
@@ -289,7 +299,7 @@ fun <#Item: GetOrdering> List<#Item>.count(predicate: (#Item) -> Boolean): Int {
 
 // Returns true if all the items in the list match the given predicate
 // If the list is empty, returns true
-fun <#Item: GetOrdering> List<#Item>.all(predicate: (#Item) -> Boolean): Boolean {
+fun List<#Item>.all(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
         if !predicate(this[it]!!) {
             ret false
@@ -301,7 +311,7 @@ fun <#Item: GetOrdering> List<#Item>.all(predicate: (#Item) -> Boolean): Boolean
 
 // Returns true if any of the items in the list match the given predicate
 // If the list is empty, returns false
-fun <#Item: GetOrdering> List<#Item>.any(predicate: (#Item) -> Boolean): Boolean {
+fun List<#Item>.any(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
         if predicate(this[it]!!) {
             ret true
@@ -313,7 +323,7 @@ fun <#Item: GetOrdering> List<#Item>.any(predicate: (#Item) -> Boolean): Boolean
 
 // Returns true if none of the items in the list match the given predicate
 // If the list is empty, returns true
-fun <#Item: GetOrdering> List<#Item>.none(predicate: (#Item) -> Boolean): Boolean {
+fun List<#Item>.none(predicate: (#Item) -> Boolean): Boolean {
     repeat this.len {
         if predicate(this[it]!!) {
             ret false
@@ -324,7 +334,7 @@ fun <#Item: GetOrdering> List<#Item>.none(predicate: (#Item) -> Boolean): Boolea
 }
 
 // Returns the first item in the list, if the list is empty, returns `None`
-fun <#Item: GetOrdering> List<#Item>.first(): Optional<#Item> {
+fun List<#Item>.first(): Optional<#Item> {
     if this.is_empty() {
         ret None()
     }
@@ -333,7 +343,7 @@ fun <#Item: GetOrdering> List<#Item>.first(): Optional<#Item> {
 }
 
 // Returns a new list with all the items except the first one
-fun <#Item: GetOrdering> List<#Item>.rest(): List<#Item> {
+fun List<#Item>.rest(): List<#Item> {
     let result = List::new<#Item>(this.len - 1)
 
     repeat this.len - 1 {
@@ -344,7 +354,7 @@ fun <#Item: GetOrdering> List<#Item>.rest(): List<#Item> {
 }
 
 // Returns the last item in the list, if the list is empty, returns `None`
-fun <#Item: GetOrdering> List<#Item>.last(): Optional<#Item> {
+fun List<#Item>.last(): Optional<#Item> {
     if this.is_empty() {
         ret None()
     }
@@ -353,7 +363,7 @@ fun <#Item: GetOrdering> List<#Item>.last(): Optional<#Item> {
 }
 
 // Finds the first item in the list that matches the given predicate, if no item matches, returns `None`
-fun <#Item: GetOrdering> List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
+fun List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
     repeat this.len {
         if predicate(this[it]!!) {
             ret Some(this[it]!!)
@@ -364,7 +374,7 @@ fun <#Item: GetOrdering> List<#Item>.find(predicate: (#Item) -> Boolean): Option
 }
 
 // Finds the index of the first item in the list that matches the given predicate, if no item matches, returns `None`
-fun <#Item: GetOrdering> List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
+fun List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
     repeat this.len {
         if predicate(this[it]!!) {
             ret Some(it)

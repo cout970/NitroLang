@@ -40,9 +40,7 @@ fun Ordering.is_greater_or_equals(): Boolean = this.variant == Ordering::Greater
 // Checks if the ordering is 'greater than'
 fun Ordering.is_greater(): Boolean = this.variant == Ordering::Greater.variant
 
-// Compares two values
-fun Ordering.get_ordering(other: Ordering): Ordering = this.variant.get_ordering(other.variant)
-
+// Reverses the ordering, so that 'less than' becomes 'greater than' and vice versa
 fun Ordering.reverse(): Ordering {
     ret when {
         this.is_less() -> Ordering::Greater
