@@ -1,10 +1,55 @@
 
 struct Span {
-    offset: Int
+    start: Int
+    len: Int
     source: String
     file: String
+    lazy_line: Optional<Int>
+    lazy_column: Optional<Int>
+}
+
+fun Span::new(start: Int, len: Int, source: String, file: String): Span {
+    ret Span @[
+        start, len,
+        source, file,
+        lazy_line: None(),
+        lazy_column: None()
+    ]
+}
+
+fun Span.calculate_line_number() {
+    let line = 1
+    let column = 1
+    let i = 0
+
+    while i < start {
+        if source.get_byte(i).to_int() == a"\n" {
+            line += 1
+            column = 1
+        } else {
+            column += 1
+        }
+        i += 1
+    }
+
+    lazy_line = Some(line)
+    lazy_column = Some(column)
+}
+
+fun Span.get_line(): Int {
+    if lazy_line.is_none() {
+        calculate_line_number()
+    }
+    ret lazy_line!!
+}
+
+fun Span.get_column(): Int {
+    if lazy_column.is_none() {
+        calculate_line_number()
+    }
+    ret lazy_column!!
 }
 
 fun Span.to_string(): String {
-    ret "($file:$offset)"
+    ret "$file($file:$start)"
 }

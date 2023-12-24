@@ -1,0 +1,89 @@
+
+//    annotation
+//      : AT upperName annotationArgs? NL* ;
+//
+//    annotationArgs
+//        : LBRACKET NL* (annotationArgEntry (commaOrNl annotationArgEntry)* COMMA?)? NL* RBRACKET ;
+//
+//    annotationArgEntry
+//        : annotationArgKey COLON NL* constExpr ;
+//
+//    annotationArgKey
+//        : anyName
+//        | PLAIN_STRING
+//        ;
+
+struct NAnnotation {
+    span: Span
+    name: String
+    args: List<NAnnotationArg>
+}
+
+struct NAnnotationArg {
+    span: Span
+    key: String
+    value: NConstExpr
+}
+
+// Parse a single annotation
+fun Parser.parse_annotation(): Parsed<NAnnotation> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::AT)?
+    let name: String = read_upper_name()?
+
+    let ann = NAnnotation @[span, name, args: []]
+
+    if lexer.current_token_kind != TokenKind::LBRACKET {
+        ret found(ann)
+    }
+
+    skip_token_kind(TokenKind::LBRACKET)?
+    skip_nl()
+
+    let res = read_until(TokenKind::RBRACKET) @{
+        ann.args[] = read_annotation_arg()?
+        skip_comma_or_nl()
+    }
+
+//    if res.is_error() {
+//        recover_until(TokenKind::RBRACKET)
+//    }
+
+    ret found(ann)
+}
+
+// Read a key-value pair in an annotation
+fun Parser.read_annotation_arg(): Parsed<NAnnotationArg> {
+    let span = lexer.current_token_span
+    let key: String = read_const_string()?
+    skip_nl()
+    skip_token_kind(TokenKind::COLON)?
+    let value: NConstExpr = read_const_expr()?
+
+    ret found(NAnnotationArg @[span, key, value])
+}
+
+// Read an string or an identifier
+fun Parser.read_const_string(): Parsed<String> {
+    ret when lexer.current_token_kind {
+        TokenKind::PLAIN_STRING -> read_plain_string()
+        TokenKind::UPPER_IDENTIFIER -> read_upper_name()
+        TokenKind::LOWER_IDENTIFIER -> read_lower_name()
+        else -> parse_error(ParseError::ExpectedConstName, lexer.current_token)
+    }
+}
+
+fun NAnnotation.to_string(): String {
+    let s = "@$name"
+
+    if args.len() > 0 {
+        s += " @[\n"
+
+        for arg in args {
+            s += "  ${arg.key}: ${arg.value},\n"
+        }
+        s += "]"
+    }
+
+    ret s
+}

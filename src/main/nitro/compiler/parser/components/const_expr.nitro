@@ -1,0 +1,121 @@
+
+//    constExpr
+//        : INT_NUMBER
+//        | LONG_NUMBER
+//        | FLOAT_NUMBER
+//        | string
+//        | TRUE
+//        | FALSE
+//        | NULL
+//        | NOTHING
+//        ;
+
+option NConstExpr {
+    NConstInt {
+        value: Int
+    }
+    NConstLong {
+        value: Long
+    }
+    NConstFloat {
+        value: Float
+    }
+    NConstString {
+        value: String
+    }
+    NConstBoolean {
+        value: Boolean
+    }
+    NConstNothing
+}
+
+fun NConstExpr.to_string(): String {
+    ret when {
+        this is NConstExpr::NConstInt -> (this as NConstExpr::NConstInt).value.to_string()
+        this is NConstExpr::NConstLong -> (this as NConstExpr::NConstLong).value.to_string()
+        this is NConstExpr::NConstFloat -> (this as NConstExpr::NConstFloat).value.to_string()
+        this is NConstExpr::NConstString -> (this as NConstExpr::NConstString).value
+        this is NConstExpr::NConstBoolean -> (this as NConstExpr::NConstBoolean).value.to_string()
+        this is NConstExpr::NConstNothing -> "nothing"
+        else -> unreachable()
+    }
+}
+
+// Parse a constant expression, a value that can be evaluated at compile time
+fun Parser.read_const_expr(): Parsed<NConstExpr> {
+    let expr = when (lexer.current_token_kind) {
+        TokenKind::INT_NUMBER -> {
+            let value: Int = read_int()?
+            NConstExpr::NConstInt @[value]
+        }
+        TokenKind::LONG_NUMBER -> {
+            let value: Long = read_long()?
+            NConstExpr::NConstLong @[value]
+        }
+        TokenKind::FLOAT_NUMBER -> {
+            let value: Float = read_float()?
+            NConstExpr::NConstFloat @[value]
+        }
+        TokenKind::PLAIN_STRING -> {
+            let value: String = read_plain_string()?
+            NConstExpr::NConstString @[value]
+        }
+        TokenKind::TRUE -> {
+            lexer.next_token()
+            NConstExpr::NConstBoolean @[value: true]
+        }
+        TokenKind::FALSE -> {
+            lexer.next_token()
+            NConstExpr::NConstBoolean @[value: false]
+        }
+        TokenKind::NULL -> {
+            lexer.next_token()
+            NConstExpr::NConstNothing @[]
+        }
+        TokenKind::NOTHING -> {
+            lexer.next_token()
+            NConstExpr::NConstNothing @[]
+        }
+        else -> {
+            ret parse_error(ParseError::ExpectedConstExpr, lexer.current_token)
+        }
+    }
+
+    ret found(expr)
+}
+
+fun Parser.read_int(): Parsed<Int> {
+    if lexer.current_token_kind != TokenKind::INT_NUMBER {
+        ret parse_error(ParseError::ExpectedInt, lexer.current_token)
+    }
+
+    let text: String = lexer.current_token.extra
+    lexer.next_token()
+    let value: Int = text.to_int()!!
+
+    ret found(value)
+}
+
+fun Parser.read_long(): Parsed<Long> {
+    if lexer.current_token_kind != TokenKind::LONG_NUMBER {
+        ret parse_error(ParseError::ExpectedLong, lexer.current_token)
+    }
+
+    let text: String = lexer.current_token.extra
+    lexer.next_token()
+    let value: Long = text.to_long()!!
+
+    ret found(value)
+}
+
+fun Parser.read_float(): Parsed<Float> {
+    if lexer.current_token_kind != TokenKind::FLOAT_NUMBER {
+        ret parse_error(ParseError::ExpectedFloat, lexer.current_token)
+    }
+
+    let text: String = lexer.current_token.extra
+    lexer.next_token()
+    let value: Float = text.to_float()!!
+
+    ret found(value)
+}

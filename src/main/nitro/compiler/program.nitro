@@ -1,0 +1,44 @@
+
+struct Program {
+    reporter: Reporter
+//    type_checker: TypeChecker
+
+    structs: List<NStruct>
+    options: List<NOption>
+    type_aliases: List<NTypeAlias>
+    consts: List<NConstant>
+    tags: List<NTag>
+    functions: List<NFunction>
+    property_getters: List<NPropertyGetter>
+    property_setters: List<NPropertySetter>
+    lambda_functions: List<NLambdaFunction>
+    defined_names: Map<String, Span>
+    all_function_signatures: List<NFunctionSignature>
+}
+
+struct NOption {}
+struct NTypeAlias {}
+struct NConstant {}
+struct NTag {}
+struct NFunction {}
+struct NPropertyGetter {}
+struct NPropertySetter {}
+struct NLambdaFunction {}
+struct NFunctionSignature {}
+
+fun Program::new(): Program {
+    ret Program @[
+        reporter: Reporter::new(),
+        structs: [],
+        options: [],
+        type_aliases: [],
+        consts: [],
+        tags: [],
+        functions: [],
+        property_getters: [],
+        property_setters: [],
+        lambda_functions: [],
+        defined_names: #[],
+        all_function_signatures: []
+    ]
+}

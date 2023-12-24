@@ -1,0 +1,142 @@
+
+// Read an specific token
+fun Parser.skip_token_kind(tk: TokenKind): Parsed<Nothing> {
+    if lexer.current_token_kind != tk {
+        ret parse_error(ParseError::ExpectedToken, lexer.current_token)
+    }
+
+    lexer.next_token()
+    ret found(nothing)
+}
+
+// Discard a token if encountered
+fun Parser.ignore_token_kind(tk: TokenKind) {
+    if lexer.current_token_kind == tk {
+        lexer.next_token()
+    }
+}
+
+// Read an lower case identifier
+fun Parser.read_lower_name(): Parsed<String> {
+    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER {
+        ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
+    }
+
+    let name = lexer.current_token_text
+    lexer.next_token()
+    ret found(name)
+}
+
+// Read an upper case identifier
+fun Parser.read_upper_name(): Parsed<String> {
+    if lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
+        ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
+    }
+
+    let name = lexer.current_token_text
+    lexer.next_token()
+    ret found(name)
+}
+
+// Read an identifier, lower case or upper case
+fun Parser.read_name(): Parsed<String> {
+    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER && lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
+        ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
+    }
+
+    let name = lexer.current_token_text
+    lexer.next_token()
+    ret found(name)
+}
+
+// Read a module path like `foo::bar` in `foo::bar::Int`
+fun Parser.read_module_path(): Parsed<String> {
+    // modulePath
+    //      : (anyName DOUBLE_COLON)+ ;
+    let path: String = ""
+    let first = true
+
+    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER && lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
+        ret found(path)
+    }
+
+    while lexer.next_token_kind == TokenKind::DOUBLE_COLON {
+        if !first {
+            path = path.concat("::")
+        }
+        first = false
+
+        let name: String = read_name()?
+        path = path.concat(name)
+    }
+
+    ret found(path)
+}
+
+// Read a plain string, e.g. "hello world"
+fun Parser.read_plain_string(): Parsed<String> {
+    if lexer.current_token_kind != TokenKind::PLAIN_STRING {
+        ret parse_error(ParseError::ExpectedPlainString, lexer.current_token)
+    }
+
+    let name = lexer.current_token_text
+    lexer.next_token()
+    ret found(name)
+}
+
+// Ignore next newlines
+fun Parser.skip_nl() {
+    while lexer.current_token_kind == TokenKind::NL {
+        lexer.next_token()
+    }
+}
+
+// Skip comma and new newlines, must contain at least one newline or a comma
+fun Parser.skip_comma_or_nl(): Parsed<Nothing> {
+//    commaOrNl
+//        : COMMA NL*
+//        | NL+
+//        ;
+
+    if lexer.current_token_kind == TokenKind::COMMA {
+        lexer.next_token()
+        skip_nl()
+        ret found(nothing)
+    }
+
+    if lexer.current_token_kind == TokenKind::NL {
+        // At least one NL
+        lexer.next_token()
+        skip_nl()
+        ret found(nothing)
+    }
+
+    ret parse_error(ParseError::ExpectedComma, lexer.current_token)
+}
+
+fun Parser.read_until(tk: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Parsed<Nothing> {
+    while lexer.current_token_kind != tk {
+        if !has_remaining_tokens() {
+            ret parse_error(ParseError::ReachedEnd, lexer.current_token)
+        }
+
+        let res: Parsed<Nothing> = lambda(this)
+        if res.is_error() {
+            ret res
+        }
+    }
+
+    skip_token_kind(tk)?
+
+    ret found(nothing)
+}
+
+// Checks if there are remaining tokens, otherwise we reached the end of the file
+fun Parser.has_remaining_tokens(): Boolean = lexer.current_token_kind != TokenKind::EOF
+
+fun Parser.recover_from_error() {
+    // Skip until NL or EOF
+    while lexer.current_token_kind != TokenKind::NL && has_remaining_tokens() {
+        lexer.next_token()
+    }
+}

@@ -1,0 +1,51 @@
+
+enum ParseError {
+    ExpectedToken,
+    ExpectedIdentifier,
+    ExpectedConstName,
+    ExpectedPlainString,
+    ExpectedConstExpr,
+    ExpectedTypeParameter,
+    ExpectedInt,
+    ExpectedLong,
+    ExpectedFloat,
+    ExpectedComma,
+    ExpectedDefinition,
+    ReachedEnd,
+    Generic,
+}
+
+option Parsed<#Ast> {
+    Found { value: #Ast },
+    Error { kind: ParseError, token: Token },
+}
+
+fun found(value: #Ast): Parsed<#Ast> = Parsed::Found @[value]
+
+fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
+    ret Parsed::Error @[kind, token]
+}
+
+fun Parsed<#Ast>.is_error(): Boolean = this is Parsed::Error<#Ast>
+
+fun Parsed<#Ast>.is_returnable_error(): Boolean = this is Parsed::Error<#Ast>
+
+fun Parsed<#A>.convert_error(): Parsed<#B> {
+    if this is Parsed::Error<#A> {
+        let error = this as Parsed::Error<#A>
+        ret Parsed::Error<#B> @[
+            kind: error.kind,
+            token: error.token
+        ]
+    }
+
+    crash("Parsed::convert_error called on non-error value")
+}
+
+fun Parsed<#Ast>.get_or_crash(): #Ast {
+    if this is Parsed::Found<#Ast> {
+        ret (this as Parsed::Found<#Ast>).value
+    }
+
+    crash("Parsed failed, attempting to use error value")
+}

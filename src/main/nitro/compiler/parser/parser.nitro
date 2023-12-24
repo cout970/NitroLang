@@ -1,0 +1,32 @@
+
+struct Parser {
+    lexer: Lexer
+    program: Program
+    checkpoints: List<SavedState>
+}
+
+fun Parser::new(lexer: Lexer, program: Program): Parser {
+    ret Parser @[
+        lexer,
+        program,
+    ]
+}
+
+// Parse a program
+fun Parser.read_file() {
+    // parseFile : NL* definition* EOF;
+    skip_nl()
+
+    while has_remaining_tokens() {
+        let res: Parsed<Nothing> = read_definition()
+
+        if res is Parsed::Error<*> {
+            let err = (res as Parsed::Error<Nothing>)
+            let span = lexer.span_of(err.token)
+            program.reporter.report_error("${err.kind}, found: ${err.token} at $span", span)
+            recover_from_error()
+            break
+        }
+    }
+}
+

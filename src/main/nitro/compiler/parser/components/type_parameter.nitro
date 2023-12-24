@@ -1,0 +1,80 @@
+
+// typeParamsDef
+//      : LTH NL* typeParamDef (commaOrNl typeParamDef)* COMMA? NL* GTH ;
+//
+// typeParamDef
+//       : typeParameter COLON typeUsage (commaOrNl typeUsage)*
+//       | typeParameter
+//       ;
+//
+// // #T, #A, #B, List<#A>
+// typeParameter
+//       : HASH upperName ;
+
+struct NTypeParameterDefinition {
+    name: String
+    constraints: List<NTypeUsage>
+}
+
+// <#T, #A>
+fun Parser.read_type_params_def(): Parsed<List<NTypeParameterDefinition>> {
+    let type_params: List<NTypeParameterDefinition> = []
+
+    if lexer.current_token_kind != TokenKind::LTH {
+        return found(type_params)
+    }
+
+    lexer.next_token()
+
+    read_until(TokenKind::GTH) @{
+        type_params[] = read_type_param_def()?
+        skip_comma_or_nl()
+    }?
+
+    skip_token_kind(TokenKind::GTH)?
+
+    return found(type_params)
+}
+
+fun Parser.read_type_param_def(): Parsed<NTypeParameterDefinition> {
+    // `#A: Type1, Type2` or just `#B`
+    let name = read_type_parameter()?
+
+    let def = NTypeParameterDefinition @[
+          name,
+          constraints: []
+    ]
+
+    if lexer.current_token_kind != TokenKind::COLON {
+        return found(def)
+    }
+
+    lexer.next_token()
+
+    def.constraints[] = read_type_usage()?
+
+    loop {
+        if lexer.current_token_kind != TokenKind::COMMA {
+            break
+        }
+
+        // Skip comma
+        lexer.next_token()
+
+        if lexer.current_token_kind == TokenKind::HASH {
+            def.constraints[] = read_type_usage()?
+        }
+    }
+
+    return found(def)
+}
+
+fun Parser.read_type_parameter(): Parsed<String> {
+    if lexer.current_token_kind != TokenKind::HASH {
+        ret parse_error(ParseError::ExpectedTypeParameter, lexer.current_token)
+    }
+
+    lexer.next_token()
+
+    ret read_upper_name()
+}

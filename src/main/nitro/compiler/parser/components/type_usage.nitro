@@ -1,0 +1,195 @@
+
+// typeUsage
+//       : THIS_TYPE
+//       | LTH NL* typeUsage NL* GTH
+//       | baseTypeUsage
+//       | baseTypeUsage DOT functionTypeUsage
+//       | functionTypeUsage
+//       | typeParameter
+//       ;
+//
+// // Int, List<Int>
+// baseTypeUsage
+//       : modulePath? upperName typeParamArg? ;
+//
+// // (Int) -> Int
+// functionTypeUsage
+//       : LPAREN RPAREN ARROW typeUsage
+//       | LPAREN functionTypeUsageParam (commaOrNl functionTypeUsageParam)* RPAREN ARROW typeUsage
+//       ;
+//
+// // a, a: Int
+// functionTypeUsageParam
+//       : typeUsage
+//       | anyName COLON typeUsage
+//       ;
+//
+// typeParamArg
+//       : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;
+
+struct NTypeUsage {
+    kind: TypeUsageKind
+    name: String
+    module_path: String
+    type_params: List<NTypeUsage>
+}
+
+enum TypeUsageKind {
+    TYPE_SIMPLE,
+    TYPE_THIS,
+    TYPE_PARAM,
+}
+
+fun NTypeUsage.to_string(): String {
+    let s = ""
+
+    if module_path != "" {
+        s = module_path + "::"
+    }
+
+    s = s + name
+
+    if type_params.len > 0 {
+        s = s + "<"
+        for type_param in type_params {
+            s = s + type_param.to_string() + ", "
+        }
+        s = s + ">"
+    }
+
+    ret s
+}
+
+fun Parser.read_type_usage(): Parsed<NTypeUsage> {
+    // This
+    if lexer.current_token_kind == TokenKind::THIS_TYPE {
+        ret found(NTypeUsage @[
+            kind: TypeUsageKind::TYPE_THIS,
+            name: "This",
+            module_path: "",
+            type_params: [],
+        ])
+    }
+
+    // #A
+    if lexer.current_token_kind == TokenKind::HASH {
+        lexer.next_token()
+        let name: String = read_upper_name()?
+
+        ret found(NTypeUsage @[
+            kind: TypeUsageKind::TYPE_PARAM,
+            name,
+            module_path: "",
+            type_params: [],
+        ])
+    }
+
+    // (Int, Boolean)->Float
+    if lexer.current_token_kind == TokenKind::LPAREN {
+        ret read_function_type_usage(None())
+    }
+
+    // <T>
+    if lexer.current_token_kind == TokenKind::LTH {
+        lexer.next_token()
+
+        skip_nl()
+        let type_usage = read_type_usage()?
+        skip_nl()
+
+        skip_token_kind(TokenKind::GTH)?
+
+        ret found(type_usage)
+    }
+
+    // core::Int, List<Int>
+    let module_path: String = read_module_path()?
+    let name: String = read_upper_name()?
+    let type_params: List<NTypeUsage> = []
+
+    if lexer.current_token_kind == TokenKind::LTH {
+        type_params = read_type_param_args()?
+    }
+
+    let ty = NTypeUsage @[
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        module_path,
+        type_params,
+    ]
+
+    if lexer.current_token_kind != TokenKind::DOT {
+        ret found(ty)
+    }
+
+    // Skip dot
+    lexer.next_token()
+
+    // Int.() -> Nothing
+    ret read_function_type_usage(Some(ty))
+}
+
+// <A, B, C>
+fun Parser.read_type_param_args(): Parsed<List<NTypeUsage>> {
+    let list: List<NTypeUsage> = []
+    skip_token_kind(TokenKind::LTH)?
+
+    skip_nl()
+    read_until(TokenKind::GTH) @{
+        list[] = read_type_usage()?
+        skip_comma_or_nl()
+    }
+    skip_token_kind(TokenKind::GTH)?
+
+    ret found(list)
+}
+
+// (Int, Boolean)->Float
+fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsage> {
+    // // (Int) -> Int
+    // functionTypeUsage
+    //       : LPAREN RPAREN ARROW typeUsage
+    //       | LPAREN functionTypeUsageParam (commaOrNl functionTypeUsageParam)* RPAREN ARROW typeUsage
+    //       ;
+    let type_params = []
+
+    if arg1.is_some() {
+        type_params[] = arg1!!
+    }
+
+    skip_token_kind(TokenKind::LPAREN)?
+
+    if lexer.current_token_kind != TokenKind::RPAREN {
+        lexer.next_token()
+        type_params[] = read_function_type_usage_param()?
+        skip_comma_or_nl()?
+    }
+
+    skip_token_kind(TokenKind::RPAREN)?
+    skip_token_kind(TokenKind::ARROW)?
+
+    type_params[] = read_type_usage()?
+
+    ret found(NTypeUsage @[
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name: "Function",
+        module_path: "",
+        type_params,
+    ])
+}
+
+fun Parser.read_function_type_usage_param(): Parsed<NTypeUsage> {
+    // // a, a: Int
+    // functionTypeUsageParam
+    //       : typeUsage
+    //       | anyName COLON typeUsage
+    //       ;
+
+    // Skip name, is only for documentation
+    if lexer.next_token_kind == TokenKind::COLON {
+        let name: String = read_name()?
+        skip_token_kind(TokenKind::COLON)?
+    }
+
+    ret read_type_usage()
+}

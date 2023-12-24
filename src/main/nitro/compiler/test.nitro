@@ -1,3 +1,14 @@
+let source_code: String = r#"
+
+@Test
+struct A {
+    field1: Int,
+    field2: Float,
+    field3: List<Int>,
+    field3: Map<#Key, #Value>,
+}
+
+"#
 
 let tokenizer_test2: String = r#"
 // INT_NUMBER
@@ -124,16 +135,4 @@ use
 mut
 json!
 test!
-"#
-
-let source_code: String = r#"
-
-fun main() {
-    let a = 1;
-    let b = 2;
-    let c = "a + b = ${a + b}"
-
-    println("The result is: '$c'")
-}
-
 "#

@@ -1,40 +1,48 @@
 
 include "./lexer/lexer.nitro"
 include "./lexer/token.nitro"
+include "./lexer/span.nitro"
+include "./parser/parser.nitro"
+include "./parser/parse_error.nitro"
+include "./parser/parser_utils.nitro"
+include "./parser/definition.nitro"
+include "./parser/components/struct.nitro"
+include "./parser/components/type_parameter.nitro"
+include "./parser/components/type_usage.nitro"
+include "./parser/components/annotation.nitro"
+include "./parser/components/const_expr.nitro"
+include "./reporter.nitro"
+include "./program.nitro"
 include "./test.nitro"
 
 fun main() {
-    let lexer = Lexer::new(source_code)
+    let start = Instant::now()
 
-    while lexer.next() {}
+    let program = Program::new()
 
-    let tmp = ""
-    for token in lexer.tokens {
-        when {
-            token.extra.len() > 0 -> {
-                tmp += "'"
-                tmp += token.extra
-                tmp += "' "
-            }
-            token.kind == TokenKind::NL -> {
-                println(tmp)
-                tmp = ""
-            }
-            else -> {
-                tmp += token.kind.text
-                tmp += " "
-            }
-        }
-    }
-    println(tmp)
-    println("----")
-    for token in lexer.tokens {
-        println(token)
+    let lexer = Lexer::new(source_code, "test.nitro")
+    lexer.read_all()
+
+    let parser = Parser::new(lexer, program)
+
+    parser.read_file()
+
+    let end = Instant::now()
+    let elapsed = (end - start).to_milliseconds()
+    let bytes = get_memory().get_used_bytes()
+
+    println("Time: $elapsed ms")
+    println("Memory used: $bytes bytes")
+
+    println("Structs:")
+    for def in program.structs {
+        println("--------")
+        println(def)
     }
 
-
-
-//    for token in lexer.comments {
-//        println(token)
-//    }
+    if program.reporter.has_reports() {
+        println("Error reports:")
+        program.reporter.print_all()
+    }
+    println("Done")
 }

@@ -1,0 +1,49 @@
+
+// definition
+//      : annotation* definitionChoice NL* ;
+//
+// definitionChoice
+//      : structDefinition
+//      | optionDefinition
+//      | functionDefinition
+//      | includeDefinition
+//      | useDefinition
+//      | aliasDefinition
+//      | moduleDefinition
+//      | constDefinition
+//      | tagDefinition
+//      | typeAliasDefinition
+//      | enumDefinition
+//      | testDefinition
+//      ;
+
+
+fun Parser.read_definition(): Parsed<Nothing> {
+    let annotations: List<NAnnotation> = []
+
+    while lexer.current_token_kind == TokenKind::AT {
+        let parsed = parse_annotation()
+
+        if parsed.is_error() {
+            recover_from_error()
+            continue
+        }
+
+        annotations[] = parsed!!
+    }
+
+    skip_nl()
+
+    when (lexer.current_token_kind) {
+        TokenKind::STRUCT -> {
+            read_struct_definition(annotations)?
+        }
+        else -> {
+            ret parse_error(ParseError::ExpectedDefinition, lexer.current_token)
+        }
+    }
+
+    skip_nl()
+
+    return found(nothing)
+}

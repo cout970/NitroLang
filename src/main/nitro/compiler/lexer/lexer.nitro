@@ -2,7 +2,8 @@
 struct Lexer {
     // Original source code
     internal src: String
-    // Current position in the source code
+    internal file: String
+    // Current byte position in the source code
     internal cur: Int
     // Map of identifier strings to keyword tokens
     internal keyword_map: Map<String, TokenKind>
@@ -10,12 +11,14 @@ struct Lexer {
     internal state: List<Int>
     // All the collected tokens
     tokens: List<Token>
+    // Current token position in list of tokens
+    internal tk: Int
     // All the ignored tokens, useful for documentation extractors, but unused by the compiler
     comments: List<Token>
 }
 
 // Creates a new lexer
-fun Lexer::new(src: String): Lexer {
+fun Lexer::new(src: String, file: String): Lexer {
     let keyword_map = #[
         "this": TokenKind::THIS,
         "This": TokenKind::THIS_TYPE,
@@ -104,12 +107,70 @@ fun Lexer::new(src: String): Lexer {
 
     ret Lexer @[
         src,
+        file,
         cur: 0,
         keyword_map,
         state: [],
         tokens: [],
         comments: [],
     ]
+}
+
+// Read all available tokens
+fun Lexer.read_all() {
+    while next() {}
+}
+
+fun Lexer.next_token() {
+    if tk < tokens.len() - 4 {
+        tk += 1
+    }
+}
+
+// Returns the current token
+fun Lexer.get_current_token(): Token {
+    ret tokens[tk]!!
+}
+
+fun Lexer.get_current_token_kind(): TokenKind {
+    ret tokens[tk]!!.kind
+}
+
+fun Lexer.get_current_token_text(): String {
+    ret tokens[tk]!!.extra
+}
+
+fun Lexer.get_current_token_span(): Span {
+    ret span_of(tokens[tk]!!)
+}
+
+// Returns the next token
+fun Lexer.get_next_token_kind(): TokenKind {
+    ret tokens[tk + 1]!!.kind
+}
+
+// Returns the token after the next token
+fun Lexer.get_next_next_token_kind(): TokenKind {
+    ret tokens[tk - 2]!!.kind
+}
+
+type_alias SavedState = Int
+
+// Save the current state of the lexer
+fun Lexer.save_state(): SavedState {
+    ret tk
+}
+
+// Restore the state of the lexer
+fun Lexer.restore_state(saved_state: SavedState) {
+    tk = saved_state
+}
+
+// Creates a new span from the given token
+fun Lexer.span_of(token: Token): Span {
+    let len = if token.kind.len > 0 { token.kind.len } else { token.extra.len() }
+
+    ret Span::new(token.offset, len, src, file)
 }
 
 // Returns the current byte in the source code
@@ -127,10 +188,26 @@ fun Lexer.get_next_next_byte(): Int {
     ret src.get_byte(cur + 2).to_int()
 }
 
+fun Lexer.add_token(kind: TokenKind) {
+    tokens[] = Token::new(kind, cur)
+}
+
+fun Lexer.add_token(kind: TokenKind, offset: Int) {
+    tokens[] = Token::new(kind, offset)
+}
+
+fun Lexer.add_token_with_extra(kind: TokenKind, offset: Int, extra: String) {
+    tokens[] = Token::new_with_extra(kind, offset, extra)
+}
+
 // Tries to read the next token, returns true if there are more tokens to read
 fun Lexer.next(): Boolean {
     if (cur >= src.len()) {
-        tokens[] = Token::new(TokenKind::EOF, cur)
+        // We add extra so the parser can always look ahead 4 tokens
+        add_token(TokenKind::EOF)
+        add_token(TokenKind::EOF)
+        add_token(TokenKind::EOF)
+        add_token(TokenKind::EOF)
         ret false
     }
 
@@ -148,22 +225,22 @@ fun Lexer.next(): Boolean {
     when {
         // NL
         c0 == a"\n" -> {
-            tokens[] = Token::new(TokenKind::NL, cur)
+            add_token(TokenKind::NL)
             cur += 1
         }
         // NL ;
         c0 == a";" -> {
-            tokens[] = Token::new(TokenKind::NL, cur)
+            add_token(TokenKind::NL)
             cur += 1
         }
         // QUESTION_MARK    '?'
         c0 == a"?" -> {
-            tokens[] = Token::new(TokenKind::QUESTION_MARK, cur)
+            add_token(TokenKind::QUESTION_MARK)
             cur += 1
         }
         // UNDERSCORE       '_'
         c0 == a"_" -> {
-            tokens[] = Token::new(TokenKind::UNDERSCORE, cur)
+            add_token(TokenKind::UNDERSCORE)
             cur += 1
         }
         // DOT              '.'
@@ -181,34 +258,34 @@ fun Lexer.next(): Boolean {
                 let c2: Int = next_next_byte
 
                 if c2 == a"<" {
-                    tokens[] = Token::new(TokenKind::RANGE_EXCLUSIVE, cur)
+                    add_token(TokenKind::RANGE_EXCLUSIVE)
                     cur += 3
                     ret true
                 }
 
                 if c2 == a"=" {
-                    tokens[] = Token::new(TokenKind::RANGE_INCLUSIVE, cur)
+                    add_token(TokenKind::RANGE_INCLUSIVE)
                     cur += 3
                     ret true
                 }
             }
 
-            tokens[] = Token::new(TokenKind::DOT, cur)
+            add_token(TokenKind::DOT)
             cur += 1
         }
         // LPAREN           '('
         c0 == a"(" -> {
-            tokens[] = Token::new(TokenKind::LPAREN, cur)
+            add_token(TokenKind::LPAREN)
             cur += 1
         }
         // RPAREN           ')'
         c0 == a")" -> {
-            tokens[] = Token::new(TokenKind::RPAREN, cur)
+            add_token(TokenKind::RPAREN)
             cur += 1
         }
         // LBRACE           '{'
         c0 == a"{" -> {
-            tokens[] = Token::new(TokenKind::LBRACE, cur)
+            add_token(TokenKind::LBRACE)
             cur += 1
         }
         // LBRACE           '{'
@@ -221,28 +298,28 @@ fun Lexer.next(): Boolean {
                 cur_state = if state.len() > 0 { state[state.len() - 1]!! } else { 0 }
 
                 if cur_state != 0 {
-                    tokens[] = Token::new(TokenKind::STRING_INTERP_END, cur)
+                    add_token(TokenKind::STRING_INTERP_END)
                     cur += 1
                     ret true
                 }
             }
 
-            tokens[] = Token::new(TokenKind::RBRACE, cur)
+            add_token(TokenKind::RBRACE)
             cur += 1
         }
         // LBRACKET         '['
         c0 == a"[" -> {
-            tokens[] = Token::new(TokenKind::LBRACKET, cur)
+            add_token(TokenKind::LBRACKET)
             cur += 1
         }
         // RBRACKET         ']'
         c0 == a"]" -> {
-            tokens[] = Token::new(TokenKind::RBRACKET, cur)
+            add_token(TokenKind::RBRACKET)
             cur += 1
         }
         // COMMA            ','
         c0 == a"," -> {
-            tokens[] = Token::new(TokenKind::COMMA, cur)
+            add_token(TokenKind::COMMA)
             cur += 1
         }
         // COLON            ':'
@@ -251,12 +328,12 @@ fun Lexer.next(): Boolean {
 
             // ::
             if c1 == a":" {
-                tokens[] = Token::new(TokenKind::DOUBLE_COLON, cur)
+                add_token(TokenKind::DOUBLE_COLON)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::COLON, cur)
+            add_token(TokenKind::COLON)
             cur += 1
         }
         // ADD              '+'
@@ -271,12 +348,12 @@ fun Lexer.next(): Boolean {
 
             // +=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::ADD_ASSIGN, cur)
+                add_token(TokenKind::ADD_ASSIGN)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::ADD, cur)
+            add_token(TokenKind::ADD)
             cur += 1
         }
         // SUB              '-'
@@ -295,24 +372,24 @@ fun Lexer.next(): Boolean {
 
                 // >=
                 if c2 == a"=" {
-                    tokens[] = Token::new(TokenKind::GEQ, cur)
+                    add_token(TokenKind::GEQ)
                     cur += 3
                     ret true
                 }
 
-                tokens[] = Token::new(TokenKind::ARROW, cur)
+                add_token(TokenKind::ARROW)
                 cur += 2
                 ret true
             }
 
             // -=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::SUB_ASSIGN, cur)
+                add_token(TokenKind::SUB_ASSIGN)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::SUB, cur)
+            add_token(TokenKind::SUB)
             cur += 1
         }
         // MUL              '*'
@@ -321,12 +398,12 @@ fun Lexer.next(): Boolean {
 
             // *=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::MUL_ASSIGN, cur)
+                add_token(TokenKind::MUL_ASSIGN)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::MUL, cur)
+            add_token(TokenKind::MUL)
             cur += 1
         }
         // DIV              '/'
@@ -335,7 +412,7 @@ fun Lexer.next(): Boolean {
 
             // /=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::DIV_ASSIGN, cur)
+                add_token(TokenKind::DIV_ASSIGN)
                 cur += 2
                 ret true
             }
@@ -352,7 +429,7 @@ fun Lexer.next(): Boolean {
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::DIV, cur)
+            add_token(TokenKind::DIV)
             cur += 1
         }
         // XOR              '^'
@@ -361,17 +438,17 @@ fun Lexer.next(): Boolean {
 
             // ^^
             if c1 == a"^" {
-                tokens[] = Token::new(TokenKind::XORXOR, cur)
+                add_token(TokenKind::XORXOR)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::XOR, cur)
+            add_token(TokenKind::XOR)
             cur += 1
         }
         // DOLAR            '$'
         c0 == a"\$" -> {
-            tokens[] = Token::new(TokenKind::DOLAR, cur)
+            add_token(TokenKind::DOLAR)
             cur += 1
         }
         // MOD              '%'
@@ -380,20 +457,20 @@ fun Lexer.next(): Boolean {
 
             // %=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::MOD_ASSIGN, cur)
+                add_token(TokenKind::MOD_ASSIGN)
                 cur += 2
                 ret true
             }
 
             // %[
             if c1 == a"[" {
-                tokens[] = Token::new(TokenKind::SET_START, cur)
+                add_token(TokenKind::SET_START)
                 cur += 2
                 ret true
             }
 
 
-            tokens[] = Token::new(TokenKind::MOD, cur)
+            add_token(TokenKind::MOD)
             cur += 1
         }
         // AT               '@'
@@ -402,19 +479,19 @@ fun Lexer.next(): Boolean {
 
             // @[
             if c1 == a"[" {
-                tokens[] = Token::new(TokenKind::STRUCT_START, cur)
+                add_token(TokenKind::STRUCT_START)
                 cur += 2
                 ret true
             }
 
             // @{
             if c1 == a"{" {
-                tokens[] = Token::new(TokenKind::LAMBDA_START, cur)
+                add_token(TokenKind::LAMBDA_START)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::AT, cur)
+            add_token(TokenKind::AT)
             cur += 1
         }
         // HASH             '#'
@@ -423,12 +500,12 @@ fun Lexer.next(): Boolean {
 
             // #[
             if c1 == a"[" {
-                tokens[] = Token::new(TokenKind::MAP_START, cur)
+                add_token(TokenKind::MAP_START)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::HASH, cur)
+            add_token(TokenKind::HASH)
             cur += 1
         }
         // OR               '|'
@@ -437,12 +514,12 @@ fun Lexer.next(): Boolean {
 
             // ||
             if c1 == a"|" {
-                tokens[] = Token::new(TokenKind::OROR, cur)
+                add_token(TokenKind::OROR)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::OR, cur)
+            add_token(TokenKind::OR)
             cur += 1
         }
         // AND              '&'
@@ -451,12 +528,12 @@ fun Lexer.next(): Boolean {
 
             // &&
             if c1 == a"&" {
-                tokens[] = Token::new(TokenKind::ANDAND, cur)
+                add_token(TokenKind::ANDAND)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::AND, cur)
+            add_token(TokenKind::AND)
             cur += 1
         }
         // NOT               '!' ;
@@ -465,19 +542,19 @@ fun Lexer.next(): Boolean {
 
             // !=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::NEQ, cur)
+                add_token(TokenKind::NEQ)
                 cur += 2
                 ret true
             }
 
             // !!
             if c1 == a"!" {
-                tokens[] = Token::new(TokenKind::BANGBANG, cur)
+                add_token(TokenKind::BANGBANG)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::NOT, cur)
+            add_token(TokenKind::NOT)
             cur += 2
         }
         // ASSIGN            '=' ;
@@ -486,12 +563,12 @@ fun Lexer.next(): Boolean {
 
             // ==
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::EQ, cur)
+                add_token(TokenKind::EQ)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::ASSIGN, cur)
+            add_token(TokenKind::ASSIGN)
             cur += 1
         }
         // LTH               '<' ;
@@ -503,7 +580,7 @@ fun Lexer.next(): Boolean {
                 let c2: Int = next_next_byte
 
                 if c2 == a">" {
-                    tokens[] = Token::new(TokenKind::COMPARE, cur)
+                    add_token(TokenKind::COMPARE)
                     cur += 3
                     ret true
                 }
@@ -511,17 +588,17 @@ fun Lexer.next(): Boolean {
 
             // <=
             if c1 == a"=" {
-                tokens[] = Token::new(TokenKind::LEQ, cur)
+                add_token(TokenKind::LEQ)
                 cur += 2
                 ret true
             }
 
-            tokens[] = Token::new(TokenKind::LTH, cur)
+            add_token(TokenKind::LTH)
             cur += 1
         }
         // GTH               '>' ;
         c0 == a">" -> {
-            tokens[] = Token::new(TokenKind::GTH, cur)
+            add_token(TokenKind::GTH)
             cur += 1
         }
         // string
@@ -559,7 +636,7 @@ fun Lexer.next(): Boolean {
         }
 
         else -> {
-            tokens[] = Token::new(TokenKind::ERROR_CHARACTER, cur)
+            add_token(TokenKind::ERROR_CHARACTER)
             cur += 1
         }
     }
@@ -715,13 +792,13 @@ fun Lexer.read_string() {
     let extra = src.substring(start, cur)
         // skip '"'
         cur += 1
-        tokens[] = Token::new_with_extra(TokenKind::PLAIN_STRING, start, extra)
+        add_token_with_extra(TokenKind::PLAIN_STRING, start, extra)
         ret
     }
 
     // Try again but with interpolation
     cur = start
-    tokens[] = Token::new(TokenKind::STRING_START, cur)
+    add_token(TokenKind::STRING_START)
     state[] = 1
 }
 
@@ -742,7 +819,7 @@ fun Lexer.read_string_blob() {
 
     if c0 == a"\"" {
         cur += 1
-        tokens[] = Token::new(TokenKind::STRING_END, start)
+        add_token(TokenKind::STRING_END, start)
         state.remove_last()
         ret
     }
@@ -750,7 +827,7 @@ fun Lexer.read_string_blob() {
     if c0 == a"\\" {
         cur += 2
         let extra = src.substring(start, cur)
-        tokens[] = Token::new_with_extra(TokenKind::STRING_ESCAPE, start, extra)
+        add_token_with_extra(TokenKind::STRING_ESCAPE, start, extra)
         ret
     }
 
@@ -759,7 +836,7 @@ fun Lexer.read_string_blob() {
 
         if c1 == a"{" {
             cur += 2
-            tokens[] = Token::new(TokenKind::STRING_INTERP_START, start)
+            add_token(TokenKind::STRING_INTERP_START, start)
             state[] = 0
             ret
         }
@@ -779,7 +856,7 @@ fun Lexer.read_string_blob() {
             }
 
             let extra = src.substring(start2, cur)
-            tokens[] = Token::new_with_extra(TokenKind::STRING_VAR, start2, extra)
+            add_token_with_extra(TokenKind::STRING_VAR, start2, extra)
             ret
         }
     }
@@ -795,7 +872,7 @@ fun Lexer.read_string_blob() {
     }
     let extra = src.substring(start, cur)
 
-    tokens[] = Token::new_with_extra(TokenKind::STRING_BLOB, start, extra)
+    add_token_with_extra(TokenKind::STRING_BLOB, start, extra)
 }
 
 
@@ -808,7 +885,7 @@ fun Lexer.read_string_blob() {
 fun Lexer.read_string2() {
     // skip r#"
     cur += 3
-    tokens[] = Token::new(TokenKind::STRING2_START, cur)
+    add_token(TokenKind::STRING2_START)
 
     let start = cur
     let max = src.byte_len() - 2
@@ -829,8 +906,8 @@ fun Lexer.read_string2() {
     }
 
     let extra = src.substring(start, cur - 2)
-    tokens[] = Token::new_with_extra(TokenKind::STRING2_BLOB, start, extra)
-    tokens[] = Token::new(TokenKind::STRING2_END, cur)
+    add_token_with_extra(TokenKind::STRING2_BLOB, start, extra)
+    add_token(TokenKind::STRING2_END)
 }
 
 // Read an identifier
@@ -867,21 +944,21 @@ fun Lexer.read_identifier() {
     let keyword = keyword_map[extra]
 
     if keyword.is_some() {
-        tokens[] = Token::new(keyword!!, start)
+        add_token(keyword!!, start)
         ret
     }
 
     if current_byte == a"!" {
         // test!
         if extra == "test" {
-            tokens[] = Token::new(TokenKind::TEST, start)
+            add_token(TokenKind::TEST, start)
             cur += 1
             ret
         }
 
         // json!
         if extra == "json" {
-            tokens[] = Token::new(TokenKind::JSON, start)
+            add_token(TokenKind::JSON, start)
             cur += 1
             ret
         }
@@ -892,7 +969,7 @@ fun Lexer.read_identifier() {
     let lower = first >= a"a" && first <= a"z"
     let kind = if lower { TokenKind::LOWER_IDENTIFIER } else { TokenKind::UPPER_IDENTIFIER }
 
-    tokens[] = Token::new_with_extra(kind, start, extra)
+    add_token_with_extra(kind, start, extra)
 }
 
 // Read a number
@@ -934,7 +1011,7 @@ fun Lexer.read_number() {
         }
 
         let extra = src.substring(start, cur)
-        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
         ret
     }
 
@@ -953,7 +1030,7 @@ fun Lexer.read_number() {
         }
 
         let extra = src.substring(start, cur)
-        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
         ret
     }
 
@@ -972,7 +1049,7 @@ fun Lexer.read_number() {
         }
 
         let extra = src.substring(start, cur)
-        tokens[] = Token::new_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
         ret
     }
 
@@ -1026,14 +1103,14 @@ fun Lexer.read_number() {
         cur += 1
 
         let extra = src.substring(start, cur)
-        tokens[] = Token::new_with_extra(TokenKind::LONG_NUMBER, start, extra)
+        add_token_with_extra(TokenKind::LONG_NUMBER, start, extra)
         ret
     }
 
     let extra = src.substring(start, cur)
     let kind = if is_float { TokenKind::FLOAT_NUMBER } else { TokenKind::INT_NUMBER }
 
-    tokens[] = Token::new_with_extra(kind, start, extra)
+    add_token_with_extra(kind, start, extra)
 }
 
 // Read a sequence of consecutive digits
@@ -1052,15 +1129,4 @@ fun Lexer.read_digits(): Boolean {
     }
 
     ret start != cur
-}
-
-// Give the ascii (Int) value of the first char of the given string
-//
-// This is a temporary hack until we support the following syntax:
-// - a"M" for the ascii value of 'M'
-// - c"M" for the char 'M'
-// - b"ABC" gives a byte array with the contents of the string in UTF8
-//
-fun a(str: List<String>): Int {
-    ret str[0]!!.get_byte(0).to_int()
 }

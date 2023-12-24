@@ -1,0 +1,78 @@
+
+// Utility to report errors, warnings, and suggestions
+struct Reporter {
+    errors: List<Report>
+    warnings: List<Report>
+    suggestions: List<Report>
+}
+
+// A single error, warning, or suggestion
+struct Report {
+    kind: ReportKind
+    message: String
+    location: Span
+}
+
+// The kind of report
+enum ReportKind {
+    Error,
+    Warning,
+    Suggestion,
+}
+
+// Create a new reporter
+fun Reporter::new(): Reporter {
+    ret Reporter @[
+        errors: [],
+        warnings: [],
+        suggestions: [],
+    ]
+}
+
+fun Reporter.has_reports(): Boolean {
+    ret errors.len() > 0 || warnings.len() > 0 || suggestions.len() > 0
+}
+
+fun Reporter.print_all() {
+    for error in errors {
+        Log::error(error.to_string())
+    }
+    for warning in warnings {
+        Log::warn(warning.to_string())
+    }
+    for suggestion in suggestions {
+        Log::info(suggestion.to_string())
+    }
+}
+
+// Report an error
+fun Reporter.report_error(message: String, location: Span) {
+    errors[] = Report @[
+        kind: ReportKind::Error,
+        message,
+        location,
+    ]
+}
+
+// Report a warning
+fun Reporter.report_warning(message: String, location: Span) {
+    warnings[] = Report @[
+        kind: ReportKind::Warning,
+        message,
+        location,
+    ]
+}
+
+// Report a suggestion
+fun Reporter.report_suggestion(message: String, location: Span) {
+    suggestions[] = Report @[
+        kind: ReportKind::Suggestion,
+        message,
+        location,
+    ]
+}
+
+// Print the report
+fun Report.to_string(): String {
+    ret "$location\n$kind: $message"
+}
