@@ -281,13 +281,30 @@ fun String.mul(amount: Int): String {
 fun String.to_string(): String = this
 
 // Converts a string to an integer
+// TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
     let total_len = this.len()
     let cursor = 0
+    let sign = 1
+
+    if total_len == 0 {
+        ret None()
+    }
+
+    if this[cursor].to_int() == a"-" {
+        cursor += 1
+        sign = -1
+    }
 
     while cursor < total_len {
         let byte = this[cursor].to_int()
+
+        // ignore '_'
+        if byte == a"_" {
+            cursor += 1
+            continue
+        }
 
         if byte < 48 || byte > 57 {
             ret None()
@@ -297,5 +314,87 @@ fun String.to_int(): Optional<Int> {
         cursor += 1
     }
 
-    ret Some(result)
+    ret Some(result * sign)
+}
+
+fun String.to_long(): Optional<Long> {
+    let result = 0L
+    let total_len = this.len()
+    let cursor = 0
+    let sign = 1L
+
+    if total_len == 0 {
+        ret None()
+    }
+
+    if this[cursor].to_int() == a"-" {
+        cursor += 1
+        sign = -1L
+    }
+
+    while cursor < total_len {
+        let byte = this[cursor].to_int()
+
+        // ignore '_'
+        if byte == a"_" {
+            cursor += 1
+            continue
+        }
+
+        if byte < 48 || byte > 57 {
+            ret None()
+        }
+
+        result = result * 10L + (byte - 48).to_long()
+        cursor += 1
+    }
+
+    ret Some(result * sign)
+}
+
+// TODO handle complex floats
+fun String.to_float(): Optional<Float> {
+    let result = 0f
+    let total_len = this.len()
+    let cursor = 0
+    let sign = 1f
+
+    if total_len == 0 {
+        ret None()
+    }
+
+    if this[cursor].to_int() == a"-" {
+        cursor += 1
+        sign = -1f
+    }
+
+    while cursor < total_len {
+        let byte = this[cursor].to_int()
+
+        // ignore '_'
+        if byte == a"_" {
+            cursor += 1
+            continue
+        }
+
+        if byte < 48 || byte > 57 {
+            ret None()
+        }
+
+        result = result * 10f + (byte - 48).to_float()
+        cursor += 1
+    }
+
+    ret Some(result * sign)
+}
+
+// Give the ascii (Int) value of the first char of the given string
+//
+// This is a temporary hack until we support the following syntax:
+// - a"M" for the ascii value of 'M'
+// - c"M" for the char 'M'
+// - b"ABC" gives a byte array with the contents of the string in UTF8
+//
+fun a(str: List<String>): Int {
+    ret str[0]!!.get_byte(0).to_int()
 }

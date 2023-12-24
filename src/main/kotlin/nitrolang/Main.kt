@@ -66,9 +66,8 @@ fun main(args: Array<String>) {
     }
 }
 
-fun compileToWat(opt: CompilerOptions): LstProgram {
+fun compileToWat(opt: CompilerOptions): LstProgram = Prof.run("compile") {
     Prof.enable = opt.profile
-    Prof.start("compile")
     Prof.start("program")
     val program = LstProgram(opt)
 
@@ -163,7 +162,7 @@ fun compileToWat(opt: CompilerOptions): LstProgram {
         }
 
         System.err.println(program.collector.toString())
-        Prof.end()
+        Prof.endAll()
         return program
     }
 
@@ -192,11 +191,10 @@ fun compileToWat(opt: CompilerOptions): LstProgram {
     Prof.next("print_wasm_errors")
     if (program.collector.isNotEmpty()) {
         System.err.println(program.collector.toString())
-        Prof.end()
+        Prof.endAll()
         return program
     }
 
-    Prof.end()
     Prof.end()
     return program
 }
@@ -229,8 +227,7 @@ fun compileToWasm(watFile: File, wasmFile: File): Boolean {
     return status == 0
 }
 
-fun execute(watFile: File) {
-    Prof.start("run")
+fun execute(watFile: File) = Prof.run("execute") {
     val wasmFile = File(watFile.parentFile, "compiled.wasm")
 
     Prof.start("wat2wasm")
@@ -244,7 +241,6 @@ fun execute(watFile: File) {
         .start()
         .waitFor()
     println("---")
-    Prof.end()
     Prof.end()
 }
 

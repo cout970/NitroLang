@@ -324,7 +324,8 @@ fun ParserCtx.processExpressionWithSuffix(ctx: MainParser.ExpressionWithSuffixCo
 
             val call = code.call(subCtx.span(), "", "is_returnable_error", listOf(prevRef))
             code.ifStart(subCtx.span(), call)
-            code.returnExpr(subCtx.span(), prevRef)
+            val call2 = code.call(subCtx.span(), "", "convert_error", listOf(prevRef))
+            code.returnExpr(subCtx.span(), call2)
             code.ifEnd(subCtx.span())
             code.call(subCtx.span(), "", "get_or_crash", listOf(prevRef))
         }

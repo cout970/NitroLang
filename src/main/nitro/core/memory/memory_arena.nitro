@@ -34,6 +34,16 @@ fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
     ret this.alloc_bytes(size_of<#Value>).unsafe_cast()
 }
 
+// Returns the number of used bytes of the arena
+fun MemoryArena.get_used_bytes(): Int {
+    ret this.len
+}
+
+// Returns the number of remaining free bytes of the arena
+fun MemoryArena.get_free_bytes(): Int {
+    ret this.capacity - this.len
+}
+
 // Efficiently copies a number of bytes from one location to another
 // Must not overlap and all bytes must be within the arena
 @Extern [lib: "core", name: "memory_copy_within"]

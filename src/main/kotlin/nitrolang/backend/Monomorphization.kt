@@ -439,8 +439,11 @@ fun MonoBuilder.processInst(
         }
 
         is LstReturn -> {
+            // Always never
+            val type = typeToMonoType(inst.type, ctx)
             consumer(inst.span, inst.expr)
             code.instructions += MonoReturn(code.nextId(), inst.span)
+            provider(inst.span, inst.ref, type)
         }
 
         is LstLoadVar -> {

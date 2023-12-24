@@ -45,6 +45,8 @@ data class LstTypeUsage(
 
         fun float() = simple("Float")
 
+        fun boolean() = simple("Boolean")
+
         fun string() = simple("String")
 
         fun unresolved(span: Span? = null, debugName: String) =

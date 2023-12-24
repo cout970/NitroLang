@@ -506,37 +506,39 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     // Create auto-generated functions
 
     // fun values(): List<Direction> = #[Up, Down, Left, Right, Front, Back]
-    val valuesFunc = LstFunction(
-        span = span,
-        name = "values",
-        path = enumFullName,
-        hasReceiver = false,
-        params = emptyList(),
-        returnTypeUsage = LstTypeUsage.list(tu),
-        typeParameters = emptyList(),
-        body = LstCode(),
-        annotations = mutableListOf(
-            LstAnnotation(
-                span = span,
-                name = ANNOTATION_AUTO_GENERATED
-            )
-        ),
-        ref = program.nextFunctionRef()
-    )
-    program.functions += valuesFunc
+    run {
+        val valuesFunc = LstFunction(
+            span = span,
+            name = "values",
+            path = enumFullName,
+            hasReceiver = false,
+            params = emptyList(),
+            returnTypeUsage = LstTypeUsage.list(tu),
+            typeParameters = emptyList(),
+            body = LstCode(),
+            annotations = mutableListOf(
+                LstAnnotation(
+                    span = span,
+                    name = ANNOTATION_AUTO_GENERATED
+                )
+            ),
+            ref = program.nextFunctionRef()
+        )
+        program.functions += valuesFunc
 
-    val values = valuesFunc.body
-    val newList = values.call(span, "List", "new", explicitTypeParams = listOf(tu))
+        val values = valuesFunc.body
+        val newList = values.call(span, "List", "new", explicitTypeParams = listOf(tu))
 
-    ctx.enumValue().forEach { valueCtx ->
-        val constName = valueCtx.anyName().text
-        val const = enumConstants[constName]!!
-        val loadConst = values.loadConst(span, enumFullName, constName, const)
+        ctx.enumValue().forEach { valueCtx ->
+            val constName = valueCtx.anyName().text
+            val const = enumConstants[constName]!!
+            val loadConst = values.loadConst(span, enumFullName, constName, const)
 
-        values.call(span, "", "add", listOf(newList, loadConst))
+            values.call(span, "", "add", listOf(newList, loadConst))
+        }
+
+        values.lastExpression = values.returnExpr(span, newList)
     }
-
-    values.lastExpression = values.returnExpr(span, newList)
 
     // fun Direction.to_string(): String {
     //     if (this.variant == Direction::Up.variant) {
@@ -548,50 +550,51 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     //     // ... Rest of cases
     //     unreachable()
     // }
-    val toString = LstCode()
-    program.functions += LstFunction(
-        span = span,
-        name = "to_string",
-        path = enumFullName,
-        hasReceiver = true,
-        params = listOf(
-            LstFunctionParam(
-                span = span,
-                name = SELF_NAME,
-                index = 0,
-                typeUsage = tu,
-            ).apply { createVariable(toString) }
-        ),
-        returnTypeUsage = LstTypeUsage.string(),
-        typeParameters = emptyList(),
-        body = toString,
-        annotations = mutableListOf(
-            LstAnnotation(
-                span = span,
-                name = ANNOTATION_AUTO_GENERATED
-            )
-        ),
-        ref = program.nextFunctionRef()
-    )
-
-    enumConstants.forEach { (variantName, const) ->
-        val loadSelf = toString.loadVar(span, "", SELF_NAME)
-        val loadSelfVariant = toString.loadField(span, loadSelf, VARIANT_FIELD_NAME)
-        val loadConst = toString.loadConst(span, enumFullName, variantName, const)
-        val loadConstVariant = toString.loadField(span, loadConst, VARIANT_FIELD_NAME)
-
-        val cond = toString.call(
-            span, "", "is_equal",
-            listOf(loadSelfVariant, loadConstVariant)
+    run {
+        val toString = LstCode()
+        program.functions += LstFunction(
+            span = span,
+            name = "to_string",
+            path = enumFullName,
+            hasReceiver = true,
+            params = listOf(
+                LstFunctionParam(
+                    span = span,
+                    name = SELF_NAME,
+                    index = 0,
+                    typeUsage = tu,
+                ).apply { createVariable(toString) }
+            ),
+            returnTypeUsage = LstTypeUsage.string(),
+            typeParameters = emptyList(),
+            body = toString,
+            annotations = mutableListOf(
+                LstAnnotation(
+                    span = span,
+                    name = ANNOTATION_AUTO_GENERATED
+                )
+            ),
+            ref = program.nextFunctionRef()
         )
 
-        toString.ifStart(span, cond)
-        toString.returnExpr(span, toString.string(span, variantName))
-        toString.ifEnd(span)
+        enumConstants.forEach { (variantName, const) ->
+            val loadSelf = toString.loadVar(span, "", SELF_NAME)
+            val loadSelfVariant = toString.loadField(span, loadSelf, VARIANT_FIELD_NAME)
+            val loadConst = toString.loadConst(span, enumFullName, variantName, const)
+            val loadConstVariant = toString.loadField(span, loadConst, VARIANT_FIELD_NAME)
+
+            val cond = toString.call(
+                span, "", "is_equal",
+                listOf(loadSelfVariant, loadConstVariant)
+            )
+
+            toString.ifStart(span, cond)
+            toString.returnExpr(span, toString.string(span, variantName))
+            toString.ifEnd(span)
+        }
+
+        toString.lastExpression = toString.call(span, "", "unreachable")
     }
-
-    toString.lastExpression = toString.call(span, "", "unreachable")
-
 
     // fun from_variant(index: Int): Optional<Direction> {
     //    if (index == 1) {
@@ -600,90 +603,141 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
     //    ...
     //    return Optional::None
     //  }
-    val fromVariant = LstCode()
-    program.functions += LstFunction(
-        span = span,
-        name = "from_variant",
-        path = enumFullName,
-        hasReceiver = false,
-        params = listOf(
-            LstFunctionParam(
-                span = span,
-                name = "index",
-                index = 0,
-                typeUsage = LstTypeUsage.int(),
-            ).apply { createVariable(fromVariant) }
-        ),
-        returnTypeUsage = LstTypeUsage.optional(tu),
-        typeParameters = emptyList(),
-        body = fromVariant,
-        annotations = mutableListOf(
-            LstAnnotation(
-                span = span,
-                name = ANNOTATION_AUTO_GENERATED
-            )
-        ),
-        ref = program.nextFunctionRef()
-    )
+    run {
+        val fromVariant = LstCode()
+        program.functions += LstFunction(
+            span = span,
+            name = "from_variant",
+            path = enumFullName,
+            hasReceiver = false,
+            params = listOf(
+                LstFunctionParam(
+                    span = span,
+                    name = "index",
+                    index = 0,
+                    typeUsage = LstTypeUsage.int(),
+                ).apply { createVariable(fromVariant) }
+            ),
+            returnTypeUsage = LstTypeUsage.optional(tu),
+            typeParameters = emptyList(),
+            body = fromVariant,
+            annotations = mutableListOf(
+                LstAnnotation(
+                    span = span,
+                    name = ANNOTATION_AUTO_GENERATED
+                )
+            ),
+            ref = program.nextFunctionRef()
+        )
 
-    enumConstants.forEach { (variantName, const) ->
-        val loadIndex = fromVariant.loadVar(span, "", "index")
-        val variantValue = fromVariant.int(span, const.enumVariant!!)
-        val cond = fromVariant.call(span, "", "is_equal", listOf(loadIndex, variantValue))
+        enumConstants.forEach { (variantName, const) ->
+            val loadIndex = fromVariant.loadVar(span, "", "index")
+            val variantValue = fromVariant.int(span, const.enumVariant!!)
+            val cond = fromVariant.call(span, "", "is_equal", listOf(loadIndex, variantValue))
 
-        fromVariant.ifStart(span, cond)
-        val loadConst = fromVariant.loadConst(span, enumFullName, variantName, const)
-        val call = fromVariant.call(span, "", "Some", listOf(loadConst))
-        fromVariant.returnExpr(span, call)
-        fromVariant.ifEnd(span)
+            fromVariant.ifStart(span, cond)
+            val loadConst = fromVariant.loadConst(span, enumFullName, variantName, const)
+            val call = fromVariant.call(span, "", "Some", listOf(loadConst))
+            fromVariant.returnExpr(span, call)
+            fromVariant.ifEnd(span)
+        }
+
+        val none = fromVariant.call(span, "", "None")
+        fromVariant.lastExpression = fromVariant.returnExpr(span, none)
     }
-
-    val none = fromVariant.call(span, "", "None")
-    fromVariant.lastExpression = fromVariant.returnExpr(span, none)
 
     // fun Direction.get_ordering(other: Direction): Ordering {
     //     ret this.variant.get_ordering(other.variant)
     // }
-    val getOrdering = LstCode()
-    val params = listOf(
-        LstFunctionParam(
-            span = span,
-            name = SELF_NAME,
-            index = 0,
-            typeUsage = tu,
-        ).apply { createVariable(getOrdering) },
-        LstFunctionParam(
-            span = span,
-            name = "other",
-            index = 1,
-            typeUsage = tu,
-        ).apply { createVariable(getOrdering) }
-    )
-
-    program.functions += LstFunction(
-        span = span,
-        name = "get_ordering",
-        path = enumFullName,
-        hasReceiver = true,
-        params = params,
-        returnTypeUsage = LstTypeUsage.simple("Ordering"),
-        typeParameters = emptyList(),
-        body = getOrdering,
-        annotations = mutableListOf(
-            LstAnnotation(
+    run {
+        val getOrdering = LstCode()
+        val params = listOf(
+            LstFunctionParam(
                 span = span,
-                name = ANNOTATION_AUTO_GENERATED
-            )
-        ),
-        ref = program.nextFunctionRef()
-    )
+                name = SELF_NAME,
+                index = 0,
+                typeUsage = tu,
+            ).apply { createVariable(getOrdering) },
+            LstFunctionParam(
+                span = span,
+                name = "other",
+                index = 1,
+                typeUsage = tu,
+            ).apply { createVariable(getOrdering) }
+        )
 
-    val loadSelf = getOrdering.loadVar(span, "", SELF_NAME)
-    val loadSelfVariant = getOrdering.loadField(span, loadSelf, VARIANT_FIELD_NAME)
-    val loadOther = getOrdering.loadVar(span, "", "other")
-    val loadOtherVariant = getOrdering.loadField(span, loadOther, VARIANT_FIELD_NAME)
-    val loadSelfVariantOrdering = getOrdering.call(span, "", "get_ordering", listOf(loadSelfVariant, loadOtherVariant))
-    getOrdering.lastExpression = getOrdering.returnExpr(span, loadSelfVariantOrdering)
+        program.functions += LstFunction(
+            span = span,
+            name = "get_ordering",
+            path = enumFullName,
+            hasReceiver = true,
+            params = params,
+            returnTypeUsage = LstTypeUsage.simple("Ordering"),
+            typeParameters = emptyList(),
+            body = getOrdering,
+            annotations = mutableListOf(
+                LstAnnotation(
+                    span = span,
+                    name = ANNOTATION_AUTO_GENERATED
+                )
+            ),
+            ref = program.nextFunctionRef()
+        )
+
+        val loadSelf = getOrdering.loadVar(span, "", SELF_NAME)
+        val loadSelfVariant = getOrdering.loadField(span, loadSelf, VARIANT_FIELD_NAME)
+        val loadOther = getOrdering.loadVar(span, "", "other")
+        val loadOtherVariant = getOrdering.loadField(span, loadOther, VARIANT_FIELD_NAME)
+        val loadSelfVariantOrdering =
+            getOrdering.call(span, "", "get_ordering", listOf(loadSelfVariant, loadOtherVariant))
+        getOrdering.lastExpression = getOrdering.returnExpr(span, loadSelfVariantOrdering)
+    }
+
+    // fun Direction.is_equal(other: Direction): Boolean {
+    //     ret this.variant.is_equal(other.variant)
+    // }
+    run {
+        val isEqual = LstCode()
+        val params = listOf(
+            LstFunctionParam(
+                span = span,
+                name = SELF_NAME,
+                index = 0,
+                typeUsage = tu,
+            ).apply { createVariable(isEqual) },
+            LstFunctionParam(
+                span = span,
+                name = "other",
+                index = 1,
+                typeUsage = tu,
+            ).apply { createVariable(isEqual) }
+        )
+
+        program.functions += LstFunction(
+            span = span,
+            name = "is_equal",
+            path = enumFullName,
+            hasReceiver = true,
+            params = params,
+            returnTypeUsage = LstTypeUsage.boolean(),
+            typeParameters = emptyList(),
+            body = isEqual,
+            annotations = mutableListOf(
+                LstAnnotation(
+                    span = span,
+                    name = ANNOTATION_AUTO_GENERATED
+                )
+            ),
+            ref = program.nextFunctionRef()
+        )
+
+        val loadSelf = isEqual.loadVar(span, "", SELF_NAME)
+        val loadSelfVariant = isEqual.loadField(span, loadSelf, VARIANT_FIELD_NAME)
+        val loadOther = isEqual.loadVar(span, "", "other")
+        val loadOtherVariant = isEqual.loadField(span, loadOther, VARIANT_FIELD_NAME)
+        val loadSelfVariantIsEqual = isEqual.call(span, "", "is_equal", listOf(loadSelfVariant, loadOtherVariant))
+        isEqual.lastExpression = isEqual.returnExpr(span, loadSelfVariantIsEqual)
+    }
 }
 
 fun ParserCtx.processTestDefinition(ctx: MainParser.TestDefinitionContext) {

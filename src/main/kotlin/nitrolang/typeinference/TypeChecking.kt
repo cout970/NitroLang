@@ -924,7 +924,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                 node.field = field
                 var fieldType = field.type
 
-                repeat(struct.typeParameters.size) { i ->
+                repeat(min(struct.typeParameters.size, ty.params.size)) { i ->
                     val generic = typeEnv.generic(struct.typeParameters[i])
 
                     typeEnv.apply {

@@ -25,6 +25,10 @@ fun Instant.get_unix_timestamp(): Long {
     ret this.seconds
 }
 
+fun Instant.minus(other: Instant): Duration {
+    ret this.elapsed_since(other)
+}
+
 fun Instant.elapsed(): Duration {
     ret Instant::now().elapsed_since(this)
 }

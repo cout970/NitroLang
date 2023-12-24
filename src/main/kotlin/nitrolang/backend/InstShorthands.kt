@@ -106,6 +106,9 @@ fun MonoBuilder.typeOf(ref: Ref): MonoType {
 
 fun MonoBuilder.consumer(span: Span, ref: Ref) {
     val mono = current!!
+    if (ref !in mono.providers) {
+        error("Missing provider for ref $ref")
+    }
     val provider = mono.providers[ref] ?: error("Missing provider for ref $ref")
     mono.instructions += MonoConsumer(mono.nextId(), span, provider)
 }

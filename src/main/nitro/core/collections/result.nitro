@@ -26,6 +26,14 @@ fun Result<#Ok, #Err>.is_err(): Boolean = this is Result::Err<#Ok, #Err>
 // Allows the use of `?` to perform an early return if the result is Err
 fun Result<#Ok, #Err>.is_returnable_error(): Boolean = this is Result::Err<#Ok, #Err>
 
+fun Result<#A, #Err>.convert_error(): Result<#B, #Err> {
+    if this.is_err() {
+        ret Result::Err<#B, #Err> @[value: (this as Result::Err<#A, #Err>).value]
+    }
+
+    crash("Call to convert_error() on Result::Err variant")
+}
+
 // Returns the value of the result if it is Ok, otherwise panics
 // Can be called with the syntax `result!!`
 fun Result<#Ok, #Err>.get_or_crash(): #Ok {

@@ -28,6 +28,10 @@ object Prof {
         }
     }
 
+    fun endAll() {
+        while (stack.isNotEmpty()) end()
+    }
+
     inline fun <T> run(name: String, op: () -> T): T {
         start(name)
         val result = op()
