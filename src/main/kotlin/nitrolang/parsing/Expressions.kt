@@ -19,25 +19,10 @@ fun ParserCtx.processExpression(ctx: MainParser.ExpressionContext): Ref {
             val expr = if (returnExpr.expression() != null) {
                 processExpression(returnExpr.expression())
             } else {
-                val node = LstNothing(
-                    ref = code.nextRef(),
-                    span = returnExpr.span(),
-                    block = code.currentBlock,
-                )
-                code.nodes += node
-                node.ref
+                code.nothing(returnExpr.span())
             }
 
-            code.executeDeferredActions()
-            code.jumpedOutOfBlock = true
-            val node = LstReturn(
-                ref = code.nextRef(),
-                span = returnExpr.span(),
-                block = code.currentBlock,
-                expr = expr
-            )
-            code.nodes += node
-            node.ref
+            code.returnExpr(returnExpr.span(), expr)
         }
 
         complex.expressionOr() != null -> {
@@ -522,13 +507,7 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
         }
 
         ctx.nothingExpression() != null -> {
-            val node = LstNothing(
-                ref = code.nextRef(),
-                span = ctx.nothingExpression().span(),
-                block = code.currentBlock,
-            )
-            code.nodes += node
-            node.ref
+            code.nothing(ctx.nothingExpression().span())
         }
 
         ctx.expressionLiteral() != null -> {
@@ -694,14 +673,7 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
                 checkSubPreviousToken(ctx, ctx.INT_NUMBER())
             }
 
-            val node = LstInt(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                value = intValue
-            )
-            code.nodes += node
-            node.ref
+            code.int(ctx.span(), intValue)
         }
 
         ctx.LONG_NUMBER() != null -> {
@@ -717,14 +689,7 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
                 checkSubPreviousToken(ctx, ctx.LONG_NUMBER())
             }
 
-            val node = LstLong(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                value = longValue
-            )
-            code.nodes += node
-            node.ref
+            code.long(ctx.span(), longValue)
         }
 
         ctx.FLOAT_NUMBER() != null -> {
@@ -740,14 +705,7 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
                 checkSubPreviousToken(ctx, ctx.FLOAT_NUMBER())
             }
 
-            val node = LstFloat(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                value = floatValue
-            )
-            code.nodes += node
-            node.ref
+            code.float(ctx.span(), floatValue)
         }
 
         ctx.string() != null -> {
@@ -755,25 +713,11 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
         }
 
         ctx.TRUE() != null -> {
-            val node = LstBoolean(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                value = true,
-            )
-            code.nodes += node
-            node.ref
+            code.boolean(ctx.span(), true)
         }
 
         ctx.FALSE() != null -> {
-            val node = LstBoolean(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-                value = false,
-            )
-            code.nodes += node
-            node.ref
+            code.boolean(ctx.span(), false)
         }
 
         ctx.NULL() != null -> {
@@ -782,13 +726,7 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
                 ctx.span()
             )
 
-            val node = LstNothing(
-                ref = code.nextRef(),
-                span = ctx.span(),
-                block = code.currentBlock,
-            )
-            code.nodes += node
-            node.ref
+            code.nothing(ctx.span())
         }
 
         else -> error("Grammar has been expanded and parser is outdated")
@@ -1512,10 +1450,25 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     val params: MutableList<LstFunctionParam> = mutableListOf()
     var returnType: LstTypeUsage? = null
     var index = 0
+    val span = ctx.span()
 
     val prevCode = this.code
     val body = LstCode()
     this.code = body
+
+    // Call Trace.enter_function() and Trace.exit_function() to record information about the function call stack
+    if (program.compilerOptions.traceFunctions) {
+        val funcName = code.string(span, "lambda: $span")
+        code.call(span, "Trace", "enter_function", listOf(funcName))
+
+        code.currentBlock.deferredActions += {
+            code.enterBlock(true)
+            allowDefer = false
+            code.call(span, "Trace", "exit_function", listOf(funcName))
+            allowDefer = true
+            code.exitDeferBlock()
+        }
+    }
 
     if (ctx.lambdaDef() != null) {
         val def = ctx.lambdaDef()
@@ -1562,16 +1515,18 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
     }
 
     if (returnType == null) {
-        returnType = LstTypeUsage.unresolved(ctx.span(), "Lambda return type")
+        returnType = LstTypeUsage.unresolved(span, "Lambda return type")
     }
 
     ctx.statement().forEach { processStatement(it) }
+    code.returnExpr(span, code.lastExpression ?: code.nothing(span))
+
     this.code = prevCode
     body.currentPath = currentPath(ctx)
 
     val lambda = LstLambdaFunction(
         ref = program.nextFunctionRef(),
-        span = ctx.span(),
+        span = span,
         params = params,
         returnTypeUsage = returnType,
         body = body,
@@ -1581,7 +1536,7 @@ fun ParserCtx.processExpressionLambdaExpr(ctx: MainParser.LambdaExprContext): Re
 
     val init = LstLambdaInit(
         ref = code.nextRef(),
-        span = ctx.span(),
+        span = span,
         block = code.currentBlock,
         lambda = lambda,
     )

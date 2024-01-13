@@ -2,6 +2,17 @@ package nitrolang.ast
 
 import nitrolang.util.Span
 
+fun LstCode.nothing(span: Span): Ref {
+    val ref = nextRef()
+    val node = LstNothing(
+        ref = ref,
+        span = span,
+        block = currentBlock,
+    )
+    nodes += node
+    return ref
+}
+
 fun LstCode.int(span: Span, value: Int): Ref {
     val ref = nextRef()
     val node = LstInt(
@@ -17,6 +28,18 @@ fun LstCode.int(span: Span, value: Int): Ref {
 fun LstCode.float(span: Span, value: Float): Ref {
     val ref = nextRef()
     val node = LstFloat(
+        ref = ref,
+        span = span,
+        block = currentBlock,
+        value = value,
+    )
+    nodes += node
+    return ref
+}
+
+fun LstCode.long(span: Span, value: Long): Ref {
+    val ref = nextRef()
+    val node = LstLong(
         ref = ref,
         span = span,
         block = currentBlock,
@@ -74,6 +97,8 @@ fun LstCode.letVar(span: Span, name: String, typeUsage: LstTypeUsage?): LstVar {
 
 
 fun LstCode.returnExpr(span: Span, value: Ref): Ref {
+    executeDeferredActions(isReturn = true)
+    jumpedOutOfBlock = true
     val ref = nextRef()
     val node = LstReturn(
         ref = ref,

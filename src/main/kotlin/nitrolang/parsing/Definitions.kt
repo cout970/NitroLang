@@ -204,6 +204,28 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
     val func = processFunctionHeader(header)
 
     code = func.body
+
+    // Call Trace.enter_function() and Trace.exit_function() to record information about the function call stack
+    if (program.compilerOptions.traceFunctions
+        && !func.isExternal
+        && !func.isIntrinsic
+        && !func.isWasmInline
+        && !func.path.contains("Trace")
+        && func.fullName !in setOf("memory_alloc_internal", "alloc_bytes", "get_ptr", "offset_in_bytes", "get_address", "null_ptr")
+        && func.returnTypeUsage.fullName != "Never"
+    ) {
+        val funcName = code.string(func.span, "${func.fullName}: ${func.span}")
+        code.call(func.span, "Trace", "enter_function", listOf(funcName))
+
+        code.currentBlock.deferredActions += {
+            code.enterBlock(true)
+            allowDefer = false
+            code.call(func.span, "Trace", "exit_function", listOf(funcName))
+            allowDefer = true
+            code.exitDeferBlock()
+        }
+    }
+
     when {
         ctx.functionBody() == null -> Unit
 
@@ -225,14 +247,18 @@ fun ParserCtx.processFunctionDefinition(ctx: MainParser.FunctionDefinitionContex
     if (code.blockStack.isNotEmpty()) {
         error("Block stack is not empty, function: ${func.fullName}")
     }
-    code.executeDeferredActions()
+    // Avoid executing deferred actions after the last return statement
+    if (!code.jumpedOutOfBlock) {
+        code.executeDeferredActions()
+    }
     return func
 }
 
 fun ParserCtx.processConstDefinition(ctx: MainParser.ConstDefinitionContext) {
     val body = LstCode()
     code = body
-    body.lastExpression = processExpression(ctx.expression())
+    val expr = processExpression(ctx.expression())
+    body.lastExpression = code.returnExpr(ctx.expression().span(), expr)
     code.executeDeferredActions()
 
     var path = currentPath(ctx)
@@ -750,7 +776,9 @@ fun ParserCtx.processTestDefinition(ctx: MainParser.TestDefinitionContext) {
     if (code.blockStack.isNotEmpty()) {
         error("Block stack is not empty, test: $testName")
     }
-    code.executeDeferredActions()
+    if (!code.jumpedOutOfBlock) {
+        code.executeDeferredActions()
+    }
 
     val testAnnotation = LstAnnotation(
         span = span,

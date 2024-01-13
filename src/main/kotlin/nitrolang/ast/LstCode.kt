@@ -106,13 +106,13 @@ class LstCode : Dumpable {
         currentBlock = blockStack.removeLast()
     }
 
-    fun executeDeferredActions(block: LstBlock = currentBlock) {
+    fun executeDeferredActions(block: LstBlock = currentBlock, isReturn: Boolean = false) {
         if (block.deferredActions.isNotEmpty()) {
             block.deferredActions.reversed().forEach { it() }
         }
 
-        if (block.parent != null && !block.isJumpTarget) {
-            executeDeferredActions(block.parent)
+        if (block.parent != null && (isReturn || !block.isJumpTarget)) {
+            executeDeferredActions(block.parent, isReturn)
         }
     }
 

@@ -52,7 +52,7 @@ fun List<#Item>.ensure_capacity(capacity: Int) {
 
     let new_items: RawArray<Ptr<#Item>> = RawArray::new<Ptr<#Item>>(new_capacity)
 
-    if (this.len > 0) {
+    if this.len > 0 {
         this.items.copy_into(new_items, this.capacity)
     }
 
@@ -485,6 +485,17 @@ fun List<#Item>.to_list(): List<#Item> {
 
     repeat this.len {
         list[] = this[it]!!
+    }
+
+    ret list
+}
+
+// Creates new list with all the items in reverse order
+fun List<#Item>.to_reversed(): List<#Item> {
+    let list = List::new<#Item>(this.len)
+
+    repeat this.len {
+        list[] = this[this.len - it - 1]!!
     }
 
     ret list

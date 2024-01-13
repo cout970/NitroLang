@@ -1,0 +1,242 @@
+// Based on the openjdk-jdk11 implementation
+// https://github.com/AdoptOpenJDK/openjdk-jdk11/blob/master/src/java.base/share/classes/java/util/ArrayDeque.java
+// But with a few changes:
+// - head and tail are replaced with first and len
+// - the capacity is always a power of 2
+struct ArrayDeque<#Item> {
+    capacity: Int
+    first: Int
+    len: Int
+    items: RawArray<Ptr<#Item>>
+}
+
+// Create a new deque
+fun <#Item> ArrayDeque::new(): ArrayDeque<#Item> {
+    ret ArrayDeque<#Item> @[
+        capacity: 0,
+        first: 0,
+        len: 0,
+        items: null_ptr<Ptr<#Item>>().to_raw_array(),
+    ]
+}
+
+// Makes sure the deque has capacity for the requested number of items
+fun ArrayDeque<#Item>.ensure_capacity(needed_capacity: Int) {
+    if needed_capacity <= capacity {
+       ret
+    }
+
+    let new_capacity = max(capacity * 2, 16)
+
+    while new_capacity < needed_capacity {
+        new_capacity = new_capacity * 2
+    }
+
+    let new_items: RawArray<Ptr<#Item>> = RawArray::new<Ptr<#Item>>(new_capacity)
+
+    // Copy the items to the new array
+    repeat this.len {
+        let index = raw_index_of(it)
+        get_memory().copy_within(
+            new_items.get_ptr(0).unsafe_cast().offset_in_bytes(it * size_of<#Item>),
+            this.items.get_ptr(0).unsafe_cast().offset_in_bytes(index * size_of<#Item>),
+            size_of<#Item>
+        )
+    }
+
+    this.first = 0
+    this.items = new_items
+    this.capacity = new_capacity
+}
+
+// Converts a logical index (0..<len) to a raw index in the underlying circular array
+fun ArrayDeque<#Item>.raw_index_of(index: Int): Int {
+    ret (first + index + capacity) % capacity
+}
+
+// Add an item to the end of the deque
+fun ArrayDeque<#Item>.add_last(item: #Item) {
+    // Expand list if needed
+    this.ensure_capacity(len + 1)
+
+    let item_ptr = items.get_ptr(raw_index_of(len))
+    item_ptr.write(ptr_of<#Item>(item))
+    len += 1
+}
+
+// Adds the given item to the deque `count` times at the end
+fun ArrayDeque<#Item>.add_last_multiple_times(item: #Item, count: Int) {
+    // Expand list if needed
+    this.ensure_capacity(this.len + count)
+
+    // Write the item `count` times
+    repeat count {
+        let item_ptr = items.get_ptr(raw_index_of(len))
+        item_ptr.write(ptr_of<#Item>(item))
+        len += 1
+    }
+}
+
+// Add an item to the start of the deque
+fun ArrayDeque<#Item>.add_first(item: #Item) {
+    // Expand list if needed
+    this.ensure_capacity(len + 1)
+
+    let index = raw_index_of(-1)
+    let item_ptr = items.get_ptr(index)
+    item_ptr.write(ptr_of<#Item>(item))
+
+    first = index
+    len += 1
+}
+
+// Adds the given item to the deque `count` times at the start
+fun ArrayDeque<#Item>.add_first_multiple_times(item: #Item, count: Int) {
+    // Expand list if needed
+    this.ensure_capacity(this.len + count)
+
+    // Write the item `count` times
+    repeat count {
+        let index = raw_index_of(-1)
+        let item_ptr = items.get_ptr(index)
+        item_ptr.write(ptr_of<#Item>(item))
+        first = index
+        len += 1
+    }
+}
+
+// Allow `deque[] = item` syntax
+fun ArrayDeque<#Item>.add(item: #Item) = add_last(item)
+
+// Number of items in the deque
+fun ArrayDeque<#Item>.len(): Int = len
+
+// Check if the deque is empty
+fun ArrayDeque<#Item>.is_empty(): Boolean = len == 0
+
+// Check if the deque is not empty
+fun ArrayDeque<#Item>.is_not_empty(): Boolean = len != 0
+
+// Remove all items from the deque
+fun ArrayDeque<#Item>.clear() {
+    len = 0
+    first = 0
+}
+
+// Remove an item from the start of the deque
+fun ArrayDeque<#Item>.remove_first(): Optional<#Item> {
+    if len == 0 {
+        ret None()
+    }
+
+    let item = this.get(0)
+    first = raw_index_of(1)
+    len -= 1
+    ret item
+}
+
+// Remove an item from the end of the deque
+fun ArrayDeque<#Item>.remove_last(): Optional<#Item> {
+    if len == 0 {
+        ret None()
+    }
+
+    let item = this.get(len - 1)
+    len -= 1
+    ret item
+}
+
+// Retrieve an item from the start of the deque
+fun ArrayDeque<#Item>.get_first(): Optional<#Item> {
+    if len == 0 {
+        ret None()
+    }
+
+    let item_ptr = items.get_ptr(raw_index_of(0)).read()
+    ret Some(item_ptr.unsafe_as_ref())
+}
+
+// Retrieve an item from the end of the deque
+fun ArrayDeque<#Item>.get_last(): Optional<#Item> {
+    if len == 0 {
+        ret None()
+    }
+
+    let item_ptr = items.get_ptr(raw_index_of(len - 1)).read()
+    ret Some(item_ptr.unsafe_as_ref())
+}
+
+// Retrieve an item from the deque at the given index (0..<len)
+fun ArrayDeque<#Item>.get(index: Int): Optional<#Item> {
+    if index < 0 || index >= len {
+        ret None()
+    }
+
+    let item_ptr = items.get_ptr(raw_index_of(index)).read()
+    ret Some(item_ptr.unsafe_as_ref())
+}
+
+// Override an item in the deque at the given index (0..<len)
+fun ArrayDeque<#Item>.set(index: Int, item: #Item) {
+    if index < 0 || index >= len {
+        crash("Index out of bounds")
+    }
+
+    let item_ptr = items.get_ptr(raw_index_of(index))
+    item_ptr.write(ptr_of<#Item>(item))
+}
+
+// Convert the deque to a list
+fun ArrayDeque<#Item>.to_list(): List<#Item> {
+    let list = List::new<#Item>()
+
+    repeat this.len {
+        list[] = this[it]!!
+    }
+
+    ret list
+}
+
+// Convert the deque to a string
+fun <#Item: ToString> ArrayDeque<#Item>.to_string(): String {
+    let s = "^[".to_string()
+    let first = true
+
+    repeat this.len {
+        let item = this[it]!!
+        if first {
+            first = false
+        } else {
+            s += ", "
+        }
+        s += item.to_string()
+    }
+
+    s += "]"
+    ret s
+}
+
+// Iterator for the deque
+struct ArrayDequeIterator<#Item> {
+    deque: ArrayDeque<#Item>
+    index: Int
+}
+
+// Convert the deque to an iterator
+fun <#Item> ArrayDeque<#Item>.to_iterator(): ArrayDequeIterator<#Item> {
+    ret ArrayDequeIterator<#Item> @[
+        deque: this,
+        index: 0,
+    ]
+}
+
+// Gives the next item in the iterator
+fun ArrayDequeIterator<#Item>.next(): Optional<#Item> {
+    if index >= deque.len() {
+        ret None()
+    }
+
+    let item = deque[index]
+    index += 1
+    ret item
+}

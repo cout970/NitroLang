@@ -222,11 +222,7 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
     for ((index, inst) in monoCode.instructions.toList().withIndex()) {
         if (inst is MonoProvider) {
             if (inst.consumers.isEmpty()) {
-                if (index != monoCode.instructions.lastIndex || monoCode.code.returnType.isNothing()) {
-                    monoCode.instructions[index] = MonoDrop(monoCode.nextId(), inst.span, inst.type)
-                } else {
-                    monoCode.instructions[index] = MonoNoop(monoCode.nextId(), inst.span)
-                }
+                monoCode.instructions[index] = MonoDrop(monoCode.nextId(), inst.span, inst.type)
                 continue
             }
 
@@ -258,10 +254,18 @@ fun MonoBuilder.processCode(monoCode: MonoCode, ctx: MonoCtx) {
 
     if (monoCode.code.returnType.isNothing()) {
         monoCode.instructions += MonoInt(monoCode.nextId(), Span.internal(), 0)
-    } else if (monoCode.instructions.lastOrNull() is MonoEndBlock) {
-        val msg = "Added to suppress error, 'end' returns nothing"
-        monoCode.instructions += MonoComment(monoCode.nextId(), Span.internal(), msg)
-        monoCode.instructions += MonoInt(monoCode.nextId(), Span.internal(), 0)
+    } else {
+        val last = monoCode.instructions.lastOrNull()
+
+        if (last is MonoEndBlock) {
+            val msg = "Added to suppress error, 'end' returns nothing"
+            monoCode.instructions += MonoComment(monoCode.nextId(), Span.internal(), msg)
+            monoCode.instructions += MonoInt(monoCode.nextId(), Span.internal(), 0)
+        } else if (last is MonoDrop) {
+            val msg = "Added to suppress error, type mismatch in implicit return, expected [i32] but got []"
+            monoCode.instructions += MonoComment(monoCode.nextId(), Span.internal(), msg)
+            monoCode.instructions += MonoUnreachable(monoCode.nextId(), Span.internal())
+        }
     }
 }
 
@@ -455,8 +459,9 @@ fun MonoBuilder.processInst(
                     error("Internal error: attempt to access constant marked as dead code: ${const.fullName}")
                 }
 
-                val monoConst =
-                    consts[const.ref.id] ?: error("Missing const: ${const.fullName}, with id: ${const.ref.id}")
+                val monoConst = consts[const.ref.id] ?: run {
+                    error("Missing const: ${const.fullName}, with id: ${const.ref.id}")
+                }
 
                 code.instructions += MonoLoadConst(code.nextId(), inst.span, monoConst)
                 provider(inst.span, inst.ref, constType)

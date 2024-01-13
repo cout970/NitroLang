@@ -59,6 +59,7 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
     }
 
     fun compileConsts() {
+        val aux = mutableListOf<Pair<LstConst, MonoConst>>()
         program.consts.forEach { const ->
             if (const.isDeadCode) return@forEach
             val ctx = MonoCtx()
@@ -68,9 +69,8 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
             val monoConst = MonoConst(const, type)
             monoConst.code = MonoCode(const.body)
 
-            this.current = monoConst.code
-            processCode(monoConst.code, ctx)
             consts[const.ref.id] = monoConst
+            aux += const to monoConst
 
             if (!type.isIntrinsic() && !type.isEncodedInRef()) {
                 if (!initMemoryCopyInternal) {
@@ -78,7 +78,11 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
                     getMonoFunction(program.getFunction("memory_copy_internal"), MonoCtx())
                 }
             }
+        }
 
+        aux.forEach { (const, monoConst) ->
+            this.current = monoConst.code
+            processCode(monoConst.code, MonoCtx())
             builder.compileConst(const, monoConst)
         }
     }

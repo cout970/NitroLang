@@ -18,6 +18,16 @@ export async function run(url: string) {
     internal.mem.program = wasmExports;
 
     const main = wasmExports._start_main as CallableFunction
+    const print_stack_trace = wasmExports.print_stack_trace as CallableFunction
 
-    main();
+    try {
+        main();
+    } catch (e) {
+        try {
+            print_stack_trace();
+        } catch (_e) {
+            console.error("Failed to print stack trace");
+        }
+        throw e;
+    }
 }

@@ -1,6 +1,7 @@
 package nitrolang.parsing
 
 import nitrolang.ast.*
+import nitrolang.gen.MainParser
 import nitrolang.gen.MainParser.ModuleDefinitionContext
 import nitrolang.typeinference.TypeEnv
 import nitrolang.util.ErrorCollector
@@ -64,6 +65,18 @@ data class ParserCtx(
 
         pathComponents.reverse()
         return pathComponents.joinToString(MODULE_SEPARATOR)
+    }
+
+    fun ParserRuleContext.getFunctionName(): String? {
+        var parent = this.parent
+
+        while (parent != null && parent !is MainParser.FunctionDefinitionContext) {
+            parent = parent.parent
+        }
+
+        if (parent == null) return null
+
+        return (parent as MainParser.FunctionDefinitionContext).functionHeader().anyName().text
     }
 
     override fun toString(): String {
