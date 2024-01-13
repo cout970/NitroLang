@@ -25,13 +25,13 @@ struct NStructField {
 fun NStruct.to_string(): String {
     let prefix = ""
 
-    for a in this.annotations {
+    for a in annotations {
         prefix = "$prefix$a\n"
     }
 
-    let fields_str = "{ "
+    let fields_str = "{\n"
     for field in fields {
-        fields_str += "${field.name}: ${field.type_usage}, "
+        fields_str += "  ${field.name}: ${field.type_usage}\n"
     }
     fields_str = fields_str + "}"
 
@@ -55,12 +55,12 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_nl()
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
-    read_until(TokenKind::RBRACE) @{
+    read_until_delimited(TokenKind::RBRACE) @{
         def.fields[] = read_struct_field()?
-        skip_comma_or_nl()
+        found(nothing)
     }?
 
-    return found(nothing)
+    ret found(nothing)
 }
 
 fun Parser.read_struct_field(): Parsed<NStructField> {
@@ -71,5 +71,5 @@ fun Parser.read_struct_field(): Parsed<NStructField> {
 
     let type_usage = read_type_usage()?
 
-    return found(NStructField @[name, type_usage])
+    ret found(NStructField @[name, type_usage])
 }

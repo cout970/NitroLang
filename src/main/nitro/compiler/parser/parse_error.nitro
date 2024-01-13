@@ -17,13 +17,24 @@ enum ParseError {
 
 option Parsed<#Ast> {
     Found { value: #Ast },
-    Error { kind: ParseError, token: Token },
+    Error {
+        kind: ParseError,
+        token: Token,
+        expected: Optional<TokenKind>,
+    }
 }
 
 fun found(value: #Ast): Parsed<#Ast> = Parsed::Found @[value]
 
 fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token]
+    ret Parsed::Error @[kind, token, expected: None()]
+}
+
+fun parse_error_expected(kind: ParseError, token: Token, expected_token: TokenKind): Parsed<#Ast> {
+    // Workaround for is_some() bug in Parsed::Err().expected
+    println("Expected $expected_token, found $token")
+    Trace::print_stack_trace()
+    ret Parsed::Error @[kind, token, expected: Some(expected_token)]
 }
 
 fun Parsed<#Ast>.is_error(): Boolean = this is Parsed::Error<#Ast>
@@ -48,4 +59,20 @@ fun Parsed<#Ast>.get_or_crash(): #Ast {
     }
 
     crash("Parsed failed, attempting to use error value")
+}
+
+fun <#Ast: ToString> Parsed<#Ast>.to_string(): String {
+    if this is Parsed::Found<#Ast> {
+        ret (this as Parsed::Found<#Ast>).value.to_string()
+    }
+
+    if this is Parsed::Error<#Ast> {
+        let error = this as Parsed::Error<#Ast>
+        if error.kind == ParseError::ExpectedToken {
+            ret "Parse error: Expected ${error.expected!!} but found ${error.token}"
+        }
+        ret "Parse error: ${error.kind} at token ${error.token}"
+    }
+
+    crash("Parsed::to_string called on unknown value")
 }

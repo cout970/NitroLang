@@ -2,7 +2,7 @@
 // Read an specific token
 fun Parser.skip_token_kind(tk: TokenKind): Parsed<Nothing> {
     if lexer.current_token_kind != tk {
-        ret parse_error(ParseError::ExpectedToken, lexer.current_token)
+        ret parse_error_expected(ParseError::ExpectedToken, lexer.current_token, tk)
     }
 
     lexer.next_token()
@@ -91,8 +91,15 @@ fun Parser.skip_nl() {
     }
 }
 
+// Ignores a comma if encountered
+fun Parser.skip_comma() {
+    if lexer.current_token_kind == TokenKind::COMMA {
+        lexer.next_token()
+    }
+}
+
 // Skip comma and new newlines, must contain at least one newline or a comma
-fun Parser.skip_comma_or_nl(): Parsed<Nothing> {
+fun Parser.read_comma_or_nl(): Parsed<Nothing> {
 //    commaOrNl
 //        : COMMA NL*
 //        | NL+
@@ -124,6 +131,39 @@ fun Parser.read_until(tk: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Pars
         if res.is_error() {
             ret res
         }
+    }
+
+    skip_token_kind(tk)?
+
+    ret found(nothing)
+}
+
+fun Parser.read_until_delimited(tk: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Parsed<Nothing> {
+    while lexer.current_token_kind != tk {
+        if !has_remaining_tokens() {
+            ret parse_error(ParseError::ReachedEnd, lexer.current_token)
+        }
+
+        let res: Parsed<Nothing> = lambda(this)
+        if res.is_error() {
+            ret res
+        }
+
+        if lexer.current_token_kind == TokenKind::COMMA {
+            lexer.next_token()
+            skip_nl()
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::NL {
+            // At least one NL
+            lexer.next_token()
+            skip_nl()
+            continue
+        }
+
+        // No delimiter, end of the loop
+        break
     }
 
     skip_token_kind(tk)?

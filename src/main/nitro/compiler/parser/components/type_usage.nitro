@@ -51,8 +51,11 @@ fun NTypeUsage.to_string(): String {
 
     if type_params.len > 0 {
         s = s + "<"
-        for type_param in type_params {
-            s = s + type_param.to_string() + ", "
+        repeat type_params.len {
+            s += type_params[it]!!.to_string()
+            if it < limit - 1 {
+                s += ", "
+            }
         }
         s = s + ">"
     }
@@ -135,11 +138,10 @@ fun Parser.read_type_param_args(): Parsed<List<NTypeUsage>> {
     skip_token_kind(TokenKind::LTH)?
 
     skip_nl()
-    read_until(TokenKind::GTH) @{
+    read_until_delimited(TokenKind::GTH) @{
         list[] = read_type_usage()?
-        skip_comma_or_nl()
+        found(nothing)
     }
-    skip_token_kind(TokenKind::GTH)?
 
     ret found(list)
 }
@@ -159,10 +161,10 @@ fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsa
 
     skip_token_kind(TokenKind::LPAREN)?
 
-    if lexer.current_token_kind != TokenKind::RPAREN {
+    read_until_delimited(TokenKind::RPAREN) @{
         lexer.next_token()
         type_params[] = read_function_type_usage_param()?
-        skip_comma_or_nl()?
+        found(nothing)
     }
 
     skip_token_kind(TokenKind::RPAREN)?

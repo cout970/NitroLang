@@ -16,7 +16,6 @@ struct Program {
     all_function_signatures: List<NFunctionSignature>
 }
 
-struct NOption {}
 struct NTypeAlias {}
 struct NConstant {}
 struct NTag {}

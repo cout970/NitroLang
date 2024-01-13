@@ -1130,3 +1130,16 @@ fun Lexer.read_digits(): Boolean {
 
     ret start != cur
 }
+
+fun Lexer.print_debug_info() {
+    println("Tokens around print_debug_info():")
+    let start = max(tk - 5, 0)
+    let end = min(tk + 5, tokens.len() - 1)
+
+    while start <= end {
+        let token = tokens[start]!!
+        let span = span_of(token)
+        println("[${start - tk}]  $token $span")
+        start += 1
+    }
+}

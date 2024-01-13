@@ -1,0 +1,82 @@
+
+// // E.g. type Optional<T> {}
+// optionDefinition
+//     : OPTION upperName typeParamsDef? NL* LBRACE NL*
+//     (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
+//     RBRACE ;
+//
+// // E.g. Some { value: T },
+// optionDefinitionItem
+//     : upperName structBody?;
+
+struct NOption {
+    annotations: List<NAnnotation>
+    name: String
+    type_params: List<NTypeParameterDefinition>
+    items: List<NStruct>
+}
+
+fun NOption.to_string(): String {
+    let prefix = ""
+
+    for a in annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let items_str = "{\n"
+    for item in items {
+        items_str += item.to_string()
+    }
+    items_str = items_str + "}"
+
+    ret "${prefix}option $name $items_str"
+}
+
+fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::OPTION)?
+    let name = read_upper_name()?
+
+    let def = NOption @[
+        annotations,
+        name,
+        type_params: [],
+        items: [],
+    ]
+    program.options[] = def
+
+    def.type_params = read_type_params_def()?
+    skip_nl()
+
+    skip_token_kind(TokenKind::LBRACE)?
+    skip_nl()
+
+    read_until_delimited(TokenKind::RBRACE) @{
+        def.items[] = read_option_item()?
+        found(nothing)
+    }?
+
+    ret found(nothing)
+}
+
+fun Parser.read_option_item(): Parsed<NStruct> {
+    let name = read_upper_name()?
+
+    let def = NStruct @[
+        annotations: [],
+        name,
+        type_params: [],
+        fields: [],
+    ]
+
+    if lexer.current_token_kind == TokenKind::LBRACE {
+        skip_token_kind(TokenKind::LBRACE)?
+        skip_nl()
+        read_until(TokenKind::RBRACE) @{
+            def.fields[] = read_struct_field()?
+            skip_nl()
+            found(nothing)
+        }?
+    }
+
+    ret found(def)
+}

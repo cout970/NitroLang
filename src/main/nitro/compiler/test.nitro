@@ -1,11 +1,9 @@
 let source_code: String = r#"
 
-@Test
-struct A {
-    field1: Int,
-    field2: Float,
-    field3: List<Int>,
-    field3: Map<#Key, #Value>,
+@ValueType
+option Optional<#Value> {
+    None
+    Some { value: #Value }
 }
 
 "#

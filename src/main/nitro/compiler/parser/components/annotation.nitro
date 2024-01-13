@@ -40,9 +40,9 @@ fun Parser.parse_annotation(): Parsed<NAnnotation> {
     skip_token_kind(TokenKind::LBRACKET)?
     skip_nl()
 
-    let res = read_until(TokenKind::RBRACKET) @{
+    let res = read_until_delimited(TokenKind::RBRACKET) @{
         ann.args[] = read_annotation_arg()?
-        skip_comma_or_nl()
+        found(nothing)
     }
 
 //    if res.is_error() {

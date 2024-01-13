@@ -24,14 +24,13 @@ fun Parser.read_type_params_def(): Parsed<List<NTypeParameterDefinition>> {
         return found(type_params)
     }
 
+    // Skip `<`
     lexer.next_token()
 
-    read_until(TokenKind::GTH) @{
+    read_until_delimited(TokenKind::GTH) @{
         type_params[] = read_type_param_def()?
-        skip_comma_or_nl()
+        found(nothing)
     }?
-
-    skip_token_kind(TokenKind::GTH)?
 
     return found(type_params)
 }
@@ -74,6 +73,7 @@ fun Parser.read_type_parameter(): Parsed<String> {
         ret parse_error(ParseError::ExpectedTypeParameter, lexer.current_token)
     }
 
+    // Skip `#`
     lexer.next_token()
 
     ret read_upper_name()

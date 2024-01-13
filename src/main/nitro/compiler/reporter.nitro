@@ -11,6 +11,7 @@ struct Report {
     kind: ReportKind
     message: String
     location: Span
+    stack_trace: List<String>
 }
 
 // The kind of report
@@ -33,6 +34,10 @@ fun Reporter.has_reports(): Boolean {
     ret errors.len() > 0 || warnings.len() > 0 || suggestions.len() > 0
 }
 
+fun Reporter.get_report_count(): Int {
+    ret errors.len() + warnings.len() + suggestions.len()
+}
+
 fun Reporter.print_all() {
     for error in errors {
         Log::error(error.to_string())
@@ -51,6 +56,7 @@ fun Reporter.report_error(message: String, location: Span) {
         kind: ReportKind::Error,
         message,
         location,
+        stack_trace: Trace::get_stack_trace()
     ]
 }
 
@@ -60,6 +66,7 @@ fun Reporter.report_warning(message: String, location: Span) {
         kind: ReportKind::Warning,
         message,
         location,
+        stack_trace: Trace::get_stack_trace()
     ]
 }
 
@@ -69,10 +76,11 @@ fun Reporter.report_suggestion(message: String, location: Span) {
         kind: ReportKind::Suggestion,
         message,
         location,
+        stack_trace: Trace::get_stack_trace()
     ]
 }
 
 // Print the report
 fun Report.to_string(): String {
-    ret "$location\n$kind: $message"
+    ret "New compiler error at $location\n$kind: $message\n$stack_trace"
 }

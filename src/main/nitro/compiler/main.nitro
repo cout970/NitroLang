@@ -7,6 +7,7 @@ include "./parser/parse_error.nitro"
 include "./parser/parser_utils.nitro"
 include "./parser/definition.nitro"
 include "./parser/components/struct.nitro"
+include "./parser/components/option.nitro"
 include "./parser/components/type_parameter.nitro"
 include "./parser/components/type_usage.nitro"
 include "./parser/components/annotation.nitro"
@@ -15,9 +16,8 @@ include "./reporter.nitro"
 include "./program.nitro"
 include "./test.nitro"
 
-fun main() {
+fun compile() {
     let start = Instant::now()
-
     let program = Program::new()
 
     let lexer = Lexer::new(source_code, "test.nitro")
@@ -40,9 +40,20 @@ fun main() {
         println(def)
     }
 
+    println("Options:")
+    for def in program.options {
+        println("--------")
+        println(def)
+    }
+
+    println("--------")
+
     if program.reporter.has_reports() {
-        println("Error reports:")
+        println("${program.reporter.report_count} Error reports:")
         program.reporter.print_all()
     }
-    println("Done")
+}
+
+fun main() {
+    compile()
 }

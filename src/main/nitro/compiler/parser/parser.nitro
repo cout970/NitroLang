@@ -20,10 +20,10 @@ fun Parser.read_file() {
     while has_remaining_tokens() {
         let res: Parsed<Nothing> = read_definition()
 
-        if res is Parsed::Error<*> {
-            let err = (res as Parsed::Error<Nothing>)
-            let span = lexer.span_of(err.token)
-            program.reporter.report_error("${err.kind}, found: ${err.token} at $span", span)
+        if res is Parsed::Error<Nothing> {
+            let span = lexer.span_of(lexer.current_token)
+
+            program.reporter.report_error(res.to_string(), span)
             recover_from_error()
             break
         }
