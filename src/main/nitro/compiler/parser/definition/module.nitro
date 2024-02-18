@@ -1,0 +1,55 @@
+
+// E.g. mod core {}
+//    moduleDefinition
+//        : MODULE modulePath? anyName NL* LBRACE NL* definition* RBRACE ;
+
+struct NModule {
+    span: Span,
+    annotations: List<NAnnotation>,
+    path: String,
+    name: String
+}
+
+fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::MODULE)?
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_upper_name()?
+    skip_nl()
+
+    let def = NModule @[
+        span,
+        annotations,
+        path,
+        name
+    ]
+
+    program.modules[] = def
+
+    skip_token_kind(TokenKind::LBRACE)?
+    skip_nl()
+
+    while lexer.current_token_kind != TokenKind::RBRACE {
+        if !has_remaining_tokens() {
+            ret parse_error(ParseError::ReachedEnd, lexer.current_token)
+        }
+
+        read_definition()?
+        skip_nl()
+    }
+
+    skip_token_kind(TokenKind::RBRACE)?
+    skip_nl()
+
+    ret found(nothing)
+}
+
+fun NModule.to_string(): String {
+    let prefix = ""
+
+    for a in annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    ret "${prefix}mod $name // $span"
+}

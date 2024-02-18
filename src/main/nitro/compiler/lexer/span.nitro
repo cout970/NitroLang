@@ -12,8 +12,8 @@ fun Span::new(start: Int, len: Int, source: String, file: String): Span {
     ret Span @[
         start, len,
         source, file,
-        lazy_line: None(),
-        lazy_column: None()
+        lazy_line: None<Int>(),
+        lazy_column: None<Int>(),
     ]
 }
 

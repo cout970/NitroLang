@@ -5,21 +5,21 @@ struct Program {
 
     structs: List<NStruct>
     options: List<NOption>
+    includes: List<NInclude>
     type_aliases: List<NTypeAlias>
-    consts: List<NConstant>
+    modules: List<NModule>
+    consts: List<NConst>
     tags: List<NTag>
     functions: List<NFunction>
     property_getters: List<NPropertyGetter>
     property_setters: List<NPropertySetter>
     lambda_functions: List<NLambdaFunction>
+    // TODO use this to check for duplicate names
     defined_names: Map<String, Span>
     all_function_signatures: List<NFunctionSignature>
 }
 
-struct NTypeAlias {}
-struct NConstant {}
 struct NTag {}
-struct NFunction {}
 struct NPropertyGetter {}
 struct NPropertySetter {}
 struct NLambdaFunction {}
@@ -30,7 +30,9 @@ fun Program::new(): Program {
         reporter: Reporter::new(),
         structs: [],
         options: [],
+        includes: [],
         type_aliases: [],
+        modules: [],
         consts: [],
         tags: [],
         functions: [],

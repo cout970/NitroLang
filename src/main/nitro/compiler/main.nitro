@@ -6,14 +6,27 @@ include "./parser/parser.nitro"
 include "./parser/parse_error.nitro"
 include "./parser/parser_utils.nitro"
 include "./parser/definition.nitro"
-include "./parser/components/struct.nitro"
-include "./parser/components/option.nitro"
-include "./parser/components/type_parameter.nitro"
-include "./parser/components/type_usage.nitro"
-include "./parser/components/annotation.nitro"
-include "./parser/components/const_expr.nitro"
+include "./parser/definition/struct.nitro"
+include "./parser/definition/option.nitro"
+include "./parser/definition/include.nitro"
+include "./parser/definition/type_alias.nitro"
+include "./parser/definition/module.nitro"
+include "./parser/definition/const.nitro"
+include "./parser/definition/function.nitro"
+include "./parser/definition/type_parameter.nitro"
+include "./parser/definition/type_usage.nitro"
+include "./parser/definition/annotation.nitro"
+include "./parser/definition/annotation.nitro"
+include "./parser/statement.nitro"
+include "./parser/statement/let.nitro"
+include "./parser/statement/if.nitro"
+include "./parser/expression.nitro"
+include "./parser/expression/const_expr.nitro"
 include "./reporter.nitro"
-include "./program.nitro"
+include "./program/program.nitro"
+include "./program/code.nitro"
+include "./program/code_inst.nitro"
+include "./program/var.nitro"
 include "./test.nitro"
 
 fun compile() {
@@ -34,16 +47,46 @@ fun compile() {
     println("Time: $elapsed ms")
     println("Memory used: $bytes bytes")
 
+    println("Includes:")
+    for def in program.includes {
+        println(def)
+        println("--------")
+    }
+
+    println("TypeAliases:")
+    for def in program.type_aliases {
+        println(def)
+        println("--------")
+    }
+
+    println("Modules:")
+    for def in program.modules {
+        println(def)
+        println("--------")
+    }
+
     println("Structs:")
     for def in program.structs {
-        println("--------")
         println(def)
+        println("--------")
     }
 
     println("Options:")
     for def in program.options {
-        println("--------")
         println(def)
+        println("--------")
+    }
+
+    println("Consts:")
+    for def in program.consts {
+        println(def)
+        println("--------")
+    }
+
+    println("Functions:")
+    for def in program.functions {
+        println(def)
+        println("--------")
     }
 
     println("--------")

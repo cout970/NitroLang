@@ -1,0 +1,55 @@
+
+struct NCode {
+    inst: List<NCodeInst>
+    vars: List<NVar>
+    last_id: NInstId
+    last_var_id: NVarId
+}
+
+fun NCode::new(): NCode {
+    ret NCode @[
+        inst: [],
+        vars: [],
+        last_id: -1,
+        last_var_id: -1,
+    ]
+}
+
+fun NCode.enter_block(isJumpTarget: Boolean) {
+
+}
+
+fun NCode.exit_block() {
+
+}
+
+fun NCode.find(id: NInstId): Optional<NCodeInst> {
+    for i in this.inst {
+        if i.id == id {
+            ret Some(i)
+        }
+    }
+
+    ret None()
+}
+
+fun NCode.to_string(): String {
+    if inst.is_empty() {
+        ret "{}"
+    }
+
+    let body_str = "{"
+
+     for i in inst {
+        body_str += "\n"
+        let id = i.id.to_string()
+        body_str += " " * (5 - id.len() - 1)
+        body_str += "#"
+        body_str += id
+        body_str += " | "
+        body_str += i.to_string()
+    }
+    body_str += "\n}"
+
+    ret body_str
+}

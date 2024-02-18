@@ -9,6 +9,7 @@ fun Parser::new(lexer: Lexer, program: Program): Parser {
     ret Parser @[
         lexer,
         program,
+        checkpoints: [],
     ]
 }
 
@@ -19,6 +20,7 @@ fun Parser.read_file() {
 
     while has_remaining_tokens() {
         let res: Parsed<Nothing> = read_definition()
+        skip_nl()
 
         if res is Parsed::Error<Nothing> {
             let span = lexer.span_of(lexer.current_token)

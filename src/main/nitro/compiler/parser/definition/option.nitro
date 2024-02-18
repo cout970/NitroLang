@@ -10,33 +10,27 @@
 //     : upperName structBody?;
 
 struct NOption {
+    span: Span
     annotations: List<NAnnotation>
     name: String
     type_params: List<NTypeParameterDefinition>
-    items: List<NStruct>
+    items: List<NOptionItem>
 }
 
-fun NOption.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    let items_str = "{\n"
-    for item in items {
-        items_str += item.to_string()
-    }
-    items_str = items_str + "}"
-
-    ret "${prefix}option $name $items_str"
+struct NOptionItem {
+    span: Span
+    index: Int
+    parent: NOption
+    def: NStruct
 }
 
 fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::OPTION)?
+    let span = lexer.current_token_span
     let name = read_upper_name()?
 
     let def = NOption @[
+        span,
         annotations,
         name,
         type_params: [],
@@ -51,17 +45,19 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_nl()
 
     read_until_delimited(TokenKind::RBRACE) @{
-        def.items[] = read_option_item()?
+        def.items[] = read_option_item(def)?
         found(nothing)
     }?
 
     ret found(nothing)
 }
 
-fun Parser.read_option_item(): Parsed<NStruct> {
+fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
+    let span = lexer.current_token_span
     let name = read_upper_name()?
 
     let def = NStruct @[
+        span,
         annotations: [],
         name,
         type_params: [],
@@ -78,5 +74,45 @@ fun Parser.read_option_item(): Parsed<NStruct> {
         }?
     }
 
-    ret found(def)
+    ret found(NOptionItem @[
+        span,
+        index: parent.items.len(),
+        parent,
+        def,
+    ])
+}
+
+fun NOption.to_string(): String {
+    let prefix = ""
+
+    for a in annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let items_str = if items.len() > 0 { "{\n" } else { "{" }
+
+    for item in items {
+        let line = item.to_string().indent(2)
+        items_str += "$line\n"
+    }
+    items_str = items_str + "}"
+
+    ret "${prefix}option $name $items_str // $span"
+}
+
+fun NOptionItem.to_string(): String {
+    let prefix = ""
+
+    for a in def.annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let fields_str = if def.fields.len() > 0 { "{\n" } else { "{" }
+
+    for field in def.fields {
+        fields_str += "  ${field.name}: ${field.type_usage}\n"
+    }
+    fields_str = fields_str + "}"
+
+    ret "${prefix}${def.name} $fields_str // $span"
 }

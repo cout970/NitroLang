@@ -1,0 +1,190 @@
+
+type_alias NInstId = Int
+
+struct NCodeInst {
+    id: NInstId
+    span: Span
+    current_block: Int
+    kind: NCodeInstKind
+}
+
+option NCodeInstKind {
+    Let {
+        variable: NVar
+    }
+    IfStart {
+        condition: NInstId
+    }
+    IfElse
+    IfEnd
+    Literal {
+        value: NConstExpr
+    }
+    StoreVar {
+        path: String
+        name: String
+        value: NInstId
+        variable: Optional<NVar>
+    }
+    Noop
+}
+
+fun NCode.add_noop(span: Span): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::Noop @[],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_let(
+    span: Span,
+    name: String,
+    type_usage: Optional<NTypeUsage>
+): NVar {
+    last_id += 1
+    last_var_id += 1
+
+    let variable = NVar @[
+        id: last_var_id,
+        span,
+        current_block: -1,
+        name,
+        type_usage,
+        defined_by: last_id,
+        defined_in: this,
+    ]
+    vars[] = variable
+
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::Let @[variable],
+    ]
+    inst[] = i
+    ret variable
+}
+
+fun NCode.add_if_start(
+    span: Span,
+    condition: NInstId
+): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::IfStart @[
+            condition,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_if_else(
+    span: Span
+): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::IfElse @[],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_if_end(
+    span: Span
+): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::IfEnd @[],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_lit(
+    span: Span
+    value: NConstExpr
+): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::Literal @[value],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_store_var(
+    span: Span,
+    path: String,
+    name: String,
+    value: NInstId,
+    variable: Optional<NVar>
+): NCodeInst {
+    last_id += 1
+    let i = NCodeInst @[
+        id: last_id,
+        span,
+        current_block: -1,
+        kind: NCodeInstKind::StoreVar @[
+            path,
+            name,
+            value,
+            variable,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCodeInst.to_string(): String {
+    ret when {
+        this.kind is NCodeInstKind::Let -> {
+            let kind = this.kind as NCodeInstKind::Let
+
+            "let ${kind.variable.name}"
+        }
+        this.kind is NCodeInstKind::IfStart -> {
+            let kind = this.kind as NCodeInstKind::IfStart
+
+            "if-start #${kind.condition}"
+        }
+        this.kind is NCodeInstKind::IfElse -> {
+            "if-else"
+        }
+        this.kind is NCodeInstKind::IfEnd -> {
+            "if-end"
+        }
+        this.kind is NCodeInstKind::Literal -> {
+            let kind = this.kind as NCodeInstKind::Literal
+
+            "literal ${kind.value}"
+        }
+        this.kind is NCodeInstKind::StoreVar -> {
+            let kind = this.kind as NCodeInstKind::StoreVar
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+
+            "store-var $full_name = #${kind.value}"
+        }
+        this.kind is NCodeInstKind::Noop -> {
+            "noop"
+        }
+        else -> crash("Unknown NCodeInstKind variant")
+    }
+}

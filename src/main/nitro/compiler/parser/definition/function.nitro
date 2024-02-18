@@ -1,0 +1,196 @@
+
+// E.g. fun Int.sum(other: Int): Int {}
+// functionDefinition
+//     : functionHeader NL* functionBody
+//     | functionHeader
+//     ;
+
+// functionHeader
+//     : FUN NL* functionReceiver? modulePath? anyName NL* typeParamsDef? NL*
+//         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?
+//     | FUN NL* typeParamsDef? NL* functionReceiver? modulePath? anyName NL*
+//         LPAREN NL* (functionParameter (commaOrNl functionParameter)* COMMA?)? NL* RPAREN NL* functionReturnType?;
+
+
+// E.g. Int.
+// functionReceiver
+//     : varModifier typeUsage DOT ;
+
+// E.g. count: Int,
+// functionParameter
+//     : varModifier anyName NL* COLON NL* typeUsage
+//     | varModifier UNDERSCORE NL* COLON NL* typeUsage;
+
+// E.g. {}
+// E.g. = 3.14
+// functionBody
+//     : statementBlock
+//     | ASSIGN NL* expression
+//     ;
+
+// E.g. : Int
+// functionReturnType
+//     : COLON typeUsage
+//     | ARROW typeUsage
+//     ;
+
+struct NFunction {
+    span: Span
+    annotations: List<NAnnotation>
+    type_params: List<NTypeParameterDefinition>
+    has_receiver: Boolean
+    path: String
+    name: String
+    parameters: List<NFunctionParameter>
+    return_type: NTypeUsage
+    body: NCode
+}
+
+struct NFunctionParameter {
+    span: Span
+    name: String
+    type_usage: NTypeUsage
+}
+
+fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    let def = read_function_header(annotations)?
+
+    // Body
+    skip_nl()
+    when lexer.current_token_kind {
+        TokenKind::LBRACE -> {
+            read_statement_block(def.body)?
+        }
+        TokenKind::ASSIGN -> {
+            skip_token_kind(TokenKind::ASSIGN)?
+            read_expression(def.body)?
+        }
+    }
+
+    ret found(nothing)
+}
+
+fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunction> {
+    skip_token_kind(TokenKind::FUN)?
+    skip_nl()
+    let type_params: List<NTypeParameterDefinition> = []
+    let parameters: List<NFunctionParameter> = []
+    let has_receiver = false
+
+    // Type parameters
+    if lexer.current_token_kind == TokenKind::LTH {
+        type_params.add_all(read_type_params_def()?)
+        skip_nl()
+    }
+
+    // Optional receiver
+    if lexer.find_token_kind_before(TokenKind::DOT, TokenKind::LPAREN) {
+        let receiver_span = lexer.current_token_span
+        let receiver_tu = read_type_usage()?
+
+        parameters[] = NFunctionParameter @[
+            span: receiver_span,
+            name: "this",
+            type_usage: receiver_tu,
+        ]
+        has_receiver = true
+
+        skip_token_kind(TokenKind::DOT)?
+    }
+
+    // Full name
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_name()?
+
+    // Register function
+    let def = NFunction @[
+        span,
+        annotations,
+        type_params,
+        has_receiver,
+        path,
+        name,
+        parameters,
+        return_type: NTypeUsage::simple("Unit"),
+        body: NCode::new(),
+    ]
+    program.functions[] = def
+
+    // Type parameters
+    skip_nl()
+    if lexer.current_token_kind == TokenKind::LTH {
+        type_params.add_all(read_type_params_def()?)
+        skip_nl()
+    }
+
+    // Function args
+    skip_token_kind(TokenKind::LPAREN)?
+    read_until_delimited(TokenKind::RPAREN) @{
+        def.parameters += read_function_parameter()?
+        ret found(nothing)
+    }?
+
+    // Return Type
+    skip_nl()
+    when lexer.current_token_kind {
+        TokenKind::COLON -> {
+            skip_token_kind(TokenKind::COLON)?
+            def.return_type = read_type_usage()?
+        }
+        TokenKind::ARROW -> {
+            skip_token_kind(TokenKind::ARROW)?
+            def.return_type = read_type_usage()?
+        }
+    }
+
+    ret found(def)
+}
+
+fun Parser.read_function_parameter(): Parsed<NFunctionParameter> {
+    let span = lexer.current_token_span
+    read_var_modifier()?
+
+    let name = if lexer.current_token_kind == TokenKind::UNDERSCORE {
+        skip_token_kind(TokenKind::UNDERSCORE)?
+        "_"
+    } else {
+        read_name()?
+    }
+    skip_nl()
+
+    skip_token_kind(TokenKind::COLON)?
+    let type_usage = read_type_usage()?
+
+    let def = NFunctionParameter @[
+        span,
+        name,
+        type_usage,
+    ]
+
+    ret found(def)
+}
+
+fun Parser.read_var_modifier(): Parsed<Nothing> {
+    if lexer.current_token_kind == TokenKind::MUT {
+        skip_token_kind(TokenKind::MUT)?
+    }
+    ret found(nothing)
+}
+
+fun NFunction.to_string(): String {
+    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
+
+    let full_name = if path.is_empty() { name } else { "$path::$name" }
+
+    let args = ""
+    for p in parameters {
+        if !args.is_empty() {
+            args += ", "
+        }
+        args += "${p.name}: ${p.type_usage}"
+    }
+
+    return "${prefix}fun $full_name($args): $return_type $body"
+}
+

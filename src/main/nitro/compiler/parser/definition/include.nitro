@@ -1,0 +1,30 @@
+
+// E.g. include "core:optional.nitro"
+// includeDefinition
+//     : INCLUDE PLAIN_STRING ;
+
+struct NInclude {
+    span: Span
+    annotations: List<NAnnotation>
+    path: String
+}
+
+fun Parser.read_include_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::INCLUDE)?
+    let span = lexer.current_token_span
+    let path = read_plain_string()?
+
+    let def = NInclude @[
+        span,
+        annotations
+        path,
+    ]
+
+    program.includes[] = def
+
+    ret found(nothing)
+}
+
+fun NInclude.to_string() -> String {
+    return "include \"$path\" // $span"
+}

@@ -1,0 +1,44 @@
+
+// E.g. let pi: Float = 3.14
+// constDefinition
+//     : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
+
+struct NConst {
+    span: Span
+    path: String
+    name: String
+    type_usage: NTypeUsage
+    body: NCode
+}
+
+fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::LET)?
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_name()?
+
+    skip_token_kind(TokenKind::COLON)?
+    let type_usage = read_type_usage()?
+
+    let def = NConst @[
+        span,
+        path,
+        name,
+        type_usage,
+        body: NCode::new()
+    ]
+    program.consts[] = def
+
+    skip_token_kind(TokenKind::ASSIGN)?
+    skip_nl()
+
+    read_expression(def.body)?
+
+    ret found(nothing)
+}
+
+fun NConst.to_string(): String {
+    let full_name = if path.is_empty() { name } else { "$path::$name" }
+
+    return "const $full_name: $type_usage = {} // $span"
+}

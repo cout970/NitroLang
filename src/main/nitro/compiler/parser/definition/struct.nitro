@@ -11,6 +11,7 @@
 //      : INTERNAL? anyName COLON typeUsage;
 
 struct NStruct {
+    span: Span
     annotations: List<NAnnotation>
     name: String
     fields: List<NStructField>
@@ -22,27 +23,13 @@ struct NStructField {
     type_usage: NTypeUsage
 }
 
-fun NStruct.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    let fields_str = "{\n"
-    for field in fields {
-        fields_str += "  ${field.name}: ${field.type_usage}\n"
-    }
-    fields_str = fields_str + "}"
-
-    ret "${prefix}struct $name $fields_str"
-}
-
 fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::STRUCT)?
+    let span = lexer.current_token_span
     let name = read_upper_name()?
 
     let def = NStruct @[
+        span,
         annotations,
         name,
         type_params: [],
@@ -72,4 +59,21 @@ fun Parser.read_struct_field(): Parsed<NStructField> {
     let type_usage = read_type_usage()?
 
     ret found(NStructField @[name, type_usage])
+}
+
+fun NStruct.to_string(): String {
+    let prefix = ""
+
+    for a in annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let fields_str = if fields.len() > 0 { "{\n" } else { "{" }
+
+    for field in fields {
+        fields_str += "  ${field.name}: ${field.type_usage}\n"
+    }
+    fields_str = fields_str + "}"
+
+    ret "${prefix}struct $name $fields_str  // $span"
 }

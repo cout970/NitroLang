@@ -1,0 +1,12 @@
+
+type_alias NVarId = Int
+
+struct NVar {
+    id: NVarId
+    span: Span
+    current_block: Int
+    name: String
+    type_usage: Optional<NTypeUsage>
+    defined_by: NInstId
+    defined_in: NCode
+}

@@ -1,0 +1,65 @@
+
+fun Parser.read_expression(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+
+    let inst = when (lexer.current_token_kind) {
+        TokenKind::INT_NUMBER -> read_expression_literal(code)
+        TokenKind::LONG_NUMBER -> read_expression_literal(code)
+        TokenKind::FLOAT_NUMBER -> read_expression_literal(code)
+        TokenKind::PLAIN_STRING -> read_expression_literal(code)
+        TokenKind::TRUE -> read_expression_literal(code)
+        TokenKind::FALSE -> read_expression_literal(code)
+        TokenKind::NULL -> read_expression_literal(code)
+        TokenKind::NOTHING -> read_expression_literal(code)
+        else -> {
+            ret parse_error(ParseError::Generic, lexer.current_token)
+        }
+    }
+
+    ret inst
+}
+
+fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+
+    let inst = when (lexer.current_token_kind) {
+        TokenKind::INT_NUMBER -> {
+            let value: Int = read_int()?
+            code.add_lit(span, NConstExpr::NConstInt @[value])
+        }
+        TokenKind::LONG_NUMBER -> {
+            let value: Long = read_long()?
+            code.add_lit(span, NConstExpr::NConstLong @[value])
+        }
+        TokenKind::FLOAT_NUMBER -> {
+            let value: Float = read_float()?
+            code.add_lit(span, NConstExpr::NConstFloat @[value])
+        }
+        TokenKind::PLAIN_STRING -> {
+            let value: String = read_plain_string()?
+            code.add_lit(span, NConstExpr::NConstString @[value])
+        }
+        TokenKind::TRUE -> {
+            lexer.next_token()
+            code.add_lit(span, NConstExpr::NConstBoolean @[value: true])
+        }
+        TokenKind::FALSE -> {
+            lexer.next_token()
+            code.add_lit(span, NConstExpr::NConstBoolean @[value: false])
+        }
+        TokenKind::NULL -> {
+            program.reporter.report_warning("Keyword 'null' is not supported, use 'nothing' instead", span)
+            lexer.next_token()
+            code.add_lit(span, NConstExpr::NConstNothing @[])
+        }
+        TokenKind::NOTHING -> {
+            lexer.next_token()
+            code.add_lit(span, NConstExpr::NConstNothing @[])
+        }
+        else -> {
+            ret parse_error(ParseError::Generic, lexer.current_token)
+        }
+    }
+
+    ret found(inst.id)
+}

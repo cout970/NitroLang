@@ -40,27 +40,13 @@ enum TypeUsageKind {
     TYPE_PARAM,
 }
 
-fun NTypeUsage.to_string(): String {
-    let s = ""
-
-    if module_path != "" {
-        s = module_path + "::"
-    }
-
-    s = s + name
-
-    if type_params.len > 0 {
-        s = s + "<"
-        repeat type_params.len {
-            s += type_params[it]!!.to_string()
-            if it < limit - 1 {
-                s += ", "
-            }
-        }
-        s = s + ">"
-    }
-
-    ret s
+fun NTypeUsage::simple(name: String): NTypeUsage {
+    ret NTypeUsage @[
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        module_path: "",
+        type_params: [],
+    ]
 }
 
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
@@ -194,4 +180,35 @@ fun Parser.read_function_type_usage_param(): Parsed<NTypeUsage> {
     }
 
     ret read_type_usage()
+}
+
+fun NTypeUsage.to_string(): String {
+    let s = ""
+
+    if kind == TypeUsageKind::TYPE_THIS {
+        ret "This"
+    }
+
+    if kind == TypeUsageKind::TYPE_PARAM {
+        ret "#$name"
+    }
+
+    if module_path != "" {
+        s = module_path + "::"
+    }
+
+    s = s + name
+
+    if type_params.len() > 0 {
+        s = s + "<"
+        repeat type_params.len() {
+            s += type_params[it]!!.to_string()
+            if it < limit - 1 {
+                s += ", "
+            }
+        }
+        s = s + ">"
+    }
+
+    ret s
 }

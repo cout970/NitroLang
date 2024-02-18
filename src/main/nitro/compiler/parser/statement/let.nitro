@@ -1,0 +1,33 @@
+
+// E.g. let a: Int = 0
+//   letStatement
+//        : LET varModifier anyName (COLON typeUsage)? (ASSIGN NL* expression)? ;
+
+fun Parser.read_let_statement(code: NCode): Parsed<Nothing> {
+    skip_token_kind(TokenKind::LET)?
+    read_var_modifier()?
+    let span = lexer.current_token_span
+    let name = read_name()?
+
+    let type_usage = if lexer.current_token_kind == TokenKind::COLON {
+        skip_token_kind(TokenKind::COLON)?
+        Some(read_type_usage()?)
+    } else {
+        None()
+    }
+
+    let variable = code.add_let(span, name, type_usage)
+
+    let value = if lexer.current_token_kind == TokenKind::ASSIGN {
+        skip_token_kind(TokenKind::ASSIGN)?
+        let expr = read_expression(code)?
+
+        let inst = code.add_store_var(span, "", name, expr, Some(variable))
+
+        Some(expr)
+    } else {
+        None()
+    }
+
+    ret found(nothing)
+}

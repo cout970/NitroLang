@@ -1,0 +1,37 @@
+
+// E.g. if true {} else {}
+// ifStatement
+//     : IF NL* expression NL* statementBlock (NL* ELSE NL* statementBlock)? ;
+
+fun Parser.read_if_statement(code: NCode): Parsed<Nothing> {
+    skip_token_kind(TokenKind::IF)?
+    skip_nl()
+
+    let span = lexer.current_token_span
+    let condition = read_expression(code)?
+    skip_nl()
+
+    code.add_if_start(span, condition)
+    code.enter_block(false)
+
+    let if_block = read_statement_block(code)?
+    skip_nl()
+
+    code.exit_block()
+
+    if lexer.current_token_kind == TokenKind::ELSE {
+        code.enter_block(false)
+        code.add_if_else(span)
+
+        skip_token_kind(TokenKind::ELSE)?
+        skip_nl()
+
+        let else_block = read_statement_block(code)?
+        skip_nl()
+        code.exit_block()
+    }
+
+    code.add_if_end(span)
+
+    ret found(nothing)
+}

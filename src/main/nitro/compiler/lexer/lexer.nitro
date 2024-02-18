@@ -112,6 +112,7 @@ fun Lexer::new(src: String, file: String): Lexer {
         keyword_map,
         state: [],
         tokens: [],
+        tk: 0,
         comments: [],
     ]
 }
@@ -152,6 +153,23 @@ fun Lexer.get_next_token_kind(): TokenKind {
 // Returns the token after the next token
 fun Lexer.get_next_next_token_kind(): TokenKind {
     ret tokens[tk - 2]!!.kind
+}
+
+// Search for `target` before the next occurrence of `stop`
+fun Lexer.find_token_kind_before(target: TokenKind, stop: TokenKind): Boolean {
+    let curr = tk
+    let token = tokens[curr]!!.kind
+
+    while token != stop && token != TokenKind::EOF {
+        if token == target {
+            ret true
+        }
+
+        curr += 1
+        token = tokens[curr]!!.kind
+    }
+
+    ret false
 }
 
 type_alias SavedState = Int

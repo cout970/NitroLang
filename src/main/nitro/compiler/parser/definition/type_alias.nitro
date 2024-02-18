@@ -1,0 +1,36 @@
+
+// E.g. alias Int32 = Int
+// aliasDefinition
+//     : ALIAS upperName ASSIGN typeUsage;
+
+struct NTypeAlias {
+    span: Span
+    annotations: List<NAnnotation>
+    name: String
+    type_usage: NTypeUsage
+}
+
+fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::TYPE_ALIAS)?
+    let span = lexer.current_token_span
+    let name = read_upper_name()?
+
+    skip_token_kind(TokenKind::ASSIGN)?
+
+    let type_usage = read_type_usage()?
+
+    let def = NTypeAlias @[
+        span,
+        annotations
+        name,
+        type_usage,
+    ]
+
+    program.type_aliases[] = def
+
+    ret found(nothing)
+}
+
+fun NTypeAlias.to_string() -> String {
+    return "typealias $name = $type_usage // $span"
+}

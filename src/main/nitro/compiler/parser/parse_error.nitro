@@ -46,7 +46,8 @@ fun Parsed<#A>.convert_error(): Parsed<#B> {
         let error = this as Parsed::Error<#A>
         ret Parsed::Error<#B> @[
             kind: error.kind,
-            token: error.token
+            token: error.token,
+            expected: None(),
         ]
     }
 

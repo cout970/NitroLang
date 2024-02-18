@@ -7,16 +7,15 @@
 //      | optionDefinition
 //      | functionDefinition
 //      | includeDefinition
-//      | useDefinition
+//      | useDefinition # Ignored for now
 //      | aliasDefinition
 //      | moduleDefinition
 //      | constDefinition
-//      | tagDefinition
+//      | tagDefinition # Ignored for now
 //      | typeAliasDefinition
-//      | enumDefinition
-//      | testDefinition
+//      | enumDefinition # Ignored for now
+//      | testDefinition # Ignored for now
 //      ;
-
 
 fun Parser.read_definition(): Parsed<Nothing> {
     let annotations: List<NAnnotation> = []
@@ -37,12 +36,15 @@ fun Parser.read_definition(): Parsed<Nothing> {
     when (lexer.current_token_kind) {
         TokenKind::STRUCT -> read_struct_definition(annotations)?
         TokenKind::OPTION -> read_option_definition(annotations)?
+        TokenKind::INCLUDE -> read_include_definition(annotations)?
+        TokenKind::TYPE_ALIAS -> read_type_alias_definition(annotations)?
+        TokenKind::MODULE -> read_module_definition(annotations)?
+        TokenKind::LET -> read_const_definition(annotations)?
+        TokenKind::FUN -> read_function_definition(annotations)?
         else -> {
             ret parse_error(ParseError::ExpectedDefinition, lexer.current_token)
         }
     }
 
-    skip_nl()
-
-    return found(nothing)
+    ret found(nothing)
 }
