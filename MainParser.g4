@@ -57,7 +57,6 @@ definitionChoice
     | functionDefinition
     | includeDefinition
     | useDefinition
-    | aliasDefinition
     | moduleDefinition
     | constDefinition
     | tagDefinition
@@ -69,10 +68,6 @@ definitionChoice
 // E.g. include "core:optional.nitro"
 includeDefinition
     : INCLUDE PLAIN_STRING ;
-
-// E.g. alias Int32 = Int
-aliasDefinition
-    : ALIAS upperName ASSIGN typeUsage;
 
 useDefinition
     : USE modulePath (useDefinitionConst | useDefinitionType | useDefinitionFunction | useDefinitionExtension) ;

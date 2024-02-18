@@ -168,16 +168,6 @@ public interface MainParserListener extends ParseTreeListener {
 	 */
 	void exitIncludeDefinition(MainParser.IncludeDefinitionContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link MainParser#aliasDefinition}.
-	 * @param ctx the parse tree
-	 */
-	void enterAliasDefinition(MainParser.AliasDefinitionContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link MainParser#aliasDefinition}.
-	 * @param ctx the parse tree
-	 */
-	void exitAliasDefinition(MainParser.AliasDefinitionContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link MainParser#useDefinition}.
 	 * @param ctx the parse tree
 	 */

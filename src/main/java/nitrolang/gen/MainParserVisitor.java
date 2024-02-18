@@ -107,12 +107,6 @@ public interface MainParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIncludeDefinition(MainParser.IncludeDefinitionContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MainParser#aliasDefinition}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAliasDefinition(MainParser.AliasDefinitionContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link MainParser#useDefinition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
