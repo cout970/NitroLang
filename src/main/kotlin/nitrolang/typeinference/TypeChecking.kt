@@ -4,6 +4,7 @@ import nitrolang.ast.*
 import nitrolang.parsing.LAMBDA_CALL_FUNCTION
 import nitrolang.parsing.ParserCtx
 import nitrolang.parsing.SELF_NAME
+import nitrolang.parsing.VARIANT_FIELD_NAME
 import nitrolang.util.Prof
 import nitrolang.util.Span
 import kotlin.math.min
@@ -772,7 +773,24 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             val definedType = getTypeFromUsage(node.typeUsage, validateParams = false)
             node.typeUsageBox = typeEnv.box(definedType, node.span)
 
-            node.typeBox = typeEnv.box(typeCheckAlloc(node.span, definedType, node.isEnumInstanceInit), node.span)
+            val (type, struct) = typeCheckAlloc(node.span, definedType, node.isEnumInstanceInit)
+
+            if (struct != null) {
+                val requiredNames = struct.fields.values.map { it.name }.toMutableList()
+
+                // Campos de variantes no son requeridos
+                if (struct.parentOption != null) {
+                    requiredNames -= VARIANT_FIELD_NAME
+                }
+
+                requiredNames.forEach { name ->
+                    if (name !in node.initFieldNames) {
+                        collector.report("Missing field '$name' of struct '${struct.fullName}'", node.span)
+                    }
+                }
+            }
+
+            node.typeBox = typeEnv.box(type, node.span)
         }
 
         is LstLambdaInit -> {
@@ -1232,19 +1250,23 @@ private fun ParserCtx.visitLambda(lambda: LstLambdaFunction, type: TType) {
     finishCode(lambda.body, lambda.returnType, "Lambda", lambda.span)
 }
 
-private fun ParserCtx.typeCheckAlloc(span: Span, definedType: TType, isEnumInstanceInit: Boolean): TType {
+private fun ParserCtx.typeCheckAlloc(
+    span: Span,
+    definedType: TType,
+    isEnumInstanceInit: Boolean
+): Pair<TType, LstStruct?> {
 
     if (definedType !is TComposite) {
         val err = "Type '${definedType}' cannot be instantiated"
         collector.report(err, span)
-        return typeEnv.invalid(span, err)
+        return typeEnv.invalid(span, err) to null
     }
 
     // Only structs can be allocated, options and traits are only for the type system
     if (definedType.base !is TStruct && definedType.base !is TOptionItem) {
         val err = "Type '${definedType}' is not an struct/option item"
         collector.report(err, span)
-        return typeEnv.invalid(span, err)
+        return typeEnv.invalid(span, err) to null
     }
 
     val struct: LstStruct = when (definedType.base) {
@@ -1269,7 +1291,7 @@ private fun ParserCtx.typeCheckAlloc(span: Span, definedType: TType, isEnumInsta
     else
         typeEnv.typeBaseStruct(struct)
 
-    return typeEnv.composite(base, params)
+    return typeEnv.composite(base, params) to struct
 }
 
 private fun ParserCtx.findTag(tu: LstTypeUsage): LstTag? {

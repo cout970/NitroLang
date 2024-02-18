@@ -396,11 +396,25 @@ fun ParserCtx.processExpressionOrFunctionCall(ctx: MainParser.ExpressionOrFuncti
             )
         }
 
-        ctx.expressionLiteral() != null -> {
-            val prev = processExpressionExpressionLiteral(ctx.expressionLiteral())
+        ctx.string() != null -> {
+            val prev = processString(ctx.string())
 
             processFunctionCall(
-                span = ctx.expressionLiteral().span(),
+                span = ctx.constExpr().span(),
+                receiver = prev,
+                path = "",
+                name = LAMBDA_CALL_FUNCTION,
+                params = ctx.functionCallParams(),
+                end = ctx.functionCallEnd(),
+                code = code
+            )
+        }
+
+        ctx.constExpr() != null -> {
+            val prev = processExpressionConstExpr(ctx.constExpr())
+
+            processFunctionCall(
+                span = ctx.constExpr().span(),
                 receiver = prev,
                 path = "",
                 name = LAMBDA_CALL_FUNCTION,
@@ -499,19 +513,18 @@ fun ParserCtx.processFunctionCall(
     return call.ref
 }
 
-
 fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref {
     return when {
         ctx.parenthesizedExpression() != null -> {
             processExpression(ctx.parenthesizedExpression().expression())
         }
 
-        ctx.nothingExpression() != null -> {
-            code.nothing(ctx.nothingExpression().span())
+        ctx.constExpr() != null -> {
+            processExpressionConstExpr(ctx.constExpr())
         }
 
-        ctx.expressionLiteral() != null -> {
-            processExpressionExpressionLiteral(ctx.expressionLiteral())
+        ctx.string() != null -> {
+            processString(ctx.string())
         }
 
         ctx.whenExpr() != null -> {
@@ -598,67 +611,60 @@ fun ParserCtx.processExpressionBase(ctx: MainParser.ExpressionBaseContext): Ref 
     }
 }
 
-fun ParserCtx.processConstExpr(ctx: MainParser.ConstExprContext): ConstValue {
-    if (ctx.nothingExpression() != null) {
-        return ConstNothing
+fun ParserCtx.processConstExpr(ctx: MainParser.ConstExprContext): ConstValue = when {
+    ctx.PLAIN_STRING() != null -> {
+        ConstString(processPlainString(ctx.PLAIN_STRING()))
     }
 
-    if (ctx.constExpressionLiteral() == null) {
-        error("Grammar has been expanded and parser is outdated")
+    ctx.FALSE() != null -> ConstBoolean(false)
+    ctx.TRUE() != null -> ConstBoolean(true)
+    ctx.NULL() != null -> {
+        collector.report(
+            "Null values are not available in this language, use Optional::None instead",
+            ctx.span()
+        )
+        ConstNothing
     }
 
-    return when {
-        ctx.constExpressionLiteral().PLAIN_STRING() != null -> {
-            ConstString(processPlainString(ctx.constExpressionLiteral().PLAIN_STRING()))
-        }
-
-        ctx.constExpressionLiteral().FALSE() != null -> ConstBoolean(false)
-        ctx.constExpressionLiteral().TRUE() != null -> ConstBoolean(true)
-        ctx.constExpressionLiteral().NULL() != null -> {
-            collector.report(
-                "Null values are not available in this language, use Optional::None instead",
-                ctx.span()
-            )
-            ConstNothing
-        }
-
-        ctx.constExpressionLiteral().INT_NUMBER() != null -> {
-            val text = ctx.constExpressionLiteral().INT_NUMBER().text
-
-            val intValue = stringToInt(text) ?: run {
-                collector.report("Invalid int value '${text}'", ctx.span())
-                0
-            }
-
-            if (text.startsWith("-") || text.startsWith("+")) {
-                checkSubPreviousToken(ctx.constExpressionLiteral(), ctx.constExpressionLiteral().INT_NUMBER())
-            }
-
-            ConstInt(intValue)
-        }
-
-        ctx.constExpressionLiteral().FLOAT_NUMBER() != null -> {
-            val text = ctx.constExpressionLiteral().FLOAT_NUMBER().text
-            var floatValue = stringToFloat(text)
-
-            if (floatValue == null) {
-                collector.report("Invalid float value '${text}'", ctx.span())
-                floatValue = 0f
-            }
-
-            if (text.startsWith("-") || text.startsWith("+")) {
-                checkSubPreviousToken(ctx.constExpressionLiteral(), ctx.constExpressionLiteral().FLOAT_NUMBER())
-            }
-
-            ConstFloat(floatValue)
-        }
-
-        else -> error("Grammar has been expanded and parser is outdated")
+    ctx.NOTHING() != null -> {
+        ConstNothing
     }
+
+    ctx.INT_NUMBER() != null -> {
+        val text = ctx.INT_NUMBER().text
+
+        val intValue = stringToInt(text) ?: run {
+            collector.report("Invalid int value '${text}'", ctx.span())
+            0
+        }
+
+        if (text.startsWith("-") || text.startsWith("+")) {
+            checkSubPreviousToken(ctx, ctx.INT_NUMBER())
+        }
+
+        ConstInt(intValue)
+    }
+
+    ctx.FLOAT_NUMBER() != null -> {
+        val text = ctx.FLOAT_NUMBER().text
+        var floatValue = stringToFloat(text)
+
+        if (floatValue == null) {
+            collector.report("Invalid float value '${text}'", ctx.span())
+            floatValue = 0f
+        }
+
+        if (text.startsWith("-") || text.startsWith("+")) {
+            checkSubPreviousToken(ctx, ctx.FLOAT_NUMBER())
+        }
+
+        ConstFloat(floatValue)
+    }
+
+    else -> error("Grammar has been expanded and parser is outdated")
 }
 
-
-fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiteralContext): Ref {
+fun ParserCtx.processExpressionConstExpr(ctx: MainParser.ConstExprContext): Ref {
     return when {
         ctx.INT_NUMBER() != null -> {
             val text = ctx.INT_NUMBER().text
@@ -708,8 +714,8 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
             code.float(ctx.span(), floatValue)
         }
 
-        ctx.string() != null -> {
-            processString(ctx.string())
+        ctx.PLAIN_STRING() != null -> {
+            code.string(ctx.span(), processPlainString(ctx.PLAIN_STRING()))
         }
 
         ctx.TRUE() != null -> {
@@ -722,10 +728,14 @@ fun ParserCtx.processExpressionExpressionLiteral(ctx: MainParser.ExpressionLiter
 
         ctx.NULL() != null -> {
             collector.report(
-                "Null values are not available in this language, use Optional::None instead",
+                "Null values are not available in this language, use 'nothing' instead",
                 ctx.span()
             )
 
+            code.nothing(ctx.span())
+        }
+
+        ctx.NOTHING() != null -> {
             code.nothing(ctx.span())
         }
 
@@ -873,6 +883,7 @@ fun ParserCtx.createStructInstance(
             expr = expr
         )
         code.nodes += store
+        alloc.initFieldNames += name
     }
 
     return alloc.ref
@@ -1612,20 +1623,20 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
         typeParamArgs = ctx.typeParamArg().typeUsage().map { resolveTypeUsage(it) }
     }
 
-    val alloc = LstAlloc(
-        ref = code.nextRef(),
-        span = ctx.span(),
-        block = code.currentBlock,
-        typeUsage = LstTypeUsage(
-            span = ctx.upperName().span(),
-            name = name,
-            path = path,
-            sub = typeParamArgs,
-            typeParameter = null,
-            currentPath = currentPath(ctx)
-        )
+    val typeUsage = LstTypeUsage(
+        span = ctx.upperName().span(),
+        name = name,
+        path = path,
+        sub = typeParamArgs,
+        typeParameter = null,
+        currentPath = currentPath(ctx)
     )
-    code.nodes += alloc
+
+    val alloc = code.alloc(ctx.span(), typeUsage) {
+        initFieldNames += ctx.structInstanceEntry().map { entry ->
+            if (entry.expression() != null) entry.anyName().text else entry.variableExpr().anyName().text
+        }
+    }
 
     ctx.structInstanceEntry().forEach { entry ->
 
@@ -1637,7 +1648,7 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
                 span = ctx.span(),
                 block = code.currentBlock,
                 name = entry.anyName().text,
-                instance = alloc.ref,
+                instance = alloc,
                 expr = expr,
             )
         } else {
@@ -1648,13 +1659,13 @@ fun ParserCtx.processExpressionStructInstanceExpr(ctx: MainParser.StructInstance
                 span = ctx.span(),
                 block = code.currentBlock,
                 name = entry.variableExpr().anyName().text,
-                instance = alloc.ref,
+                instance = alloc,
                 expr = expr,
             )
         }
     }
 
-    return alloc.ref
+    return alloc
 }
 
 fun ParserCtx.processExpressionVariableExpr(ctx: MainParser.VariableExprContext): Ref {

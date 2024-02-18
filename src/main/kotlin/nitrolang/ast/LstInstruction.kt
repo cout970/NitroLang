@@ -568,6 +568,7 @@ class LstAlloc(
     var typeUsageBox: TypeBox? = null
     var struct: LstStruct? = null
     var isEnumInstanceInit: Boolean = false
+    val initFieldNames = mutableListOf<String>()
 
     override fun toString(): String = "$ref = alloc $typeUsage [$typeBox]"
 

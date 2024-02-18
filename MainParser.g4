@@ -361,7 +361,8 @@ expressionOrFunctionCall
     : modulePath? anyName functionCallEnd
     | modulePath? anyName functionCallParams functionCallEnd?
     | parenthesizedExpression functionCallParams functionCallEnd?
-    | expressionLiteral functionCallParams functionCallEnd?
+    | string functionCallParams functionCallEnd?
+    | constExpr functionCallParams functionCallEnd?
     | structInstanceExpr functionCallParams functionCallEnd?
     | THIS functionCallParams functionCallEnd?
     | THIS functionCallEnd
@@ -385,8 +386,8 @@ parenthesizedExpression
 
 expressionBase
     : parenthesizedExpression
-    | nothingExpression
-    | expressionLiteral
+    | constExpr
+    | string
     | whenExpr
     | listExpr
     | mapExpr
@@ -413,24 +414,6 @@ jsonExpr
 
 // Constant value that can be evaluated at compile time
 constExpr
-    : nothingExpression
-    | constExpressionLiteral
-    ;
-
-nothingExpression
-    : NOTHING ;
-
-expressionLiteral
-    : INT_NUMBER
-    | LONG_NUMBER
-    | FLOAT_NUMBER
-    | string
-    | TRUE
-    | FALSE
-    | NULL
-    ;
-
-constExpressionLiteral
     : INT_NUMBER
     | LONG_NUMBER
     | FLOAT_NUMBER
@@ -438,6 +421,7 @@ constExpressionLiteral
     | TRUE
     | FALSE
     | NULL
+    | NOTHING
     ;
 
 whenExpr

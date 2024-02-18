@@ -469,11 +469,12 @@ fun ParserCtx.processEnumDefinition(ctx: MainParser.EnumDefinitionContext) {
         const.enumVariant = valueIndex
         this.code = const.body
 
+        val allFields = struct.fields.values.map { it.name }.toMutableSet()
+
         val instance = code.alloc(constCtx.span(), tu, struct = struct) {
+            initFieldNames += allFields
             isEnumInstanceInit = true
         }
-
-        val allFields = struct.fields.values.map { it.name }.toMutableSet()
 
         // Variant field
         run {
