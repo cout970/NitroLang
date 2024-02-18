@@ -6,6 +6,13 @@ Inspired by C, Rust, Kotlin and JS, combining the best features of modern langua
 
 Right now it's in alpha state and everything is subject to change.
 
+
+### Current task
+
+Rewrite the compiler in NitroLang itself, to prove that it's a viable language for real-world applications.
+
+You can see the progress [here](./src/main/nitro/compiler)
+
 ### Syntax
 
 Basics:
