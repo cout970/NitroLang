@@ -69,6 +69,12 @@ fun String.is_equal(other: String): Boolean {}
 @Extern [lib: "core", name: "string_is_not_equal"]
 fun String.is_not_equal(other: String): Boolean {}
 
+// Checks if the string has no characters
+fun String.is_empty(): Boolean = this.byte_len == 0
+
+// Checks if the string has at least one character
+fun String.is_not_empty(): Boolean = this.byte_len != 0
+
 // Computes the hash value of a string, to be used in hash tables
 fun String.get_hash(): Int {
     let hash: Int = 0
@@ -83,6 +89,16 @@ fun String.get_hash(): Int {
 // Replace all instances of a string with another string
 @Extern [lib: "core", name: "string_replace"]
 fun String.replace(find: String, replacement: String): String {}
+
+// Indents all lines of a string with a certain indentation
+fun String.indent(indentation: String): String {
+    ret indentation.concat(this.replace("\n", "\n$indentation"))
+}
+
+// Indents all lines of a string with a certain number of space characters
+fun String.indent(spaces: Int): String {
+    ret this.indent(" ".mul(spaces))
+}
 
 // Remove all whitespace characters from the start and end of a string
 @Extern [lib: "core", name: "string_sub_string"]

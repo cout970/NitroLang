@@ -1,8 +1,9 @@
 
 // Sorts the list using the quicksort algorithm
 fun <#Item: GetOrdering> List<#Item>.quicksort_in_place() {
-    this.quicksort_rec(0, this.len - 1, false)
+    this.quicksort_rec(0, this.len() - 1, false)
 }
+
 
 // Recursive quicksort function, the partition parameter is used to toggle between finding the partition index and
 // sorting the two sublists
