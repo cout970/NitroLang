@@ -1,0 +1,107 @@
+
+// E.g. repeat 5 {}
+// repeatStatement
+//     : REPEAT NL* expression NL* statementBlock ;
+
+fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
+    // repeat statements get desugared into a simpler loop
+    // repeat <count> { <code> }
+    // {
+    //   let limit = <count>
+    //   let it = 0
+    //   loop: {
+    //     if (it < limit) {
+    //       defer { it = it + 1 }
+    //       <code>
+    //       goto loop;
+    //     }
+    //   }
+    // }
+
+    skip_token_kind(TokenKind::REPEAT)?
+    let span = lexer.current_token_span
+
+    code.add_comment(span, "repeat statement")
+
+    code.enter_block(true)
+    let count = read_expression(code)?
+
+    // let limit = <count>
+    let var_limit = code.add_let(span, "limit", Some(NTypeUsage::simple("Int")))
+    code.add_store_var(span, "", "limit", count, Some(var_limit))
+
+    // let it = 0
+    let var_it = code.add_let(span, "it", Some(NTypeUsage::simple("Int")))
+    let zero = code.add_int_lit(span, 0)
+    code.add_store_var(span, "", "it", zero.id, Some(var_it))
+
+    let prev_break_jumps = code.break_jumps
+    let prev_continue_jumps = code.continue_jumps
+
+    code.break_jumps = []
+    code.continue_jumps = []
+
+    // loop {
+    let prev_block = code.current_block
+    code.enter_block(true)
+    let break_block = code.current_block
+    code.enter_block(false)
+    let continue_block = code.current_block
+
+    let start = code.add_loop_start(span, continue_block, break_block)
+    start.current_block = prev_block
+
+    //     if (it < limit) {
+    let load_it = code.add_load_var(span, "", "it", Some(var_it))
+    let load_limit = code.add_load_var(span, "", "limit", Some(var_limit))
+    let condition = code.add_fun_call(span, "", "less_than_signed", [load_it.id, load_limit.id], [])
+
+    code.add_if_start(span, condition.id)
+    code.enter_block(false)
+
+    //       defer { it = it + 1 }
+    let action: () -> Nothing = @{
+       let load_it = code.add_load_var(span, "", "it", Some(var_it))
+       let one = code.add_int_lit(span, 1)
+       let add = code.add_fun_call(span, "", "plus", [load_it.id, one.id], [])
+       code.add_store_var(span, "", "it", add.id, Some(var_it))
+       ret nothing
+    }
+    code.current_block.deferred_actions[] = action
+
+    //       Code in loop...
+    read_statement_block(code)?
+
+    //       goto loop;
+    code.execute_deferred_actions(code.current_block, false)
+    code.jumped_out_of_block = true
+    code.add_loop_jump(span, true, Some(continue_block))
+
+    //     }
+    code.exit_block()
+    code.add_if_end(span)
+
+    // }
+    code.exit_block()
+    code.exit_block()
+
+    code.add_loop_end(span)
+
+    // Link all continue and break jumps inside de loop
+    for jump in code.break_jumps {
+        let kind = code.find(jump)!!.kind as NInstKind::LoopJump
+        kind.loop_block = Some(break_block)
+    }
+
+    for jump in code.continue_jumps {
+        let kind = code.find(jump)!!.kind as NInstKind::LoopJump
+        kind.loop_block = Some(continue_block)
+    }
+
+    code.break_jumps = prev_break_jumps
+    code.continue_jumps = prev_continue_jumps
+
+    code.exit_block()
+
+    ret found(nothing)
+}

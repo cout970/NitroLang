@@ -1,0 +1,14 @@
+
+type_alias NBlockId = Int
+
+struct NBlock {
+    id: NBlockId
+    parent: Optional<NBlock>
+    is_jump_target: Boolean
+    deferred_actions: List<() -> Nothing>
+    variable_stack: List<NVar>
+}
+
+fun NBlock.get_depth(): Int {
+    ret if parent.is_none() { 0 } else { 1 + parent!!.get_depth() }
+}

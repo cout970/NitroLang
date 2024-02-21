@@ -15,19 +15,18 @@ fun Parser.read_if_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(false)
 
     let if_block = read_statement_block(code)?
-    skip_nl()
-
     code.exit_block()
 
-    if lexer.current_token_kind == TokenKind::ELSE {
-        code.enter_block(false)
+    if lexer.next_non_nl_token_kind == TokenKind::ELSE {
+        skip_nl()
+
         code.add_if_else(span)
+        code.enter_block(false)
 
         skip_token_kind(TokenKind::ELSE)?
         skip_nl()
 
         let else_block = read_statement_block(code)?
-        skip_nl()
         code.exit_block()
     }
 

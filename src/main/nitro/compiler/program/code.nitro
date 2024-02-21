@@ -1,29 +1,65 @@
 
 struct NCode {
-    inst: List<NCodeInst>
+    inst: List<NInst>
     vars: List<NVar>
     last_id: NInstId
     last_var_id: NVarId
+    root_block: NBlock
+    current_block: NBlock
+    block_stack: List<NBlock>
+    last_block_id: NBlockId
+    jumped_out_of_block: Boolean
+    break_jumps: List<NInstId>
+    continue_jumps: List<NInstId>
 }
 
 fun NCode::new(): NCode {
+    let root_block = NBlock @[
+        id: 0,
+        parent: None(),
+        is_jump_target: false,
+        deferred_actions: [],
+        variable_stack: [],
+    ]
+
     ret NCode @[
         inst: [],
         vars: [],
         last_id: -1,
         last_var_id: -1,
+        root_block,
+        current_block: root_block,
+        block_stack: [],
+        last_block_id: 0,
+        jumped_out_of_block: false,
+        break_jumps: [],
+        continue_jumps: [],
     ]
 }
 
-fun NCode.enter_block(isJumpTarget: Boolean) {
-
+fun NCode.enter_block(is_jump_target: Boolean) {
+    block_stack[] = current_block
+    last_block_id += 1
+    current_block = NBlock @[
+        id: last_block_id,
+        parent: Some(current_block),
+        is_jump_target,
+        deferred_actions: [],
+        variable_stack: [],
+    ]
 }
 
 fun NCode.exit_block() {
-
+    if !jumped_out_of_block && current_block.deferred_actions.is_not_empty() {
+        for action in current_block.deferred_actions.to_reversed() {
+            action()
+        }
+    }
+    jumped_out_of_block = false
+    current_block = block_stack.remove_last()!!
 }
 
-fun NCode.find(id: NInstId): Optional<NCodeInst> {
+fun NCode.find(id: NInstId): Optional<NInst> {
     for i in this.inst {
         if i.id == id {
             ret Some(i)
@@ -31,6 +67,19 @@ fun NCode.find(id: NInstId): Optional<NCodeInst> {
     }
 
     ret None()
+}
+
+fun NCode.execute_deferred_actions(block: NBlock, is_return: Boolean) {
+    if block.deferred_actions.is_not_empty() {
+        println("Executing deferred actions for block ${block.deferred_actions.len()}")
+//        for action in block.deferred_actions.to_reversed() {
+//            action()
+//        }
+    }
+
+    if block.parent.is_some() && (is_return || !block.is_jump_target) {
+        execute_deferred_actions(block.parent!!, is_return)
+    }
 }
 
 fun NCode.to_string(): String {
@@ -47,6 +96,7 @@ fun NCode.to_string(): String {
         body_str += "#"
         body_str += id
         body_str += " | "
+        body_str += "  " * i.current_block.depth
         body_str += i.to_string()
     }
     body_str += "\n}"

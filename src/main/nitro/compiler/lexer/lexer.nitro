@@ -137,6 +137,20 @@ fun Lexer.get_current_token_kind(): TokenKind {
     ret tokens[tk]!!.kind
 }
 
+fun Lexer.get_next_non_nl_token_kind(): TokenKind {
+    let i = tk
+
+    while i < tokens.len() {
+        let token = tokens[i]!!
+        if token.kind != TokenKind::NL {
+            ret token.kind
+        }
+        i += 1
+    }
+
+    ret TokenKind::EOF
+}
+
 fun Lexer.get_current_token_text(): String {
     ret tokens[tk]!!.extra
 }

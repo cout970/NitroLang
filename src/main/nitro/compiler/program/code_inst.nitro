@@ -1,24 +1,44 @@
 
 type_alias NInstId = Int
 
-struct NCodeInst {
+struct NInst {
     id: NInstId
     span: Span
-    current_block: Int
-    kind: NCodeInstKind
+    current_block: NBlock
+    kind: NInstKind
 }
 
-option NCodeInstKind {
+option NInstKind {
     Let {
         variable: NVar
     }
     IfStart {
         condition: NInstId
     }
-    IfElse
-    IfEnd
+    IfElse {}
+    IfEnd  {}
+    LoopStart {
+        break_block: NBlock
+        continue_block: NBlock
+    }
+    LoopEnd {}
+    LoopJump {
+        backwards: Boolean
+        loop_block: Optional<NBlock>
+    }
+    FunCall {
+        path: String
+        name: String
+        arguments: List<NInstId>
+        explicit_type_arguments: List<NTypeUsage>
+    }
     Literal {
         value: NConstExpr
+    }
+    LoadVar {
+        path: String
+        name: String
+        variable: Optional<NVar>
     }
     StoreVar {
         path: String
@@ -26,16 +46,31 @@ option NCodeInstKind {
         value: NInstId
         variable: Optional<NVar>
     }
-    Noop
+    Comment {
+        text: String
+    }
+    Noop {}
 }
 
-fun NCode.add_noop(span: Span): NCodeInst {
+fun NCode.add_noop(span: Span): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::Noop @[],
+        current_block,
+        kind: NInstKind::Noop @[],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_comment(span: Span, text: String): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::Comment @[text],
     ]
     inst[] = i
     ret i
@@ -52,7 +87,7 @@ fun NCode.add_let(
     let variable = NVar @[
         id: last_var_id,
         span,
-        current_block: -1,
+        current_block,
         name,
         type_usage,
         defined_by: last_id,
@@ -60,11 +95,11 @@ fun NCode.add_let(
     ]
     vars[] = variable
 
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::Let @[variable],
+        current_block,
+        kind: NInstKind::Let @[variable],
     ]
     inst[] = i
     ret variable
@@ -73,13 +108,13 @@ fun NCode.add_let(
 fun NCode.add_if_start(
     span: Span,
     condition: NInstId
-): NCodeInst {
+): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::IfStart @[
+        current_block,
+        kind: NInstKind::IfStart @[
             condition,
         ],
     ]
@@ -89,13 +124,13 @@ fun NCode.add_if_start(
 
 fun NCode.add_if_else(
     span: Span
-): NCodeInst {
+): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::IfElse @[],
+        current_block,
+        kind: NInstKind::IfElse @[],
     ]
     inst[] = i
     ret i
@@ -103,13 +138,13 @@ fun NCode.add_if_else(
 
 fun NCode.add_if_end(
     span: Span
-): NCodeInst {
+): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::IfEnd @[],
+        current_block,
+        kind: NInstKind::IfEnd @[],
     ]
     inst[] = i
     ret i
@@ -118,13 +153,38 @@ fun NCode.add_if_end(
 fun NCode.add_lit(
     span: Span
     value: NConstExpr
-): NCodeInst {
+): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::Literal @[value],
+        current_block,
+        kind: NInstKind::Literal @[value],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_int_lit(span: Span, value: Int): NInst {
+    ret this.add_lit(span, NConstExpr::NConstInt @[value])
+}
+
+fun NCode.add_load_var(
+    span: Span,
+    path: String,
+    name: String,
+    variable: Optional<NVar>
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::LoadVar @[
+            path,
+            name,
+            variable,
+        ],
     ]
     inst[] = i
     ret i
@@ -136,13 +196,13 @@ fun NCode.add_store_var(
     name: String,
     value: NInstId,
     variable: Optional<NVar>
-): NCodeInst {
+): NInst {
     last_id += 1
-    let i = NCodeInst @[
+    let i = NInst @[
         id: last_id,
         span,
-        current_block: -1,
-        kind: NCodeInstKind::StoreVar @[
+        current_block,
+        kind: NInstKind::StoreVar @[
             path,
             name,
             value,
@@ -153,38 +213,151 @@ fun NCode.add_store_var(
     ret i
 }
 
-fun NCodeInst.to_string(): String {
+fun NCode.add_loop_start(
+    span: Span,
+    break_block: NBlock,
+    continue_block: NBlock
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::LoopStart @[break_block, continue_block]
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_loop_end(span: Span): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::LoopEnd @[]
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_loop_jump(
+    span: Span,
+    backwards: Boolean,
+    loop_block: Optional<NBlock>
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::LoopJump @[backwards, loop_block]
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_fun_call(
+    span: Span,
+    path: String,
+    name: String,
+    arguments: List<NInstId>,
+    explicit_type_arguments: List<NTypeUsage>
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::FunCall @[
+            path,
+            name,
+            arguments,
+            explicit_type_arguments,
+        ]
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NInst.to_string(): String {
     ret when {
-        this.kind is NCodeInstKind::Let -> {
-            let kind = this.kind as NCodeInstKind::Let
+        this.kind is NInstKind::Let -> {
+            let kind = this.kind as NInstKind::Let
 
             "let ${kind.variable.name}"
         }
-        this.kind is NCodeInstKind::IfStart -> {
-            let kind = this.kind as NCodeInstKind::IfStart
+        this.kind is NInstKind::IfStart -> {
+            let kind = this.kind as NInstKind::IfStart
 
             "if-start #${kind.condition}"
         }
-        this.kind is NCodeInstKind::IfElse -> {
+        this.kind is NInstKind::IfElse -> {
             "if-else"
         }
-        this.kind is NCodeInstKind::IfEnd -> {
+        this.kind is NInstKind::IfEnd -> {
             "if-end"
         }
-        this.kind is NCodeInstKind::Literal -> {
-            let kind = this.kind as NCodeInstKind::Literal
+        this.kind is NInstKind::LoopStart -> {
+            let kind = this.kind as NInstKind::LoopStart
+            "loop-start break_block: ${kind.break_block.id}, continue_block: ${kind.continue_block.id}"
+        }
+        this.kind is NInstKind::LoopEnd -> {
+            "loop-end"
+        }
+        this.kind is NInstKind::LoopJump -> {
+            let kind = this.kind as NInstKind::LoopJump
+            let block = if kind.loop_block.is_some() { kind.loop_block!!.id.to_string() } else { "None" }
+
+            "loop-jump backwards: ${kind.backwards}, loop_block: $block"
+        }
+        this.kind is NInstKind::FunCall -> {
+            let kind = this.kind as NInstKind::FunCall
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+            let args = ""
+            let type_args = ""
+
+            if kind.arguments.is_not_empty() {
+                for arg in kind.arguments {
+                    args += "$arg, "
+                }
+                args = args.slice(0, -2)
+            }
+
+            if kind.explicit_type_arguments.is_not_empty() {
+                type_args += "<"
+                for arg in kind.explicit_type_arguments {
+                    type_args += "$arg, "
+                }
+                type_args = type_args.slice(0, -2)
+                type_args += ">"
+            }
+
+            "call $full_name$type_args($args)"
+        }
+        this.kind is NInstKind::Literal -> {
+            let kind = this.kind as NInstKind::Literal
 
             "literal ${kind.value}"
         }
-        this.kind is NCodeInstKind::StoreVar -> {
-            let kind = this.kind as NCodeInstKind::StoreVar
+        this.kind is NInstKind::LoadVar -> {
+            let kind = this.kind as NInstKind::LoadVar
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+
+            "load-var $full_name"
+        }
+        this.kind is NInstKind::StoreVar -> {
+            let kind = this.kind as NInstKind::StoreVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
 
             "store-var $full_name = #${kind.value}"
         }
-        this.kind is NCodeInstKind::Noop -> {
+        this.kind is NInstKind::Noop -> {
             "noop"
         }
-        else -> crash("Unknown NCodeInstKind variant")
+        this.kind is NInstKind::Comment -> {
+            "// ${(this.kind as NInstKind::Comment).text}"
+        }
+        else -> crash("Unknown NInstKind variant")
     }
 }

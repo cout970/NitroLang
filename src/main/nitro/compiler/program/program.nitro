@@ -2,7 +2,6 @@
 struct Program {
     reporter: Reporter
 //    type_checker: TypeChecker
-
     structs: List<NStruct>
     options: List<NOption>
     includes: List<NInclude>
