@@ -106,6 +106,9 @@ fun String.substring(start: Int, end: Int): String {}
 
 // Same as substring but with offset and length
 fun String.slice(offset: Int, len: Int): String {
+    if len < 0 {
+        len = this.byte_len() - len
+    }
     ret this.substring(offset, offset + len)
 }
 

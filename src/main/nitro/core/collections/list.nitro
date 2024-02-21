@@ -182,12 +182,14 @@ fun List<#Item>.remove_at(index: Int) {
 
 // Removes the last item in the array
 // If the array is empty, the program crashes
-fun List<#Item>.remove_last() {
-    if this.count == 0 {
-        crash("Cannot remove last item from empty list")
+fun List<#Item>.remove_last(): Optional<#Item> {
+    if count == 0 {
+        ret None()
     }
 
-    this.count = this.count - 1
+    let item = this[count - 1]!!
+    count -= 1
+    ret Some(item)
 }
 
 // Removes the given item from the list, if the item is not in the list, nothing happens
