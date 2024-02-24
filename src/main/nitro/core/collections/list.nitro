@@ -167,21 +167,23 @@ fun List<#Item>.plus(other: List<#Item>): List<#Item> {
 }
 
 // Removes the item at the given index, if the index is out of bounds, the program crashes
-fun List<#Item>.remove_at(index: Int) {
+fun List<#Item>.remove_at(index: Int): Optional<#Item> {
     if index < 0 || index >= this.count {
-        crash("Invalid list index: $index, len: ${this.count}")
+        ret None()
     }
 
-    // Move every item one place to the left
-        repeat this.count - index {
-            this.swap(index + it, index + it + 1)
-        }
+    let value = this[index]
 
-    this.count = this.count - 1
+    // Move every item one place to the left
+    repeat this.count - index - 1 {
+        this.swap(index + it, index + it + 1)
+    }
+
+    this.count -= 1
+    ret value
 }
 
 // Removes the last item in the array
-// If the array is empty, the program crashes
 fun List<#Item>.remove_last(): Optional<#Item> {
     if count == 0 {
         ret None()
@@ -192,12 +194,17 @@ fun List<#Item>.remove_last(): Optional<#Item> {
     ret Some(item)
 }
 
+// Removes the last item in the array
+fun List<#Item>.remove_first(): Optional<#Item> {
+    ret this.remove_at(0)
+}
+
 // Removes the given item from the list, if the item is not in the list, nothing happens
 fun <#Item: GetOrdering> List<#Item>.remove_value(item: #Item) {
     let index = this.index_of(item)
 
     if index.is_some() {
-        this.remove_at(index!!)
+        this.remove_at(index!!)!!
     }
 }
 
@@ -210,7 +217,7 @@ fun List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
 
     while i < this.count {
         if predicate(this[i]!!) {
-            this.remove_at(i)
+            this.remove_at(i)!!
         } else {
             i += 1
         }

@@ -75,6 +75,27 @@ fun String.is_empty(): Boolean = this.byte_len == 0
 // Checks if the string has at least one character
 fun String.is_not_empty(): Boolean = this.byte_len != 0
 
+// Checks if the string has at least one printable character
+fun String.is_blank(): Boolean {
+    let total_len = this.byte_len
+    let cursor = 0
+
+    while cursor < total_len {
+        let byte = this.get_byte(cursor).to_int()
+
+        // Ascii space is 32, anything below that is a control character
+        // UTF-8 codepoints will start with a byte bigger than 127,
+        // we treat them as printable, even if there are a lot of exceptions
+        if byte > 32 {
+            ret false
+        }
+
+        cursor += 1
+    }
+
+    ret true
+}
+
 // Computes the hash value of a string, to be used in hash tables
 fun String.get_hash(): Int {
     let hash: Int = 0
@@ -107,7 +128,8 @@ fun String.substring(start: Int, end: Int): String {}
 // Same as substring but with offset and length
 fun String.slice(offset: Int, len: Int): String {
     if len < 0 {
-        len = this.byte_len() - len
+        // `len` is negative, so we add it instead of subtracting it
+        len = this.byte_len() + len
     }
     ret this.substring(offset, offset + len)
 }
