@@ -5,7 +5,7 @@ struct NBlock {
     id: NBlockId
     parent: Optional<NBlock>
     is_jump_target: Boolean
-    deferred_actions: List<() -> Nothing>
+    deferred_code: List<NCode>
     variable_stack: List<NVar>
 }
 

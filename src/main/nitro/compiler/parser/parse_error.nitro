@@ -11,6 +11,9 @@ enum ParseError {
     ExpectedFloat,
     ExpectedComma,
     ExpectedDefinition,
+    DeferNotAllowed,
+    WhenMultipleElse,
+    WhenUnorderedElse,
     ReachedEnd,
     Generic,
 }
@@ -31,9 +34,6 @@ fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
 }
 
 fun parse_error_expected(kind: ParseError, token: Token, expected_token: TokenKind): Parsed<#Ast> {
-    // Workaround for is_some() bug in Parsed::Err().expected
-    println("Expected $expected_token, found $token")
-    Trace::print_stack_trace()
     ret Parsed::Error @[kind, token, expected: Some(expected_token)]
 }
 

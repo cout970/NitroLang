@@ -27,15 +27,52 @@ fun add(a: Int, b: Int): Int = 0
 fun <#A, #B> add2(a: #A, b: #B): #A = 0
 
 fun a() {
+    defer 1
+    defer {
+        2
+    }
     let i: Int = 0
 
     if 1 { 1 } else { 0 }
 
     repeat 10 {
-        let inner = 42
+        2
+    }
+
+    while 1 {
+        2
+    }
+
+    loop {
+        3
+    }
+
+    for i in 4 {
+        5
+    }
+
+    ```js
+    const sum = (a, b) => a + b;
+    console.log(sum(1, 2));
+    ```
+
+    let j = 12
+
+    when {
+        1 -> 2
+        3 -> 4
+        else -> 5
+    }
+
+    when 1 {
+        1 -> 1
+        else -> 0
     }
 }
 
+test! "Do something" {
+    1
+}
 "#
 
 let tokenizer_test2: String = r#"

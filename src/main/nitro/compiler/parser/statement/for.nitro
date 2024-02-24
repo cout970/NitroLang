@@ -1,0 +1,92 @@
+
+// E.g. for item in list {}
+// forStatement
+//     : FOR NL* anyName NL* IN NL* expression NL* statementBlock ;
+
+
+fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
+    // for statements get desugared into a simpler loop
+    // for <iter_value> in <iterable> { <code> }
+    // {
+    //   let iter = <iterable>.to_iterator()
+    //   loop: {
+    //     let next_item = iter.next()
+    //     if (next_item.is_some()) {
+    //       let <iter_value> = next_item.get_or_crash()
+    //       <code>
+    //       goto loop;
+    //     }
+    //   }
+    // }
+
+    skip_token_kind(TokenKind::FOR)?
+    let span = lexer.current_token_span
+    skip_nl()
+
+    let iter_value: String = read_name()?
+    skip_nl()
+
+    skip_token_kind(TokenKind::IN)?
+    skip_nl()
+
+    code.add_comment(span, "for statement")
+
+    code.enter_block(true)
+    let iterable = read_expression(code)?
+    skip_nl()
+
+    // let iter = <iterable>.to_iterator()
+    let var_iter = code.add_let(span, "iter", None())
+    let iterator = code.add_fun_call(span, "", "to_iterator", [iterable], [])
+    code.add_store_var(span, "", "iter", iterator.id, Some(var_iter))
+
+    // loop {
+    let jumps = code.save_jump_points()
+    let prev_block = code.current_block
+    code.enter_block(true)
+    let break_block = code.current_block
+    code.enter_block(false)
+    let continue_block = code.current_block
+
+    let start = code.add_loop_start(span, continue_block, break_block)
+    start.current_block = prev_block
+
+    // let next_item = iter.next()
+    let var_next_item = code.add_let(span, "next_item", None())
+    let next_item = code.add_fun_call(span, "", "next", [iterator.id], [])
+    code.add_store_var(span, "", "next_item", next_item.id, Some(var_next_item))
+
+    //     if (next_item.is_some()) {
+    let condition = code.add_fun_call(span, "", "is_some", [next_item.id], [])
+    code.add_if_start(span, condition.id)
+    code.enter_block(false)
+
+    //       let <iter_value> = next_item.get_or_crash()
+    let var_value = code.add_let(span, iter_value, None())
+    let value = code.add_fun_call(span, "", "get_or_crash", [next_item.id], [])
+    code.add_store_var(span, "", iter_value, value.id, Some(var_value))
+
+    //       Code in loop...
+    read_statement_block(code)?
+
+    //       goto loop;
+    code.execute_deferred_actions(code.current_block, false)
+    code.jumped_out_of_block = true
+    code.add_block_jump(span, true, Some(continue_block))
+
+    //     }
+    code.exit_block()
+    code.add_if_end(span)
+
+    // }
+    code.exit_block()
+    code.exit_block()
+
+    code.add_loop_end(span)
+
+    code.link_jump_points(break_block, continue_block)
+    code.restore_jump_points(jumps)
+    code.exit_block()
+
+    ret found(nothing)
+}

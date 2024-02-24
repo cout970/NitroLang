@@ -41,6 +41,7 @@ fun Parser.read_definition(): Parsed<Nothing> {
         TokenKind::MODULE -> read_module_definition(annotations)?
         TokenKind::LET -> read_const_definition(annotations)?
         TokenKind::FUN -> read_function_definition(annotations)?
+        TokenKind::TEST -> read_test_definition(annotations)?
         else -> {
             ret parse_error(ParseError::ExpectedDefinition, lexer.current_token)
         }

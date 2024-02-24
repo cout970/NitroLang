@@ -55,16 +55,31 @@ struct NFunctionParameter {
 fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     let def = read_function_header(annotations)?
 
-    // Body
     skip_nl()
+    read_code_block(def.body)?
+
+    ret found(nothing)
+}
+
+fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
     when lexer.current_token_kind {
         TokenKind::LBRACE -> {
-            read_statement_block(def.body)?
+            read_statement_block(code)?
         }
         TokenKind::ASSIGN -> {
             skip_token_kind(TokenKind::ASSIGN)?
-            read_expression(def.body)?
+            read_expression(code)?
         }
+    }
+
+    // Sanity checks
+    if code.block_stack.is_not_empty() {
+        crash("Block stack is not empty")
+    }
+
+    // Execute deferred actions
+    if !code.jumped_out_of_block {
+        code.execute_deferred_actions(code.current_block, true)
     }
 
     ret found(nothing)
@@ -112,7 +127,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         path,
         name,
         parameters,
-        return_type: NTypeUsage::simple("Unit"),
+        return_type: NTypeUsage::simple("Nothing"),
         body: NCode::new(),
     ]
     program.functions[] = def

@@ -786,7 +786,7 @@ fun Lexer.read_foreign_block() {
     // skip ```
     cur += 3
 
-    comments[] = Token::new_with_extra(TokenKind::FOREIGN_BLOCK, start, extra)
+    add_token_with_extra(TokenKind::FOREIGN_BLOCK, start, extra)
 }
 
 // Read a string

@@ -1,0 +1,60 @@
+
+// ```js
+// const sum = (a, b) => a + b;
+// console.log(sum(1, 2));
+// ```
+// foreignBlockStatement
+//     : FOREIGN_BLOCK ;
+
+fun Parser.read_foreign_block_statement(code: NCode): Parsed<Nothing> {
+    let span = lexer.current_token_span
+    let text = lexer.current_token_text
+    skip_token_kind(TokenKind::FOREIGN_BLOCK)?
+
+    let lines: List<String> = text.split("\n")
+    let name = ""
+
+    if lines.len() > 0 {
+        if lines.first()!!.is_blank() {
+            // No language specified, remove the empty line
+            lines.remove_first()!!
+        } else {
+            // Get the language name
+            name = lines.remove_first()!!.trim()
+        }
+    }
+
+    // Remove last empty line
+    if lines.len() > 0 && lines.last()!!.is_blank() {
+        lines.remove_last()!!
+    }
+
+    // Detect common indentation
+    let common_indent = -1
+
+    for line in lines {
+        let indent = line.len() - line.trim_start().len()
+
+        if indent < common_indent || common_indent == -1 {
+            common_indent = indent
+        }
+    }
+
+    // Remove common indentation
+    if common_indent > 0 {
+        let aux: List<String> = []
+
+        for line in lines {
+            aux[] = line.slice(common_indent, line.len())
+        }
+
+        lines = aux
+    }
+
+    // Join and add as a comment
+    let contents = lines.join("\n")
+
+    code.add_comment(span, "```${name}\n${contents}\n```")
+
+    ret found(nothing)
+}

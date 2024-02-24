@@ -1,0 +1,47 @@
+
+// E.g. test! "Check that everything works" { }
+// testDefinition
+//     : TEST NL* PLAIN_STRING NL* statementBlock ;
+
+fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::TEST)?
+    skip_nl()
+
+    let span = lexer.current_token_span
+    let test_name = lexer.current_token_text
+    skip_token_kind(TokenKind::PLAIN_STRING)?
+
+    skip_nl()
+
+    annotations[] = NAnnotation @[
+        span,
+        name: ANNOTATION_TEST,
+        args: [
+            NAnnotationArg @[
+                span,
+                key: "name",
+                value: NConstExpr::NConstString @[value: test_name]
+            ]
+        ]
+    ]
+
+    program.last_test_id += 1
+    let name = "test_${program.last_test_id}"
+
+    let def = NFunction @[
+        span,
+        annotations,
+        type_params: [],
+        has_receiver: false,
+        path: "",
+        name,
+        parameters: [],
+        return_type: NTypeUsage::simple("Nothing"),
+        body: NCode::new(),
+    ]
+    program.functions[] = def
+
+    read_code_block(def.body)?
+
+    ret found(nothing)
+}

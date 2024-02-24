@@ -29,7 +29,7 @@ fun Parser.read_type_params_def(): Parsed<List<NTypeParameterDefinition>> {
 
     read_until_delimited(TokenKind::GTH) @{
         type_params[] = read_type_param_def()?
-        found(nothing)
+        ret found(nothing)
     }?
 
     return found(type_params)

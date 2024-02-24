@@ -46,7 +46,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
 
     read_until_delimited(TokenKind::RBRACE) @{
         def.items[] = read_option_item(def)?
-        found(nothing)
+        ret found(nothing)
     }?
 
     ret found(nothing)
@@ -70,7 +70,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         read_until(TokenKind::RBRACE) @{
             def.fields[] = read_struct_field()?
             skip_nl()
-            found(nothing)
+            ret found(nothing)
         }?
     }
 

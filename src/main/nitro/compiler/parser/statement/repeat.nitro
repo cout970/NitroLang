@@ -35,13 +35,8 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     let zero = code.add_int_lit(span, 0)
     code.add_store_var(span, "", "it", zero.id, Some(var_it))
 
-    let prev_break_jumps = code.break_jumps
-    let prev_continue_jumps = code.continue_jumps
-
-    code.break_jumps = []
-    code.continue_jumps = []
-
     // loop {
+    let jumps = code.save_jump_points()
     let prev_block = code.current_block
     code.enter_block(true)
     let break_block = code.current_block
@@ -60,14 +55,16 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(false)
 
     //       defer { it = it + 1 }
-    let action: () -> Nothing = @{
-       let load_it = code.add_load_var(span, "", "it", Some(var_it))
-       let one = code.add_int_lit(span, 1)
-       let add = code.add_fun_call(span, "", "plus", [load_it.id, one.id], [])
-       code.add_store_var(span, "", "it", add.id, Some(var_it))
-       ret nothing
-    }
-    code.current_block.deferred_actions[] = action
+    let subcode = code.new_child(span)
+    subcode.add_comment(span, "defer-start")
+
+    let load_it = subcode.add_load_var(span, "", "it", Some(var_it))
+    let one = subcode.add_int_lit(span, 1)
+    let add = subcode.add_fun_call(span, "", "plus", [load_it.id, one.id], [])
+    subcode.add_store_var(span, "", "it", add.id, Some(var_it))
+
+    subcode.add_comment(span, "defer-end")
+    code.current_block.deferred_code[] = subcode
 
     //       Code in loop...
     read_statement_block(code)?
@@ -75,7 +72,7 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     //       goto loop;
     code.execute_deferred_actions(code.current_block, false)
     code.jumped_out_of_block = true
-    code.add_loop_jump(span, true, Some(continue_block))
+    code.add_block_jump(span, true, Some(continue_block))
 
     //     }
     code.exit_block()
@@ -87,20 +84,8 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
 
     code.add_loop_end(span)
 
-    // Link all continue and break jumps inside de loop
-    for jump in code.break_jumps {
-        let kind = code.find(jump)!!.kind as NInstKind::LoopJump
-        kind.loop_block = Some(break_block)
-    }
-
-    for jump in code.continue_jumps {
-        let kind = code.find(jump)!!.kind as NInstKind::LoopJump
-        kind.loop_block = Some(continue_block)
-    }
-
-    code.break_jumps = prev_break_jumps
-    code.continue_jumps = prev_continue_jumps
-
+    code.link_jump_points(break_block, continue_block)
+    code.restore_jump_points(jumps)
     code.exit_block()
 
     ret found(nothing)

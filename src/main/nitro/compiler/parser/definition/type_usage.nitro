@@ -126,7 +126,7 @@ fun Parser.read_type_param_args(): Parsed<List<NTypeUsage>> {
     skip_nl()
     read_until_delimited(TokenKind::GTH) @{
         list[] = read_type_usage()?
-        found(nothing)
+        ret found(nothing)
     }
 
     ret found(list)
@@ -150,7 +150,7 @@ fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsa
     read_until_delimited(TokenKind::RPAREN) @{
         lexer.next_token()
         type_params[] = read_function_type_usage_param()?
-        found(nothing)
+        ret found(nothing)
     }
 
     skip_token_kind(TokenKind::RPAREN)?

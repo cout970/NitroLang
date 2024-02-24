@@ -42,7 +42,7 @@ fun Parser.parse_annotation(): Parsed<NAnnotation> {
 
     let res = read_until_delimited(TokenKind::RBRACKET) @{
         ann.args[] = read_annotation_arg()?
-        found(nothing)
+        ret found(nothing)
     }
 
 //    if res.is_error() {

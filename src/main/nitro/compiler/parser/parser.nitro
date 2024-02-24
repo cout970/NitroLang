@@ -2,14 +2,14 @@
 struct Parser {
     lexer: Lexer
     program: Program
-    checkpoints: List<SavedState>
+    allow_defer: Boolean
 }
 
 fun Parser::new(lexer: Lexer, program: Program): Parser {
     ret Parser @[
         lexer,
         program,
-        checkpoints: [],
+        allow_defer: true
     ]
 }
 

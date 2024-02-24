@@ -27,8 +27,6 @@ fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
-    println("read_statement_block 1: ${lexer.current_token_kind}")
-
     if lexer.current_token_kind == TokenKind::RBRACE {
         skip_token_kind(TokenKind::RBRACE)?
         ret found(nothing)
@@ -53,18 +51,17 @@ fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
 }
 
 fun Parser.read_statement(code: NCode): Parsed<Nothing> {
-    println("read_statement: ${lexer.current_token_kind}")
     when lexer.current_token_kind {
-        TokenKind::LET -> read_let_statement(code)
+        TokenKind::DEFER -> read_defer_statement(code)
+        TokenKind::FOR -> read_for_statement(code)
+        TokenKind::FOREIGN_BLOCK -> read_foreign_block_statement(code)
         TokenKind::IF -> read_if_statement(code)
-//        TokenKind::FOR -> read_for_statement(code)
+        TokenKind::LET -> read_let_statement(code)
         TokenKind::REPEAT -> read_repeat_statement(code)
-//        TokenKind::WHILE -> read_while_statement(code)
-//        TokenKind::LOOP -> read_loop_statement(code)
-//        TokenKind::WHEN -> read_when_expr(code)
-//        TokenKind::DEFER -> read_defer_statement(code)
-//        TokenKind::FOREIGN -> read_foreign_block_statement(code)
-//        TokenKind::TEST -> read_test_definition(code)
+        TokenKind::WHILE -> read_while_statement(code)
+        TokenKind::LOOP -> read_loop_statement(code)
+        TokenKind::WHEN -> read_when_statement(code)
+        TokenKind::TEST -> read_test_definition([])
         else -> read_expression(code)
     }
     ret found(nothing)

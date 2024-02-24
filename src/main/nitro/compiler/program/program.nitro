@@ -16,6 +16,7 @@ struct Program {
     // TODO use this to check for duplicate names
     defined_names: Map<String, Span>
     all_function_signatures: List<NFunctionSignature>
+    last_test_id: Int
 }
 
 struct NTag {}
@@ -23,6 +24,8 @@ struct NPropertyGetter {}
 struct NPropertySetter {}
 struct NLambdaFunction {}
 struct NFunctionSignature {}
+
+let ANNOTATION_TEST: String = "Test"
 
 fun Program::new(): Program {
     ret Program @[
@@ -39,6 +42,7 @@ fun Program::new(): Program {
         property_setters: [],
         lambda_functions: [],
         defined_names: #[],
-        all_function_signatures: []
+        all_function_signatures: [],
+        last_test_id: 0,
     ]
 }

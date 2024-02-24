@@ -44,7 +44,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_nl()
     read_until_delimited(TokenKind::RBRACE) @{
         def.fields[] = read_struct_field()?
-        found(nothing)
+        ret found(nothing)
     }?
 
     ret found(nothing)

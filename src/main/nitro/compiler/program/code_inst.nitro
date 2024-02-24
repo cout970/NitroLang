@@ -22,10 +22,12 @@ option NInstKind {
         continue_block: NBlock
     }
     LoopEnd {}
-    LoopJump {
+    BlockJump {
         backwards: Boolean
-        loop_block: Optional<NBlock>
+        block: Optional<NBlock>
     }
+    WhenStart {}
+    WhenEnd {}
     FunCall {
         path: String
         name: String
@@ -241,17 +243,17 @@ fun NCode.add_loop_end(span: Span): NInst {
     ret i
 }
 
-fun NCode.add_loop_jump(
+fun NCode.add_block_jump(
     span: Span,
     backwards: Boolean,
-    loop_block: Optional<NBlock>
+    block: Optional<NBlock>
 ): NInst {
     last_id += 1
     let i = NInst @[
         id: last_id,
         span,
         current_block,
-        kind: NInstKind::LoopJump @[backwards, loop_block]
+        kind: NInstKind::BlockJump @[backwards, block]
     ]
     inst[] = i
     ret i
@@ -280,48 +282,158 @@ fun NCode.add_fun_call(
     ret i
 }
 
-fun NInst.to_string(): String {
-    ret when {
-        this.kind is NInstKind::Let -> {
-            let kind = this.kind as NInstKind::Let
+fun NCode.add_when_start(span: Span): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::WhenStart @[]
+    ]
+    inst[] = i
+    ret i
+}
 
-            "let ${kind.variable.name}"
+fun NCode.add_when_end(span: Span): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::WhenEnd @[]
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
+    let new_inst = when {
+        i.kind is NInstKind::Let -> {
+            let kind = i.kind as NInstKind::Let
+
+            let let_var = add_let(i.span, kind.variable.name, kind.variable.type_usage)
+            this.find(let_var.defined_by)!!
         }
-        this.kind is NInstKind::IfStart -> {
-            let kind = this.kind as NInstKind::IfStart
+        i.kind is NInstKind::IfStart -> {
+            let kind = i.kind as NInstKind::IfStart
+
+            add_if_start(i.span, mapping[kind.condition]!!)
+        }
+        i.kind is NInstKind::IfElse -> {
+            add_if_else(i.span)
+        }
+        i.kind is NInstKind::IfEnd -> {
+            add_if_end(i.span)
+        }
+        i.kind is NInstKind::LoopStart -> {
+            let kind = i.kind as NInstKind::LoopStart
+
+            add_loop_start(i.span, kind.break_block, kind.continue_block)
+        }
+        i.kind is NInstKind::LoopEnd -> {
+
+            add_loop_end(i.span)
+        }
+        i.kind is NInstKind::BlockJump -> {
+            let kind = i.kind as NInstKind::BlockJump
+
+            add_block_jump(i.span, kind.backwards, kind.block)
+        }
+        i.kind is NInstKind::FunCall -> {
+            let kind = i.kind as NInstKind::FunCall
+            let args = []
+
+            for arg in kind.arguments{
+                args[] = mapping[arg]!!
+            }
+
+            add_fun_call(i.span, kind.path, kind.name, args, kind.explicit_type_arguments)
+        }
+        i.kind is NInstKind::WhenStart -> {
+            add_when_start(i.span)
+        }
+        i.kind is NInstKind::WhenEnd -> {
+            add_when_end(i.span)
+        }
+        i.kind is NInstKind::Literal -> {
+            let kind = i.kind as NInstKind::Literal
+
+            add_lit(i.span, kind.value)
+        }
+        i.kind is NInstKind::LoadVar -> {
+            let kind = i.kind as NInstKind::LoadVar
+
+            add_load_var(i.span, kind.path, kind.name, kind.variable)
+        }
+        i.kind is NInstKind::StoreVar -> {
+            let kind = i.kind as NInstKind::StoreVar
+
+            add_store_var(i.span, kind.path, kind.name, mapping[kind.value]!!, kind.variable)
+        }
+        i.kind is NInstKind::Noop -> {
+            add_noop(i.span)
+        }
+        i.kind is NInstKind::Comment -> {
+            let kind = i.kind as NInstKind::Comment
+
+            add_comment(i.span, kind.text)
+        }
+        else -> crash("Unknown NInstKind variant")
+    }
+
+    mapping[i.id] = new_inst.id
+    ret new_inst
+}
+
+fun NInst.to_string(): String {
+    let t = this.kind
+    ret when {
+        t is NInstKind::Let -> {
+            let kind = t as NInstKind::Let
+
+            ret if kind.variable.type_usage.is_some() {
+                "let ${kind.variable.name}: ${kind.variable.type_usage!!.to_string()}"
+            } else {
+                "let ${kind.variable.name}: <unresolved>"
+            }
+        }
+        t is NInstKind::IfStart -> {
+            let kind = t as NInstKind::IfStart
 
             "if-start #${kind.condition}"
         }
-        this.kind is NInstKind::IfElse -> {
+        t is NInstKind::IfElse -> {
             "if-else"
         }
-        this.kind is NInstKind::IfEnd -> {
+        t is NInstKind::IfEnd -> {
             "if-end"
         }
-        this.kind is NInstKind::LoopStart -> {
-            let kind = this.kind as NInstKind::LoopStart
+        t is NInstKind::LoopStart -> {
+            let kind = t as NInstKind::LoopStart
             "loop-start break_block: ${kind.break_block.id}, continue_block: ${kind.continue_block.id}"
         }
-        this.kind is NInstKind::LoopEnd -> {
+        t is NInstKind::LoopEnd -> {
             "loop-end"
         }
-        this.kind is NInstKind::LoopJump -> {
-            let kind = this.kind as NInstKind::LoopJump
-            let block = if kind.loop_block.is_some() { kind.loop_block!!.id.to_string() } else { "None" }
+        t is NInstKind::BlockJump -> {
+            let kind = t as NInstKind::BlockJump
+            let block = if kind.block.is_some() { kind.block!!.id.to_string() } else { "None" }
 
-            "loop-jump backwards: ${kind.backwards}, loop_block: $block"
+            "block-jump backwards: ${kind.backwards}, block: $block"
         }
-        this.kind is NInstKind::FunCall -> {
-            let kind = this.kind as NInstKind::FunCall
+        t is NInstKind::FunCall -> {
+            let kind = t as NInstKind::FunCall
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
-            let args = ""
+            let args = "()"
             let type_args = ""
 
             if kind.arguments.is_not_empty() {
+                args = "("
                 for arg in kind.arguments {
-                    args += "$arg, "
+                    args += "#$arg, "
                 }
                 args = args.slice(0, -2)
+                args += ")"
             }
 
             if kind.explicit_type_arguments.is_not_empty() {
@@ -333,30 +445,39 @@ fun NInst.to_string(): String {
                 type_args += ">"
             }
 
-            "call $full_name$type_args($args)"
+            "call $full_name$type_args$args"
         }
-        this.kind is NInstKind::Literal -> {
-            let kind = this.kind as NInstKind::Literal
+        t is NInstKind::WhenStart -> {
+            "when-start"
+        }
+        t is NInstKind::WhenEnd -> {
+            "when-end"
+        }
+        t is NInstKind::Literal -> {
+            let kind = t as NInstKind::Literal
 
             "literal ${kind.value}"
         }
-        this.kind is NInstKind::LoadVar -> {
-            let kind = this.kind as NInstKind::LoadVar
+        t is NInstKind::LoadVar -> {
+            let kind = t as NInstKind::LoadVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
 
             "load-var $full_name"
         }
-        this.kind is NInstKind::StoreVar -> {
-            let kind = this.kind as NInstKind::StoreVar
+        t is NInstKind::StoreVar -> {
+            let kind = t as NInstKind::StoreVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
 
             "store-var $full_name = #${kind.value}"
         }
-        this.kind is NInstKind::Noop -> {
+        t is NInstKind::Noop -> {
             "noop"
         }
-        this.kind is NInstKind::Comment -> {
-            "// ${(this.kind as NInstKind::Comment).text}"
+        t is NInstKind::Comment -> {
+            let kind = t as NInstKind::Comment
+            let line = kind.text.replace("\n", "\\n").trim()
+
+            "// $line"
         }
         else -> crash("Unknown NInstKind variant")
     }

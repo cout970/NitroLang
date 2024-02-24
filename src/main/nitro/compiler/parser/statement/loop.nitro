@@ -1,0 +1,42 @@
+
+// E.g. loop {}
+// loopStatement
+//     : LOOP NL* statementBlock ;
+
+fun Parser.read_loop_statement(code: NCode): Parsed<Nothing> {
+    skip_token_kind(TokenKind::LOOP)?
+    let span = lexer.current_token_span
+
+    code.add_comment(span, "loop statement")
+
+    // loop {
+    let jumps = code.save_jump_points()
+    let prev_block = code.current_block
+    code.enter_block(true)
+    let break_block = code.current_block
+    code.enter_block(false)
+    let continue_block = code.current_block
+
+    let start = code.add_loop_start(span, continue_block, break_block)
+    start.current_block = prev_block
+
+    //       Code in loop...
+    read_statement_block(code)?
+
+    //       goto loop;
+    code.execute_deferred_actions(code.current_block, false)
+    code.jumped_out_of_block = true
+    code.add_block_jump(span, true, Some(continue_block))
+
+    // }
+    code.exit_block()
+    code.exit_block()
+
+    code.add_loop_end(span)
+
+    code.link_jump_points(break_block, continue_block)
+    code.restore_jump_points(jumps)
+
+    ret found(nothing)
+}
+

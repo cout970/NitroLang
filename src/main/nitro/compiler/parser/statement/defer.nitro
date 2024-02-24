@@ -1,0 +1,36 @@
+// defer { println("End of code") }
+// deferStatement
+//     : DEFER expression
+//     | DEFER statementBlock
+//     ;
+
+fun Parser.read_defer_statement(code: NCode): Parsed<Nothing> {
+    // TODO: handle lastExpression
+    skip_token_kind(TokenKind::DEFER)?
+    let span = lexer.current_token_span
+
+    if !allow_defer {
+        ret parse_error(ParseError::DeferNotAllowed, lexer.current_token)
+    }
+
+    let subcode: NCode = code.new_child(span)
+    subcode.add_comment(span, "defer-start")
+
+    allow_defer = false
+    subcode.enter_block(true)
+
+    if lexer.current_token.kind == TokenKind::LBRACE {
+        read_statement_block(subcode)?
+
+    } else {
+        read_expression(subcode)?
+    }
+
+    subcode.exit_block()
+    allow_defer = true
+    subcode.add_comment(span, "defer-end")
+
+    code.current_block.deferred_code[] = subcode
+
+    ret found(nothing)
+}
