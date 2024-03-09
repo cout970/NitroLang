@@ -73,6 +73,17 @@ fun a() {
 test! "Do something" {
     1
 }
+
+enum Direction {
+   Up      @[name: "up"]
+   Down    @[name: "down"]
+   Left    @[name: "left"]
+   Right   @[name: "right"]
+   Front   @[name: "front"]
+   Back    @[name: "back"]
+
+   let name: String
+}
 "#
 
 let tokenizer_test2: String = r#"

@@ -40,5 +40,5 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
 fun NConst.to_string(): String {
     let full_name = if path.is_empty() { name } else { "$path::$name" }
 
-    return "const $full_name: $type_usage = {} // $span"
+    return "const $full_name: $type_usage = $body // $span"
 }

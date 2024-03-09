@@ -1,4 +1,7 @@
 
+let ANNOTATION_TEST: String = "Test"
+let VARIANT_FIELD_NAME: String = "variant"
+
 struct Program {
     reporter: Reporter
 //    type_checker: TypeChecker
@@ -24,8 +27,6 @@ struct NPropertyGetter {}
 struct NPropertySetter {}
 struct NLambdaFunction {}
 struct NFunctionSignature {}
-
-let ANNOTATION_TEST: String = "Test"
 
 fun Program::new(): Program {
     ret Program @[

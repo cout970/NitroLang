@@ -25,6 +25,11 @@ fun Parser.read_file() {
         if res is Parsed::Error<Nothing> {
             let span = lexer.span_of(lexer.current_token)
 
+            // DEBUG
+            println("Reporting error: ${res.to_string()}")
+            lexer.print_debug_info()
+            Trace::print_stack_trace()
+
             program.reporter.report_error(res.to_string(), span)
             recover_from_error()
             break

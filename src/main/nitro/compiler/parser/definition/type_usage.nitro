@@ -49,6 +49,15 @@ fun NTypeUsage::simple(name: String): NTypeUsage {
     ]
 }
 
+fun NTypeUsage::simple_with_path(path: String, name: String): NTypeUsage {
+    ret NTypeUsage @[
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        module_path: path,
+        type_params: [],
+    ]
+}
+
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     // This
     if lexer.current_token_kind == TokenKind::THIS_TYPE {
@@ -127,7 +136,7 @@ fun Parser.read_type_param_args(): Parsed<List<NTypeUsage>> {
     read_until_delimited(TokenKind::GTH) @{
         list[] = read_type_usage()?
         ret found(nothing)
-    }
+    }?
 
     ret found(list)
 }
@@ -151,7 +160,7 @@ fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsa
         lexer.next_token()
         type_params[] = read_function_type_usage_param()?
         ret found(nothing)
-    }
+    }?
 
     skip_token_kind(TokenKind::RPAREN)?
     skip_token_kind(TokenKind::ARROW)?

@@ -37,6 +37,9 @@ option NInstKind {
     Literal {
         value: NConstExpr
     }
+    Return {
+        value: NInstId
+    }
     LoadVar {
         path: String
         name: String
@@ -47,6 +50,18 @@ option NInstKind {
         name: String
         value: NInstId
         variable: Optional<NVar>
+    }
+    LoadField {
+        instance: NInstId
+        name: String
+    }
+    StoreField {
+        instance: NInstId
+        name: String
+        value: NInstId
+    }
+    Alloc {
+        type_usage: NTypeUsage
     }
     Comment {
         text: String
@@ -171,6 +186,21 @@ fun NCode.add_int_lit(span: Span, value: Int): NInst {
     ret this.add_lit(span, NConstExpr::NConstInt @[value])
 }
 
+fun NCode.add_return(
+    span: Span
+    value: NInstId
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::Return @[value],
+    ]
+    inst[] = i
+    ret i
+}
+
 fun NCode.add_load_var(
     span: Span,
     path: String,
@@ -209,6 +239,46 @@ fun NCode.add_store_var(
             name,
             value,
             variable,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_load_field(
+    span: Span,
+    instance: NInstId,
+    name: String,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::LoadField @[
+            instance,
+            name,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_store_field(
+    span: Span,
+    instance: NInstId,
+    name: String,
+    value: NInstId,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::StoreField @[
+            instance,
+            name,
+            value,
         ],
     ]
     inst[] = i
@@ -306,6 +376,23 @@ fun NCode.add_when_end(span: Span): NInst {
     ret i
 }
 
+fun NCode.add_alloc(
+    span: Span,
+    type_usage: NTypeUsage,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::Alloc @[
+            type_usage,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
 fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
     let new_inst = when {
         i.kind is NInstKind::Let -> {
@@ -360,6 +447,11 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
 
             add_lit(i.span, kind.value)
         }
+        i.kind is NInstKind::Return -> {
+            let kind = i.kind as NInstKind::Return
+
+            add_return(i.span, kind.value)
+        }
         i.kind is NInstKind::LoadVar -> {
             let kind = i.kind as NInstKind::LoadVar
 
@@ -369,6 +461,21 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             let kind = i.kind as NInstKind::StoreVar
 
             add_store_var(i.span, kind.path, kind.name, mapping[kind.value]!!, kind.variable)
+        }
+        i.kind is NInstKind::LoadField -> {
+            let kind = i.kind as NInstKind::LoadField
+
+            add_load_field(i.span, mapping[kind.instance]!!, kind.name)
+        }
+        i.kind is NInstKind::StoreField -> {
+            let kind = i.kind as NInstKind::StoreField
+
+            add_store_field(i.span, mapping[kind.instance]!!, kind.name, mapping[kind.value]!!)
+        }
+        i.kind is NInstKind::Alloc -> {
+            let kind = i.kind as NInstKind::Alloc
+
+            add_alloc(i.span, kind.type_usage)
         }
         i.kind is NInstKind::Noop -> {
             add_noop(i.span)
@@ -458,6 +565,11 @@ fun NInst.to_string(): String {
 
             "literal ${kind.value}"
         }
+        t is NInstKind::Return -> {
+            let kind = t as NInstKind::Return
+
+            "return #${kind.value}"
+        }
         t is NInstKind::LoadVar -> {
             let kind = t as NInstKind::LoadVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
@@ -469,6 +581,21 @@ fun NInst.to_string(): String {
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
 
             "store-var $full_name = #${kind.value}"
+        }
+        t is NInstKind::LoadField -> {
+            let kind = t as NInstKind::LoadField
+
+            "load-field #${kind.instance} -> ${kind.name}"
+        }
+        t is NInstKind::StoreField -> {
+            let kind = t as NInstKind::StoreField
+
+            "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
+        }
+        t is NInstKind::Alloc -> {
+            let kind = t as NInstKind::Alloc
+
+            "alloc ${kind.type_usage}"
         }
         t is NInstKind::Noop -> {
             "noop"

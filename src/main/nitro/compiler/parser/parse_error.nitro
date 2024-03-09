@@ -24,17 +24,22 @@ option Parsed<#Ast> {
         kind: ParseError,
         token: Token,
         expected: Optional<TokenKind>,
+        info: Optional<String>,
     }
 }
 
 fun found(value: #Ast): Parsed<#Ast> = Parsed::Found @[value]
 
 fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token, expected: None()]
+    ret Parsed::Error @[kind, token, expected: None(), info: None()]
 }
 
 fun parse_error_expected(kind: ParseError, token: Token, expected_token: TokenKind): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token, expected: Some(expected_token)]
+    ret Parsed::Error @[kind, token, expected: Some(expected_token), info: None()]
+}
+
+fun parse_error_with_info(kind: ParseError, token: Token, message: String): Parsed<#Ast> {
+    ret Parsed::Error @[kind, token, expected: None(), info: Some(message)]
 }
 
 fun Parsed<#Ast>.is_error(): Boolean = this is Parsed::Error<#Ast>
@@ -48,6 +53,7 @@ fun Parsed<#A>.convert_error(): Parsed<#B> {
             kind: error.kind,
             token: error.token,
             expected: None(),
+            info: None(),
         ]
     }
 

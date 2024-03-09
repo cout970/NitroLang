@@ -131,12 +131,15 @@ fun NCode.restore_jump_points(jumps: NCodeJumps) {
     this.continue_jumps = jumps.prev_continue_jumps
 }
 
-fun NCode.merge(other: NCode) {
+fun NCode.merge(other: NCode): NInstId {
     let mapping: Map<NInstId, NInstId> = #[]
+    let last_merge_id = -1
 
     for i in other.inst {
-        this.add_copy(i, mapping)
+        last_merge_id = this.add_copy(i, mapping).id
     }
+
+    ret last_merge_id
 }
 
 fun NCode.to_string(): String {
