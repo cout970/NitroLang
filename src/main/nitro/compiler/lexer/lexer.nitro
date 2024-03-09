@@ -587,7 +587,7 @@ fun Lexer.next(): Boolean {
             }
 
             add_token(TokenKind::NOT)
-            cur += 2
+            cur += 1
         }
         // ASSIGN            '=' ;
         c0 == a"=" -> {

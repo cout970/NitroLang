@@ -1,0 +1,38 @@
+
+// ifExpr
+//     : IF NL* expression NL* statementBlock NL* ELSE NL* statementBlock ;
+
+fun Parser.read_expression_if(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::IF)?
+    skip_nl()
+
+    let condition = read_expression(code)?
+    skip_nl()
+
+    code.add_if_start(span, condition)
+    code.enter_block(false)
+    read_statement_block(code)?
+    let if_true = code.last_expression
+    code.exit_block()
+
+    skip_token_kind(TokenKind::ELSE)?
+    skip_nl()
+
+    code.add_if_else(span)
+    code.enter_block(false)
+    read_statement_block(code)?
+    let if_false = code.last_expression
+    code.exit_block()
+
+    code.add_if_end(span)
+
+    if if_true.is_none() || if_false.is_none() {
+        let inst = code.add_comment(span, "Error missing last expression in if statement block")
+        ret found(inst.id)
+    }
+
+    let inst = code.add_if_choose(span, condition, if_true!!, if_false!!)
+
+    ret found(inst.id)
+}

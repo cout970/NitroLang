@@ -31,7 +31,7 @@ option NConstExpr {
 
 // Parse a constant expression, a value that can be evaluated at compile time
 fun Parser.read_const_expr(): Parsed<NConstExpr> {
-    let expr = when (lexer.current_token_kind) {
+    let expr = when lexer.current_token_kind {
         TokenKind::INT_NUMBER -> {
             let value: Int = read_int()?
             NConstExpr::NConstInt @[value]

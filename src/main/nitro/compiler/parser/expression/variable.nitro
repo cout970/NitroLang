@@ -1,0 +1,20 @@
+
+// variableExpr
+//     : modulePath? anyName ;
+
+fun Parser.read_expression_variable(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_name()?
+
+    let inst = code.add_load_var(span, path, name, None())
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_this(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::THIS)?
+
+    let inst = code.add_load_var(span, "", "this", None())
+    ret found(inst.id)
+}

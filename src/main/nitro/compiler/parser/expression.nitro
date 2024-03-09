@@ -1,65 +1,121 @@
 
-fun Parser.read_expression(code: NCode): Parsed<NInstId> {
-    let span = lexer.current_token_span
+// expression
+//     : expressionComplex ;
+//
+// E.g. 1 + 2
+// E.g. if x > 5 { 1 } else { 0 }
+// E.g. ret 5
+// E.g. 1 || 2 && 3
+// expressionComplex
+//     : ifExpr
+//     | returnExpr
+//     | expressionOr
+//     ;
+// E.g. 1 || 2
+// expressionOr
+//     : expressionAnd (OROR expressionAnd)* ;
+//
+// E.g. 1 && 2
+// expressionAnd
+//     : expressionBinaryOp (ANDAND expressionBinaryOp)* ;
 
-    let inst = when (lexer.current_token_kind) {
-        TokenKind::INT_NUMBER -> read_expression_literal(code)
-        TokenKind::LONG_NUMBER -> read_expression_literal(code)
-        TokenKind::FLOAT_NUMBER -> read_expression_literal(code)
-        TokenKind::PLAIN_STRING -> read_expression_literal(code)
-        TokenKind::TRUE -> read_expression_literal(code)
-        TokenKind::FALSE -> read_expression_literal(code)
-        TokenKind::NULL -> read_expression_literal(code)
-        TokenKind::NOTHING -> read_expression_literal(code)
-        else -> {
-            ret parse_error(ParseError::Generic, lexer.current_token)
-        }
+fun Parser.read_expression(code: NCode): Parsed<NInstId> {
+    let inst = when lexer.current_token_kind {
+        TokenKind::IF -> read_expression_if(code)
+        TokenKind::RETURN -> read_expression_return(code)
+        else -> read_expression_or(code)
     }
 
     ret inst
 }
 
-fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
-    let span = lexer.current_token_span
+fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
+    let left = read_expression_and(code)?
 
-    let inst = when (lexer.current_token_kind) {
-        TokenKind::INT_NUMBER -> {
-            let value: Int = read_int()?
-            code.add_lit(span, NConstExpr::NConstInt @[value])
-        }
-        TokenKind::LONG_NUMBER -> {
-            let value: Long = read_long()?
-            code.add_lit(span, NConstExpr::NConstLong @[value])
-        }
-        TokenKind::FLOAT_NUMBER -> {
-            let value: Float = read_float()?
-            code.add_lit(span, NConstExpr::NConstFloat @[value])
-        }
-        TokenKind::PLAIN_STRING -> {
-            let value: String = read_plain_string()?
-            code.add_lit(span, NConstExpr::NConstString @[value])
-        }
-        TokenKind::TRUE -> {
-            lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstBoolean @[value: true])
-        }
-        TokenKind::FALSE -> {
-            lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstBoolean @[value: false])
-        }
-        TokenKind::NULL -> {
-            program.reporter.report_warning("Keyword 'null' is not supported, use 'nothing' instead", span)
-            lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstNothing @[])
-        }
-        TokenKind::NOTHING -> {
-            lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstNothing @[])
-        }
-        else -> {
-            ret parse_error(ParseError::Generic, lexer.current_token)
-        }
+    while lexer.current_token_kind == TokenKind::OROR {
+        let span = lexer.current_token_span
+        skip_token_kind(TokenKind::OROR)?
+
+        code.add_if_start(span, left)
+
+        code.enter_block(false)
+        let if_true = code.add_lit_boolean(span, true)
+        code.exit_block()
+
+        code.add_if_else(span)
+
+        code.enter_block(false)
+        let if_false = read_expression_and(code)?
+        code.exit_block()
+
+        code.add_if_end(span)
+
+        let choose = code.add_if_choose(span, left, if_true.id, if_false)
+        left = choose.id
     }
 
-    ret found(inst.id)
+    ret found(left)
+}
+
+fun Parser.read_expression_and(code: NCode): Parsed<NInstId> {
+    let left = read_expression_binary_operation(code)?
+
+    while lexer.current_token_kind == TokenKind::ANDAND {
+        let span = lexer.current_token_span
+        skip_token_kind(TokenKind::ANDAND)?
+
+        code.add_if_start(span, left)
+
+        code.enter_block(false)
+        let if_true = read_expression_binary_operation(code)?
+        code.exit_block()
+
+        code.add_if_else(span)
+
+        code.enter_block(false)
+        let if_false = code.add_lit_boolean(span, false)
+        code.exit_block()
+
+        code.add_if_end(span)
+
+        let choose = code.add_if_choose(span, left, if_true, if_false.id)
+        left = choose.id
+    }
+
+    ret found(left)
+}
+
+// List of tokens that start an expression
+fun Parser.is_at_expression_first(): Boolean {
+    ret when lexer.current_token_kind {
+        TokenKind::LOWER_IDENTIFIER -> true
+        TokenKind::UPPER_IDENTIFIER -> true
+        TokenKind::WHEN -> true
+        TokenKind::IF -> true
+        TokenKind::RETURN -> true
+        TokenKind::LPAREN -> true
+        TokenKind::NOT -> true
+        TokenKind::SUB -> true
+        TokenKind::ADD -> true
+        TokenKind::INT_NUMBER -> true
+        TokenKind::LONG_NUMBER -> true
+        TokenKind::FLOAT_NUMBER -> true
+        TokenKind::PLAIN_STRING -> true
+        TokenKind::STRING_START -> true
+        TokenKind::STRING2_START -> true
+        TokenKind::TRUE -> true
+        TokenKind::FALSE -> true
+        TokenKind::NULL -> true
+        TokenKind::NOTHING -> true
+        TokenKind::THIS -> true
+        TokenKind::BREAK -> true
+        TokenKind::CONTINUE -> true
+        TokenKind::LBRACKET -> true
+        TokenKind::MAP_START -> true
+        TokenKind::SET_START -> true
+        TokenKind::LAMBDA_START -> true
+        TokenKind::SIZE_OF -> true
+        TokenKind::JSON -> true
+        else -> false
+    }
 }

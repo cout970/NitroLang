@@ -1,0 +1,54 @@
+
+//
+// expressionBase
+//     : parenthesizedExpression
+//     | constExpr
+//     | string
+//     | whenExpr
+//     | listExpr
+//     | mapExpr
+//     | setExpr
+//     | lambdaExpr
+//     | structInstanceExpr
+//     | sizeOfExpr
+//     | variableExpr
+//     | jsonExpr
+//     | templateLiteral
+//     | THIS
+//     | BREAK
+//     | CONTINUE
+//     ;
+
+
+fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+
+    let inst = when lexer.current_token_kind {
+        TokenKind::LPAREN -> read_expression_in_parens(code)
+        TokenKind::INT_NUMBER -> read_expression_literal(code)
+        TokenKind::LONG_NUMBER -> read_expression_literal(code)
+        TokenKind::FLOAT_NUMBER -> read_expression_literal(code)
+        TokenKind::PLAIN_STRING -> read_expression_literal(code)
+        TokenKind::TRUE -> read_expression_literal(code)
+        TokenKind::FALSE -> read_expression_literal(code)
+        TokenKind::NULL -> read_expression_literal(code)
+        TokenKind::NOTHING -> read_expression_literal(code)
+        TokenKind::LOWER_IDENTIFIER -> read_expression_variable(code)
+        TokenKind::UPPER_IDENTIFIER -> read_expression_variable(code)
+        TokenKind::THIS -> read_expression_this(code)
+        TokenKind::BREAK -> read_expression_break(code)
+        TokenKind::CONTINUE -> read_expression_continue(code)
+        else -> {
+            ret parse_error(ParseError::Generic, lexer.current_token)
+        }
+    }
+
+    ret inst
+}
+
+fun Parser.read_expression_in_parens(code: NCode): Parsed<NInstId> {
+    skip_token_kind(TokenKind::LPAREN)?
+    let expr = read_expression(code)?
+    skip_token_kind(TokenKind::RPAREN)?
+    ret found(expr)
+}

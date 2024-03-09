@@ -1,0 +1,14 @@
+
+// BREAK
+
+fun Parser.read_expression_break(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::BREAK)?
+
+    code.execute_deferred_actions(code.current_block, false)
+    code.jumped_out_of_block = true
+    let inst = code.add_block_jump(span, false, None())
+    code.break_jumps[] = inst.id
+
+    ret found(inst.id)
+}

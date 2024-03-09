@@ -32,7 +32,7 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
 
     // let it = 0
     let var_it = code.add_let(span, "it", Some(NTypeUsage::simple("Int")))
-    let zero = code.add_int_lit(span, 0)
+    let zero = code.add_lit_int(span, 0)
     code.add_store_var(span, "", "it", zero.id, Some(var_it))
 
     // loop {
@@ -59,7 +59,7 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     subcode.add_comment(span, "defer-start")
 
     let load_it = subcode.add_load_var(span, "", "it", Some(var_it))
-    let one = subcode.add_int_lit(span, 1)
+    let one = subcode.add_lit_int(span, 1)
     let add = subcode.add_fun_call(span, "", "plus", [load_it.id, one.id], [])
     subcode.add_store_var(span, "", "it", add.id, Some(var_it))
 

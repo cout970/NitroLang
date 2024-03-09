@@ -32,7 +32,7 @@ fun Parser.read_definition(): Parsed<Nothing> {
 
     skip_nl()
 
-    when (lexer.current_token_kind) {
+    when lexer.current_token_kind {
         TokenKind::STRUCT -> read_struct_definition(annotations)?
         TokenKind::OPTION -> read_option_definition(annotations)?
         TokenKind::ENUM -> read_enum_definition(annotations)?

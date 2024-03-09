@@ -51,18 +51,37 @@ fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
 }
 
 fun Parser.read_statement(code: NCode): Parsed<Nothing> {
+    let prev_last_expression = code.last_expression
+    code.last_expression = None()
+
     when lexer.current_token_kind {
-        TokenKind::DEFER -> read_defer_statement(code)
-        TokenKind::FOR -> read_for_statement(code)
-        TokenKind::FOREIGN_BLOCK -> read_foreign_block_statement(code)
-        TokenKind::IF -> read_if_statement(code)
-        TokenKind::LET -> read_let_statement(code)
-        TokenKind::REPEAT -> read_repeat_statement(code)
-        TokenKind::WHILE -> read_while_statement(code)
-        TokenKind::LOOP -> read_loop_statement(code)
-        TokenKind::WHEN -> read_when_statement(code)
-        TokenKind::TEST -> read_test_definition([])
-        else -> read_expression(code)
+        TokenKind::DEFER -> {
+            read_defer_statement(code)?
+            // Prevent this statement from affecting the last expression
+            code.last_expression = prev_last_expression
+        }
+        TokenKind::FOR -> read_for_statement(code)?
+        TokenKind::FOREIGN_BLOCK -> {
+            read_foreign_block_statement(code)?
+            // Prevent this statement from affecting the last expression
+            code.last_expression = prev_last_expression
+        }
+        TokenKind::IF -> read_if_statement(code)?
+        TokenKind::LET -> read_let_statement(code)?
+        TokenKind::REPEAT -> read_repeat_statement(code)?
+        TokenKind::WHILE -> read_while_statement(code)?
+        TokenKind::LOOP -> read_loop_statement(code)?
+        TokenKind::WHEN -> read_when_statement(code)?
+        TokenKind::TEST -> {
+            read_test_definition([])?
+            // Prevent this statement from affecting the last expression
+            code.last_expression = prev_last_expression
+        }
+        else -> {
+            let expr = read_expression(code)?
+            // Update last_expression, so at the end of the block we know the last expression
+            code.last_expression = Some(expr)
+        }
     }
     ret found(nothing)
 }

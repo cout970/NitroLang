@@ -84,6 +84,17 @@ enum Direction {
 
    let name: String
 }
+
+fun a(): Int = if 0 { 1 } else { 2 }
+fun b(): Int = ret
+fun c(): Int = ret 0
+fun d(): Boolean = false || true && true
+fun f(): Boolean = 0 is Int
+fun g(): Int = 0 as Int
+fun h(variable: List<Int>): Boolean = 0 !in variable
+fun i() { loop { break } }
+fun j() { loop { continue } }
+
 "#
 
 let tokenizer_test2: String = r#"

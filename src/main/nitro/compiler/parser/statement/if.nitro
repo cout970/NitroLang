@@ -14,7 +14,7 @@ fun Parser.read_if_statement(code: NCode): Parsed<Nothing> {
     code.add_if_start(span, condition)
     code.enter_block(false)
 
-    let if_block = read_statement_block(code)?
+    read_statement_block(code)?
     code.exit_block()
 
     if lexer.next_non_nl_token_kind == TokenKind::ELSE {
@@ -26,7 +26,7 @@ fun Parser.read_if_statement(code: NCode): Parsed<Nothing> {
         skip_token_kind(TokenKind::ELSE)?
         skip_nl()
 
-        let else_block = read_statement_block(code)?
+        read_statement_block(code)?
         code.exit_block()
     }
 

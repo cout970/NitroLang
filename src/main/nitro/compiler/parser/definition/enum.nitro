@@ -210,16 +210,21 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         let used_field_names: List<String> = []
 
         // Variant field
-        let variant_value = const_code.add_int_lit(entry.span, entry.variant)
+        let variant_value = const_code.add_lit_int(entry.span, entry.variant)
         const_code.add_store_field(entry.span, alloc, VARIANT_FIELD_NAME, variant_value.id)
         used_field_names[] = VARIANT_FIELD_NAME
 
         // Rest of fields
         for i in entry.value_init {
-            let last_expression = const_code.merge(i.code)
+            const_code.merge(i.code)
             used_field_names[] = i.field_name
 
-            const_code.add_store_field(entry.span, alloc, i.field_name, last_expression)
+            if const_code.last_expression.is_none() {
+                program.reporter.report_error("Expecting expression, not found", entry.span)
+                continue
+            }
+
+            const_code.add_store_field(entry.span, alloc, i.field_name, const_code.last_expression!!)
         }
 
         // Missing fields to init?

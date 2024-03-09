@@ -1,0 +1,18 @@
+
+// E.g. ret 1
+// returnExpr
+//     : RETURN expression? ;
+
+fun Parser.read_expression_return(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::RETURN)?
+
+    let value = if this.is_at_expression_first() {
+        read_expression(code)?
+    } else {
+        code.add_lit_nothing(span).id
+    }
+
+    let inst = code.add_return(span, value)
+    ret found(inst.id)
+}

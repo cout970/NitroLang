@@ -1,0 +1,12 @@
+
+// E.g. 1.0 + math::PI * 4.0
+// expressionBinaryOp
+//     : expressionSimple (binaryOperator NL* expressionSimple)* ;
+
+fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
+    let left = read_expression_simple(code)?
+
+    // TODO
+
+    ret found(left)
+}
