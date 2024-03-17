@@ -158,6 +158,7 @@ fun NCode.to_string(): String {
         body_str += "  " * i.current_block.depth
         body_str += i.to_string()
     }
+    body_str += "\n last-expression: $last_expression"
     body_str += "\n}"
 
     ret body_str

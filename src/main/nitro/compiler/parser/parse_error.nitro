@@ -11,6 +11,8 @@ enum ParseError {
     ExpectedFloat,
     ExpectedComma,
     ExpectedDefinition,
+    ExpectedExpression,
+    ExpectedString,
     DeferNotAllowed,
     WhenMultipleElse,
     WhenUnorderedElse,

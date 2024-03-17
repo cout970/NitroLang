@@ -85,15 +85,34 @@ enum Direction {
    let name: String
 }
 
-fun a(): Int = if 0 { 1 } else { 2 }
-fun b(): Int = ret
-fun c(): Int = ret 0
-fun d(): Boolean = false || true && true
-fun f(): Boolean = 0 is Int
-fun g(): Int = 0 as Int
-fun h(variable: List<Int>): Boolean = 0 !in variable
-fun i() { loop { break } }
-fun j() { loop { continue } }
+// Test expressions
+fun foo() {
+    if 0 { 1 } else { 2 }
+    ret
+    ret 0
+    false || true && true
+    0 is Int
+    0 as Int
+    let variable: List<Int>
+    0 !in variable
+    loop {
+        break
+        continue
+    }
+    this
+    "This is a plain string"
+    "string"
+    "This is a format $str"
+    "This is also a format ${str}"
+    "Some escape codes: \n \t \r \0 A\x33A \u30A2 \$ \" \\ \* |"
+    // Ascii code of char
+    a"S"
+    // Example of complex precedence rule
+    1 | 1 >= 0 == 5 > 6 & 1 + 2 * 3
+    [1, 2, 3]
+    #[alpha: "a", "beta": "b", ("gamma"): "g"]
+    %[1, 2, 3]
+}
 
 "#
 

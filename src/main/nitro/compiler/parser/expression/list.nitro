@@ -1,0 +1,23 @@
+
+// [item1, item2]
+// listExpr
+//     : LBRACKET NL* (expression (commaOrNl expression)* COMMA?)? NL* RBRACKET ;
+
+fun Parser.read_expression_list(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::LBRACKET)?
+    skip_nl()
+
+    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::unresolved()])
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let expr = read_expression(code)?
+
+        code.add_fun_call(span, "", "add", [list.id, expr], [])
+
+        ret found(nothing)
+    }?
+
+    let link = code.add_link(span, list.id)
+    ret found(link.id)
+}

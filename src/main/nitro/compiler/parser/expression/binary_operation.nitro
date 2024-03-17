@@ -3,10 +3,235 @@
 // expressionBinaryOp
 //     : expressionSimple (binaryOperator NL* expressionSimple)* ;
 
+// binaryOperator
+//     : MUL | DIV | MOD | ADD | SUB | RANGE_INCLUSIVE | RANGE_EXCLUSIVE | binopShl | binopShr | binopUshr | AND | XOR | OR | LTH | GTH | LEQ | GEQ | COMPARE | EQ | NEQ | XORXOR ;
+// binopShl
+//     : LTH LTH;
+// binopShr
+//     : GTH GTH ;
+// binopUshr
+//     : GTH GTH GTH;
+
+// Binary tree of operations, sorted by order of execution, given by the precedence of the operator
+// Traversed in depth first order to generate the code
+option BinaryTree {
+    Operation {
+        left: BinaryTree
+        right: BinaryTree
+        operator: BinaryOperator
+        span: Span
+    }
+    Expression {
+        code: NCode
+        span: Span
+    }
+}
+
+enum BinaryOperator {
+    let symbol: String
+    let precedence: Int
+    let method: String
+    let uses_ordering: Boolean
+    let optimization: Map<String, String>
+
+    MUL                  @[symbol: "*",   precedence: 0,    method: "mul",                          uses_ordering: false, optimization: #[]],
+    DIV                  @[symbol: "/",   precedence: 0,    method: "div",                          uses_ordering: false, optimization: #[]],
+    MOD                  @[symbol: "%",   precedence: 0,    method: "rem",                          uses_ordering: false, optimization: #[]],
+    // TODO: Check previous token to warn about unary plus/binary plus when there is no space
+    // i.e `1+1` vs `1 + 1` as they are different expressions (1, unaryPlus(1)) vs (1.add(1))
+    ADD                  @[symbol: "+",   precedence: 1,    method: "plus",                         uses_ordering: false, optimization: #[]],
+    // Same for unary minus
+    SUB                  @[symbol: "-",   precedence: 1,    method: "minus",                        uses_ordering: false, optimization: #[]],
+    RANGE_INCLUSIVE      @[symbol: "..=", precedence: 2,    method: "range_to",                     uses_ordering: false, optimization: #[]],
+    RANGE_EXCLUSIVE      @[symbol: "..<", precedence: 2,    method: "range_up_to",                  uses_ordering: false, optimization: #[]],
+    SHIFT_LEFT           @[symbol: "<<",  precedence: 3,    method: "bitwise_shift_left",           uses_ordering: false, optimization: #[]],
+    SHIFT_RIGHT          @[symbol: ">>",  precedence: 3,    method: "bitwise_shift_right",          uses_ordering: false, optimization: #[]],
+    SHIFT_RIGHT_UNSIGNED @[symbol: ">>>", precedence: 3,    method: "bitwise_shift_right_unsigned", uses_ordering: false, optimization: #[]],
+    BIT_AND              @[symbol: "&",   precedence: 4,    method: "bitwise_and",                  uses_ordering: false, optimization: #[]],
+    BIT_XOR              @[symbol: "^",   precedence: 5,    method: "bitwise_xor",                  uses_ordering: false, optimization: #[]],
+    BIT_OR               @[symbol: "|",   precedence: 6,    method: "bitwise_or",                   uses_ordering: false, optimization: #[]],
+    LESS_THAN            @[symbol: "<",   precedence: 7,   method: "is_less",                      uses_ordering: true,  optimization: #["Int": "less_than_signed", "Float": "less_than"]],
+    GREATER_THAN         @[symbol: ">",   precedence: 7,   method: "is_greater",                   uses_ordering: true,  optimization: #["Int": "greater_than_signed", "Float": "greater_than"]],
+    LESS_EQUAL           @[symbol: "<=",  precedence: 7,   method: "is_less_or_equals",            uses_ordering: true,  optimization: #["Int": "less_equal_signed", "Float": "less_equal"]],
+    GREATER_EQUAL        @[symbol: ">=",  precedence: 7,   method: "is_greater_or_equals",         uses_ordering: true,  optimization: #["Int": "greater_equal_signed", "Float": "greater_equal"]],
+    COMPARE              @[symbol: "<=>", precedence: 8,   method: "get_ordering",                 uses_ordering: false, optimization: #[]],
+    EQUAL                @[symbol: "==",  precedence: 9,   method: "is_equals",                    uses_ordering: true,  optimization: #["Int": "is_equal", "Float": "is_equal", "String": "is_equal"]],
+    NOT_EQUAL            @[symbol: "!=",  precedence: 9,   method: "is_not_equals",                uses_ordering: true,  optimization: #["Int": "is_not_equal", "Float": "is_not_equal", "String": "is_not_equal"]],
+    BOOL_XOR             @[symbol: "^^",  precedence: 10,   method: "logical_xor",                  uses_ordering: false, optimization: #[]],
+}
+
 fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
-    let left = read_expression_simple(code)?
+    // Collect expressions and operators in the order they appear
+    let expressions: List<BinaryTree> = []
+    let operators: List<BinaryOperator> = []
 
-    // TODO
+    let span = lexer.current_token_span
+    let child_code = code.new_child(span)
+    read_expression_simple(child_code)?
+    expressions[] = BinaryTree::Expression @[code: child_code, span]
 
-    ret found(left)
+    loop {
+        let opt: Optional<BinaryOperator> = read_binary_operator()
+
+        if opt.is_none() {
+            break
+        }
+
+        operators[] = opt!!
+
+        let span = lexer.current_token_span
+        let child_code = code.new_child(span)
+        read_expression_simple(child_code)?
+        expressions[] = BinaryTree::Expression @[code: child_code, span]
+    }
+
+    // Sort the operators by precedence in ascending order
+    let root = create_binary_tree(expressions, operators)
+
+    // Traverse the binary tree to generate the code
+    depth_first_traverse(root, code)
+
+    // Return the last generated expression
+    ret found(code.last_expression!!)
+}
+
+// Create a binary tree of operations from the list of expressions and operators,
+// sorted by precedence in ascending order, maintaining left associativity
+fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOperator>): BinaryTree {
+    let precedence = 0
+    
+    if expressions.len() == 1 {
+        ret expressions.first()!!
+    }
+
+    loop {
+        let index = 0
+        let min_precedence = 10
+
+        while index < operators.len() {
+            let operator = operators[index]!!
+
+            if operator.precedence != precedence {
+                index += 1
+                min_precedence = min(operator.precedence, min_precedence)
+                continue
+            }
+
+            let left = expressions[index]!!
+            let right = expressions[index + 1]!!
+
+            let span: Span = if left is BinaryTree::Expression {
+                (left as BinaryTree::Expression).span
+            } else {
+                (left as BinaryTree::Operation).span
+            }
+
+            let operation = BinaryTree::Operation @[
+                left,
+                right,
+                operator,
+                span,
+            ]
+
+            expressions[index] = operation
+            expressions.remove_at(index + 1)
+            operators.remove_at(index)
+        }
+
+        precedence = max(precedence + 1, min_precedence)
+
+        if operators.len() == 0 {
+            break
+        }
+    }
+
+    ret expressions.first()!!
+}
+
+// Perform a depth first traversal of the binary tree to generate the code in the correct order
+fun depth_first_traverse(tree: BinaryTree, code: NCode) {
+    if tree is BinaryTree::Expression {
+        let leaf = tree as BinaryTree::Expression
+        code.merge(leaf.code)
+        ret
+    }
+
+    if tree is BinaryTree::Operation {
+        let op = tree as BinaryTree::Operation
+
+        depth_first_traverse(op.left, code)
+        let left_id = code.last_expression!!
+
+        depth_first_traverse(op.right, code)
+        let right_id = code.last_expression!!
+
+        if op.operator.uses_ordering {
+            let get_ordering = code.add_fun_call(op.span, "", "get_ordering", [left_id, right_id], [])
+            code.add_fun_call(op.span, "", op.operator.method, [get_ordering.id], [])
+        } else {
+            code.add_fun_call(op.span, "", op.operator.method, [left_id, right_id], [])
+        }
+        ret
+    }
+}
+
+fun Parser.read_binary_operator(): Optional<BinaryOperator> {
+    let op = when lexer.current_token_kind {
+        TokenKind::MUL -> BinaryOperator::MUL
+        TokenKind::DIV -> BinaryOperator::DIV
+        TokenKind::MOD -> BinaryOperator::MOD
+        TokenKind::ADD -> BinaryOperator::ADD
+        TokenKind::SUB -> BinaryOperator::SUB
+        TokenKind::RANGE_INCLUSIVE -> BinaryOperator::RANGE_INCLUSIVE
+        TokenKind::RANGE_EXCLUSIVE -> BinaryOperator::RANGE_EXCLUSIVE
+        TokenKind::LTH -> {
+            if lexer.next_token_kind == TokenKind::LTH {
+                lexer.next_token()
+                BinaryOperator::SHIFT_LEFT
+            } else {
+                BinaryOperator::LESS_THAN
+            }
+        }
+        TokenKind::GTH -> {
+            if lexer.next_token_kind == TokenKind::GTH {
+                lexer.next_token()
+                if lexer.next_token_kind == TokenKind::GTH {
+                    lexer.next_token()
+                    BinaryOperator::SHIFT_RIGHT_UNSIGNED
+                } else {
+                    BinaryOperator::SHIFT_RIGHT
+                }
+            } else {
+                BinaryOperator::GREATER_THAN
+            }
+        }
+        TokenKind::AND -> BinaryOperator::BIT_AND
+        TokenKind::XOR -> BinaryOperator::BIT_XOR
+        TokenKind::OR -> BinaryOperator::BIT_OR
+        TokenKind::LEQ -> BinaryOperator::LESS_EQUAL
+        TokenKind::GEQ -> BinaryOperator::GREATER_EQUAL
+        TokenKind::COMPARE -> BinaryOperator::COMPARE
+        TokenKind::EQ -> BinaryOperator::EQUAL
+        TokenKind::NEQ -> BinaryOperator::NOT_EQUAL
+        TokenKind::XORXOR -> BinaryOperator::BOOL_XOR
+        else -> ret None()
+    }
+    lexer.next_token()
+    ret Some(op)
+}
+
+fun BinaryTree.to_string(): String {
+    if this is BinaryTree::Expression {
+        let leaf = this as BinaryTree::Expression
+        ret leaf.code.to_string()
+    }
+
+    if this is BinaryTree::Operation {
+        let op = this as BinaryTree::Operation
+        let left = op.left.to_string().indent(2)
+        let right = op.right.to_string().indent(2)
+        ret "${op.operator.symbol}:\n  - $left\n  - $right\n"
+    }
+
+    crash("Unknown expression tree type")
 }

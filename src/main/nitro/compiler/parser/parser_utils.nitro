@@ -89,6 +89,17 @@ fun Parser.read_plain_string(): Parsed<String> {
     ret found(name)
 }
 
+// Read a ascii string, e.g. a"A" or a"B"
+fun Parser.read_ascii_string(): Parsed<Int> {
+    if lexer.current_token_kind != TokenKind::ASCII_STRING {
+        ret parse_error(ParseError::ExpectedPlainString, lexer.current_token)
+    }
+
+    let ascii = lexer.current_token_text
+    lexer.next_token()
+    ret found(ascii.to_int_in_base(10)!!)
+}
+
 // Ignore next newlines
 fun Parser.skip_nl() {
     while lexer.current_token_kind == TokenKind::NL {

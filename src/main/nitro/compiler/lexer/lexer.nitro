@@ -400,15 +400,6 @@ fun Lexer.next(): Boolean {
 
             // ->
             if c1 == a">" {
-                let c2: Int = next_next_byte
-
-                // >=
-                if c2 == a"=" {
-                    add_token(TokenKind::GEQ)
-                    cur += 3
-                    ret true
-                }
-
                 add_token(TokenKind::ARROW)
                 cur += 2
                 ret true
@@ -630,6 +621,15 @@ fun Lexer.next(): Boolean {
         }
         // GTH               '>' ;
         c0 == a">" -> {
+            let c1: Int = next_byte
+
+            // >=
+            if c1 == a"=" {
+                add_token(TokenKind::GEQ)
+                cur += 2
+                ret true
+            }
+
             add_token(TokenKind::GTH)
             cur += 1
         }
@@ -834,6 +834,48 @@ fun Lexer.read_string() {
     state[] = 1
 }
 
+// Read an ascii string
+// a"S"
+fun Lexer.read_ascii_string() {
+    let start = cur
+
+    if current_byte != a"a" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+    cur += 1
+
+    if current_byte != a"\"" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+    cur += 1
+
+    let c0: Int = current_byte
+    let byte = c0
+
+    if c0 == a"\\" {
+        let seq = read_string_escape_sequence()
+        byte = seq.get_byte(0).to_int()
+    } else {
+        cur += 1
+    }
+
+    if current_byte != a"\"" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+
+    // skip "
+    cur += 1
+    let extra = byte.to_string_in_base(10)
+
+    add_token_with_extra(TokenKind::ASCII_STRING, start, extra)
+}
+
 // Read a string contents
 //
 // The contents of a string can be:
@@ -857,9 +899,9 @@ fun Lexer.read_string_blob() {
     }
 
     if c0 == a"\\" {
-        cur += 2
-        let extra = src.substring(start, cur)
-        add_token_with_extra(TokenKind::STRING_ESCAPE, start, extra)
+        let extra = read_string_escape_sequence()
+
+        add_token_with_extra(TokenKind::STRING_BLOB, start, extra)
         ret
     }
 
@@ -907,6 +949,76 @@ fun Lexer.read_string_blob() {
     add_token_with_extra(TokenKind::STRING_BLOB, start, extra)
 }
 
+// Reads an string escape sequence, i.e \n, \t, \xFF, \uFFFF, \(, \$, etc.
+fun Lexer.read_string_escape_sequence(): String {
+    let c0 = current_byte
+
+    if c0 != a"\\" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret ""
+    }
+
+    // Ignore '\'
+    cur += 1
+    let c1 = current_byte
+
+    // Hex \xFF
+    if c1 == a"x" {
+        // Ignore 'x'
+        cur += 1
+        let c2 = current_byte
+        cur += 1
+        let c3 = current_byte
+        cur += 1
+
+        let hex = c2.to_char() + c3.to_char()
+        ret hex.to_int_in_base(16)!!.to_char().to_string()
+    }
+
+    // Unicode \uFFFF
+    if c1 == a"u" {
+        // Ignore 'u'
+        cur += 1
+
+        let c2 = current_byte
+        cur += 1
+        let c3 = current_byte
+        cur += 1
+        let c4 = current_byte
+        cur += 1
+        let c5 = current_byte
+        cur += 1
+
+        let hex = c2.to_char() + c3.to_char() + c4.to_char() + c5.to_char()
+
+        let value = hex.to_int_in_base(16)!!
+        ret value.to_char().to_string()
+    }
+
+    // C escape codes \n
+    let extra = ""
+    when c1 {
+        a"0" -> { extra = "\0" }
+        a"n" -> { extra = "\n" }
+        a"r" -> { extra = "\r" }
+        a"t" -> { extra = "\t" }
+        a"a" -> { extra = "\u0007" }
+        a"b" -> { extra = "\u0008" }
+        a"e" -> { extra = "\u001b" }
+        a"f" -> { extra = "\u000c" }
+        a"v" -> { extra = "\u000b" }
+        // Already handled by the last case, that works on any special character
+//            a"\"" -> { extra = "\"" }
+//            a"\$" -> { extra = "\$" }
+//            a"\'" -> { extra = "\'" }
+//            a"\\" -> { extra = "\\" }
+        else -> { extra = c1.to_char().to_string() }
+    }
+    cur += 1
+
+    ret extra
+}
 
 // Read a raw string without escape characters and without interpolation
 //
@@ -1000,6 +1112,13 @@ fun Lexer.read_identifier() {
     let first = extra.get_byte(0).to_int()
     let lower = first >= a"a" && first <= a"z"
     let kind = if lower { TokenKind::LOWER_IDENTIFIER } else { TokenKind::UPPER_IDENTIFIER }
+
+    // Ascii string
+    if first == a"a" && extra.len() == 1 && current_byte == a"\"" {
+        cur -= 1
+        read_ascii_string()
+        ret
+    }
 
     add_token_with_extra(kind, start, extra)
 }
@@ -1172,6 +1291,18 @@ fun Lexer.print_debug_info() {
         let token = tokens[start]!!
         let span = span_of(token)
         println("[${start - tk}]  $token $span")
+        start += 1
+    }
+}
+
+fun Lexer.print_char_debug_info() {
+    println("Chars around print_char_debug_info():")
+    let start = max(cur - 5, 0)
+    let end = min(cur + 5, src.len() - 1)
+
+    while start <= end {
+        let byte = src.get_byte(start).to_int()
+        println("[${start - cur}] $byte => ${byte.to_char()} ")
         start += 1
     }
 }

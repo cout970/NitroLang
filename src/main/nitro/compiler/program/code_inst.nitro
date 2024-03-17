@@ -73,8 +73,14 @@ option NInstKind {
         name: String
         value: NInstId
     }
+    SizeOf {
+        type_usage: NTypeUsage
+    }
     Alloc {
         type_usage: NTypeUsage
+    }
+    Link {
+        linked_id: NInstId
     }
     Comment {
         text: String
@@ -222,6 +228,10 @@ fun NCode.add_lit_float(span: Span, value: Float): NInst {
 
 fun NCode.add_lit_boolean(span: Span, value: Boolean): NInst {
     ret this.add_lit(span, NConstExpr::NConstBoolean @[value])
+}
+
+fun NCode.add_lit_string(span: Span, value: String): NInst {
+    ret this.add_lit(span, NConstExpr::NConstString @[value])
 }
 
 fun NCode.add_lit_nothing(span: Span): NInst {
@@ -450,6 +460,23 @@ fun NCode.add_when_end(span: Span): NInst {
     ret i
 }
 
+fun NCode.add_size_of(
+    span: Span,
+    type_usage: NTypeUsage,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::SizeOf @[
+            type_usage,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
 fun NCode.add_alloc(
     span: Span,
     type_usage: NTypeUsage,
@@ -462,6 +489,21 @@ fun NCode.add_alloc(
         kind: NInstKind::Alloc @[
             type_usage,
         ],
+    ]
+    inst[] = i
+    ret i
+}
+
+fun NCode.add_link(
+    span: Span,
+    linked_id: NInstId,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::Link @[linked_id],
     ]
     inst[] = i
     ret i
@@ -561,10 +603,20 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
 
             add_store_field(i.span, mapping[kind.instance]!!, kind.name, mapping[kind.value]!!)
         }
+        i.kind is NInstKind::SizeOf -> {
+            let kind = i.kind as NInstKind::SizeOf
+
+            add_size_of(i.span, kind.type_usage)
+        }
         i.kind is NInstKind::Alloc -> {
             let kind = i.kind as NInstKind::Alloc
 
             add_alloc(i.span, kind.type_usage)
+        }
+        i.kind is NInstKind::Link -> {
+            let kind = i.kind as NInstKind::Link
+
+            add_link(i.span, mapping[kind.linked_id]!!)
         }
         i.kind is NInstKind::Noop -> {
             add_noop(i.span)
@@ -698,10 +750,20 @@ fun NInst.to_string(): String {
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
         }
+        t is NInstKind::SizeOf -> {
+            let kind = t as NInstKind::SizeOf
+
+            "size_of ${kind.type_usage}"
+        }
         t is NInstKind::Alloc -> {
             let kind = t as NInstKind::Alloc
 
             "alloc ${kind.type_usage}"
+        }
+        t is NInstKind::Link -> {
+            let kind = t as NInstKind::Link
+
+            "link #${kind.linked_id}"
         }
         t is NInstKind::Noop -> {
             "noop"

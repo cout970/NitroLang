@@ -1,0 +1,141 @@
+
+// string
+//     : PLAIN_STRING
+//     | ASCII_STRING
+//     | STRING_START stringContents* STRING_END
+//     | STRING2_START string2Contents* STRING2_END
+//     ;
+
+// stringContents
+//     : STRING_BLOB
+//     | STRING_VAR
+//     | STRING_INTERP_START expression (STRING_INTERP_END|RBRACE)
+//     ;
+
+// string2Contents
+//     : STRING2_BLOB
+//     | STRING2_NL
+//     ;
+
+fun Parser.read_expression_string(code: NCode): Parsed<NInstId> {
+    ret when lexer.current_token_kind {
+        TokenKind::PLAIN_STRING -> read_expression_string_plain(code)
+        TokenKind::ASCII_STRING -> read_expression_string_ascii(code)
+        TokenKind::STRING_START -> read_expression_string_format(code)
+        TokenKind::STRING2_START -> read_expression_string_raw(code)
+        else -> {
+            ret parse_error(ParseError::ExpectedString, lexer.current_token)
+        }
+    }
+}
+
+fun Parser.read_expression_string_plain(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let text = lexer.current_token_text
+    skip_token_kind(TokenKind::PLAIN_STRING)?
+
+    let inst = code.add_lit_string(span, text)
+
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_string_ascii(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let text = lexer.current_token_text
+    skip_token_kind(TokenKind::ASCII_STRING)?
+
+    let inst = code.add_lit_int(span, text.to_int_in_base(10)!!)
+
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::STRING_START)?
+
+    let result = -1
+
+    loop {
+        when lexer.current_token_kind {
+            TokenKind::STRING_BLOB -> {
+                let text = lexer.current_token_text
+                lexer.next_token()
+
+                let new_string = code.add_lit_string(span, text)
+
+                if result == -1 {
+                    result = new_string.id
+                } else {
+                    let inst = code.add_fun_call(span, "", "concat", [result, new_string.id], [])
+                    result = inst.id
+                }
+            }
+            TokenKind::STRING_VAR -> {
+                let variable_name = lexer.current_token_text
+                lexer.next_token()
+
+                let load_var = code.add_load_var(span, "", variable_name, None())
+                let to_string = code.add_fun_call(span, "", "to_string", [load_var.id], [])
+
+                if result == -1 {
+                    result = to_string.id
+                } else {
+                    let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
+                    result = inst.id
+                }
+            }
+            TokenKind::STRING_INTERP_START -> {
+                lexer.next_token()
+                let expr = read_expression(code)?
+                skip_token_kind(TokenKind::STRING_INTERP_END)?
+
+                let to_string = code.add_fun_call(span, "", "to_string", [expr], [])
+
+                if result == -1 {
+                    result = to_string.id
+                } else {
+                    let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
+                    result = inst.id
+                }
+            }
+            TokenKind::STRING_END -> break
+        }
+    }
+
+    skip_token_kind(TokenKind::STRING_END)?
+
+    if result == -1 {
+        let inst = code.add_lit_string(span, "")
+        result = inst.id
+    }
+
+    ret found(result)
+}
+
+fun Parser.read_expression_string_raw(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::STRING2_START)?
+
+    let value = ""
+
+    loop {
+        when lexer.current_token_kind {
+            TokenKind::STRING2_BLOB -> {
+                let text = lexer.current_token_text
+                lexer.next_token()
+                value += text
+            }
+            TokenKind::STRING2_NL -> {
+                lexer.next_token()
+                value += "\n"
+            }
+            TokenKind::STRING2_END -> break
+        }
+    }
+
+    skip_token_kind(TokenKind::STRING2_END)?
+
+    let inst = code.add_lit_string(span, value)
+
+    ret found(inst.id)
+}

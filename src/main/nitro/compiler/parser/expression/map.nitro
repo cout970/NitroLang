@@ -1,0 +1,62 @@
+
+// #[key: value, "key": value, ("key" + 1): value]
+// mapExpr
+//     : MAP_START NL* (mapEntry (commaOrNl mapEntry)* COMMA?)? NL* RBRACKET ;
+
+// mapEntry
+//     : mapKey COLON NL* expression ;
+
+// mapKey
+//     : LPAREN NL* expression NL* RPAREN
+//     | anyName
+//     | string
+//     ;
+
+fun Parser.read_expression_map(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::MAP_START)?
+    skip_nl()
+
+    let map = code.add_fun_call(span, "Map", "new", [], [NTypeUsage::unresolved(), NTypeUsage::unresolved()])
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let span = lexer.current_token_span
+
+        let key = when {
+            lexer.current_token_kind == TokenKind::LPAREN -> {
+                lexer.next_token()
+                skip_nl()
+                let expr = read_expression(code)?
+                skip_nl()
+                skip_token_kind(TokenKind::RPAREN)?
+
+                expr
+            }
+            lexer.current_token_kind == TokenKind::LOWER_IDENTIFIER -> {
+                let name = read_name()?
+
+                let str = code.add_lit_string(span, name)
+                str.id
+            }
+            lexer.current_token_kind == TokenKind::UPPER_IDENTIFIER -> {
+                let name = read_name()?
+
+                let load = code.add_load_var(span, "", name, None())
+                load.id
+            }
+            else -> read_expression_string(code)?
+        }
+
+        skip_token_kind(TokenKind::COLON)?
+        skip_nl()
+
+        let value = read_expression(code)?
+
+        code.add_fun_call(span, "", "set", [map.id, key, value], [])
+
+        ret found(nothing)
+    }?
+
+    let link = code.add_link(span, map.id)
+    ret found(link.id)
+}

@@ -24,22 +24,46 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
 
     let inst = when lexer.current_token_kind {
+        // parenthesizedExpression
         TokenKind::LPAREN -> read_expression_in_parens(code)
+        // constExpr
         TokenKind::INT_NUMBER -> read_expression_literal(code)
         TokenKind::LONG_NUMBER -> read_expression_literal(code)
         TokenKind::FLOAT_NUMBER -> read_expression_literal(code)
         TokenKind::PLAIN_STRING -> read_expression_literal(code)
+        TokenKind::ASCII_STRING -> read_expression_literal(code)
         TokenKind::TRUE -> read_expression_literal(code)
         TokenKind::FALSE -> read_expression_literal(code)
         TokenKind::NULL -> read_expression_literal(code)
         TokenKind::NOTHING -> read_expression_literal(code)
+        // string
+        TokenKind::PLAIN_STRING -> read_expression_string(code)
+        TokenKind::STRING_START -> read_expression_string(code)
+        TokenKind::STRING2_START -> read_expression_string(code)
+        // when
+        // listExpr
+        TokenKind::LBRACKET -> read_expression_list(code)
+        // mapExpr
+        TokenKind::MAP_START -> read_expression_map(code)
+        // setExpr
+        TokenKind::SET_START -> read_expression_set(code)
+        // lambdaExpr
+        // structInstanceExpr
+        // sizeOfExpr
+        TokenKind::SIZE_OF -> read_expression_size_of(code)
+        // variableExpr
         TokenKind::LOWER_IDENTIFIER -> read_expression_variable(code)
         TokenKind::UPPER_IDENTIFIER -> read_expression_variable(code)
+        // jsonExpr
+        // templateLiteral
+        // THIS
         TokenKind::THIS -> read_expression_this(code)
+        // BREAK
         TokenKind::BREAK -> read_expression_break(code)
+        // CONTINUE
         TokenKind::CONTINUE -> read_expression_continue(code)
         else -> {
-            ret parse_error(ParseError::Generic, lexer.current_token)
+            ret parse_error(ParseError::ExpectedExpression, lexer.current_token)
         }
     }
 

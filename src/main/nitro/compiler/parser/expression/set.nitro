@@ -1,0 +1,23 @@
+
+// %[1, 2, 3]
+// setExpr
+//     : SET_START NL* (expression (commaOrNl expression)* COMMA?)? NL* RBRACKET ;
+
+fun Parser.read_expression_set(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::SET_START)?
+    skip_nl()
+
+    let set = code.add_fun_call(span, "Set", "new", [], [NTypeUsage::unresolved()])
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let expr = read_expression(code)?
+
+        code.add_fun_call(span, "", "add", [set.id, expr], [])
+
+        ret found(nothing)
+    }?
+
+    let link = code.add_link(span, set.id)
+    ret found(link.id)
+}

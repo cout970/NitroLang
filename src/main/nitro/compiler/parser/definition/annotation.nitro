@@ -40,14 +40,10 @@ fun Parser.parse_annotation(): Parsed<NAnnotation> {
     skip_token_kind(TokenKind::LBRACKET)?
     skip_nl()
 
-    let res = read_until_delimited(TokenKind::RBRACKET) @{
+    read_until_delimited(TokenKind::RBRACKET) @{
         ann.args[] = read_annotation_arg()?
         ret found(nothing)
-    }
-
-//    if res.is_error() {
-//        recover_until(TokenKind::RBRACKET)
-//    }
+    }?
 
     ret found(ann)
 }

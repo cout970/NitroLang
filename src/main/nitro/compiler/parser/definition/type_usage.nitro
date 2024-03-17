@@ -38,6 +38,16 @@ enum TypeUsageKind {
     TYPE_SIMPLE,
     TYPE_THIS,
     TYPE_PARAM,
+    TYPE_UNRESOLVED,
+}
+
+fun NTypeUsage::unresolved(): NTypeUsage {
+    ret NTypeUsage @[
+        kind: TypeUsageKind::TYPE_UNRESOLVED,
+        name: "[unresolved]",
+        module_path: "",
+        type_params: [],
+    ]
 }
 
 fun NTypeUsage::simple(name: String): NTypeUsage {
@@ -55,6 +65,15 @@ fun NTypeUsage::simple_with_path(path: String, name: String): NTypeUsage {
         name,
         module_path: path,
         type_params: [],
+    ]
+}
+
+fun NTypeUsage::simple_with_params(name: String, type_params: List<NTypeUsage>): NTypeUsage {
+    ret NTypeUsage @[
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        module_path: "",
+        type_params,
     ]
 }
 
@@ -200,6 +219,10 @@ fun NTypeUsage.to_string(): String {
 
     if kind == TypeUsageKind::TYPE_PARAM {
         ret "#$name"
+    }
+
+    if kind == TypeUsageKind::TYPE_UNRESOLVED {
+        ret this.name
     }
 
     if module_path != "" {

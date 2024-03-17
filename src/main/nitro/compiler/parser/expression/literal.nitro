@@ -19,6 +19,10 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
             let value: String = read_plain_string()?
             code.add_lit(span, NConstExpr::NConstString @[value])
         }
+        TokenKind::ASCII_STRING -> {
+            let value: Int = read_ascii_string()?
+            code.add_lit(span, NConstExpr::NConstInt @[value])
+        }
         TokenKind::TRUE -> {
             lexer.next_token()
             code.add_lit(span, NConstExpr::NConstBoolean @[value: true])
@@ -37,6 +41,7 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
             code.add_lit(span, NConstExpr::NConstNothing @[])
         }
         else -> {
+            lexer.print_debug_info()
             ret parse_error(ParseError::Generic, lexer.current_token)
         }
     }
