@@ -615,6 +615,9 @@ fun ParserCtx.processConstExpr(ctx: MainParser.ConstExprContext): ConstValue = w
     ctx.PLAIN_STRING() != null -> {
         ConstString(processPlainString(ctx.PLAIN_STRING()))
     }
+    ctx.ASCII_STRING() != null -> {
+        ConstInt(processAsciiString(ctx.ASCII_STRING()))
+    }
 
     ctx.FALSE() != null -> ConstBoolean(false)
     ctx.TRUE() != null -> ConstBoolean(true)
@@ -717,6 +720,9 @@ fun ParserCtx.processExpressionConstExpr(ctx: MainParser.ConstExprContext): Ref 
         ctx.PLAIN_STRING() != null -> {
             code.string(ctx.span(), processPlainString(ctx.PLAIN_STRING()))
         }
+        ctx.ASCII_STRING() != null -> {
+            code.int(ctx.span(), processAsciiString(ctx.ASCII_STRING()))
+        }
 
         ctx.TRUE() != null -> {
             code.boolean(ctx.span(), true)
@@ -749,9 +755,19 @@ fun ParserCtx.processPlainString(ctx: TerminalNode): String {
     return unescapeStringLiteral(text)
 }
 
+fun ParserCtx.processAsciiString(ctx: TerminalNode): Int {
+    val tokenText = ctx.text
+    val text = tokenText.substring(2, tokenText.length - 1)
+    val asciiText = unescapeStringLiteral(text)
+    return asciiText.first().code
+}
+
 fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     if (ctx.PLAIN_STRING() != null) {
         return code.string(ctx.span(), processPlainString(ctx.PLAIN_STRING()))
+    }
+    if(ctx.ASCII_STRING() != null) {
+        return code.int(ctx.span(), processAsciiString(ctx.ASCII_STRING()))
     }
 
     if (ctx.STRING2_START() != null) {
@@ -822,43 +838,6 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
     }
 }
 
-fun unescapeStringLiteral(tokenText: String): String {
-    var text = tokenText
-
-    // Hex \xFF
-    text = text.replace(Regex("""\\x([0-9a-fA-F]{2})""")) { res ->
-        val hex = res.groupValues[1].toInt(16)
-        hex.toChar().toString()
-    }
-
-    // Unicode \uFFFF
-    text = text.replace(Regex("""\\u([0-9a-fA-F]{4})""")) { res ->
-        val hex = res.groupValues[1].toInt(16)
-        hex.toChar().toString()
-    }
-
-    // C escape codes \n
-    text = text.replace(Regex("""\\(.)""")) { res ->
-        when (val char = res.groupValues[1][0]) {
-            'n' -> "\n"
-            'r' -> "\r"
-            '"' -> "\""
-            '$' -> "\$"
-            't' -> "\t"
-            '\'' -> "\'"
-            '\\' -> "\\"
-            'a' -> "\u0007"
-            'b' -> "\u0008"
-            'e' -> "\u001b"
-            'f' -> "\u000c"
-            'v' -> "\u000b"
-            else -> char.toString()
-        }
-    }
-
-    return text
-}
-
 fun ParserCtx.createStructInstance(
     type: LstTypeUsage,
     fields: List<Pair<String, Ref>>,
@@ -887,6 +866,44 @@ fun ParserCtx.createStructInstance(
     }
 
     return alloc.ref
+}
+
+fun unescapeStringLiteral(tokenText: String): String {
+    var text = tokenText
+
+    // Hex \xFF
+    text = text.replace(Regex("""\\x([0-9a-fA-F]{2})""")) { res ->
+        val hex = res.groupValues[1].toInt(16)
+        hex.toChar().toString()
+    }
+
+    // Unicode \uFFFF
+    text = text.replace(Regex("""\\u([0-9a-fA-F]{4})""")) { res ->
+        val hex = res.groupValues[1].toInt(16)
+        hex.toChar().toString()
+    }
+
+    // C escape codes \n
+    text = text.replace(Regex("""\\(.)""")) { res ->
+        when (val char = res.groupValues[1][0]) {
+            '0' -> "\u0000"
+            'n' -> "\n"
+            'r' -> "\r"
+            '"' -> "\""
+            '$' -> "\$"
+            't' -> "\t"
+            '\'' -> "\'"
+            '\\' -> "\\"
+            'a' -> "\u0007"
+            'b' -> "\u0008"
+            'e' -> "\u001b"
+            'f' -> "\u000c"
+            'v' -> "\u000b"
+            else -> char.toString()
+        }
+    }
+
+    return text
 }
 
 fun ParserCtx.processExpressionJsonExpr(ctx: MainParser.JsonExprContext): Ref {

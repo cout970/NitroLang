@@ -364,7 +364,7 @@ export function string_concat_string(self: number, other: number): number {
 // @Extern [lib="core", name="string_concat_char"]
 // fun concat(String, Char): String
 export function string_concat_char(self: number, char: number): number {
-    return createString(getString(self) + String.fromCodePoint(char));
+    return createString(getString(self) + String.fromCodePoint(getInt(char)));
 }
 
 // @Extern [lib="core", name="string_is_equal"]

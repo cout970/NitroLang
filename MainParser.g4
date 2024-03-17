@@ -16,6 +16,7 @@ anyName : LOWER_IDENTIFIER | UPPER_IDENTIFIER ;
 
 string
     : PLAIN_STRING
+    | ASCII_STRING
     | STRING_START stringContents* STRING_END
     | STRING2_START string2Contents* STRING2_END
     ;
@@ -413,6 +414,7 @@ constExpr
     | LONG_NUMBER
     | FLOAT_NUMBER
     | PLAIN_STRING
+    | ASCII_STRING
     | TRUE
     | FALSE
     | NULL
@@ -432,7 +434,7 @@ whenKey
     | ELSE
     ;
 
-// #[item1, item2]
+// [item1, item2]
 listExpr
     : LBRACKET NL* (listEntry (commaOrNl listEntry)* COMMA?)? NL* RBRACKET ;
 
@@ -440,7 +442,7 @@ listExpr
 listEntry
     : expression;
 
-// @[key: value, "key": value, ("key" + 1): value]
+// #[key: value, "key": value, ("key" + 1): value]
 mapExpr
     : MAP_START NL* (mapEntry (commaOrNl mapEntry)* COMMA?)? NL* RBRACKET ;
 

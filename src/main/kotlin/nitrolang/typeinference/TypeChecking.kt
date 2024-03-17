@@ -1112,7 +1112,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                                 collector.report("Function resolution ambiguity '${node.fullName}':$list", node.span)
                             } else {
                                 collector.report(
-                                    "Function resolution ambiguity '${node.fullName}' with ${options.size} posible matches",
+                                    "Function resolution ambiguity '${node.fullName}' with ${options.size} posible matches (${matchArgs.firstOrNull() ?: scopeThis})",
                                     node.span
                                 )
                             }

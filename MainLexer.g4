@@ -117,6 +117,7 @@ LOWER_IDENTIFIER                : [a-z][a-zA-Z0-9_]* ;
 
 // Simple no interpolation string
 PLAIN_STRING                    : '"' (~["$\\]|[\\].)* '"' ;
+ASCII_STRING                    : [a] '"' (~["$\\]|[\\][x][0-9a-fA-F][0-9a-fA-F]|[\\].) '"' ;
 // String interpolation section
 STRING_START                    : '"'  -> pushMode(STRING_MODE) ;
 // String interpolation section

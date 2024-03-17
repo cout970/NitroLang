@@ -49,6 +49,7 @@ Intended for the developers
 - Support WASI runtime
 - Inline struct in another struct to share a set of fields between structs
 - Add bench! to create benchmarks
+- Add dbg! to debug expression and block of statements
 - Add reference-count garbage collector
 - Add option to disable GC on specific instances
 - Implement merge sort
