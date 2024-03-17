@@ -19,3 +19,8 @@ fun Int.to_char(): Char {
 fun Char.to_string(): String {
     return "".concat(this)
 }
+
+// Creates an string with only this character
+fun Char.plus(other: Char): String {
+    return "".concat(this).concat(other)
+}

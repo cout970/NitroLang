@@ -321,7 +321,7 @@ fun String.mul(amount: Int): String {
 // Implementation of the ToString tag for strings
 fun String.to_string(): String = this
 
-// Converts a string to an integer
+// Converts a string to an integer, assumes base 10 and only [_\-\+0-9] chars are allowed
 // TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
@@ -333,9 +333,15 @@ fun String.to_int(): Optional<Int> {
         ret None()
     }
 
-    if this[cursor].to_int() == a"-" {
+    let first = this[cursor].to_int()
+
+    if first == a"-" {
         cursor += 1
         sign = -1
+    }
+
+    if first == a"+" {
+        cursor += 1
     }
 
     while cursor < total_len {
@@ -347,12 +353,88 @@ fun String.to_int(): Optional<Int> {
             continue
         }
 
-        if byte < 48 || byte > 57 {
+        if byte < a"0" || byte > a"9" {
             ret None()
         }
 
-        result = result * 10 + (byte - 48)
+        result = result * 10 + (byte - a"0")
         cursor += 1
+    }
+
+    ret Some(result * sign)
+}
+
+// Converts a string to an integer, only [_\-\+0-9a-zA-Z] chars are allowed
+fun String.to_int_in_base(base: Int): Optional<Int> {
+    let result = 0
+    let total_len = this.len()
+    let cursor = 0
+    let sign = 1
+
+    if total_len == 0 {
+        ret None()
+    }
+
+    let first = this[cursor].to_int()
+
+    if first == a"-" {
+        cursor += 1
+        sign = -1
+    }
+
+    if first == a"+" {
+        cursor += 1
+    }
+
+    while cursor < total_len {
+        let byte = this[cursor].to_int()
+
+        // ignore '_'
+        if byte == a"_" {
+            cursor += 1
+            continue
+        }
+
+        if byte >= a"0" && byte <= a"9" {
+            let digit_value = (byte - a"0")
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        if byte >= a"a" && byte <= a"z" {
+            let digit_value = (byte - a"a" + 10)
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        if byte >= a"A" && byte <= a"Z" {
+            let digit_value = (byte - a"A" + 10)
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        ret None()
     }
 
     ret Some(result * sign)
@@ -437,5 +519,6 @@ fun String.to_float(): Optional<Float> {
 // - b"ABC" gives a byte array with the contents of the string in UTF8
 //
 fun a(str: List<String>): Int {
+    crash("Using the nitro implementation instead of the native compiler implementation: $str")
     ret str[0]!!.get_byte(0).to_int()
 }

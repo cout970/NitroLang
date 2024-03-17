@@ -41,7 +41,7 @@ fun Optional<#Value>.get_or_crash(): #Value {
         ret (this as Optional::Some<#Value>).value
     }
 
-    crash("Call to get_or_crash() on None variant")
+    crash("Call to get_or_crash() '!!' on None variant")
 }
 
 // Returns the value of the Some variant, or the default value if the Optional is the None variant
