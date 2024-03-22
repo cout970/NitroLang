@@ -1,0 +1,131 @@
+
+// E.g. expr @{ }
+// E.g. expr[index]
+// E.g. expr.field
+// E.g. expr
+// E.g. true()
+// E.g. expr.field()
+// E.g. func()()
+// E.g. break()
+// E.g. result!!
+// E.g. result?
+// expressionWithSuffix
+//     : expressionWithSuffix QUESTION_MARK
+//     | expressionWithSuffix BANGBANG
+//     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET
+//     | expressionWithSuffix NL? DOT anyName
+//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallParams functionCallEnd?
+//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallEnd
+//     | expressionOrFunctionCall
+//     ;
+
+// expressionOrFunctionCall
+//     : modulePath? anyName functionCallEnd
+//     | modulePath? anyName functionCallParams functionCallEnd?
+//     | parenthesizedExpression functionCallParams functionCallEnd?
+//     | string functionCallParams functionCallEnd?
+//     | constExpr functionCallParams functionCallEnd?
+//     | structInstanceExpr functionCallParams functionCallEnd?
+//     | THIS functionCallParams functionCallEnd?
+//     | THIS functionCallEnd
+//     | expressionBase
+
+// functionCallParams
+//     : typeParamArg? LPAREN NL* functionCallParamList? RPAREN ;
+
+// functionCallParamList
+//     : expression (commaOrNl expression)* COMMA? NL* ;
+
+// functionCallEnd
+//     : lambdaExpr ;
+
+fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
+    let last = read_expression_function_call(code)?
+
+    loop {
+        let span = lexer.current_token_span
+
+        if lexer.current_token_kind == TokenKind::QUESTION_MARK {
+            // `last?`
+            // Becomes:
+            // ```
+            // if last.is_returnable_error() {
+            //    return last.convert_error()
+            // }
+            // last.get_or_crash()
+            // ```
+
+            lexer.next_token()
+            let call = code.add_fun_call(span, "", "is_returnable_error", [last], [])
+
+            code.add_if_start(span, call.id)
+            let call2 = code.add_fun_call(span, "", "convert_error", [last], [])
+            code.add_return(span, call2.id)
+            code.add_if_end(span)
+
+            let call3 = code.add_fun_call(span, "", "get_or_crash", [last], [])
+            last = call3.id
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::BANGBANG {
+            // `last!!`
+            // Becomes:
+            // ```
+            // last.get_or_crash()
+            // ```
+
+            lexer.next_token()
+            let call = code.add_fun_call(span, "", "get_or_crash", [last], [])
+            last = call.id
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::LBRACKET {
+            // `last[1, 2, 3, 4]`
+            // Becomes:
+            // ```
+            // last.get(1, 2, 3, 4)
+            // ```
+
+            lexer.next_token()
+            let args = [last]
+
+            read_until_delimited(TokenKind::RBRACKET) @{
+                args[] = read_expression(code)?
+                ret found(nothing)
+            }?
+
+            let call = code.add_fun_call(span, "", "get", args, [])
+            last = call.id
+            continue
+        }
+
+        if lexer.next_non_nl_token_kind == TokenKind::DOT {
+            skip_nl()
+            lexer.next_token()
+
+            let path = read_module_path()?
+            let name = read_name()?
+
+            if path == "" {
+                last = code.add_load_field(span, last, name).id
+            } else {
+                // TODO function call/method call syntax
+                crash("TODO")
+            }
+            continue
+        }
+
+        break
+    }
+
+    ret found(last)
+}
+
+
+fun Parser.read_expression_function_call(code: NCode): Parsed<NInstId> {
+    let left = read_expression_base(code)?
+
+    ret found(left)
+}

@@ -47,7 +47,7 @@ option NInstKind {
     }
     IsType {
         value: NInstId
-        type_usage: NTypeUsage
+        type_pattern: NTypePattern
     }
     AsType {
         value: NInstId
@@ -256,14 +256,14 @@ fun NCode.add_return(
 fun NCode.add_is_type(
     span: Span,
     value: NInstId,
-    type_usage: NTypeUsage,
+    type_pattern: NTypePattern,
 ): NInst {
     last_id += 1
     let i = NInst @[
         id: last_id,
         span,
         current_block,
-        kind: NInstKind::IsType @[value, type_usage],
+        kind: NInstKind::IsType @[value, type_pattern],
     ]
     inst[] = i
     ret i
@@ -576,7 +576,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::IsType -> {
             let kind = i.kind as NInstKind::IsType
 
-            add_is_type(i.span, kind.value, kind.type_usage)
+            add_is_type(i.span, kind.value, kind.type_pattern)
         }
         i.kind is NInstKind::AsType -> {
             let kind = i.kind as NInstKind::AsType
@@ -721,7 +721,7 @@ fun NInst.to_string(): String {
         t is NInstKind::IsType -> {
             let kind = t as NInstKind::IsType
 
-            "is-type #${kind.value} ${kind.type_usage}"
+            "is-type #${kind.value} ${kind.type_pattern}"
         }
         t is NInstKind::AsType -> {
             let kind = t as NInstKind::AsType

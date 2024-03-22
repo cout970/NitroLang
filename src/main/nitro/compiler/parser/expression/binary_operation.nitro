@@ -50,27 +50,28 @@ enum BinaryOperator {
     BIT_AND              @[symbol: "&",   precedence: 4,    method: "bitwise_and",                  uses_ordering: false, optimization: #[]],
     BIT_XOR              @[symbol: "^",   precedence: 5,    method: "bitwise_xor",                  uses_ordering: false, optimization: #[]],
     BIT_OR               @[symbol: "|",   precedence: 6,    method: "bitwise_or",                   uses_ordering: false, optimization: #[]],
-    LESS_THAN            @[symbol: "<",   precedence: 7,   method: "is_less",                      uses_ordering: true,  optimization: #["Int": "less_than_signed", "Float": "less_than"]],
-    GREATER_THAN         @[symbol: ">",   precedence: 7,   method: "is_greater",                   uses_ordering: true,  optimization: #["Int": "greater_than_signed", "Float": "greater_than"]],
-    LESS_EQUAL           @[symbol: "<=",  precedence: 7,   method: "is_less_or_equals",            uses_ordering: true,  optimization: #["Int": "less_equal_signed", "Float": "less_equal"]],
-    GREATER_EQUAL        @[symbol: ">=",  precedence: 7,   method: "is_greater_or_equals",         uses_ordering: true,  optimization: #["Int": "greater_equal_signed", "Float": "greater_equal"]],
-    COMPARE              @[symbol: "<=>", precedence: 8,   method: "get_ordering",                 uses_ordering: false, optimization: #[]],
-    EQUAL                @[symbol: "==",  precedence: 9,   method: "is_equals",                    uses_ordering: true,  optimization: #["Int": "is_equal", "Float": "is_equal", "String": "is_equal"]],
-    NOT_EQUAL            @[symbol: "!=",  precedence: 9,   method: "is_not_equals",                uses_ordering: true,  optimization: #["Int": "is_not_equal", "Float": "is_not_equal", "String": "is_not_equal"]],
+    LESS_THAN            @[symbol: "<",   precedence: 7,    method: "is_less",                      uses_ordering: true,  optimization: #["Int": "less_than_signed", "Float": "less_than"]],
+    GREATER_THAN         @[symbol: ">",   precedence: 7,    method: "is_greater",                   uses_ordering: true,  optimization: #["Int": "greater_than_signed", "Float": "greater_than"]],
+    LESS_EQUAL           @[symbol: "<=",  precedence: 7,    method: "is_less_or_equals",            uses_ordering: true,  optimization: #["Int": "less_equal_signed", "Float": "less_equal"]],
+    GREATER_EQUAL        @[symbol: ">=",  precedence: 7,    method: "is_greater_or_equals",         uses_ordering: true,  optimization: #["Int": "greater_equal_signed", "Float": "greater_equal"]],
+    COMPARE              @[symbol: "<=>", precedence: 8,    method: "get_ordering",                 uses_ordering: false, optimization: #[]],
+    EQUAL                @[symbol: "==",  precedence: 9,    method: "is_equals",                    uses_ordering: true,  optimization: #["Int": "is_equal", "Float": "is_equal", "String": "is_equal"]],
+    NOT_EQUAL            @[symbol: "!=",  precedence: 9,    method: "is_not_equals",                uses_ordering: true,  optimization: #["Int": "is_not_equal", "Float": "is_not_equal", "String": "is_not_equal"]],
     BOOL_XOR             @[symbol: "^^",  precedence: 10,   method: "logical_xor",                  uses_ordering: false, optimization: #[]],
 }
 
+// A + B
 fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
     // Collect expressions and operators in the order they appear
     let expressions: List<BinaryTree> = []
     let operators: List<BinaryOperator> = []
 
-    let span = lexer.current_token_span
-    let child_code = code.new_child(span)
-    read_expression_simple(child_code)?
-    expressions[] = BinaryTree::Expression @[code: child_code, span]
-
     loop {
+        let span = lexer.current_token_span
+        let child_code = code.new_child(span)
+        read_expression_simple(child_code)?
+        expressions[] = BinaryTree::Expression @[code: child_code, span]
+
         let opt: Optional<BinaryOperator> = read_binary_operator()
 
         if opt.is_none() {
@@ -78,11 +79,6 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
         }
 
         operators[] = opt!!
-
-        let span = lexer.current_token_span
-        let child_code = code.new_child(span)
-        read_expression_simple(child_code)?
-        expressions[] = BinaryTree::Expression @[code: child_code, span]
     }
 
     // Sort the operators by precedence in ascending order

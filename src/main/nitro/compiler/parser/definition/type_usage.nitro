@@ -80,6 +80,7 @@ fun NTypeUsage::simple_with_params(name: String, type_params: List<NTypeUsage>):
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     // This
     if lexer.current_token_kind == TokenKind::THIS_TYPE {
+        lexer.next_token()
         ret found(NTypeUsage @[
             kind: TypeUsageKind::TYPE_THIS,
             name: "This",

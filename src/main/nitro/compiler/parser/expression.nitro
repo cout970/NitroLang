@@ -29,6 +29,7 @@ fun Parser.read_expression(code: NCode): Parsed<NInstId> {
     ret inst
 }
 
+// A || B
 fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
     let left = read_expression_and(code)?
 
@@ -57,6 +58,7 @@ fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
     ret found(left)
 }
 
+// A && B
 fun Parser.read_expression_and(code: NCode): Parsed<NInstId> {
     let left = read_expression_binary_operation(code)?
 

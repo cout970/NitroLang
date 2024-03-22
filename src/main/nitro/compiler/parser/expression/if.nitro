@@ -12,8 +12,8 @@ fun Parser.read_expression_if(code: NCode): Parsed<NInstId> {
 
     code.add_if_start(span, condition)
     code.enter_block(false)
-    read_statement_block(code)?
-    let if_true = code.last_expression
+    read_statement_block_expr(code)?
+    let if_true = code.last_expression!!
     code.exit_block()
 
     skip_token_kind(TokenKind::ELSE)?
@@ -21,18 +21,13 @@ fun Parser.read_expression_if(code: NCode): Parsed<NInstId> {
 
     code.add_if_else(span)
     code.enter_block(false)
-    read_statement_block(code)?
-    let if_false = code.last_expression
+    read_statement_block_expr(code)?
+    let if_false = code.last_expression!!
     code.exit_block()
 
     code.add_if_end(span)
 
-    if if_true.is_none() || if_false.is_none() {
-        let inst = code.add_comment(span, "Error missing last expression in if statement block")
-        ret found(inst.id)
-    }
-
-    let inst = code.add_if_choose(span, condition, if_true!!, if_false!!)
+    let inst = code.add_if_choose(span, condition, if_true, if_false)
 
     ret found(inst.id)
 }

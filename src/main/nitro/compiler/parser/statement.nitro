@@ -23,6 +23,7 @@
 //     | testDefinition
 //     ;
 
+// Read a block of statements
 fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
@@ -46,6 +47,19 @@ fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
     }
 
     skip_token_kind(TokenKind::RBRACE)?
+
+    ret found(nothing)
+}
+
+// Read a block of statements and make sure there is an expression at the end
+fun Parser.read_statement_block_expr(code: NCode): Parsed<Nothing> {
+    let span = lexer.current_token_span
+    read_statement_block(code)?
+
+    if code.last_expression.is_none() {
+        let inst = code.add_lit_nothing(span)
+        code.last_expression = Some(inst.id)
+    }
 
     ret found(nothing)
 }

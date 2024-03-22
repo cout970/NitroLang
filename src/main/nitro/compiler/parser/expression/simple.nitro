@@ -18,26 +18,6 @@
 //     | plusExpr
 //     ;
 
-// E.g. expr @{ }
-// E.g. expr[index]
-// E.g. expr.field
-// E.g. expr
-// E.g. true()
-// E.g. expr.field()
-// E.g. func()()
-// E.g. break()
-// E.g. result!!
-// E.g. result?
-// expressionWithSuffix
-//     : expressionWithSuffix earlyReturnSuffix
-//     | expressionWithSuffix assertSuffix
-//     | expressionWithSuffix collectionIndexingSuffix
-//     | expressionWithSuffix structFieldAccessSuffix
-//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallParams functionCallEnd?
-//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallEnd
-//     | expressionOrFunctionCall
-//     ;
-
 fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
 
@@ -78,11 +58,8 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
     if lexer.current_token_kind == TokenKind::IS {
         lexer.next_token()
 
-        // TODO add type patterns
-//        let type_pattern = read_type_pattern(code)
-//        let inst = code.add_is_type(span, left, type_pattern)
-        let type_usage = read_type_usage()?
-        let inst = code.add_is_type(span, left, type_usage)
+        let type_pattern = read_type_pattern()?
+        let inst = code.add_is_type(span, left, type_pattern)
 
         ret found(inst.id)
     }
@@ -102,11 +79,8 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
         if lexer.current_token_kind == TokenKind::IS {
             lexer.next_token()
 
-            // TODO add type patterns
-    //        let type_pattern = read_type_pattern(code)
-    //        let inst = code.add_is_type(span, left, type_pattern)
-            let type_usage = read_type_usage()?
-            let inst = code.add_is_type(span, left, type_usage)
+            let type_pattern = read_type_pattern()?
+            let inst = code.add_is_type(span, left, type_pattern)
 
             inst = code.add_fun_call(span, "", "logical_not", [inst.id], [])
 
@@ -124,17 +98,8 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
             ret found(inst.id)
         }
 
-        println("-" * 80)
         ret parse_error_expected(ParseError::ExpectedToken, lexer.current_token, TokenKind::IS)
      }
-
-    ret found(left)
-}
-
-fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
-    let left = read_expression_function_call(code)?
-
-    // TODO: Implement the rest of the expressionWithSuffix
 
     ret found(left)
 }

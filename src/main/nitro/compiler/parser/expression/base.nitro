@@ -9,7 +9,7 @@
 //     | mapExpr
 //     | setExpr
 //     | lambdaExpr
-//     | structInstanceExpr
+//     | newInstanceExpr
 //     | sizeOfExpr
 //     | variableExpr
 //     | jsonExpr
@@ -41,6 +41,7 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::STRING_START -> read_expression_string(code)
         TokenKind::STRING2_START -> read_expression_string(code)
         // when
+        TokenKind::WHEN -> read_expression_when(code)
         // listExpr
         TokenKind::LBRACKET -> read_expression_list(code)
         // mapExpr
@@ -48,10 +49,9 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // setExpr
         TokenKind::SET_START -> read_expression_set(code)
         // lambdaExpr
-        // structInstanceExpr
         // sizeOfExpr
         TokenKind::SIZE_OF -> read_expression_size_of(code)
-        // variableExpr
+        // variableExpr or newInstanceExpr
         TokenKind::LOWER_IDENTIFIER -> read_expression_variable(code)
         TokenKind::UPPER_IDENTIFIER -> read_expression_variable(code)
         // jsonExpr

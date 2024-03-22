@@ -234,7 +234,7 @@ fun Lexer.add_token_with_extra(kind: TokenKind, offset: Int, extra: String) {
 
 // Tries to read the next token, returns true if there are more tokens to read
 fun Lexer.next(): Boolean {
-    if (cur >= src.len()) {
+    if cur >= src.len() {
         // We add extra so the parser can always look ahead 4 tokens
         add_token(TokenKind::EOF)
         add_token(TokenKind::EOF)

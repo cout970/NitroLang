@@ -2,10 +2,22 @@
 // variableExpr
 //     : modulePath? anyName ;
 
+// newInstanceExpr
+//     : modulePath? upperName typeParamArg? STRUCT_START NL* (newInstanceEntry (commaOrNl newInstanceEntry)* COMMA?)? NL* RBRACKET ;
+//
+// structInstanceEntry
+//     : modulePath? anyName COLON NL* expression
+//     | modulePath? anyName
+//     ;
+
 fun Parser.read_expression_variable(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     let path = read_module_path()?
     let name = read_name()?
+
+    if lexer.current_token_kind == TokenKind::STRUCT_START {
+        ret read_expression_new_instance(code, path, name)
+    }
 
     let inst = code.add_load_var(span, path, name, None())
     ret found(inst.id)
@@ -16,5 +28,37 @@ fun Parser.read_expression_this(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::THIS)?
 
     let inst = code.add_load_var(span, "", "this", None())
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_new_instance(code: NCode, path: String, name: String): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::STRUCT_START)?
+    skip_nl()
+
+    let type_usage = NTypeUsage::simple_with_path(path, name)
+    let instance = code.add_alloc(span, type_usage)
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let span = lexer.current_token_span
+        let path = read_module_path()?
+        let name = read_name()?
+
+        if lexer.current_token_kind == TokenKind::COLON {
+            skip_token_kind(TokenKind::COLON)?
+            skip_nl()
+            let expr = read_expression(code)?
+
+            code.add_store_field(span, instance.id, name, expr)
+        } else {
+            let inst = code.add_load_var(span, path, name, None())
+
+            code.add_store_field(span, instance.id, name, inst.id)
+        }
+
+        ret found(nothing)
+    }?
+
+    let inst = code.add_link(span, instance.id)
     ret found(inst.id)
 }

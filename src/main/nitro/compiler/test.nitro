@@ -92,6 +92,7 @@ fun foo() {
     ret 0
     false || true && true
     0 is Int
+    0 is List<*>
     0 as Int
     let variable: List<Int>
     0 !in variable
@@ -112,6 +113,22 @@ fun foo() {
     [1, 2, 3]
     #[alpha: "a", "beta": "b", ("gamma"): "g"]
     %[1, 2, 3]
+
+    my_mod::MyStruct @[
+        field1: 1,
+        field2,
+        field3: 3
+    ]
+
+    let a = when 0 {
+        0 -> "true"
+        1 -> "false"
+        else -> "third option"
+    }
+
+    a?
+    a!!
+    a[1]
 }
 
 "#
