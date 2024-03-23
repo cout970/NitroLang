@@ -203,6 +203,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
     ret false
 }
 
+// Allows to use `key in map` syntax
+fun <#Key: MapKey> Map<#Key, #Value>.contains(key: #Key): Boolean {
+    ret this.contains_key(key)
+}
+
 // Checks if the map contains a key
 fun <#Key: MapKey> Map<#Key, #Value>.contains_key(key: #Key): Boolean {
     ret this.get(key).is_some()

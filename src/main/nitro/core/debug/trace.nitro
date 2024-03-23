@@ -24,7 +24,7 @@ mod Trace {
     fun exit_function(function_name: String) {
         if state.trace_enable {
            state.trace_enable = false
-           state.trace_stack.remove_last()
+           state.trace_stack.remove_last()!!
            state.trace_enable = true
         }
     }
