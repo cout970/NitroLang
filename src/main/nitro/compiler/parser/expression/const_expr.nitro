@@ -107,9 +107,14 @@ fun Parser.read_float(): Parsed<Float> {
 
     let text: String = lexer.current_token.extra
     lexer.next_token()
-    let value: Float = text.to_float()!!
+    let parse_result = text.to_float()
 
-    ret found(value)
+
+    if parse_result.is_none() {
+        crash("Failed to parse float: " + text)
+    }
+
+    ret found(parse_result!!)
 }
 
 fun NConstExpr.to_string(): String {

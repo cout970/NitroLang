@@ -1,0 +1,146 @@
+
+// json! {"key": ["val1", 1, true, null]}
+// jsonExpr
+//     : JSON jsonValue ;
+//
+// jsonValue
+//    : string
+//    | INT_NUMBER
+//    | FLOAT_NUMBER
+//    | TRUE
+//    | FALSE
+//    | NULL
+//    | jsonObject
+//    | jsonArray
+//    | LPAREN NL* expression NL* RPAREN
+//    ;
+
+// jsonObject
+//    : LBRACE NL* (jsonPair (commaOrNl jsonPair)* COMMA?)? NL* RBRACE ;
+
+// jsonPair
+//    : (anyName|string) NL* COLON NL* jsonValue ;
+
+// jsonArray
+//    : LBRACKET NL* (jsonValue (commaOrNl jsonValue)* COMMA?)? NL* RBRACKET ;
+
+fun Parser.read_expression_json(code: NCode): Parsed<NInstId> {
+    skip_token_kind(TokenKind::JSON)?
+
+    ret read_expression_json_value(code)
+}
+
+fun Parser.read_expression_json_value(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+
+    when lexer.current_token_kind {
+        TokenKind::PLAIN_STRING -> {
+            let expr = read_expression_string(code)?
+            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            ret found(inst.id)
+        }
+        TokenKind::STRING_START -> {
+            let expr = read_expression_string(code)?
+            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            ret found(inst.id)
+        }
+        TokenKind::STRING2_START -> {
+            let expr = read_expression_string(code)?
+            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            ret found(inst.id)
+        }
+        TokenKind::INT_NUMBER -> {
+            let value: Int = read_int()?
+            let expr = code.add_lit_int(span, value)
+            let inst = code.add_fun_call(span, "Json", "from_int", [expr.id], [])
+            ret found(inst.id)
+        }
+        TokenKind::FLOAT_NUMBER -> {
+            let value: Float = read_float()?
+            let expr = code.add_lit_float(span, value)
+            let inst = code.add_fun_call(span, "Json", "from_float", [expr.id], [])
+            ret found(inst.id)
+        }
+        TokenKind::TRUE -> {
+            lexer.next_token()
+            let expr = code.add_lit_boolean(span, true)
+            let inst = code.add_fun_call(span, "Json", "from_boolean", [expr.id], [])
+            ret found(inst.id)
+        }
+        TokenKind::FALSE -> {
+            lexer.next_token()
+            let expr = code.add_lit_boolean(span, false)
+            let inst = code.add_fun_call(span, "Json", "from_boolean", [expr.id], [])
+            ret found(inst.id)
+        }
+        TokenKind::NULL -> {
+            lexer.next_token()
+            let inst = code.add_fun_call(span, "Json", "from_nothing", [], [])
+            ret found(inst.id)
+        }
+        TokenKind::LBRACE -> {
+            ret read_expression_json_object(code)
+        }
+        TokenKind::LBRACKET -> {
+            ret read_expression_json_array(code)
+        }
+        TokenKind::LPAREN -> {
+            skip_token_kind(TokenKind::LPAREN)?
+            skip_nl()
+            let expr = read_expression(code)?
+            skip_nl()
+            skip_token_kind(TokenKind::RPAREN)?
+            ret found(expr)
+        }
+        else -> {
+            ret parse_error(ParseError::ExpectedJsonValue, lexer.current_token)
+        }
+    }
+}
+
+fun Parser.read_expression_json_object(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::LBRACE)?
+    skip_nl()
+
+    let map = code.add_fun_call(span, "Map", "new", [], [NTypeUsage::simple("String"), NTypeUsage::simple("Json")]).id
+
+    read_until_delimited(TokenKind::RBRACE) @{
+        let key = if lexer.current_token_kind == TokenKind::IDENTIFIER {
+            let name = read_name()?
+            code.add_lit_string(span, name).id
+        } else {
+            read_expression_string(code)?
+        }
+        skip_nl()
+
+        skip_token_kind(TokenKind::COLON)?
+        skip_nl()
+
+        let value = read_expression_json_value(code)?
+
+        code.add_fun_call(span, "Map", "set", [map, key, value], [])
+        ret found(nothing)
+    }?
+
+    let inst = code.add_fun_call(span, "Json", "from_map", [map], [])
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_json_array(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::LBRACKET)?
+    skip_nl()
+
+    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("Json")]).id
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let value = read_expression_json_value(code)?
+
+        code.add_fun_call(span, "", "add", [list, value], [])
+        ret found(nothing)
+    }?
+
+    let inst = code.add_fun_call(span, "Json", "from_list", [list], [])
+    ret found(inst.id)
+}

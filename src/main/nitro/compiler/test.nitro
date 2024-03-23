@@ -141,6 +141,23 @@ fun foo() {
     42
     1 @{}
     1 + 1
+
+    json! {
+        a: 1,
+        "b": 2,
+        "c": [
+            1,
+            true,
+            false,
+            "test",
+            {
+                "d": "1",
+                "e": null,
+                "f": 1.0,
+                "g": (get_rest_of_json()),
+            }
+        ]
+    }
 }
 
 mod A {
@@ -181,8 +198,8 @@ let tokenizer_test2: String = r#"
 1.0F
 1.0e10
 1.0e-10
-+1.0e+10d
--1.0e-10D
++1.0e+10f
+-1.0e-10F
 "#
 
 let tokenizer_test: String = r#"

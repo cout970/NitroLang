@@ -1242,8 +1242,8 @@ fun Lexer.read_number() {
         read_digits()
     }
 
-    // [fFdD]
-    if current_byte == a"f" || current_byte == a"F" || current_byte == a"d" || current_byte == a"D" {
+    // [fF]
+    if current_byte == a"f" || current_byte == a"F" {
         is_float = true
         cur += 1
     }
@@ -1267,15 +1267,25 @@ fun Lexer.read_number() {
 // Returns true if at least one digit was read
 fun Lexer.read_digits(): Boolean {
     let start = cur
+    let prev_was_digit = false
 
     while cur < src.byte_len() {
         let c: Int = current_byte
 
-        if c >= a"0" && c <= a"9" {
+        // ignore '_' between digits
+        if c == a"_" && prev_was_digit && next_byte >= a"0" && next_byte <= a"9" {
             cur += 1
-        } else {
+            prev_was_digit = false
+            continue
+        }
+
+        if c < a"0" || c > a"9" {
+            // Non digit
             break
         }
+
+        prev_was_digit = true
+        cur += 1
     }
 
     ret start != cur

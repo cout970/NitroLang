@@ -91,6 +91,7 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // sizeOfExpr
         TokenKind::SIZE_OF -> read_expression_size_of(code)
         // jsonExpr
+        TokenKind::JSON -> read_expression_json(code)
         // templateLiteral
         // BREAK
         TokenKind::BREAK -> read_expression_break(code)

@@ -13,6 +13,7 @@ enum ParseError {
     ExpectedDefinition,
     ExpectedExpression,
     ExpectedString,
+    ExpectedJsonValue,
     DeferNotAllowed,
     WhenMultipleElse,
     WhenUnorderedElse,

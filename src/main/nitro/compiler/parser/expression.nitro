@@ -1,12 +1,9 @@
 
-// expression
-//     : expressionComplex ;
-//
 // E.g. 1 + 2
 // E.g. if x > 5 { 1 } else { 0 }
 // E.g. ret 5
 // E.g. 1 || 2 && 3
-// expressionComplex
+// expression
 //     : ifExpr
 //     | returnExpr
 //     | expressionOr
