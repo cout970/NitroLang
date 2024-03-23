@@ -48,6 +48,10 @@ fun Parser.read_const_expr(): Parsed<NConstExpr> {
             let value: String = read_plain_string()?
             NConstExpr::NConstString @[value]
         }
+        TokenKind::ASCII_STRING -> {
+            let value: Int = read_ascii_string()?
+            NConstExpr::NConstInt @[value]
+        }
         TokenKind::TRUE -> {
             lexer.next_token()
             NConstExpr::NConstBoolean @[value: true]

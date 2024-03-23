@@ -5,40 +5,40 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
     let inst = when lexer.current_token_kind {
         TokenKind::INT_NUMBER -> {
             let value: Int = read_int()?
-            code.add_lit(span, NConstExpr::NConstInt @[value])
+            code.add_lit_int(span, value)
         }
         TokenKind::LONG_NUMBER -> {
             let value: Long = read_long()?
-            code.add_lit(span, NConstExpr::NConstLong @[value])
+            code.add_lit_long(span, value)
         }
         TokenKind::FLOAT_NUMBER -> {
             let value: Float = read_float()?
-            code.add_lit(span, NConstExpr::NConstFloat @[value])
+            code.add_lit_float(span, value)
         }
         TokenKind::PLAIN_STRING -> {
             let value: String = read_plain_string()?
-            code.add_lit(span, NConstExpr::NConstString @[value])
+            code.add_lit_string(span, value)
         }
         TokenKind::ASCII_STRING -> {
             let value: Int = read_ascii_string()?
-            code.add_lit(span, NConstExpr::NConstInt @[value])
+            code.add_lit_int(span, value)
         }
         TokenKind::TRUE -> {
             lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstBoolean @[value: true])
+            code.add_lit_boolean(span, true)
         }
         TokenKind::FALSE -> {
             lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstBoolean @[value: false])
+            code.add_lit_boolean(span, false)
         }
         TokenKind::NULL -> {
             report_warning("Keyword 'null' is not supported, use 'nothing' instead", span)
             lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstNothing @[])
+            code.add_lit_nothing(span)
         }
         TokenKind::NOTHING -> {
             lexer.next_token()
-            code.add_lit(span, NConstExpr::NConstNothing @[])
+            code.add_lit_nothing(span)
         }
         else -> {
             ret parse_error(ParseError::ExpectedExpression, lexer.current_token)

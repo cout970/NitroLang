@@ -225,6 +225,10 @@ fun NCode.add_lit_int(span: Span, value: Int): NInst {
     ret this.add_lit(span, NConstExpr::NConstInt @[value])
 }
 
+fun NCode.add_lit_long(span: Span, value: Long): NInst {
+    ret this.add_lit(span, NConstExpr::NConstLong @[value])
+}
+
 fun NCode.add_lit_float(span: Span, value: Float): NInst {
     ret this.add_lit(span, NConstExpr::NConstFloat @[value])
 }
