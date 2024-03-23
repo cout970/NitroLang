@@ -129,23 +129,41 @@ fun List<#Item>.swap(index1: Int, index2: Int) {
 
 // Insert a new item at the given index, if the index is out of bounds, the program crashes
 fun List<#Item>.insert(index: Int, value: #Item) {
-    if index < 0 || index >= this.count {
+    if index < 0 || index > this.count {
         crash("Invalid list index: $index, len: ${this.count}")
+    }
+
+    // Insert at the end
+    if index == this.count {
+        this.add(value)
+        ret
     }
 
     // Expand list if needed
     this.ensure_capacity(this.count + 1)
 
+    let prev_len = this.count
+
     // Add a new item slot at the end
     this.count += 1
 
     // Move every item one place to the right
-    repeat this.count - index {
-        this.swap(this.count - it - 1, this.count - it)
+    repeat prev_len - index {
+        this.swap(prev_len - it - 1, prev_len - it)
     }
 
     // Finish by inserting the new item
     this[index] = value
+}
+
+// Insert at the start and shift all other items to the right
+fun List<#Item>.add_first(value: #Item) {
+    this.insert(0, value)
+}
+
+// Insert at the end of the list
+fun List<#Item>.add_last(value: #Item) {
+    this.add(value)
 }
 
 // Creates a new list with the given item added at the end
