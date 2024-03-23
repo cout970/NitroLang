@@ -1,45 +1,84 @@
 
-//
 // expressionBase
 //     : parenthesizedExpression
+//     | parenthesizedExpression callSuffix
 //     | constExpr
+//     | constExpr callSuffix
 //     | string
+//     | string callSuffix
 //     | whenExpr
 //     | listExpr
 //     | mapExpr
 //     | setExpr
 //     | lambdaExpr
-//     | newInstanceExpr
+//     | THIS
+//     | THIS callSuffix
+//     | modulePath? anyName
+//     | modulePath? anyName functionCallEnd
+//     | modulePath? anyName callSuffix
+//     | modulePath? upperName typeParamArg? newInstance
+//     | modulePath? upperName typeParamArg? newInstance callSuffix
 //     | sizeOfExpr
-//     | variableExpr
 //     | jsonExpr
 //     | templateLiteral
-//     | THIS
 //     | BREAK
 //     | CONTINUE
 //     ;
 
+// callSuffix
+//     : typeParamArg? functionCallParams functionCallEnd?
+//     : typeParamArg? functionCallEnd
+//     ;
+
+// newInstance
+//     : STRUCT_START NL* (newInstanceEntry (commaOrNl newInstanceEntry)* COMMA?)? NL* RBRACKET ;
+
+// newInstanceEntry
+//     : modulePath? anyName COLON NL* expression
+//     | modulePath? anyName
+//     ;
+
+// functionCallParams
+//     : LPAREN NL* functionCallParamList? RPAREN ;
+
+// functionCallParamList
+//     : expression (commaOrNl expression)* COMMA? NL* ;
+
+// functionCallEnd
+//     : lambdaExpr ;
 
 fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
 
     let inst = when lexer.current_token_kind {
         // parenthesizedExpression
+        // parenthesizedExpression callSuffix
         TokenKind::LPAREN -> read_expression_in_parens(code)
         // constExpr
-        TokenKind::INT_NUMBER -> read_expression_literal(code)
-        TokenKind::LONG_NUMBER -> read_expression_literal(code)
-        TokenKind::FLOAT_NUMBER -> read_expression_literal(code)
-        TokenKind::PLAIN_STRING -> read_expression_literal(code)
-        TokenKind::ASCII_STRING -> read_expression_literal(code)
-        TokenKind::TRUE -> read_expression_literal(code)
-        TokenKind::FALSE -> read_expression_literal(code)
-        TokenKind::NULL -> read_expression_literal(code)
-        TokenKind::NOTHING -> read_expression_literal(code)
+        // constExpr callSuffix
+        TokenKind::INT_NUMBER -> read_expression_const_expr(code)
+        TokenKind::LONG_NUMBER -> read_expression_const_expr(code)
+        TokenKind::FLOAT_NUMBER -> read_expression_const_expr(code)
+        TokenKind::PLAIN_STRING -> read_expression_const_expr(code)
+        TokenKind::ASCII_STRING -> read_expression_const_expr(code)
+        TokenKind::TRUE -> read_expression_const_expr(code)
+        TokenKind::FALSE -> read_expression_const_expr(code)
+        TokenKind::NULL -> read_expression_const_expr(code)
+        TokenKind::NOTHING -> read_expression_const_expr(code)
         // string
-        TokenKind::PLAIN_STRING -> read_expression_string(code)
-        TokenKind::STRING_START -> read_expression_string(code)
-        TokenKind::STRING2_START -> read_expression_string(code)
+        // string callSuffix
+        TokenKind::PLAIN_STRING -> read_expression_string_or_call(code)
+        TokenKind::STRING_START -> read_expression_string_or_call(code)
+        TokenKind::STRING2_START -> read_expression_string_or_call(code)
+        // THIS
+        // THIS callSuffix
+        TokenKind::THIS -> read_expression_this(code)
+        // modulePath? anyName
+        // modulePath? anyName callSuffix
+        // modulePath? upperName typeParamArg? newInstance
+        // modulePath? upperName typeParamArg? newInstance callSuffix
+        TokenKind::LOWER_IDENTIFIER -> read_expression_with_name(code)
+        TokenKind::UPPER_IDENTIFIER -> read_expression_with_name(code)
         // when
         TokenKind::WHEN -> read_expression_when(code)
         // listExpr
@@ -49,19 +88,16 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // setExpr
         TokenKind::SET_START -> read_expression_set(code)
         // lambdaExpr
+
         // sizeOfExpr
         TokenKind::SIZE_OF -> read_expression_size_of(code)
-        // variableExpr or newInstanceExpr
-        TokenKind::LOWER_IDENTIFIER -> read_expression_variable(code)
-        TokenKind::UPPER_IDENTIFIER -> read_expression_variable(code)
         // jsonExpr
         // templateLiteral
-        // THIS
-        TokenKind::THIS -> read_expression_this(code)
         // BREAK
         TokenKind::BREAK -> read_expression_break(code)
         // CONTINUE
         TokenKind::CONTINUE -> read_expression_continue(code)
+
         else -> {
             ret parse_error(ParseError::ExpectedExpression, lexer.current_token)
         }
@@ -74,5 +110,163 @@ fun Parser.read_expression_in_parens(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LPAREN)?
     let expr = read_expression(code)?
     skip_token_kind(TokenKind::RPAREN)?
+    ret read_expression_call_suffix(code, expr)
+}
+
+fun Parser.read_expression_const_expr(code: NCode): Parsed<NInstId> {
+    let expr = read_expression_literal(code)?
+    ret read_expression_call_suffix(code, expr)
+}
+
+fun Parser.read_expression_string_or_call(code: NCode): Parsed<NInstId> {
+    let expr = read_expression_string(code)?
+    ret read_expression_call_suffix(code, expr)
+}
+
+fun Parser.read_expression_this(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::THIS)?
+
+    let inst = code.add_load_var(span, "", "this", None())
+    ret read_expression_call_suffix(code, inst.id)
+}
+
+fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let type_args = []
+
+    if lexer.current_token_kind == TokenKind::LTH {
+        type_args = read_type_param_args()?
+    }
+
+    // typeParamArg? functionCallParams functionCallEnd?
+    if lexer.current_token_kind == TokenKind::LPAREN {
+        let span = lexer.current_token_span
+        let args = read_expression_function_call_params(code)?
+        args.add_first(expr)
+
+        if lexer.current_token_kind == TokenKind::LAMBDA_START {
+            args[] = read_expression_function_call_end(code)?
+        }
+
+        let inst = code.add_fun_call(span, "", "call", args, type_args)
+        ret found(inst.id)
+    }
+
+    // typeParamArg? functionCallEnd
+    if lexer.current_token_kind == TokenKind::LAMBDA_START {
+        let args = [read_expression_function_call_end(code)?]
+
+        let inst = code.add_fun_call(span, "", "call", args, type_args)
+        ret found(inst.id)
+    }
+
+    if type_args.len() > 0 {
+        program.reporter.report_error("Type arguments are not allowed here", span)
+    }
+
     ret found(expr)
 }
+
+fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_name()?
+    let type_args = []
+
+    if lexer.current_token_kind == TokenKind::LTH {
+        type_args = read_type_param_args()?
+    }
+
+    // Function call:
+    // modulePath? anyName callSuffix
+    if lexer.current_token_kind == TokenKind::LPAREN {
+        let args = read_expression_function_call_params(code)?
+
+        if lexer.current_token_kind == TokenKind::LAMBDA_START {
+            args[] = read_expression_function_call_end(code)?
+        }
+
+        let inst = code.add_fun_call(span, path, name, args, type_args)
+        ret found(inst.id)
+    }
+
+    if lexer.current_token_kind == TokenKind::LAMBDA_START {
+        let args = [read_expression_function_call_end(code)?]
+
+        let inst = code.add_fun_call(span, path, name, args, type_args)
+        ret found(inst.id)
+    }
+
+    // New instance:
+    // modulePath? upperName typeParamArg? newInstance
+    // modulePath? upperName typeParamArg? newInstance callSuffix
+    if lexer.current_token_kind == TokenKind::STRUCT_START {
+        let expr = read_expression_new_instance(code, path, name, type_args)?
+        ret read_expression_call_suffix(code, expr)
+    }
+
+    // Variable:
+    // modulePath? anyName
+    if type_args.len() > 0 {
+        program.reporter.report_error("Type arguments are not allowed here", span)
+    }
+    
+    let inst = code.add_load_var(span, path, name, None())
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_new_instance(code: NCode, path: String, name: String, type_args: List<NTypeUsage>): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::STRUCT_START)?
+    skip_nl()
+
+    let type_usage = NTypeUsage::simple_with_path(path, name)
+    type_usage.type_params = type_args
+    let instance = code.add_alloc(span, type_usage)
+
+    read_until_delimited(TokenKind::RBRACKET) @{
+        let span = lexer.current_token_span
+        let path = read_module_path()?
+        let name = read_name()?
+
+        if lexer.current_token_kind == TokenKind::COLON {
+            skip_token_kind(TokenKind::COLON)?
+            skip_nl()
+            let expr = read_expression(code)?
+
+            code.add_store_field(span, instance.id, name, expr)
+        } else {
+            let inst = code.add_load_var(span, path, name, None())
+
+            code.add_store_field(span, instance.id, name, inst.id)
+        }
+
+        ret found(nothing)
+    }?
+
+    let inst = code.add_link(span, instance.id)
+    ret found(inst.id)
+}
+
+fun Parser.read_expression_function_call_params(code: NCode): Parsed<List<NInstId>> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::LPAREN)?
+    skip_nl()
+    let args = []
+
+    read_until_delimited_by(TokenKind::COMMA, TokenKind::RPAREN) @{
+        args[] = read_expression(code)?
+        ret found(nothing)
+    }?
+
+    ret found(args)
+}
+
+fun Parser.read_expression_function_call_end(code: NCode): Parsed<NInstId> {
+    let left = read_expression_base(code)?
+    // TODO
+
+    ret found(left)
+}
+

@@ -138,23 +138,6 @@ fun Parser.read_comma_or_nl(): Parsed<Nothing> {
     ret parse_error(ParseError::ExpectedComma, lexer.current_token)
 }
 
-fun Parser.read_until(tk: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Parsed<Nothing> {
-    while lexer.current_token_kind != tk {
-        if !has_remaining_tokens() {
-            ret parse_error(ParseError::ReachedEnd, lexer.current_token)
-        }
-
-        let res: Parsed<Nothing> = lambda(this)
-        if res.is_error() {
-            ret res
-        }
-    }
-
-    skip_token_kind(tk)?
-
-    ret found(nothing)
-}
-
 fun Parser.read_until_delimited(tk: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Parsed<Nothing> {
     while lexer.current_token_kind != tk {
         if !has_remaining_tokens() {
@@ -184,6 +167,30 @@ fun Parser.read_until_delimited(tk: TokenKind, lambda: Parser.() -> Parsed<Nothi
     }
 
     skip_token_kind(tk)?
+
+    ret found(nothing)
+}
+
+fun Parser.read_until_delimited_by(sep: TokenKind, end: TokenKind, lambda: Parser.() -> Parsed<Nothing>): Parsed<Nothing> {
+    while lexer.current_token_kind != end {
+        if !has_remaining_tokens() {
+            ret parse_error(ParseError::ReachedEnd, lexer.current_token)
+        }
+
+        let res: Parsed<Nothing> = lambda(this)
+        if res.is_error() {
+            ret res
+        }
+
+        if lexer.current_token_kind != sep {
+            break
+        }
+
+        lexer.next_token()
+        skip_nl()
+    }
+
+    skip_token_kind(end)?
 
     ret found(nothing)
 }

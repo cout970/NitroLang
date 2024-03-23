@@ -71,9 +71,9 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     if lexer.current_token_kind == TokenKind::LBRACE {
         skip_token_kind(TokenKind::LBRACE)?
         skip_nl()
-        read_until(TokenKind::RBRACE) @{
+
+        read_until_delimited_by(TokenKind::NL, TokenKind::RBRACE) @{
             def.fields[] = read_struct_field()?
-            skip_nl()
             ret found(nothing)
         }?
     }

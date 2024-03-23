@@ -14,33 +14,12 @@
 //     | expressionWithSuffix BANGBANG
 //     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET
 //     | expressionWithSuffix NL? DOT anyName
-//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallParams functionCallEnd?
-//     | expressionWithSuffix NL? DOT modulePath? anyName functionCallEnd
-//     | expressionOrFunctionCall
+//     | expressionWithSuffix NL? DOT modulePath? anyName callSuffix
+//     | expressionBase
 //     ;
 
-// expressionOrFunctionCall
-//     : modulePath? anyName functionCallEnd
-//     | modulePath? anyName functionCallParams functionCallEnd?
-//     | parenthesizedExpression functionCallParams functionCallEnd?
-//     | string functionCallParams functionCallEnd?
-//     | constExpr functionCallParams functionCallEnd?
-//     | structInstanceExpr functionCallParams functionCallEnd?
-//     | THIS functionCallParams functionCallEnd?
-//     | THIS functionCallEnd
-//     | expressionBase
-
-// functionCallParams
-//     : typeParamArg? LPAREN NL* functionCallParamList? RPAREN ;
-
-// functionCallParamList
-//     : expression (commaOrNl expression)* COMMA? NL* ;
-
-// functionCallEnd
-//     : lambdaExpr ;
-
 fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
-    let last = read_expression_function_call(code)?
+    let last = read_expression_base(code)?
 
     loop {
         let span = lexer.current_token_span
@@ -108,12 +87,48 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             let path = read_module_path()?
             let name = read_name()?
 
-            if path == "" {
-                last = code.add_load_field(span, last, name).id
-            } else {
-                // TODO function call/method call syntax
-                crash("TODO")
+            let type_param_args = []
+
+            // Function call with type arguments, i.e. my_func<A, B, C>()
+            if lexer.current_token_kind == TokenKind::LTH {
+                type_param_args = read_type_param_args()?
             }
+
+            // Function call
+            if lexer.current_token_kind == TokenKind::LPAREN {
+                let args = read_expression_function_call_params(code)?
+                args.add_first(last)
+
+                if lexer.current_token_kind == TokenKind::LAMBDA_START {
+                    args[] = read_expression_function_call_end(code)?
+                }
+
+                let call = code.add_fun_call(span, path, name, args, type_param_args)
+                last = call.id
+                continue
+            }
+
+            // Function call end
+            if lexer.current_token_kind == TokenKind::LAMBDA_START {
+                let args = [last]
+                args[] = read_expression_function_call_end(code)?
+
+                let call = code.add_fun_call(span, path, name, args, type_param_args)
+                last = call.id
+                continue
+            }
+
+            // Field access
+            if type_param_args.len() > 0 {
+                program.reporter.report_error("Type arguments are only allowed in field access", span)
+            }
+
+            if path != "" {
+                program.reporter.report_error("Field access cannot use a module path prefix", span)
+            }
+
+            let access = code.add_load_field(span, last, name)
+            last = access.id
             continue
         }
 
@@ -121,11 +136,4 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
     }
 
     ret found(last)
-}
-
-
-fun Parser.read_expression_function_call(code: NCode): Parsed<NInstId> {
-    let left = read_expression_base(code)?
-
-    ret found(left)
 }

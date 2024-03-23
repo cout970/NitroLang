@@ -113,22 +113,27 @@ fun foo() {
     [1, 2, 3]
     #[alpha: "a", "beta": "b", ("gamma"): "g"]
     %[1, 2, 3]
-
     my_mod::MyStruct @[
         field1: 1,
         field2,
-        field3: 3
+        field3: 3,
     ]
-
     let a = when 0 {
         0 -> "true"
         1 -> "false"
         else -> "third option"
     }
-
     a?
     a!!
     a[1]
+
+    list.add(1, 2, 3)
+    12345()
+    "my_dsl"()
+    my_func(1, 2, 3)
+    my_func<Int>("a", "b", "c")
+
+    A @[name: "A"] (1)!!
 }
 
 "#
