@@ -1020,7 +1020,7 @@ fun ParserCtx.processJsonValue(value: MainParser.JsonValueContext): Ref {
                 ref = code.nextRef(),
                 span = value.span(),
                 block = code.currentBlock,
-                name = "StringMap::new",
+                name = "Map::new",
                 path = "",
                 arguments = emptyList(),
                 explicitTypeParams = listOf(LstTypeUsage.simple("Json")),

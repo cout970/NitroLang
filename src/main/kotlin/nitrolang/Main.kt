@@ -67,6 +67,7 @@ fun main(args: Array<String>) {
 }
 
 fun compileToWat(opt: CompilerOptions): LstProgram = Prof.run("compile") {
+    val start = System.nanoTime()
     Prof.enable = opt.profile
     Prof.start("program")
     val program = LstProgram(opt)
@@ -196,6 +197,8 @@ fun compileToWat(opt: CompilerOptions): LstProgram = Prof.run("compile") {
     }
 
     Prof.end()
+    val end = System.nanoTime()
+    println("Compilation took ${(end - start) / 1_000_000} ms")
     return program
 }
 
