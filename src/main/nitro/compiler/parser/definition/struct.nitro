@@ -27,7 +27,7 @@ struct NStructField {
 fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::STRUCT)?
     let span = lexer.current_token_span
-    let path = read_module_path()?
+    let path = read_declaration_module_path()?
     let name = read_name()?
 
     let def = NStruct @[
@@ -39,6 +39,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
         fields: [],
     ]
     program.structs[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     def.type_params = read_type_params_def()?
 
@@ -77,6 +78,7 @@ fun NStruct.to_string(): String {
         fields_str += "  ${field.name}: ${field.type_usage}\n"
     }
     fields_str = fields_str + "}"
+    let full_name = get_full_path(path, name)
 
-    ret "${prefix}struct $name $fields_str  // $span"
+    ret "${prefix}struct $full_name $fields_str  // $span"
 }

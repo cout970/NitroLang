@@ -28,7 +28,7 @@ struct NOptionItem {
 fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::OPTION)?
     let span = lexer.current_token_span
-    let path = read_module_path()?
+    let path = read_declaration_module_path()?
     let name = read_name()?
 
     let def = NOption @[
@@ -40,6 +40,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         items: [],
     ]
     program.options[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     def.type_params = read_type_params_def()?
     skip_nl()
@@ -100,8 +101,9 @@ fun NOption.to_string(): String {
         items_str += "$line\n"
     }
     items_str = items_str + "}"
+    let full_name = get_full_path(path, name)
 
-    ret "${prefix}option $name $items_str // $span"
+    ret "${prefix}option $full_name $items_str // $span"
 }
 
 fun NOptionItem.to_string(): String {

@@ -51,6 +51,8 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
         code: code.new_child(span),
     ]
 
+    program.lambda_functions[] = lambda
+
     // Has lambdaDef
     if lexer.find_token_kind_before(TokenKind::ARROW, TokenKind::RBRACE) {
         loop {

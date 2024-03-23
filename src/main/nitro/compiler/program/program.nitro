@@ -5,19 +5,18 @@ let VARIANT_FIELD_NAME: String = "variant"
 struct Program {
     reporter: Reporter
 //    type_checker: TypeChecker
+    declared_names: Map<String, Span>
     structs: List<NStruct>
     options: List<NOption>
     includes: List<NInclude>
     type_aliases: List<NTypeAlias>
     modules: List<NModule>
-    consts: List<NConst>
     tags: List<NTag>
+    consts: List<NConst>
     functions: List<NFunction>
     property_getters: List<NPropertyGetter>
     property_setters: List<NPropertySetter>
-    lambda_functions: List<NLambdaFunction>
-    // TODO use this to check for duplicate names
-    defined_names: Map<String, Span>
+    lambda_functions: List<NLambda>
     all_function_signatures: List<NFunctionSignature>
     last_test_id: Int
 }
@@ -25,25 +24,33 @@ struct Program {
 struct NTag {}
 struct NPropertyGetter {}
 struct NPropertySetter {}
-struct NLambdaFunction {}
 struct NFunctionSignature {}
 
 fun Program::new(): Program {
     ret Program @[
         reporter: Reporter::new(),
+        declared_names: #[],
         structs: [],
         options: [],
         includes: [],
         type_aliases: [],
         modules: [],
-        consts: [],
         tags: [],
+        consts: [],
         functions: [],
         property_getters: [],
         property_setters: [],
         lambda_functions: [],
-        defined_names: #[],
         all_function_signatures: [],
         last_test_id: 0,
     ]
+}
+
+fun Program.declare_name(name: String, span: Span) {
+    if name in declared_names {
+        let prev_location = declared_names[name]!!
+        reporter.report_error("Name '$name' defined at $span, was already defined at $prev_location", span)
+    }
+
+    declared_names[name] = span
 }

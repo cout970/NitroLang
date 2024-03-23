@@ -3,7 +3,7 @@
 //      : LTH NL* typeParamDef (commaOrNl typeParamDef)* COMMA? NL* GTH ;
 //
 // typeParamDef
-//       : typeParameter COLON typeUsage (commaOrNl typeUsage)*
+//       : typeParameter COLON typeUsage (COMMA typeUsage)*
 //       | typeParameter
 //       ;
 //
@@ -77,4 +77,13 @@ fun Parser.read_type_parameter(): Parsed<String> {
     lexer.next_token()
 
     ret read_name()
+}
+
+fun NTypeParameterDefinition.to_string(): String {
+    if constraints.is_empty() {
+        return "#$name"
+    }
+    let s = constraints.join(", ")
+
+    return "#$name: s"
 }

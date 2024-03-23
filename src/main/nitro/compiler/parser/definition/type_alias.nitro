@@ -1,19 +1,24 @@
 
 // E.g. alias Int32 = Int
 // aliasDefinition
-//     : ALIAS anyName ASSIGN typeUsage;
+//     : ALIAS anyName typeParamsDef? ASSIGN typeUsage;
 
 struct NTypeAlias {
     span: Span
     annotations: List<NAnnotation>
+    path: String
     name: String
     type_usage: NTypeUsage
+    type_params: List<NTypeParameterDefinition>
 }
 
 fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::TYPE_ALIAS)?
     let span = lexer.current_token_span
+    let path = read_declaration_module_path()?
     let name = read_name()?
+
+    let type_params = read_type_params_def()?
 
     skip_token_kind(TokenKind::ASSIGN)?
 
@@ -21,9 +26,11 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
 
     let def = NTypeAlias @[
         span,
-        annotations
+        annotations,
+        path,
         name,
         type_usage,
+        type_params,
     ]
 
     program.type_aliases[] = def
@@ -32,5 +39,22 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
 }
 
 fun NTypeAlias.to_string() -> String {
-    return "typealias $name = $type_usage // $span"
+    let tp = if type_params.is_not_empty() {
+        let s = ""
+
+        for type_param in type_params {
+            if s.is_not_empty() {
+                s += ", "
+            }
+            s += type_param.to_string()
+        }
+
+        "<$s>"
+    } else {
+        ""
+    }
+
+    let full_name = get_full_path(path, name)
+
+    return "typealias $full_name$tp = $type_usage // $span"
 }

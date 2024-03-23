@@ -14,6 +14,7 @@ option Optional<#Value> {
 include "./main.nitro"
 
 type_alias Int32 = Int
+type_alias Container<#T> = Map<String, #T>
 
 let PI: Float = 3
 
@@ -140,6 +141,16 @@ fun foo() {
     42
     1 @{}
     1 + 1
+}
+
+mod A {
+    mod B {
+        struct C::MyStruct {
+            field1: Int
+            field2: Int
+            field3: Int
+        }
+    }
 }
 
 "#

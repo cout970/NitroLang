@@ -14,7 +14,7 @@ struct NConst {
 fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::LET)?
     let span = lexer.current_token_span
-    let path = read_module_path()?
+    let path = read_declaration_module_path()?
     let name = read_name()?
 
     skip_token_kind(TokenKind::COLON)?
@@ -28,6 +28,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         body: NCode::new()
     ]
     program.consts[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     skip_token_kind(TokenKind::ASSIGN)?
     skip_nl()
@@ -38,7 +39,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
 }
 
 fun NConst.to_string(): String {
-    let full_name = if path.is_empty() { name } else { "$path::$name" }
+    let full_name = get_full_path(path, name)
 
     return "const $full_name: $type_usage = $body // $span"
 }

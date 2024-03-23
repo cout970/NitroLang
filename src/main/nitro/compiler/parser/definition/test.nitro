@@ -40,6 +40,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         body: NCode::new(),
     ]
     program.functions[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     read_code_block(def.body)?
 

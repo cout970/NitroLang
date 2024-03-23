@@ -3,13 +3,15 @@ struct Parser {
     lexer: Lexer
     program: Program
     allow_defer: Boolean
+    module_path_stack: List<String>
 }
 
 fun Parser::new(lexer: Lexer, program: Program): Parser {
     ret Parser @[
         lexer,
         program,
-        allow_defer: true
+        allow_defer: true,
+        module_path_stack: []
     ]
 }
 
@@ -36,12 +38,3 @@ fun Parser.read_file() {
         }
     }
 }
-
-fun Parser.report_error(msg: String, span: Span) {
-    program.reporter.report_error(msg, span)
-}
-
-fun Parser.report_warning(msg: String, span: Span) {
-    program.reporter.report_warning(msg, span)
-}
-

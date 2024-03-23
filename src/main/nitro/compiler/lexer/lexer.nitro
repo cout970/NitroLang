@@ -325,7 +325,7 @@ fun Lexer.next(): Boolean {
 
             // If we are inside a string interpolation, we need to close it
             if state.len() > 0 {
-                state.remove_last()
+                state.remove_last()!!
 
                 cur_state = if state.len() > 0 { state[state.len() - 1]!! } else { 0 }
 
@@ -894,7 +894,7 @@ fun Lexer.read_string_blob() {
     if c0 == a"\"" {
         cur += 1
         add_token(TokenKind::STRING_END, start)
-        state.remove_last()
+        state.remove_last()!!
         ret
     }
 

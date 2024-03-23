@@ -66,7 +66,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     // }
     skip_token_kind(TokenKind::ENUM)?
     let span = lexer.current_token_span
-    let path = read_module_path()?
+    let path = read_declaration_module_path()?
     let name = read_name()?
     skip_nl()
 
@@ -82,6 +82,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         fields: [],
     ]
     program.structs[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     def.fields[] = NStructField @[
         name: VARIANT_FIELD_NAME,
@@ -95,7 +96,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         name,
     ]
     program.modules[] = module_def
-    let module_path = if path.is_empty() { name } else { "$path::$name" }
+    let module_path = get_full_path(path, name)
 
     // enumFields
     while lexer.current_token_kind == TokenKind::LET {
@@ -197,12 +198,13 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         let const_code = NCode::new()
         let const_def = NConst @[
             span: entry.span,
-            path,
+            path: module_path,
             name: entry.name,
             type_usage: NTypeUsage::simple_with_path(path, name),
             body: const_code,
         ]
         program.consts[] = const_def
+        program.declare_name(get_full_path(const_def.path, const_def.name), const_def.span)
 
         let type_usage = NTypeUsage::simple_with_path(path, name)
         let alloc = const_code.add_alloc(entry.span, type_usage).id

@@ -115,7 +115,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
 
     // Full name
     let span = lexer.current_token_span
-    let path = read_module_path()?
+    let path = read_declaration_module_path()?
     let name = read_name()?
 
     // Register function
@@ -131,6 +131,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         body: NCode::new(),
     ]
     program.functions[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     // Type parameters
     skip_nl()
@@ -195,8 +196,7 @@ fun Parser.read_var_modifier(): Parsed<Nothing> {
 
 fun NFunction.to_string(): String {
     let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-
-    let full_name = if path.is_empty() { name } else { "$path::$name" }
+    let full_name = get_full_path(path, name)
 
     let args = ""
     for p in parameters {
