@@ -38,16 +38,24 @@ fun Parser.read_statement_block_end(code: NCode): Parsed<Nothing> {
     }
 
     loop {
+        let span = lexer.current_token_span
+
+        read_statement(code)?
+
         if lexer.current_token_kind == TokenKind::RBRACE {
             break
         }
-        read_statement(code)?
 
+        // A delimiter is required after each statement
         if lexer.current_token_kind != TokenKind::NL {
-            break
+            program.reporter.report_error("Expected newline or semicolon to separate statements", span)
+            lexer.next_token()
         }
 
         skip_nl()
+        if lexer.current_token_kind == TokenKind::RBRACE {
+            break
+        }
     }
 
     skip_token_kind(TokenKind::RBRACE)?

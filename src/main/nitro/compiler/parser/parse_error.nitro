@@ -27,21 +27,40 @@ option Parsed<#Ast> {
         token: Token,
         expected: Optional<TokenKind>,
         info: Optional<String>,
+        stack_trace: List<String>
     }
 }
 
 fun found(value: #Ast): Parsed<#Ast> = Parsed::Found @[value]
 
 fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token, expected: None(), info: None()]
+    ret Parsed::Error @[
+        kind,
+        token,
+        expected: None(),
+        info: None(),
+        stack_trace: Trace::get_stack_trace(),
+    ]
 }
 
 fun parse_error_expected(kind: ParseError, token: Token, expected_token: TokenKind): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token, expected: Some(expected_token), info: None()]
+    ret Parsed::Error @[
+        kind,
+        token,
+        expected: Some(expected_token),
+        info: None(),
+        stack_trace: Trace::get_stack_trace(),
+    ]
 }
 
 fun parse_error_with_info(kind: ParseError, token: Token, message: String): Parsed<#Ast> {
-    ret Parsed::Error @[kind, token, expected: None(), info: Some(message)]
+    ret Parsed::Error @[
+        kind,
+        token,
+        expected: None(),
+        info: Some(message),
+        stack_trace: Trace::get_stack_trace(),
+    ]
 }
 
 fun Parsed<#Ast>.is_error(): Boolean = this is Parsed::Error<#Ast>
@@ -56,6 +75,7 @@ fun Parsed<#A>.convert_error(): Parsed<#B> {
             token: error.token,
             expected: None(),
             info: None(),
+            stack_trace: error.stack_trace,
         ]
     }
 
@@ -78,9 +98,9 @@ fun <#Ast: ToString> Parsed<#Ast>.to_string(): String {
     if this is Parsed::Error<#Ast> {
         let error = this as Parsed::Error<#Ast>
         if error.kind == ParseError::ExpectedToken {
-            ret "Parse error: Expected ${error.expected!!} but found ${error.token}"
+            ret "Expected ${error.expected!!} but found ${error.token}"
         }
-        ret "Parse error: ${error.kind} at token ${error.token}"
+        ret "${error.kind} at token ${error.token}"
     }
 
     crash("Parsed::to_string called on unknown value")

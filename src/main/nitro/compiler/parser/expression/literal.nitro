@@ -32,7 +32,7 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
             code.add_lit(span, NConstExpr::NConstBoolean @[value: false])
         }
         TokenKind::NULL -> {
-            program.reporter.report_warning("Keyword 'null' is not supported, use 'nothing' instead", span)
+            report_warning("Keyword 'null' is not supported, use 'nothing' instead", span)
             lexer.next_token()
             code.add_lit(span, NConstExpr::NConstNothing @[])
         }
@@ -41,8 +41,7 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
             code.add_lit(span, NConstExpr::NConstNothing @[])
         }
         else -> {
-            lexer.print_debug_info()
-            ret parse_error(ParseError::Generic, lexer.current_token)
+            ret parse_error(ParseError::ExpectedExpression, lexer.current_token)
         }
     }
 

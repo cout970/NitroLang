@@ -50,6 +50,16 @@ fun Reporter.print_all() {
     }
 }
 
+// Report an parse error
+fun Reporter.report_parse_error(message: String, location: Span, stack_trace: List<String>) {
+    errors[] = Report @[
+        kind: ReportKind::Error,
+        message,
+        location,
+        stack_trace,
+    ]
+}
+
 // Report an error
 fun Reporter.report_error(message: String, location: Span) {
     errors[] = Report @[
@@ -82,5 +92,11 @@ fun Reporter.report_suggestion(message: String, location: Span) {
 
 // Print the report
 fun Report.to_string(): String {
-    ret "New compiler error at $location\n$kind: $message\n$stack_trace"
+    let st_str = ""
+    for frame in stack_trace {
+        st_str += "  - "
+        st_str += frame.to_string()
+        st_str += "\n"
+    }
+    ret "At $location\n[$kind] $message\n$st_str"
 }

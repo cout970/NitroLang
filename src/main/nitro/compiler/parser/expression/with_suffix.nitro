@@ -120,11 +120,11 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
 
             // Field access
             if type_param_args.len() > 0 {
-                program.reporter.report_error("Type arguments are only allowed in field access", span)
+                report_error("Type arguments are only allowed in field access", span)
             }
 
             if path != "" {
-                program.reporter.report_error("Field access cannot use a module path prefix", span)
+                report_error("Field access cannot use a module path prefix", span)
             }
 
             let access = code.add_load_field(span, last, name)

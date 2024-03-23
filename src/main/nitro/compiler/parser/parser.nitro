@@ -24,16 +24,24 @@ fun Parser.read_file() {
 
         if res is Parsed::Error<Nothing> {
             let span = lexer.span_of(lexer.current_token)
+            let error = res as Parsed::Error<Nothing>
 
             // DEBUG
             println("Reporting error: ${res.to_string()}")
             lexer.print_debug_info()
-            Trace::print_stack_trace()
 
-            program.reporter.report_error(res.to_string(), span)
+            program.reporter.report_parse_error(res.to_string(), span, error.stack_trace)
             recover_from_error()
             break
         }
     }
+}
+
+fun Parser.report_error(msg: String, span: Span) {
+    program.reporter.report_error(msg, span)
+}
+
+fun Parser.report_warning(msg: String, span: Span) {
+    program.reporter.report_warning(msg, span)
 }
 

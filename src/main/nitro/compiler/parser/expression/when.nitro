@@ -107,7 +107,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     code.add_when_end(span)
 
     if !has_read_else {
-        program.reporter.report_error("When expressions must have an 'else' branch", span)
+        report_error("When expressions must have an 'else' branch", span)
     }
 
     let inst = code.add_load_var(span, "", "when-result", Some(when_var))

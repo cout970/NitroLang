@@ -37,10 +37,7 @@ enum BinaryOperator {
     MUL                  @[symbol: "*",   precedence: 0,    method: "mul",                          uses_ordering: false, optimization: #[]],
     DIV                  @[symbol: "/",   precedence: 0,    method: "div",                          uses_ordering: false, optimization: #[]],
     MOD                  @[symbol: "%",   precedence: 0,    method: "rem",                          uses_ordering: false, optimization: #[]],
-    // TODO: Check previous token to warn about unary plus/binary plus when there is no space
-    // i.e `1+1` vs `1 + 1` as they are different expressions (1, unaryPlus(1)) vs (1.add(1))
     ADD                  @[symbol: "+",   precedence: 1,    method: "plus",                         uses_ordering: false, optimization: #[]],
-    // Same for unary minus
     SUB                  @[symbol: "-",   precedence: 1,    method: "minus",                        uses_ordering: false, optimization: #[]],
     RANGE_INCLUSIVE      @[symbol: "..=", precedence: 2,    method: "range_to",                     uses_ordering: false, optimization: #[]],
     RANGE_EXCLUSIVE      @[symbol: "..<", precedence: 2,    method: "range_up_to",                  uses_ordering: false, optimization: #[]],
@@ -210,10 +207,34 @@ fun Parser.read_binary_operator(): Optional<BinaryOperator> {
         TokenKind::EQ -> BinaryOperator::EQUAL
         TokenKind::NEQ -> BinaryOperator::NOT_EQUAL
         TokenKind::XORXOR -> BinaryOperator::BOOL_XOR
+        TokenKind::INT_NUMBER -> ret check_and_warn_unary_sign()
+        TokenKind::LONG_NUMBER -> ret check_and_warn_unary_sign()
+        TokenKind::FLOAT_NUMBER -> ret check_and_warn_unary_sign()
         else -> ret None()
     }
     lexer.next_token()
     ret Some(op)
+}
+
+// Emit a warning in cases like 1+1 which is not a binary operation but two consecutive numbers: `1 + 1` vs `1, (+1)`
+// To avoid hard errors, an extra `+` or `-` token is added so the parser can continue, e.i. `1 + (+1)`
+fun Parser.check_and_warn_unary_sign(): Optional<BinaryOperator> {
+    let span = lexer.current_token_span
+    let text = lexer.current_token_text
+
+    if text.starts_with("+") {
+        // Warn that 1+1 and 1 + 1 are different, +1 is unary plus, so 1+1 is not a binary operation
+        report_warning("Careful with unary plus, use a space between the operator and the number", span)
+        ret Some(BinaryOperator::ADD)
+    }
+
+    if text.starts_with("-") {
+        // Warn that 1-1 and 1 - 1 are different, -1 is unary minus, so 1-1 is not a binary operation
+        report_warning("Careful with unary minus, use a space between the operator and the number", span)
+        ret Some(BinaryOperator::SUB)
+    }
+
+    ret None()
 }
 
 fun BinaryTree.to_string(): String {

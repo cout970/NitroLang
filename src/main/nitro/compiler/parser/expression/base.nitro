@@ -162,7 +162,7 @@ fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInst
     }
 
     if type_args.len() > 0 {
-        program.reporter.report_error("Type arguments are not allowed here", span)
+        report_error("Type arguments are not allowed here", span)
     }
 
     ret found(expr)
@@ -209,7 +209,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
     // Variable:
     // modulePath? anyName
     if type_args.len() > 0 {
-        program.reporter.report_error("Type arguments are not allowed here", span)
+        report_error("Type arguments are not allowed here", span)
     }
     
     let inst = code.add_load_var(span, path, name, None())
