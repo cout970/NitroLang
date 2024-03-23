@@ -464,51 +464,221 @@ fun String.to_long(): Optional<Long> {
             continue
         }
 
-        if byte < 48 || byte > 57 {
+        if byte < a"0" || byte > a"9" {
             ret None()
         }
 
-        result = result * 10L + (byte - 48).to_long()
+        result = result * 10L + (byte - a"0").to_long()
         cursor += 1
     }
 
     ret Some(result * sign)
 }
 
-// TODO handle complex floats
+// Parse a float in the format: [+-]?[0-9]*(\.[0-9]+)?([eE][+-]?[0-9]+)?[fF]?
+// Ignores all appearances of '_' between digits
 fun String.to_float(): Optional<Float> {
     let result = 0f
     let total_len = this.len()
     let cursor = 0
     let sign = 1f
+    let has_dot = false
+    let has_exponent = false
+    let has_tail = true
 
     if total_len == 0 {
         ret None()
     }
 
-    if this[cursor].to_int() == a"-" {
+    let aux_byte = this[cursor].to_int()
+
+    if aux_byte == a"-" {
         cursor += 1
         sign = -1f
     }
+    if aux_byte == a"+" {
+        cursor += 1
+    }
 
+    if cursor >= total_len {
+        ret None()
+    }
+
+    // Disallow underscore as first char, i.e. `_1.0f` is not valid
+    if this[cursor].to_int() == a"_" {
+        ret None()
+    }
+
+    // Integral part
     while cursor < total_len {
         let byte = this[cursor].to_int()
 
         // ignore '_'
         if byte == a"_" {
             cursor += 1
+            aux_byte = this[cursor].to_int()
+
+            // Disallow underscore before the dot, i.e. `1_.0f` is not valid
+            if aux_byte == a"." {
+                ret None()
+            }
+
             continue
         }
 
-        if byte < 48 || byte > 57 {
+        if byte == a"." {
+            has_dot = true
+            break
+        }
+
+        if byte == a"e" || byte == a"E" {
+            has_exponent = true
+
+            // Disallow underscore before the exponent, i.e. `1_e1f` is not valid
+            if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                ret None()
+            }
+            break
+        }
+
+        if byte == a"f" || byte == a"F" {
+            has_tail = true
+
+            // Disallow underscore before the tail, i.e. `1_f` is not valid
+            if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                ret None()
+            }
+            break
+        }
+
+        if byte < a"0" || byte > a"9" {
             ret None()
         }
 
-        result = result * 10f + (byte - 48).to_float()
+        result = result * 10f + (byte - a"0").to_float()
         cursor += 1
     }
 
-    ret Some(result * sign)
+    // Found a dot
+    if has_dot {
+        cursor += 1
+        let fraction = 0.1f
+
+        // Disallow underscore as first char after the dot, i.e. `1._0f` is not valid
+        if cursor < total_len && this[cursor].to_int() == a"_" {
+            ret None()
+        }
+
+        while cursor < total_len {
+            let byte = this[cursor].to_int()
+
+            // ignore '_'
+            if byte == a"_" {
+                cursor += 1
+                continue
+            }
+
+            if byte == a"e" || byte == a"E" {
+                has_exponent = true
+
+                // Disallow underscore before the exponent, i.e. `1.0_e1f` is not valid
+                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                    ret None()
+                }
+                break
+            }
+
+            if byte == a"f" || byte == a"F" {
+                has_tail = true
+
+                // Disallow underscore before the tail, i.e. `1.0_f` is not valid
+                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                    ret None()
+                }
+                break
+            }
+
+            if byte < a"0" || byte > a"9" {
+                ret None()
+            }
+
+            result = result + (byte - a"0").to_float() * fraction
+            fraction *= 0.1f
+            cursor += 1
+        }
+    }
+
+    // Found a exponent
+    if has_exponent {
+        cursor += 1
+        let exponent = 0f
+        let exponent_sign = 1f
+
+        // Ends in `e` or `E`, i.e. 1.0e is not valid
+        if cursor >= total_len {
+            ret None()
+        }
+
+        aux_byte = this[cursor].to_int()
+
+        if aux_byte == a"-" {
+            cursor += 1
+            exponent_sign = -1f
+        }
+        if aux_byte == a"+" {
+            cursor += 1
+        }
+
+        if cursor >= total_len {
+            ret None()
+        }
+
+        // Disallow underscore as first char after the exponent, i.e. `1.0e_1f` is not valid
+        if cursor < total_len && this[cursor].to_int() == a"_" {
+            ret None()
+        }
+
+        while cursor < total_len {
+            let byte = this[cursor].to_int()
+
+            // ignore '_'
+            if byte == a"_" {
+                cursor += 1
+                continue
+            }
+
+            if byte == a"f" || byte == a"F" {
+                has_tail = true
+
+                // Disallow underscore before the tail, i.e. `1.0e5_f` is not valid
+                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                    ret None()
+                }
+                break
+            }
+
+            if byte < a"0" || byte > a"9" {
+                ret None()
+            }
+
+            exponent = exponent * 10f + (byte - a"0").to_float()
+            cursor += 1
+        }
+
+        result = result * Math::pow(10f, exponent * exponent_sign)
+    }
+
+    // End of the string: f or F
+    if has_tail {
+        cursor += 1
+
+        // Only one tail character is allowed
+        if cursor < total_len {
+            ret None()
+        }
+    }
+
+    ret Some(sign * result)
 }
 
 // Give the ascii (Int) value of the first char of the given string

@@ -191,6 +191,11 @@ fun Int.unary_minus(): Int = 0 - this
 // Note: +1 is parsed as a positive number, so no operation is performed
 fun Int.unary_plus(): Int = this
 
+// Reinterpret the bits of this 32bit integer as a float
+@Extern [lib: "core", name: "int_reinterpret_as_float"]
+@WasmInline [opcode: "f32.reinterpret_i32"]
+fun Int.reinterpret_as_float(): Float {}
+
 // Converts an integer to a floating point number
 @Extern [lib: "core", name: "int_to_float"]
 @WasmInline [opcode: "f32.convert_i32_s"]

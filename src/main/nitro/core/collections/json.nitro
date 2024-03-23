@@ -20,6 +20,15 @@ option Json {
     Null {}
 }
 
+// Used by the compiler to convert a json literal to a Json value.
+fun Json::from_int(param: Int): Json::Number = Json::Number @[value: param.to_float()]
+fun Json::from_float(value: Float): Json::Number = Json::Number @[value]
+fun Json::from_boolean(value: Boolean): Json::Boolean = Json::Boolean @[value]
+fun Json::from_string(value: String): Json::String = Json::String @[value]
+fun Json::from_list(value: List<Json>): Json::Array = Json::Array @[value]
+fun Json::from_map(value: Map<String, Json>): Json::Object = Json::Object @[value]
+fun Json::from_nothing(): Json::Null = Json::Null @[]
+
 // Cast this value to a Json::Number and return it's value as an int.
 // If this value is not a Json::Number, returns Optional::None
 fun Json.as_int(): Optional<Int> {

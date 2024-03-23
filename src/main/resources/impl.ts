@@ -349,6 +349,9 @@ export function string_codepoint_len(self: number): number {
 export function string_get_codepoint(self: number, index: number): number {
     const str = getString(self);
     const chars = Array.from(str);
+    if (index < 0 || index >= chars.length) {
+        throw new Error(`Index out of bounds, index: ${index}, length: ${chars.length}`);
+    }
     const char = chars[index];
     return char.codePointAt(0) || 0;
 }

@@ -5,6 +5,24 @@
 @Intrinsic
 struct Float {}
 
+// Max representable value
+let float_max: Float = 3.4028234663852886e+38
+
+// Min representable value (closest to 0)
+let float_min: Float = 1.1754943508222875e-38
+
+// Standard machine epsilon (the gap between 1 and the next largest floating point number).
+let float_epsilon: Float = 1.1920928955078125e-07
+
+// Quiet NaN (Not a Number), be careful with NaN, float_nan == float_nan will return false by IEEE 754 definition
+let float_nan: Float = 0b01111111110000000000000000000001.reinterpret_as_float()
+
+// Positive infinity, result of 1 / 0
+let float_infinity: Float = 0b01111111100000000000000000000000.reinterpret_as_float()
+
+// Negative infinity, result of -1 / 0
+let float_negative_infinity: Float = 0b11111111100000000000000000000000.reinterpret_as_float()
+
 // Adds two floating point numbers
 @Extern [lib: "core", name: "float_plus"]
 @WasmInline [opcode: "f32.add"]
@@ -121,6 +139,11 @@ fun Float.greater_equal(other: Float): Boolean {}
 @Extern [lib: "core", name: "float_greater_than"]
 @WasmInline [opcode: "f32.gt"]
 fun Float.greater_than(other: Float): Boolean {}
+
+// Reinterpret the bits of this float as a 32bit integer
+@Extern [lib: "core", name: "float_reinterpret_as_int"]
+@WasmInline [opcode: "i32.reinterpret_f32"]
+fun Float.reinterpret_as_int(): Int {}
 
 // Checks if this floating point number is NaN
 @Extern [lib: "core", name: "float_is_nan"]
