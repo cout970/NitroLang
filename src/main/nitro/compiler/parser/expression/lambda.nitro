@@ -1,0 +1,147 @@
+
+// @{ a -> a + 1 }
+// @{}
+// lambdaExpr
+//     : LAMBDA_START lambdaDef? NL* statement (NL+ statement)* NL* RBRACE
+//     | LAMBDA_START lambdaDef? NL* RBRACE
+//     ;
+
+// a, b, rec Int, ret Int ->
+// lambdaDef
+//     : lambdaReceiver COMMA lambdaParams COMMA lambdaReturn ARROW
+//     | lambdaReceiver COMMA lambdaParams                    ARROW
+//     | lambdaReceiver                    COMMA lambdaReturn ARROW
+//     | lambdaReceiver                                       ARROW
+//     |                      lambdaParams COMMA lambdaReturn ARROW
+//     |                      lambdaParams                    ARROW
+//     |                                         lambdaReturn ARROW
+//     ;
+
+// lambdaParams
+//     : lambdaArgument (COMMA lambdaArgument)* ;
+
+// lambdaReceiver
+//     : REC typeUsage;
+
+// lambdaReturn
+//     : RETURN typeUsage;
+
+// lambdaArgument
+//     : anyName (COLON typeUsage)?
+//     | UNDERSCORE (COLON typeUsage)?
+//     ;
+
+struct NLambda {
+    span: Span
+    receiver_type: Optional<NTypeUsage>
+    return_type: Optional<NTypeUsage>
+    params: List<NFunctionParameter>
+    code: NCode
+}
+
+fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::LAMBDA_START)
+
+    let lambda = NLambda @[
+        span,
+        receiver_type: None(),
+        return_type: None(),
+        params: [],
+        code: code.new_child(span),
+    ]
+
+    // Has lambdaDef
+    if lexer.find_token_kind_before(TokenKind::ARROW, TokenKind::RBRACE) {
+        loop {
+            when lexer.current_token_kind {
+                TokenKind::REC -> {
+                    lexer.next_token()
+                    lambda.receiver_type = Some(read_type_usage()?)
+                }
+                TokenKind::RETURN -> {
+                    lexer.next_token()
+                    lambda.return_type = Some(read_type_usage()?)
+                }
+                else -> {
+                    let param = read_lambda_parameter()?
+                    lambda.params[] = param
+                }
+            }
+
+            if lexer.current_token_kind == TokenKind::ARROW {
+                break
+            }
+
+            skip_token_kind(TokenKind::COMMA)?
+        }
+        skip_token_kind(TokenKind::ARROW)
+    }
+
+    skip_nl()
+    read_statement_block_end(lambda.code)
+
+    let inst = code.add_lambda(span, lambda)
+    ret found(inst.id)
+}
+
+fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
+    let span = lexer.current_token_span
+    read_var_modifier()?
+
+    let name = if lexer.current_token_kind == TokenKind::UNDERSCORE {
+        skip_token_kind(TokenKind::UNDERSCORE)?
+        "_"
+    } else {
+        read_name()?
+    }
+    skip_nl()
+
+    let type_usage = if lexer.current_token_kind == TokenKind::COLON {
+        skip_token_kind(TokenKind::COLON)
+        read_type_usage()?
+    } else {
+        NTypeUsage::unresolved()
+    }
+
+    let def = NFunctionParameter @[
+        span,
+        name,
+        type_usage,
+    ]
+
+    ret found(def)
+}
+
+fun NLambda.to_string(): String {
+    let s = ""
+
+    if receiver_type.is_some() {
+        s += "rec " + receiver_type!!.to_string()
+    }
+
+    for param in params {
+        if s.is_not_empty() {
+            s += ", "
+        }
+        s += param.name
+        s += ": "
+        s += param.type_usage.to_string()
+    }
+
+    if return_type.is_some() {
+        if s.is_not_empty() {
+            s += ", "
+        }
+        s += "ret " + return_type!!.to_string()
+    }
+
+    if s.is_not_empty() {
+        s += " -> "
+    }
+
+    let i = code.to_string()
+    let rest = i.slice(1, i.len())
+
+    ret "@{$s$rest"
+}

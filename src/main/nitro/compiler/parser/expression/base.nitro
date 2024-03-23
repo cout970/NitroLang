@@ -88,7 +88,7 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // setExpr
         TokenKind::SET_START -> read_expression_set(code)
         // lambdaExpr
-
+        TokenKind::LAMBDA_START -> read_expression_lambda(code)
         // sizeOfExpr
         TokenKind::SIZE_OF -> read_expression_size_of(code)
         // jsonExpr
@@ -155,7 +155,7 @@ fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInst
 
     // typeParamArg? functionCallEnd
     if lexer.current_token_kind == TokenKind::LAMBDA_START {
-        let args = [read_expression_function_call_end(code)?]
+        let args = [expr, read_expression_function_call_end(code)?]
 
         let inst = code.add_fun_call(span, "", "call", args, type_args)
         ret found(inst.id)
@@ -264,9 +264,6 @@ fun Parser.read_expression_function_call_params(code: NCode): Parsed<List<NInstI
 }
 
 fun Parser.read_expression_function_call_end(code: NCode): Parsed<NInstId> {
-    let left = read_expression_base(code)?
-    // TODO
-
-    ret found(left)
+    ret read_expression_lambda(code)
 }
 

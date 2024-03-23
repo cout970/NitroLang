@@ -149,16 +149,20 @@ fun NCode.to_string(): String {
     let body_str = "{"
 
      for i in inst {
-        body_str += "\n"
         let id = i.id.to_string()
-        body_str += " " * (5 - id.len() - 1)
-        body_str += "#"
-        body_str += id
-        body_str += " | "
-        body_str += "  " * i.current_block.depth
-        body_str += i.to_string()
+        let line = ""
+        line += " " * (5 - id.len() - 1)
+        line += "#"
+        line += id
+        line += " | "
+        let prefix_len = line.len()
+        line += "  " * i.current_block.depth
+        line += i.to_string().indent(prefix_len).trim()
+
+        body_str += "\n"
+        body_str += line
     }
-    body_str += "\n last-expression: $last_expression"
+    body_str += "\n  last-expression: $last_expression"
     body_str += "\n}"
 
     ret body_str

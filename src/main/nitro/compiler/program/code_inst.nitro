@@ -79,6 +79,9 @@ option NInstKind {
     Alloc {
         type_usage: NTypeUsage
     }
+    Lambda {
+        lambda: NLambda
+    }
     Link {
         linked_id: NInstId
     }
@@ -494,6 +497,23 @@ fun NCode.add_alloc(
     ret i
 }
 
+fun NCode.add_lambda(
+    span: Span,
+    lambda: NLambda,
+): NInst {
+    last_id += 1
+    let i = NInst @[
+        id: last_id,
+        span,
+        current_block,
+        kind: NInstKind::Lambda @[
+            lambda,
+        ],
+    ]
+    inst[] = i
+    ret i
+}
+
 fun NCode.add_link(
     span: Span,
     linked_id: NInstId,
@@ -612,6 +632,11 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             let kind = i.kind as NInstKind::Alloc
 
             add_alloc(i.span, kind.type_usage)
+        }
+        i.kind is NInstKind::Lambda -> {
+            let kind = i.kind as NInstKind::Lambda
+
+            add_lambda(i.span, kind.lambda)
         }
         i.kind is NInstKind::Link -> {
             let kind = i.kind as NInstKind::Link
@@ -759,6 +784,11 @@ fun NInst.to_string(): String {
             let kind = t as NInstKind::Alloc
 
             "alloc ${kind.type_usage}"
+        }
+        t is NInstKind::Lambda -> {
+            let kind = t as NInstKind::Lambda
+
+            "lambda ${kind.lambda}"
         }
         t is NInstKind::Link -> {
             let kind = t as NInstKind::Link

@@ -28,6 +28,10 @@ fun Parser.read_statement_block(code: NCode): Parsed<Nothing> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
+    ret read_statement_block_end(code)
+}
+
+fun Parser.read_statement_block_end(code: NCode): Parsed<Nothing> {
     if lexer.current_token_kind == TokenKind::RBRACE {
         skip_token_kind(TokenKind::RBRACE)?
         ret found(nothing)
