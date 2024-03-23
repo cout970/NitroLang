@@ -5,6 +5,7 @@
 // E.g. 1 || 2 && 3
 // expression
 //     : ifExpr
+//     | whenExpr
 //     | returnExpr
 //     | expressionOr
 //     ;
@@ -19,6 +20,7 @@
 fun Parser.read_expression(code: NCode): Parsed<NInstId> {
     let inst = when lexer.current_token_kind {
         TokenKind::IF -> read_expression_if(code)
+        TokenKind::WHEN -> read_expression_when(code)
         TokenKind::RETURN -> read_expression_return(code)
         else -> read_expression_or(code)
     }

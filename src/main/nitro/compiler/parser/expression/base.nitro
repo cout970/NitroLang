@@ -6,7 +6,6 @@
 //     | constExpr callSuffix
 //     | string
 //     | string callSuffix
-//     | whenExpr
 //     | listExpr
 //     | mapExpr
 //     | setExpr
@@ -81,8 +80,6 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // modulePath? anyName typeParamArg? STRING_START stringContents* STRING_END
         // modulePath? anyName typeParamArg? PLAIN_STRING
         TokenKind::IDENTIFIER -> read_expression_with_name(code)
-        // when
-        TokenKind::WHEN -> read_expression_when(code)
         // listExpr
         TokenKind::LBRACKET -> read_expression_list(code)
         // mapExpr
