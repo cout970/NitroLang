@@ -158,6 +158,9 @@ fun foo() {
             }
         ]
     }
+
+    // format(["First|", "|Middle|", "|End"], a, c)
+    format"First|$a|Middle|${c}|End"
 }
 
 mod A {

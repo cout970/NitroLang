@@ -18,9 +18,10 @@
 //     | modulePath? anyName callSuffix
 //     | modulePath? anyName typeParamArg? newInstance
 //     | modulePath? anyName typeParamArg? newInstance callSuffix
+//     | modulePath? anyName typeParamArg? STRING_START stringContents* STRING_END
+//     | modulePath? anyName typeParamArg? PLAIN_STRING
 //     | sizeOfExpr
 //     | jsonExpr
-//     | templateLiteral
 //     | BREAK
 //     | CONTINUE
 //     ;
@@ -77,6 +78,8 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         // modulePath? anyName callSuffix
         // modulePath? anyName typeParamArg? newInstance
         // modulePath? anyName typeParamArg? newInstance callSuffix
+        // modulePath? anyName typeParamArg? STRING_START stringContents* STRING_END
+        // modulePath? anyName typeParamArg? PLAIN_STRING
         TokenKind::IDENTIFIER -> read_expression_with_name(code)
         // when
         TokenKind::WHEN -> read_expression_when(code)
@@ -92,7 +95,6 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::SIZE_OF -> read_expression_size_of(code)
         // jsonExpr
         TokenKind::JSON -> read_expression_json(code)
-        // templateLiteral
         // BREAK
         TokenKind::BREAK -> read_expression_break(code)
         // CONTINUE
@@ -206,6 +208,17 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
         ret read_expression_call_suffix(code, expr)
     }
 
+    // String template
+    // modulePath? anyName typeParamArg? PLAIN_STRING
+    // modulePath? anyName typeParamArg? STRING_START stringContents* STRING_END
+    if lexer.current_token_kind == TokenKind::PLAIN_STRING || lexer.current_token_kind == TokenKind::STRING_START {
+        if type_args.len() > 0 {
+            report_error("Type arguments are not allowed here", span)
+        }
+
+        ret read_expression_string_template(code, name, path)
+    }
+
     // Variable:
     // modulePath? anyName
     if type_args.len() > 0 {
@@ -267,3 +280,66 @@ fun Parser.read_expression_function_call_end(code: NCode): Parsed<NInstId> {
     ret read_expression_lambda(code)
 }
 
+fun Parser.read_expression_string_template(code: NCode, name: String, path: String): Parsed<NInstId> {
+    let span = lexer.current_token_span
+
+    if lexer.current_token_kind == TokenKind::PLAIN_STRING {
+        let expr = read_expression_string(code)?
+        let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("String")])
+        code.add_fun_call(span, "", "add", [expr], [])
+
+        let inst = code.add_fun_call(span, path, name, [list.id], [])
+        ret found(inst.id)
+    }
+
+    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("String")]).id
+    let args = [list]
+    let prev_is_string = false
+
+    skip_token_kind(TokenKind::STRING_START)?
+
+    loop {
+        if lexer.current_token_kind == TokenKind::STRING_BLOB {
+            let text = lexer.current_token_text
+            lexer.next_token()
+
+            let new_string = code.add_lit_string(span, text).id
+            code.add_fun_call(span, "", "add", [list, new_string], [])
+            prev_is_string = true
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::STRING_VAR {
+            if !prev_is_string {
+                let new_string = code.add_lit_string(span, "").id
+                code.add_fun_call(span, "", "add", [list, new_string], [])
+            }
+            let variable_name = lexer.current_token_text
+            lexer.next_token()
+
+            let load_var = code.add_load_var(span, "", variable_name, None())
+            args[] = load_var.id
+            prev_is_string = false
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::STRING_INTERP_START {
+            if !prev_is_string {
+                let new_string = code.add_lit_string(span, "").id
+                code.add_fun_call(span, "", "add", [list, new_string], [])
+            }
+            lexer.next_token()
+            let expr = read_expression(code)?
+            skip_token_kind(TokenKind::STRING_INTERP_END)?
+            args[] = expr
+            prev_is_string = false
+            continue
+        }
+
+        skip_token_kind(TokenKind::STRING_END)?
+        break
+    }
+
+    let inst = code.add_fun_call(span, path, name, args, [])
+    ret found(inst.id)
+}
