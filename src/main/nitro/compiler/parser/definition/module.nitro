@@ -14,7 +14,7 @@ fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_token_kind(TokenKind::MODULE)?
     let span = lexer.current_token_span
     let path = read_module_path()?
-    let name = read_upper_name()?
+    let name = read_name()?
     skip_nl()
 
     let def = NModule @[

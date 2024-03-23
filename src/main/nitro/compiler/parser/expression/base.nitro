@@ -16,8 +16,8 @@
 //     | modulePath? anyName
 //     | modulePath? anyName functionCallEnd
 //     | modulePath? anyName callSuffix
-//     | modulePath? upperName typeParamArg? newInstance
-//     | modulePath? upperName typeParamArg? newInstance callSuffix
+//     | modulePath? anyName typeParamArg? newInstance
+//     | modulePath? anyName typeParamArg? newInstance callSuffix
 //     | sizeOfExpr
 //     | jsonExpr
 //     | templateLiteral
@@ -75,10 +75,9 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::THIS -> read_expression_this(code)
         // modulePath? anyName
         // modulePath? anyName callSuffix
-        // modulePath? upperName typeParamArg? newInstance
-        // modulePath? upperName typeParamArg? newInstance callSuffix
-        TokenKind::LOWER_IDENTIFIER -> read_expression_with_name(code)
-        TokenKind::UPPER_IDENTIFIER -> read_expression_with_name(code)
+        // modulePath? anyName typeParamArg? newInstance
+        // modulePath? anyName typeParamArg? newInstance callSuffix
+        TokenKind::IDENTIFIER -> read_expression_with_name(code)
         // when
         TokenKind::WHEN -> read_expression_when(code)
         // listExpr
@@ -199,8 +198,8 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
     }
 
     // New instance:
-    // modulePath? upperName typeParamArg? newInstance
-    // modulePath? upperName typeParamArg? newInstance callSuffix
+    // modulePath? anyName typeParamArg? newInstance
+    // modulePath? anyName typeParamArg? newInstance callSuffix
     if lexer.current_token_kind == TokenKind::STRUCT_START {
         let expr = read_expression_new_instance(code, path, name, type_args)?
         ret read_expression_call_suffix(code, expr)

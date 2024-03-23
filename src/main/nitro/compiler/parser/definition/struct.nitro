@@ -1,6 +1,6 @@
 
 // structDefinition
-//      : STRUCT modulePath? upperName typeParamsDef? NL* structBody;
+//      : STRUCT modulePath? anyName typeParamsDef? NL* structBody;
 //
 // E.g. { a: Int, b: Int }
 // structBody
@@ -28,7 +28,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_token_kind(TokenKind::STRUCT)?
     let span = lexer.current_token_span
     let path = read_module_path()?
-    let name = read_upper_name()?
+    let name = read_name()?
 
     let def = NStruct @[
         span,

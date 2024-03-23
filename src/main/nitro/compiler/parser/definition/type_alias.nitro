@@ -1,7 +1,7 @@
 
 // E.g. alias Int32 = Int
 // aliasDefinition
-//     : ALIAS upperName ASSIGN typeUsage;
+//     : ALIAS anyName ASSIGN typeUsage;
 
 struct NTypeAlias {
     span: Span
@@ -13,7 +13,7 @@ struct NTypeAlias {
 fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::TYPE_ALIAS)?
     let span = lexer.current_token_span
-    let name = read_upper_name()?
+    let name = read_name()?
 
     skip_token_kind(TokenKind::ASSIGN)?
 

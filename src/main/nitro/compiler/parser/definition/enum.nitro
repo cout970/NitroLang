@@ -1,8 +1,8 @@
 
 // E.g. enum Direction { Up, Down, Left, Right, Front, Back }
 // enumDefinition
-//     : ENUM modulePath? upperName NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
-//     | ENUM modulePath? upperName NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
+//     : ENUM modulePath? anyName NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
+//     | ENUM modulePath? anyName NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
 //     ;
 
 // enumFields
@@ -67,7 +67,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     skip_token_kind(TokenKind::ENUM)?
     let span = lexer.current_token_span
     let path = read_module_path()?
-    let name = read_upper_name()?
+    let name = read_name()?
     skip_nl()
 
     skip_token_kind(TokenKind::LBRACE)?

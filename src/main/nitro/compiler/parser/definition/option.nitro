@@ -1,13 +1,13 @@
 
 // // E.g. type Optional<T> {}
 // optionDefinition
-//     : OPTION modulePath? upperName typeParamsDef? NL* LBRACE NL*
+//     : OPTION modulePath? anyName typeParamsDef? NL* LBRACE NL*
 //     (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
 //     RBRACE ;
 //
 // // E.g. Some { value: T },
 // optionDefinitionItem
-//     : upperName structBody?;
+//     : anyName structBody?;
 
 struct NOption {
     span: Span
@@ -29,7 +29,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_token_kind(TokenKind::OPTION)?
     let span = lexer.current_token_span
     let path = read_module_path()?
-    let name = read_upper_name()?
+    let name = read_name()?
 
     let def = NOption @[
         span,
@@ -57,7 +57,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
 
 fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     let span = lexer.current_token_span
-    let name = read_upper_name()?
+    let name = read_name()?
 
     let def = NStruct @[
         span,

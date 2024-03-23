@@ -32,17 +32,11 @@ fun Parser.read_expression_map(code: NCode): Parsed<NInstId> {
 
                 expr
             }
-            lexer.current_token_kind == TokenKind::LOWER_IDENTIFIER -> {
+            lexer.current_token_kind == TokenKind::IDENTIFIER -> {
                 let name = read_name()?
 
                 let str = code.add_lit_string(span, name)
                 str.id
-            }
-            lexer.current_token_kind == TokenKind::UPPER_IDENTIFIER -> {
-                let name = read_name()?
-
-                let load = code.add_load_var(span, "", name, None())
-                load.id
             }
             else -> read_expression_string(code)?
         }

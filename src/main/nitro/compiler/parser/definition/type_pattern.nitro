@@ -10,7 +10,7 @@
 //     ;
 //
 // baseTypePattern
-//     : modulePath? upperName typePatternArgs? ;
+//     : modulePath? anyName typePatternArgs? ;
 //
 // functionTypePattern
 //       : LPAREN RPAREN ARROW typePattern
@@ -66,7 +66,7 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
     // #A
     if lexer.current_token_kind == TokenKind::HASH {
         lexer.next_token()
-        let name: String = read_upper_name()?
+        let name: String = read_name()?
 
         ret found(NTypePattern @[
             kind: TypePatternKind::TYPE_PARAM,
@@ -96,7 +96,7 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
 
     // core::Int, List<Int>
     let module_path: String = read_module_path()?
-    let name: String = read_upper_name()?
+    let name: String = read_name()?
     let type_params: List<NTypePattern> = []
 
     if lexer.current_token_kind == TokenKind::LTH {

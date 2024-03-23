@@ -122,8 +122,7 @@ enum TokenKind {
     INT_NUMBER @[text: "int_number", len: 0]
     LONG_NUMBER @[text: "long_number", len: 0]
     FLOAT_NUMBER @[text: "float_number", len: 0]
-    UPPER_IDENTIFIER @[text: "upper_identifier", len: 0]
-    LOWER_IDENTIFIER @[text: "lower_identifier", len: 0]
+    IDENTIFIER @[text: "identifier", len: 0]
 //
     PLAIN_STRING @[text: "plain_string", len: 0]
     ASCII_STRING @[text: "ascii_string", len: 0]

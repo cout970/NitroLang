@@ -1111,7 +1111,6 @@ fun Lexer.read_identifier() {
     // Identifier
     let first = extra.get_byte(0).to_int()
     let lower = first >= a"a" && first <= a"z"
-    let kind = if lower { TokenKind::LOWER_IDENTIFIER } else { TokenKind::UPPER_IDENTIFIER }
 
     // Ascii string
     if first == a"a" && extra.len() == 1 && current_byte == a"\"" {
@@ -1120,7 +1119,7 @@ fun Lexer.read_identifier() {
         ret
     }
 
-    add_token_with_extra(kind, start, extra)
+    add_token_with_extra(TokenKind::IDENTIFIER, start, extra)
 }
 
 // Read a number

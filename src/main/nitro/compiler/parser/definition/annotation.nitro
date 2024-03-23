@@ -1,6 +1,6 @@
 
 //    annotation
-//      : AT upperName annotationArgs? NL* ;
+//      : AT anyName annotationArgs? NL* ;
 //
 //    annotationArgs
 //        : LBRACKET NL* (annotationArgEntry (commaOrNl annotationArgEntry)* COMMA?)? NL* RBRACKET ;
@@ -29,7 +29,7 @@ struct NAnnotationArg {
 fun Parser.parse_annotation(): Parsed<NAnnotation> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::AT)?
-    let name: String = read_upper_name()?
+    let name: String = read_name()?
 
     let ann = NAnnotation @[span, name, args: []]
 
@@ -63,8 +63,7 @@ fun Parser.read_annotation_arg(): Parsed<NAnnotationArg> {
 fun Parser.read_const_string(): Parsed<String> {
     ret when lexer.current_token_kind {
         TokenKind::PLAIN_STRING -> read_plain_string()
-        TokenKind::UPPER_IDENTIFIER -> read_upper_name()
-        TokenKind::LOWER_IDENTIFIER -> read_lower_name()
+        TokenKind::IDENTIFIER -> read_name()
         else -> parse_error(ParseError::ExpectedConstName, lexer.current_token)
     }
 }

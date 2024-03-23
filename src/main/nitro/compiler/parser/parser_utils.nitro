@@ -21,31 +21,9 @@ fun Parser.ignore_token_kind(tk: TokenKind) {
     }
 }
 
-// Read an lower case identifier
-fun Parser.read_lower_name(): Parsed<String> {
-    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER {
-        ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
-    }
-
-    let name = lexer.current_token_text
-    lexer.next_token()
-    ret found(name)
-}
-
-// Read an upper case identifier
-fun Parser.read_upper_name(): Parsed<String> {
-    if lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
-        ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
-    }
-
-    let name = lexer.current_token_text
-    lexer.next_token()
-    ret found(name)
-}
-
 // Read an identifier, lower case or upper case
 fun Parser.read_name(): Parsed<String> {
-    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER && lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
+    if lexer.current_token_kind != TokenKind::IDENTIFIER  {
         ret parse_error(ParseError::ExpectedIdentifier, lexer.current_token)
     }
 
@@ -61,7 +39,7 @@ fun Parser.read_module_path(): Parsed<String> {
     let path: String = ""
     let first = true
 
-    if lexer.current_token_kind != TokenKind::LOWER_IDENTIFIER && lexer.current_token_kind != TokenKind::UPPER_IDENTIFIER {
+    if lexer.current_token_kind != TokenKind::IDENTIFIER {
         ret found(path)
     }
 

@@ -90,8 +90,7 @@ fun Parser.read_expression_and(code: NCode): Parsed<NInstId> {
 // List of tokens that start an expression
 fun Parser.is_at_expression_first(): Boolean {
     ret when lexer.current_token_kind {
-        TokenKind::LOWER_IDENTIFIER -> true
-        TokenKind::UPPER_IDENTIFIER -> true
+        TokenKind::IDENTIFIER -> true
         TokenKind::WHEN -> true
         TokenKind::IF -> true
         TokenKind::RETURN -> true
