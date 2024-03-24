@@ -57,7 +57,7 @@ definitionChoice
     | optionDefinition
     | functionDefinition
     | includeDefinition
-    | useDefinition
+    | useDefinition // Deprecated
     | moduleDefinition
     | constDefinition
     | tagDefinition
