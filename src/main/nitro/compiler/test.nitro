@@ -173,6 +173,17 @@ mod A {
     }
 }
 
+fun bar() {
+    a = 10
+    a[] = 1
+    a[1, 2] = 3
+    a.b = 4
+
+    a += 1
+    a[0] += 2
+    a.field += 3
+}
+
 "#
 
 let tokenizer_test2: String = r#"

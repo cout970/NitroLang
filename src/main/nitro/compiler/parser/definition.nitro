@@ -11,24 +11,13 @@
 //      | optionDefinition
 //      | structDefinition
 //      | testDefinition
-//      | useDefinition # Ignored for now
-//      | tagDefinition # Ignored for now
+//      | useDefinition # Deprecated
+//      | tagDefinition
 //      | typeAliasDefinition
 //      ;
 
 fun Parser.read_definition(): Parsed<Nothing> {
-    let annotations: List<NAnnotation> = []
-
-    while lexer.current_token_kind == TokenKind::AT {
-        let parsed = parse_annotation()
-
-        if parsed.is_error() {
-            recover_from_error()
-            continue
-        }
-
-        annotations[] = parsed!!
-    }
+    let annotations = read_annotations()?
 
     skip_nl()
 
@@ -37,6 +26,7 @@ fun Parser.read_definition(): Parsed<Nothing> {
         TokenKind::OPTION -> read_option_definition(annotations)?
         TokenKind::ENUM -> read_enum_definition(annotations)?
         TokenKind::INCLUDE -> read_include_definition(annotations)?
+        TokenKind::TAG -> read_tag_definition(annotations)?
         TokenKind::TYPE_ALIAS -> read_type_alias_definition(annotations)?
         TokenKind::MODULE -> read_module_definition(annotations)?
         TokenKind::LET -> read_const_definition(annotations)?

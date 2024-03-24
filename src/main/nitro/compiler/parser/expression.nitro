@@ -17,7 +17,10 @@
 // expressionAnd
 //     : expressionBinaryOp (ANDAND expressionBinaryOp)* ;
 
-fun Parser.read_expression(code: NCode): Parsed<NInstId> {
+fun Parser.read_expression_assignment(code: NCode): Parsed<NInstId> {
+    let prev_allow_expression_assignment = allow_expression_assignment
+    allow_expression_assignment = true
+
     let inst = when lexer.current_token_kind {
         TokenKind::IF -> read_expression_if(code)
         TokenKind::WHEN -> read_expression_when(code)
@@ -25,6 +28,23 @@ fun Parser.read_expression(code: NCode): Parsed<NInstId> {
         else -> read_expression_or(code)
     }
 
+    allow_expression_assignment = prev_allow_expression_assignment
+    ret inst
+}
+
+fun Parser.read_expression(code: NCode): Parsed<NInstId> {
+    // Prevent `a = b = c` from being valid, only read_expression_assignment() should allow that
+    let prev_allow_expression_assignment = allow_expression_assignment
+    allow_expression_assignment = false
+
+    let inst = when lexer.current_token_kind {
+        TokenKind::IF -> read_expression_if(code)
+        TokenKind::WHEN -> read_expression_when(code)
+        TokenKind::RETURN -> read_expression_return(code)
+        else -> read_expression_or(code)
+    }
+
+    allow_expression_assignment = prev_allow_expression_assignment
     ret inst
 }
 

@@ -83,9 +83,13 @@ fun Parser.read_int(): Parsed<Int> {
 
     let text: String = lexer.current_token.extra
     lexer.next_token()
-    let value: Int = text.to_int()!!
+    let parse_result = text.to_int()
 
-    ret found(value)
+    if parse_result.is_none() {
+        crash("Failed to parse long: " + text)
+    }
+
+    ret found(parse_result!!)
 }
 
 fun Parser.read_long(): Parsed<Long> {
@@ -95,9 +99,13 @@ fun Parser.read_long(): Parsed<Long> {
 
     let text: String = lexer.current_token.extra
     lexer.next_token()
-    let value: Long = text.to_long()!!
+    let parse_result = text.to_long()
 
-    ret found(value)
+    if parse_result.is_none() {
+        crash("Failed to parse long: " + text)
+    }
+
+    ret found(parse_result!!)
 }
 
 fun Parser.read_float(): Parsed<Float> {
@@ -108,7 +116,6 @@ fun Parser.read_float(): Parsed<Float> {
     let text: String = lexer.current_token.extra
     lexer.next_token()
     let parse_result = text.to_float()
-
 
     if parse_result.is_none() {
         crash("Failed to parse float: " + text)

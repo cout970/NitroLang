@@ -51,7 +51,7 @@ fun Parser.read_when_statement(code: NCode): Parsed<Nothing> {
 
             has_read_else = true
 
-            if lexer.current_token_kind == TokenKind::RBRACE {
+            if lexer.current_token_kind == TokenKind::LBRACE {
                 read_statement_block(code)?
             } else {
                 read_expression(code)?
@@ -81,7 +81,7 @@ fun Parser.read_when_statement(code: NCode): Parsed<Nothing> {
         code.add_if_start(span, condition)
         code.enter_block(false)
 
-        if lexer.current_token_kind == TokenKind::RBRACE {
+        if lexer.current_token_kind == TokenKind::LBRACE {
             read_statement_block(code)?
         } else {
             read_expression(code)?

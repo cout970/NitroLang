@@ -136,7 +136,8 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         type_params,
     ]
 
-    if lexer.current_token_kind != TokenKind::DOT {
+    // If `.(` is found after the name, it is a function type like `Int.() -> Nothing`
+    if lexer.current_token_kind != TokenKind::DOT || lexer.next_token_kind != TokenKind::LPAREN {
         ret found(ty)
     }
 
@@ -175,14 +176,13 @@ fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsa
     }
 
     skip_token_kind(TokenKind::LPAREN)?
-
+    skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
         lexer.next_token()
         type_params[] = read_function_type_usage_param()?
         ret found(nothing)
     }?
 
-    skip_token_kind(TokenKind::RPAREN)?
     skip_token_kind(TokenKind::ARROW)?
 
     type_params[] = read_type_usage()?

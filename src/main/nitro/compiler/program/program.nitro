@@ -14,14 +14,13 @@ struct Program {
     tags: List<NTag>
     consts: List<NConst>
     functions: List<NFunction>
+    lambda_functions: List<NLambda>
     property_getters: List<NPropertyGetter>
     property_setters: List<NPropertySetter>
-    lambda_functions: List<NLambda>
     all_function_signatures: List<NFunctionSignature>
     last_test_id: Int
 }
 
-struct NTag {}
 struct NPropertyGetter {}
 struct NPropertySetter {}
 struct NFunctionSignature {}

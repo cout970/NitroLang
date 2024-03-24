@@ -26,7 +26,7 @@ struct NAnnotationArg {
 }
 
 // Parse a single annotation
-fun Parser.parse_annotation(): Parsed<NAnnotation> {
+fun Parser.read_annotation(): Parsed<NAnnotation> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::AT)?
     let name: String = read_name()?
@@ -46,6 +46,18 @@ fun Parser.parse_annotation(): Parsed<NAnnotation> {
     }?
 
     ret found(ann)
+}
+
+// Read a list of annotations
+fun Parser.read_annotations(): Parsed<List<NAnnotation>> {
+    let annotations = []
+
+    while lexer.current_token_kind == TokenKind::AT {
+        annotations[] = read_annotation()?
+        skip_nl()
+    }
+
+    ret found(annotations)
 }
 
 // Read a key-value pair in an annotation

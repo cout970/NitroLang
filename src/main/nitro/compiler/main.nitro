@@ -14,6 +14,7 @@ include "./parser/definition/include.nitro"
 include "./parser/definition/module.nitro"
 include "./parser/definition/option.nitro"
 include "./parser/definition/struct.nitro"
+include "./parser/definition/tag.nitro"
 include "./parser/definition/test.nitro"
 include "./parser/definition/type_alias.nitro"
 include "./parser/definition/type_parameter.nitro"
@@ -54,13 +55,14 @@ include "./program/code.nitro"
 include "./program/code_inst.nitro"
 include "./program/code_block.nitro"
 include "./program/var.nitro"
-include "./test.nitro"
+include "./test2.nitro"
 
-fun compile() {
+@WasmName [name: "compile"]
+fun compile(source: String, file: String) {
     let start = Instant::now()
     let program = Program::new()
 
-    let lexer = Lexer::new(source_code, "test.nitro")
+    let lexer = Lexer::new(source, file)
     lexer.read_all()
 
     let parser = Parser::new(lexer, program)
@@ -71,50 +73,51 @@ fun compile() {
     let elapsed = (end - start).to_milliseconds()
     let bytes = get_memory().get_used_bytes()
 
+    println("File: $file")
     println("Time: $elapsed ms")
     println("Memory used: $bytes bytes")
 
-    println("Includes:")
-    for def in program.includes {
-        println(def)
-        println("--------")
-    }
-
-    println("TypeAliases:")
-    for def in program.type_aliases {
-        println(def)
-        println("--------")
-    }
-
-    println("Modules:")
-    for def in program.modules {
-        println(def)
-        println("--------")
-    }
-
-    println("Structs:")
-    for def in program.structs {
-        println(def)
-        println("--------")
-    }
-
-    println("Options:")
-    for def in program.options {
-        println(def)
-        println("--------")
-    }
-
-    println("Consts:")
-    for def in program.consts {
-        println(def)
-        println("--------")
-    }
-
-    println("Functions:")
-    for def in program.functions {
-        println(def)
-        println("--------")
-    }
+//    println("Includes:")
+//    for def in program.includes {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("TypeAliases:")
+//    for def in program.type_aliases {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("Modules:")
+//    for def in program.modules {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("Structs:")
+//    for def in program.structs {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("Options:")
+//    for def in program.options {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("Consts:")
+//    for def in program.consts {
+//        println(def)
+//        println("--------")
+//    }
+//
+//    println("Functions:")
+//    for def in program.functions {
+//        println(def)
+//        println("--------")
+//    }
 
     println("--------")
 
@@ -125,5 +128,5 @@ fun compile() {
 }
 
 fun main() {
-    compile()
+    compile(source_code, "test2.nitro")
 }

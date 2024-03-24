@@ -441,6 +441,10 @@ fun String.to_int_in_base(base: Int): Optional<Int> {
 }
 
 fun String.to_long(): Optional<Long> {
+    ret this.to_long_in_base(10L)
+}
+
+fun String.to_long_in_base(base: Long): Optional<Long> {
     let result = 0L
     let total_len = this.len()
     let cursor = 0
@@ -450,9 +454,15 @@ fun String.to_long(): Optional<Long> {
         ret None()
     }
 
-    if this[cursor].to_int() == a"-" {
+    let first = this[cursor].to_int()
+
+    if first == a"-" {
         cursor += 1
         sign = -1L
+    }
+
+    if first == a"+" {
+        cursor += 1
     }
 
     while cursor < total_len {
@@ -464,12 +474,55 @@ fun String.to_long(): Optional<Long> {
             continue
         }
 
-        if byte < a"0" || byte > a"9" {
-            ret None()
+        if byte == a"l" || byte == a"L" {
+            cursor += 1
+            break
         }
 
-        result = result * 10L + (byte - a"0").to_long()
-        cursor += 1
+        if byte >= a"0" && byte <= a"9" {
+            let digit_value: Long = (byte - a"0").to_long()
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        if byte >= a"a" && byte <= a"z" {
+            let digit_value: Long = (byte - a"a" + 10).to_long()
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        if byte >= a"A" && byte <= a"Z" {
+            let digit_value: Long = (byte - a"A" + 10).to_long()
+
+            // check if the digit is valid for the base
+            if digit_value >= base {
+                ret None()
+            }
+
+            result = result * base + digit_value
+            cursor += 1
+            continue
+        }
+
+        ret None()
+    }
+
+    if cursor != total_len {
+        ret None()
     }
 
     ret Some(result * sign)

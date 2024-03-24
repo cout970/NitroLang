@@ -18,9 +18,9 @@
 //     | loopStatement
 //     | whenExpr
 //     | deferStatement
-//     | expressionStatement
 //     | foreignBlockStatement
 //     | testDefinition
+//     | expression
 //     ;
 
 // Read a block of statements
@@ -47,8 +47,9 @@ fun Parser.read_statement_block_end(code: NCode): Parsed<Nothing> {
         }
 
         // A delimiter is required after each statement
+        // If no delimiter is found, means that we are unable to parse the complete line
         if lexer.current_token_kind != TokenKind::NL {
-            program.reporter.report_error("Expected newline or semicolon to separate statements", span)
+            program.reporter.report_error("Invalid statement, unable to parse the complete line, stopped at ${lexer.current_token_kind}", span)
             lexer.next_token()
         }
 
@@ -104,7 +105,7 @@ fun Parser.read_statement(code: NCode): Parsed<Nothing> {
             code.last_expression = prev_last_expression
         }
         else -> {
-            let expr = read_expression(code)?
+            let expr = read_expression_assignment(code)?
             // Update last_expression, so at the end of the block we know the last expression
             code.last_expression = Some(expr)
         }

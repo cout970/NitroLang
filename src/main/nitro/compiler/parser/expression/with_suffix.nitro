@@ -12,10 +12,24 @@
 // expressionWithSuffix
 //     : expressionWithSuffix QUESTION_MARK
 //     | expressionWithSuffix BANGBANG
+//     | expressionWithSuffix LBRACKET RBRACKET expressionAssignmentEnd
 //     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET
+//     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET expressionAssignmentEnd
 //     | expressionWithSuffix NL? DOT anyName
+//     | expressionWithSuffix NL? DOT anyName expressionAssignmentEnd
 //     | expressionWithSuffix NL? DOT modulePath? anyName callSuffix
 //     | expressionBase
+//     ;
+
+// E.g. a = 0
+// E.g. i += 1
+// expressionAssignmentEnd
+//     : ASSIGN NL* expression
+//     | ADD_ASSIGN NL* expression
+//     | SUB_ASSIGN NL* expression
+//     | MUL_ASSIGN NL* expression
+//     | DIV_ASSIGN NL* expression
+//     | MOD_ASSIGN NL* expression
 //     ;
 
 fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
@@ -61,10 +75,34 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
         }
 
         if lexer.current_token_kind == TokenKind::LBRACKET {
+            if allow_expression_assignment && lexer.next_token_kind == TokenKind::RBRACKET {
+                // `last[] = a`
+                // Becomes:
+                // ```
+                // last.add(a)
+                // ```
+                lexer.next_token()
+                lexer.next_token()
+                skip_token_kind(TokenKind::ASSIGN)?
+
+                let right = read_expression(code)?
+                let args = [last, right]
+
+                let call = code.add_fun_call(span, "", "add", args, [])
+                last = call.id
+                continue
+            }
+
             // `last[1, 2, 3, 4]`
             // Becomes:
             // ```
             // last.get(1, 2, 3, 4)
+            // ```
+            // and
+            // `last[1, 2, 3, 4] = a`
+            // Becomes:
+            // ```
+            // last.set(1, 2, 3, 4, a)
             // ```
 
             lexer.next_token()
@@ -75,9 +113,53 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 ret found(nothing)
             }?
 
-            let call = code.add_fun_call(span, "", "get", args, [])
-            last = call.id
-            continue
+            // Simple assignment
+            if allow_expression_assignment && lexer.current_token_kind == TokenKind::ASSIGN {
+                lexer.next_token()
+                let right = read_expression(code)?
+                args[] = right
+
+                let call = code.add_fun_call(span, "", "set", args, [])
+                last = call.id
+                continue
+            }
+
+            // Check for +=, -=, *=, /=, %=
+            let op = when lexer.current_token_kind {
+                TokenKind::ADD_ASSIGN -> Some(BinaryOperator::ADD)
+                TokenKind::SUB_ASSIGN -> Some(BinaryOperator::SUB)
+                TokenKind::MUL_ASSIGN -> Some(BinaryOperator::MUL)
+                TokenKind::DIV_ASSIGN -> Some(BinaryOperator::DIV)
+                TokenKind::MOD_ASSIGN -> Some(BinaryOperator::MOD)
+                else -> None()
+            }
+
+            // Not an operator, just getting the value
+            if op.is_none() || !allow_expression_assignment {
+                let call = code.add_fun_call(span, "", "get", args, [])
+                last = call.id
+                continue
+            }
+
+            let operator = op!!
+            lexer.next_token()
+            skip_nl()
+
+            let right_id = read_expression(code)?
+
+            let result = if operator.uses_ordering {
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", [last, right_id], [])
+                code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
+            } else {
+                code.add_fun_call(span, "", operator.method, [last, right_id], []).id
+            }
+            args[] = result
+
+            code.add_fun_call(span, "", "set", args, [])
+
+            let inst = code.add_lit_nothing(span)
+            last = inst.id
+            break
         }
 
         if lexer.next_non_nl_token_kind == TokenKind::DOT {
@@ -89,9 +171,17 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
 
             let type_param_args = []
 
-            // Function call with type arguments, i.e. my_func<A, B, C>()
-            if lexer.current_token_kind == TokenKind::LTH {
-                type_param_args = read_type_param_args()?
+            // find_token_kind_before2() is required to distinguish between a function call and a comparison
+            // i.e. `a < b` could be the beginning of a function call `a < b >()`, or a comparison `a < b + 1`
+            if lexer.current_token_kind == TokenKind::LTH && lexer.find_token_kind_before2(TokenKind::GTH, [TokenKind::LPAREN, TokenKind::LBRACKET, TokenKind::LBRACE, TokenKind::NL]) {
+                let save_tk = lexer.tk
+                let res = read_type_param_args()
+
+                if res is Parsed::Found<*> {
+                    type_param_args = res!!
+                } else {
+                    lexer.tk = save_tk
+                }
             }
 
             // Function call
@@ -118,18 +208,60 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 continue
             }
 
-            // Field access
             if type_param_args.len() > 0 {
                 report_error("Type arguments are only allowed in field access", span)
             }
 
-            if path != "" {
-                report_error("Field access cannot use a module path prefix", span)
+            // Field assignment
+            if lexer.current_token_kind == TokenKind::ASSIGN {
+                lexer.next_token()
+                let right = read_expression(code)?
+                code.add_store_field(span, last, name, right)
+
+                let inst = code.add_lit_nothing(span)
+                last = inst.id
+                break
             }
 
-            let access = code.add_load_field(span, last, name)
-            last = access.id
-            continue
+            // Check for +=, -=, *=, /=, %=
+            let op = when lexer.current_token_kind {
+                TokenKind::ADD_ASSIGN -> Some(BinaryOperator::ADD)
+                TokenKind::SUB_ASSIGN -> Some(BinaryOperator::SUB)
+                TokenKind::MUL_ASSIGN -> Some(BinaryOperator::MUL)
+                TokenKind::DIV_ASSIGN -> Some(BinaryOperator::DIV)
+                TokenKind::MOD_ASSIGN -> Some(BinaryOperator::MOD)
+                else -> None()
+            }
+
+            // Field access
+            if op.is_none() || !allow_expression_assignment {
+                if path != "" {
+                    report_error("Field access cannot use a module path prefix", span)
+                }
+
+                let access = code.add_load_field(span, last, name)
+                last = access.id
+                continue
+            }
+
+            let operator = op!!
+            lexer.next_token()
+            skip_nl()
+
+            let right_id = read_expression(code)?
+
+            let result = if operator.uses_ordering {
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", [last, right_id], [])
+                code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
+            } else {
+                code.add_fun_call(span, "", operator.method, [last, right_id], []).id
+            }
+
+            code.add_store_field(span, last, name, result)
+
+            let inst = code.add_lit_nothing(span)
+            last = inst.id
+            break
         }
 
         break

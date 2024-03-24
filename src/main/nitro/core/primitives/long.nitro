@@ -217,10 +217,10 @@ fun Long.to_string_in_base(radix: Int): String {}
 // This function compares two long values and returns an ordering value
 // that represents the sorting order of the values
 fun Long.get_ordering(other: Long): Ordering {
-    if this == other {
+    if this.is_equal(other) {
         ret Ordering::Equals
     } else {
-        if this > other {
+        if this.greater_equal_signed(other) {
             ret Ordering::Greater
         } else {
             ret Ordering::Less

@@ -51,5 +51,11 @@ fun Span.get_column(): Int {
 }
 
 fun Span.to_string(): String {
-    ret "$file($file:$line)"
+    let filename = if "/" in file {
+        file.split("/").last()!!
+    } else {
+        file
+    }
+
+    ret "$line:$column $file($filename:$line)"
 }

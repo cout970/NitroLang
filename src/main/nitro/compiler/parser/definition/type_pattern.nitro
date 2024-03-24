@@ -149,7 +149,7 @@ fun Parser.read_function_type_pattern(arg1: Optional<NTypePattern>): Parsed<NTyp
     }
 
     skip_token_kind(TokenKind::LPAREN)?
-
+    skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
         lexer.next_token()
         type_params[] = read_function_type_pattern_param()?

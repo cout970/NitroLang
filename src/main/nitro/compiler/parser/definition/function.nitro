@@ -131,7 +131,6 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         body: NCode::new(),
     ]
     program.functions[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     // Type parameters
     skip_nl()
@@ -142,6 +141,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
 
     // Function args
     skip_token_kind(TokenKind::LPAREN)?
+    skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
         def.parameters += read_function_parameter()?
         ret found(nothing)
@@ -206,6 +206,6 @@ fun NFunction.to_string(): String {
         args += "${p.name}: ${p.type_usage}"
     }
 
-    return "${prefix}fun $full_name($args): $return_type $body"
+    return "${prefix}fun $full_name($args): $return_type $body // $span"
 }
 

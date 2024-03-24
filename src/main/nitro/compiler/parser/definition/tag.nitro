@@ -1,0 +1,66 @@
+
+// E.g. tag ToString { fun to_string(): String }
+// tagDefinition
+//     : TAG anyName LBRACE NL* (tagDefinitionFunction (NL+ tagDefinitionFunction)*)? NL* RBRACE ;
+//
+// tagDefinitionFunction
+//     : annotation* functionHeader;
+
+struct NTag {
+    span: Span
+    annotations: List<NAnnotation>
+    path: String
+    name: String
+    functions: List<NFunction>
+}
+
+fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+    skip_token_kind(TokenKind::TAG)?
+    let span = lexer.current_token_span
+    let path = read_declaration_module_path()?
+    let name = read_name()?
+
+    let def = NTag @[
+        span,
+        annotations
+        path,
+        name,
+        functions: [],
+    ]
+    program.tags[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
+
+    skip_token_kind(TokenKind::LBRACE)?
+    skip_nl()
+
+    read_until_delimited_by(TokenKind::NL, TokenKind::RBRACE) @{
+        def.functions[] = read_tag_function_header()?
+        ret found(nothing)
+    }?
+
+    ret found(nothing)
+}
+
+fun Parser.read_tag_function_header(): Parsed<NFunction> {
+    let annotations = read_annotations()?
+    ret read_function_header(annotations)
+}
+
+fun NTag.to_string() -> String {
+    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
+    let full_name = get_full_path(path, name)
+    let str = ""
+
+    for f in functions {
+        if str.is_not_empty() {
+            str += "\n"
+        }
+        str += f.to_string()
+    }
+
+    if str.is_not_empty() {
+        str += "\n"
+    }
+
+    return "${prefix}tag $full_name {$str} // $span"
+}

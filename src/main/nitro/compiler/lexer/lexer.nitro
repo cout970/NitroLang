@@ -186,6 +186,22 @@ fun Lexer.find_token_kind_before(target: TokenKind, stop: TokenKind): Boolean {
     ret false
 }
 
+fun Lexer.find_token_kind_before2(target: TokenKind, stops: List<TokenKind>): Boolean {
+    let curr = tk
+    let token = tokens[curr]!!.kind
+
+    while !stops.contains(token) && token != TokenKind::EOF {
+        if token == target {
+            ret true
+        }
+
+        curr += 1
+        token = tokens[curr]!!.kind
+    }
+
+    ret false
+}
+
 type_alias SavedState = Int
 
 // Save the current state of the lexer
@@ -1032,25 +1048,21 @@ fun Lexer.read_string2() {
     add_token(TokenKind::STRING2_START)
 
     let start = cur
-    let max = src.byte_len() - 2
+    let max = src.byte_len() - 1
 
     while cur < max {
-        let c: Int = current_byte
-
-        if c == a"\"" {
-            let c1: Int = next_byte
-            let c2: Int = next_next_byte
-
-            if c1 == a"#" && c2 == a"\"" {
-                break
-            }
+        if current_byte == a"\"" && next_byte == a"#" {
+            cur += 2
+            break
         }
 
         cur += 1
     }
 
     let extra = src.substring(start, cur - 2)
-    add_token_with_extra(TokenKind::STRING2_BLOB, start, extra)
+    if extra.is_not_empty() {
+        add_token_with_extra(TokenKind::STRING2_BLOB, start, extra)
+    }
     add_token(TokenKind::STRING2_END)
 }
 

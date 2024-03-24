@@ -60,7 +60,7 @@ fun Parser.read_type_param_def(): Parsed<NTypeParameterDefinition> {
         // Skip comma
         lexer.next_token()
 
-        if lexer.current_token_kind == TokenKind::HASH {
+        if lexer.current_token_kind != TokenKind::HASH {
             def.constraints[] = read_type_usage()?
         }
     }
