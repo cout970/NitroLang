@@ -104,7 +104,7 @@ fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOper
         while index < operators.len() {
             let operator = operators[index]!!
 
-            if operator.precedence != precedence {
+            if operator.precedence > precedence {
                 index += 1
                 min_precedence = min(operator.precedence, min_precedence)
                 continue
@@ -180,9 +180,11 @@ fun Parser.read_binary_operator(): Optional<BinaryOperator> {
         TokenKind::LTH -> {
             if lexer.next_token_kind == TokenKind::LTH {
                 lexer.next_token()
-                BinaryOperator::SHIFT_LEFT
+                lexer.next_token()
+                ret Some(BinaryOperator::SHIFT_LEFT)
             } else {
-                BinaryOperator::LESS_THAN
+                lexer.next_token()
+                ret Some(BinaryOperator::LESS_THAN)
             }
         }
         TokenKind::GTH -> {
@@ -190,13 +192,16 @@ fun Parser.read_binary_operator(): Optional<BinaryOperator> {
                 lexer.next_token()
                 if lexer.next_token_kind == TokenKind::GTH {
                     lexer.next_token()
-                    BinaryOperator::SHIFT_RIGHT_UNSIGNED
+                    lexer.next_token()
+                    ret Some(BinaryOperator::SHIFT_RIGHT_UNSIGNED)
                 } else {
-                    BinaryOperator::SHIFT_RIGHT
+                    lexer.next_token()
+                    ret Some(BinaryOperator::SHIFT_RIGHT)
                 }
             } else {
-                BinaryOperator::GREATER_THAN
-            }
+                lexer.next_token()
+                ret Some(BinaryOperator::GREATER_THAN)
+           }
         }
         TokenKind::AND -> BinaryOperator::BIT_AND
         TokenKind::XOR -> BinaryOperator::BIT_XOR

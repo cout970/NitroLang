@@ -81,12 +81,18 @@ fun Parser.read_int(): Parsed<Int> {
         ret parse_error(ParseError::ExpectedInt, lexer.current_token)
     }
 
-    let text: String = lexer.current_token.extra
+    let text: String = lexer.current_token_text
     lexer.next_token()
-    let parse_result = text.to_int()
+
+    let parse_result = when {
+        text.starts_with("0x") -> text.slice(2, text.len()).to_int_in_base(16)
+        text.starts_with("0o") -> text.slice(2, text.len()).to_int_in_base(8)
+        text.starts_with("0b") -> text.slice(2, text.len()).to_int_in_base(2)
+        else -> text.to_int()
+    }
 
     if parse_result.is_none() {
-        crash("Failed to parse long: " + text)
+        crash("Failed to parse int: " + text)
     }
 
     ret found(parse_result!!)
@@ -97,9 +103,15 @@ fun Parser.read_long(): Parsed<Long> {
         ret parse_error(ParseError::ExpectedLong, lexer.current_token)
     }
 
-    let text: String = lexer.current_token.extra
+    let text: String = lexer.current_token_text
     lexer.next_token()
-    let parse_result = text.to_long()
+
+    let parse_result = when {
+        text.starts_with("0x") -> text.slice(2, text.len()).to_long_in_base(16L)
+        text.starts_with("0o") -> text.slice(2, text.len()).to_long_in_base(8L)
+        text.starts_with("0b") -> text.slice(2, text.len()).to_long_in_base(2L)
+        else -> text.to_long()
+    }
 
     if parse_result.is_none() {
         crash("Failed to parse long: " + text)
@@ -113,7 +125,7 @@ fun Parser.read_float(): Parsed<Float> {
         ret parse_error(ParseError::ExpectedFloat, lexer.current_token)
     }
 
-    let text: String = lexer.current_token.extra
+    let text: String = lexer.current_token_text
     lexer.next_token()
     let parse_result = text.to_float()
 

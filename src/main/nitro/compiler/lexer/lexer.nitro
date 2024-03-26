@@ -1227,7 +1227,8 @@ fun Lexer.read_number() {
     let dot_read = false
 
     // '.' DIGITS | DIGITS ('.' DIGITS)?
-    if current_byte == a"." {
+    // Exception 1..=2, starts with 1., but is not a float
+    if current_byte == a"." && next_byte >= a"0" && next_byte <= a"9" {
         is_float = true
         dot_read = true
         cur += 1
@@ -1235,7 +1236,7 @@ fun Lexer.read_number() {
 
     read_digits()
 
-    if !dot_read && current_byte == a"." {
+    if !dot_read && current_byte == a"." && next_byte >= a"0" && next_byte <= a"9" {
         is_float = true
         cur += 1
 
@@ -1311,7 +1312,7 @@ fun Lexer.print_debug_info() {
     while start <= end {
         let token = tokens[start]!!
         let span = span_of(token)
-        println("[${start - tk}]  $token $span")
+        println("[${start - tk}] $token $span")
         start += 1
     }
 }

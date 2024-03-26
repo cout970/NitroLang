@@ -178,7 +178,6 @@ fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsa
     skip_token_kind(TokenKind::LPAREN)?
     skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
-        lexer.next_token()
         type_params[] = read_function_type_usage_param()?
         ret found(nothing)
     }?

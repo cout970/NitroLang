@@ -11,14 +11,15 @@
 // typeParameter
 //       : HASH anyName ;
 
-struct NTypeParameterDefinition {
+struct NGeneric {
+    span: Span
     name: String
     constraints: List<NTypeUsage>
 }
 
 // <#T, #A>
-fun Parser.read_type_params_def(): Parsed<List<NTypeParameterDefinition>> {
-    let type_params: List<NTypeParameterDefinition> = []
+fun Parser.read_type_params_def(): Parsed<List<NGeneric>> {
+    let type_params: List<NGeneric> = []
 
     if lexer.current_token_kind != TokenKind::LTH {
         return found(type_params)
@@ -35,13 +36,15 @@ fun Parser.read_type_params_def(): Parsed<List<NTypeParameterDefinition>> {
     return found(type_params)
 }
 
-fun Parser.read_type_param_def(): Parsed<NTypeParameterDefinition> {
+fun Parser.read_type_param_def(): Parsed<NGeneric> {
     // `#A: Type1, Type2` or just `#B`
+    let span = lexer.current_token_span
     let name = read_type_parameter()?
 
-    let def = NTypeParameterDefinition @[
-          name,
-          constraints: []
+    let def = NGeneric @[
+        span,
+        name,
+        constraints: []
     ]
 
     if lexer.current_token_kind != TokenKind::COLON {
@@ -53,13 +56,20 @@ fun Parser.read_type_param_def(): Parsed<NTypeParameterDefinition> {
     def.constraints[] = read_type_usage()?
 
     loop {
+        // End of the list
         if lexer.current_token_kind != TokenKind::COMMA {
+            break
+        }
+
+        // Break so read_type_params_def() can read the next item
+        if lexer.next_token_kind == TokenKind::HASH {
             break
         }
 
         // Skip comma
         lexer.next_token()
 
+        // Found new constraint
         if lexer.current_token_kind != TokenKind::HASH {
             def.constraints[] = read_type_usage()?
         }
@@ -79,7 +89,7 @@ fun Parser.read_type_parameter(): Parsed<String> {
     ret read_name()
 }
 
-fun NTypeParameterDefinition.to_string(): String {
+fun NGeneric.to_string(): String {
     if constraints.is_empty() {
         return "#$name"
     }

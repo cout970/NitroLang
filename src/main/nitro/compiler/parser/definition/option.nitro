@@ -14,7 +14,7 @@ struct NOption {
     annotations: List<NAnnotation>
     path: String
     name: String
-    type_params: List<NTypeParameterDefinition>
+    type_params: List<NGeneric>
     items: List<NOptionItem>
 }
 

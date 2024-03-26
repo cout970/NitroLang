@@ -59,3 +59,17 @@ fun Span.to_string(): String {
 
     ret "$line:$column $file($filename:$line)"
 }
+
+fun Span.is_equal(other: Span): Boolean {
+    ret this.start == other.start && this.file == other.file
+}
+
+fun Span.get_ordering(other: Span): Ordering {
+    if this.start < other.start {
+        ret Ordering::Less
+    }
+    if this.start > other.start {
+        ret Ordering::Greater
+    }
+    ret this.file.get_ordering(other.file)
+}

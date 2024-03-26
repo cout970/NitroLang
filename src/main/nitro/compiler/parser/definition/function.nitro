@@ -37,7 +37,7 @@
 struct NFunction {
     span: Span
     annotations: List<NAnnotation>
-    type_params: List<NTypeParameterDefinition>
+    type_params: List<NGeneric>
     has_receiver: Boolean
     path: String
     name: String
@@ -88,7 +88,7 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
 fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunction> {
     skip_token_kind(TokenKind::FUN)?
     skip_nl()
-    let type_params: List<NTypeParameterDefinition> = []
+    let type_params: List<NGeneric> = []
     let parameters: List<NFunctionParameter> = []
     let has_receiver = false
 
