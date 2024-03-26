@@ -6,6 +6,12 @@ struct MemoryArena {
     bytes: RawArray<Byte>
 }
 
+struct MemoryCrashBuffer {
+    value: Int
+}
+// 64 KB, to print stack traces and handle the error
+let crash_buffer: MemoryCrashBuffer = MemoryCrashBuffer @[value: 64 * 1024]
+
 // Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let ptr_size = size_of<Ptr<Byte>>
@@ -21,7 +27,8 @@ fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let end = result.get_address() + this.bytes.get_address()
     let limit = this.bytes.get_address() + this.capacity
 
-    if (end > limit) {
+    if (end > limit - crash_buffer.value) {
+        crash_buffer.value = 0
         crash("Out of memory while trying to allocate ${bytes} bytes, current usage is ${this.len} bytes")
     }
 
