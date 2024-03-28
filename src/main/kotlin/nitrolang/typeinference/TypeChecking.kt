@@ -906,7 +906,7 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
 
                 if (found == null) {
                     val getter = program.propertyGetters
-                        .find { (propType, propName, _) -> propType == ty && propName == node.name }
+                        .find { (propType, propName, _) -> propType.equalsIgnoreGenerics(ty) && propName == node.name }
                         ?.let { (_, _, propGetter) -> propGetter }
 
                     // Replace with function call to getter
