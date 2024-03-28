@@ -11,6 +11,8 @@ import {
   mem, setFloat, alloc, PTR, setLong, getLong,
 } from './internal.ts'
 
+import * as trace from './trace.ts'
+
 // @formatter:off
 // -------------------------------------------------------------------------
 // From intrinsic.nitro
@@ -513,5 +515,35 @@ export function run_test(internal_function_name: number, test_name: number): boo
         return false;
     }
 }
+
+// -------------------------------------------------------------------------
+// From trace.nitro
+// -------------------------------------------------------------------------
+
+
+// At src/main/nitro/core/debug/trace.nitro(trace.nitro:4)
+// @Extern [lib="core", name="trace_enter"]
+// fun Trace::trace_enter(String): Nothing
+export function trace_enter(func_info: String): Nothing {
+    assert(func_info);
+    trace.trace_enter(getString(func_info));
+}
+
+// At src/main/nitro/core/debug/trace.nitro(trace.nitro:7)
+// @Extern [lib="core", name="trace_exit"]
+// fun Trace::trace_exit(String): Nothing
+export function trace_exit(func_info: String): Nothing {
+    trace.trace_exit();
+}
+
+// At src/main/nitro/core/debug/trace.nitro(trace.nitro:10)
+// @Extern [lib="core", name="trace_get_stacktrace"]
+// fun Trace::trace_get_stacktrace(): String
+export function trace_get_stacktrace(): String { return createString(trace.trace_get_stacktrace()); }
+
+// At src/main/nitro/core/debug/trace.nitro(trace.nitro:13)
+// @Extern [lib="core", name="trace_print_stack_trace"]
+// fun Trace::print_stack_trace(): Nothing
+export function trace_print_stack_trace(): Nothing { trace.trace_print_stack_trace(); }
 
 // @formatter:on

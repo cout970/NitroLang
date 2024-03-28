@@ -10,6 +10,16 @@ export const mem = {
   program: null as unknown as WebAssembly.Exports,
 }
 
+export const fs = {
+    isSupported: false,
+    readFileSync: (path: string): string => {
+       throw new Error('fs.readFileSync not implemented');
+    },
+    writeFileSync: (filename: string, data: string) => {
+        throw new Error('fs.readFileSync not implemented');
+    }
+}
+
 export function getInt(ptr: number): number {
   assert(ptr);
   return mem.u32[(ptr / 4) | 0];

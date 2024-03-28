@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Flamegraph visualization</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body, #wrapper {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: start;
+            align-items: center;
+            flex-flow: column;
+            background-color: #333;
+            color: #ccc;
+        }
+
+        #messages {
+            width: 100%;
+            padding: 10px;
+
+            > * {
+                color: #000;
+                background-color: #dc3545;
+                padding: 1px 5px;
+                border-radius: 2px;
+            }
+        }
+
+        #title {
+            width: 100%;
+            padding: 10px;
+            background-color: #343a40;
+            color: #fff;
+            font-size: 1.5em;
+            text-align: center;
+        }
+
+        #chart {
+            width: 100%;
+            min-height: 50%;
+            display: flex;
+            justify-content: start;
+            align-items: end;
+            flex-grow: 1;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="wrapper">
+    <div id="messages"></div>
+    <div id="title">Flamegraph at output/flamegraph.json</div>
+    <div id="chart"></div>
+</div>
+
+
+<script type="text/javascript" src="https://d3js.org/d3.v7.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/d3-flame-graph@4.1.3/dist/d3-flamegraph.min.js"></script>
+<script type="text/javascript">
+
+    const chart = flamegraph().width(window.innerWidth);
+
+    d3.json("output/flamegraph.json")
+      .then(data => {
+        d3.select("#chart")
+          .datum(data)
+          .call(chart);
+      }).catch(error => {
+        console.error(error);
+        // Display error message
+        const line = document.createElement("div");
+        line.className = "alert alert-danger";
+        line.innerText = 'Failed to load data.json: ' + error.message;
+        document.getElementById("messages").appendChild(line);
+      });
+</script>
+
+</body>
+</html>

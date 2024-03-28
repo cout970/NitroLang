@@ -1,61 +1,30 @@
 
 mod Trace {
-    struct State {
-        trace_stack: List<String>
-        trace_enable: Boolean
-    }
+    @Extern [lib: "core", name: "trace_enter"]
+    fun trace_enter(func_info: String)  {}
 
-    // Internal mutable state of the trace module
-    let state: State = State @[
-        trace_stack: [],
-        trace_enable: true
-    ]
+    @Extern [lib: "core", name: "trace_exit"]
+    fun trace_exit(func_info: String)  {}
+
+    @Extern [lib: "core", name: "trace_get_stacktrace"]
+    fun trace_get_stacktrace(): String {}
+
+    @Extern [lib: "core", name: "trace_print_stack_trace"]
+    fun print_stack_trace()
 
     // The compiler inserts calls to this function at the start of every function
-    fun enter_function(function_name: String) {
-        if state.trace_enable {
-            state.trace_enable = false
-            state.trace_stack[] = function_name
-            state.trace_enable = true
-        }
+    fun enter_function(func_info: String) {
+        Trace::trace_enter(func_info);
     }
 
     // The compiler inserts calls to this function at the end of every function
-    fun exit_function(function_name: String) {
-        if state.trace_enable {
-           state.trace_enable = false
-           state.trace_stack.remove_last()!!
-           state.trace_enable = true
-        }
+    fun exit_function(func_info: String) {
+        Trace::trace_exit(func_info);
     }
 
     // Returns the current stack trace, or at least the information that we have
     // If the compiler has trace disabled, then this will return an empty list
     fun get_stack_trace(): List<String> {
-        state.trace_enable = false
-        let result = state.trace_stack.to_reversed()
-        state.trace_enable = true
-        ret result
-    }
-
-    // Prints the current stack trace
-    // This is called by the runtime when the program crashes
-    @WasmName [name: "print_stack_trace"]
-    @Required
-    fun print_stack_trace() {
-        state.trace_enable = false
-        let trace = Trace::get_stack_trace()
-
-        if trace.is_empty() {
-            println("No stack trace available, make sure the compiler has trace enabled")
-            ret
-        }
-
-        println("Stack trace:")
-        for function_name in trace {
-            println("   at $function_name")
-        }
-
-        state.trace_enable = true
+        ret Trace::trace_get_stacktrace().split("\n")
     }
 }
