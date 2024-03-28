@@ -898,13 +898,11 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
             node.typeBox = typeEnv.box(unresolved, node.span)
 
             typeEnv.addFindFieldConstraint(instance.type, node.span) { ty ->
-                if (ty !is TComposite || (ty.base !is TStruct && ty.base !is TOptionItem)) {
-                    collector.report("Type '$ty' has no fields", node.span)
-                    typeEnv.addEqualConstraint(unresolved, typeEnv.invalid(node.span), node.span)
-                    return@addFindFieldConstraint
-                }
+                var found: Pair<LstStruct, LstStructField>? = null
 
-                val found = findField(ty, node.name)
+                if (ty is TComposite && (ty.base is TStruct || ty.base is TOptionItem)) {
+                    found = findField(ty, node.name)
+                }
 
                 if (found == null) {
                     val getter = program.propertyGetters
@@ -931,10 +929,14 @@ fun ParserCtx.visitExpression(node: LstExpression, code: LstCode) {
                         return@addFindFieldConstraint
                     }
 
-                    collector.report("Type '${ty}' ha no field named '${node.name}'", node.span)
+                    // Error no field nor getter
+                    collector.report("Type '${ty}' has no field named '${node.name}' nor getter name 'get_${node.name}'", node.span)
                     typeEnv.addEqualConstraint(node.type, typeEnv.invalid(node.span), node.span)
                     return@addFindFieldConstraint
                 }
+
+                // This can only be reached if found is not null, so ty is definitely a TComposite
+                ty as TComposite
 
                 val (struct, field) = found
 
