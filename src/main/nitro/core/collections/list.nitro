@@ -528,6 +528,17 @@ fun List<#Item>.to_list(): List<#Item> {
     ret list
 }
 
+// Creates a Set with all the items in the list
+fun <#Item: MapKey> List<#Item>.to_set(): Set<#Item> {
+    let set = Set::new<#Item>()
+
+    repeat this.count {
+        set[] = this[it]!!
+    }
+
+    ret set
+}
+
 // Creates new list with all the items in reverse order
 fun List<#Item>.to_reversed(): List<#Item> {
     let list = List::new<#Item>(this.count)

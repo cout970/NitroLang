@@ -5,6 +5,10 @@ struct Duration {
     nanoseconds: Int
 }
 
+fun Duration::empty(): Duration {
+    ret Duration @[seconds: 0L, nanoseconds: 0]
+}
+
 fun Duration::from_nanoseconds(nanoseconds: Long): Duration {
     ret Duration @[
         seconds: nanoseconds / 1_000_000_000L
