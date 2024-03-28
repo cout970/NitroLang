@@ -3,14 +3,14 @@
 // Anything with len() and get() is a slice.
 // Due to limitations of the compiler, tags cannot have type parameters.
 //tag Slice<#Item> {
-//    fun This.len(): Int
+//    fun This.get_len(): Int
 //    fun This.get(index: Int): #Item
 //}
 //
 //fun <#Slice: Slice<#Item>> #Slice.to_list(): List<#Item> {
 //    let list = List::new<#Item>()
 //
-//    repeat this.len() {
+//    repeat this.len {
 //        list[] = this[it]
 //    }
 //

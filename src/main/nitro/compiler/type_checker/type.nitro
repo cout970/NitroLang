@@ -121,11 +121,11 @@ fun Type.is_equal(other: Type): Boolean {
         ret false
     }
 
-    if this.params.len() != other.params.len() {
+    if this.params.len != other.params.len {
         ret false
     }
 
-    repeat params.len() {
+    repeat params.len {
         if !this.params[it]!!.is_equal(other.params[it]!!) {
             ret false
         }
@@ -137,11 +137,11 @@ fun Type.is_equal(other: Type): Boolean {
 fun Type.to_string(): String {
     let result = kind.to_string()
 
-    if params.len() > 0 {
+    if params.len > 0 {
         result += "<"
-        repeat params.len() {
+        repeat params.len {
             result += params[it]!!.to_string()
-            if it < params.len() - 1 {
+            if it < params.len - 1 {
                 result += ", "
             }
         }

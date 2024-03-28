@@ -25,7 +25,7 @@ fun String.get_byte(index: Int): Byte {
 // tag Slice<Char>
 
 // Returns the length of the string in chars (unicode codepoints)
-fun String.len(): Int {
+fun String.get_len(): Int {
     ret this.codepoint_len()
 }
 
@@ -325,7 +325,7 @@ fun String.to_string(): String = this
 // TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
-    let total_len = this.len()
+    let total_len = this.len
     let cursor = 0
     let sign = 1
 
@@ -367,7 +367,7 @@ fun String.to_int(): Optional<Int> {
 // Converts a string to an integer, only [_\-\+0-9a-zA-Z] chars are allowed
 fun String.to_int_in_base(base: Int): Optional<Int> {
     let result = 0
-    let total_len = this.len()
+    let total_len = this.len
     let cursor = 0
     let sign = 1
 
@@ -446,7 +446,7 @@ fun String.to_long(): Optional<Long> {
 
 fun String.to_long_in_base(base: Long): Optional<Long> {
     let result = 0L
-    let total_len = this.len()
+    let total_len = this.len
     let cursor = 0
     let sign = 1L
 
@@ -532,7 +532,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
 // Ignores all appearances of '_' between digits
 fun String.to_float(): Optional<Float> {
     let result = 0f
-    let total_len = this.len()
+    let total_len = this.len
     let cursor = 0
     let sign = 1f
     let has_dot = false

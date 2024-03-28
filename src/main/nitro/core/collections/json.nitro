@@ -115,7 +115,7 @@ fun Json::Array.to_string(): String {
     let str = "["
 
     str = str.concat("\n")
-    repeat list.len() {
+    repeat list.len {
         str = str.concat("  ")
         str = str.concat(list[it].to_string().replace("\n", "\n  "))
 
@@ -141,7 +141,7 @@ fun Json::Object.to_string(): String {
     let str = "{"
 
     str = str.concat("\n")
-    repeat keys.len() {
+    repeat keys.len {
         let key: String = keys[it]!!
         let value: Optional<Json> = map[key]
 

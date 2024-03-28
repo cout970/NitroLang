@@ -56,7 +56,7 @@ mod test {
 
     test! "Check IntRangeTo to List<Int>" {
         let list = (1..=10).to_list()
-        check(list.len() == 10, "List should have 10 elements")
+        check(list.len == 10, "List should have 10 elements")
         check(list[0]!! == 1, "First element should be 1")
         check(list[9]!! == 10, "Last element should be 10")
     }

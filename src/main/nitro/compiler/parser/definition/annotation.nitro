@@ -83,7 +83,7 @@ fun Parser.read_const_string(): Parsed<String> {
 fun NAnnotation.to_string(): String {
     let s = "@$name"
 
-    if args.len() > 0 {
+    if args.len > 0 {
         s += " @[\n"
 
         for arg in args {

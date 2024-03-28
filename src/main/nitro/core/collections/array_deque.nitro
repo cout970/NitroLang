@@ -6,7 +6,7 @@
 struct ArrayDeque<#Item> {
     capacity: Int
     first: Int
-    len: Int
+    count: Int
     items: RawArray<Ptr<#Item>>
 }
 
@@ -15,7 +15,7 @@ fun <#Item> ArrayDeque::new(): ArrayDeque<#Item> {
     ret ArrayDeque<#Item> @[
         capacity: 0,
         first: 0,
-        len: 0,
+        count: 0,
         items: null_ptr<Ptr<#Item>>().to_raw_array(),
     ]
 }
@@ -35,7 +35,7 @@ fun ArrayDeque<#Item>.ensure_capacity(needed_capacity: Int) {
     let new_items: RawArray<Ptr<#Item>> = RawArray::new<Ptr<#Item>>(new_capacity)
 
     // Copy the items to the new array
-    repeat this.len {
+    repeat this.count {
         let index = raw_index_of(it)
         get_memory().copy_within(
             new_items.get_ptr(0).unsafe_cast().offset_in_bytes(it * size_of<#Item>),
@@ -57,43 +57,43 @@ fun ArrayDeque<#Item>.raw_index_of(index: Int): Int {
 // Add an item to the end of the deque
 fun ArrayDeque<#Item>.add_last(item: #Item) {
     // Expand list if needed
-    this.ensure_capacity(len + 1)
+    this.ensure_capacity(this.count + 1)
 
-    let item_ptr = items.get_ptr(raw_index_of(len))
+    let item_ptr = items.get_ptr(raw_index_of(this.count))
     item_ptr.write(ptr_of<#Item>(item))
-    len += 1
+    this.count += 1
 }
 
 // Adds the given item to the deque `count` times at the end
 fun ArrayDeque<#Item>.add_last_multiple_times(item: #Item, count: Int) {
     // Expand list if needed
-    this.ensure_capacity(this.len + count)
+    this.ensure_capacity(this.count + count)
 
     // Write the item `count` times
     repeat count {
-        let item_ptr = items.get_ptr(raw_index_of(len))
+        let item_ptr = items.get_ptr(raw_index_of(this.count))
         item_ptr.write(ptr_of<#Item>(item))
-        len += 1
+        this.count += 1
     }
 }
 
 // Add an item to the start of the deque
 fun ArrayDeque<#Item>.add_first(item: #Item) {
     // Expand list if needed
-    this.ensure_capacity(len + 1)
+    this.ensure_capacity(this.count + 1)
 
     let index = raw_index_of(-1)
     let item_ptr = items.get_ptr(index)
     item_ptr.write(ptr_of<#Item>(item))
 
     first = index
-    len += 1
+    this.count += 1
 }
 
 // Adds the given item to the deque `count` times at the start
 fun ArrayDeque<#Item>.add_first_multiple_times(item: #Item, count: Int) {
     // Expand list if needed
-    this.ensure_capacity(this.len + count)
+    this.ensure_capacity(this.count + count)
 
     // Write the item `count` times
     repeat count {
@@ -101,7 +101,7 @@ fun ArrayDeque<#Item>.add_first_multiple_times(item: #Item, count: Int) {
         let item_ptr = items.get_ptr(index)
         item_ptr.write(ptr_of<#Item>(item))
         first = index
-        len += 1
+        this.count += 1
     }
 }
 
@@ -109,46 +109,46 @@ fun ArrayDeque<#Item>.add_first_multiple_times(item: #Item, count: Int) {
 fun ArrayDeque<#Item>.add(item: #Item) = add_last(item)
 
 // Number of items in the deque
-fun ArrayDeque<#Item>.len(): Int = len
+fun ArrayDeque<#Item>.get_len(): Int = this.count
 
 // Check if the deque is empty
-fun ArrayDeque<#Item>.is_empty(): Boolean = len == 0
+fun ArrayDeque<#Item>.is_empty(): Boolean = this.count == 0
 
 // Check if the deque is not empty
-fun ArrayDeque<#Item>.is_not_empty(): Boolean = len != 0
+fun ArrayDeque<#Item>.is_not_empty(): Boolean = this.count != 0
 
 // Remove all items from the deque
 fun ArrayDeque<#Item>.clear() {
-    len = 0
+    this.count = 0
     first = 0
 }
 
 // Remove an item from the start of the deque
 fun ArrayDeque<#Item>.remove_first(): Optional<#Item> {
-    if len == 0 {
+    if this.count == 0 {
         ret None()
     }
 
     let item = this.get(0)
     first = raw_index_of(1)
-    len -= 1
+    this.count -= 1
     ret item
 }
 
 // Remove an item from the end of the deque
 fun ArrayDeque<#Item>.remove_last(): Optional<#Item> {
-    if len == 0 {
+    if this.count == 0 {
         ret None()
     }
 
-    let item = this.get(len - 1)
-    len -= 1
+    let item = this.get(this.count - 1)
+    this.count -= 1
     ret item
 }
 
 // Retrieve an item from the start of the deque
 fun ArrayDeque<#Item>.get_first(): Optional<#Item> {
-    if len == 0 {
+    if this.count == 0 {
         ret None()
     }
 
@@ -158,17 +158,17 @@ fun ArrayDeque<#Item>.get_first(): Optional<#Item> {
 
 // Retrieve an item from the end of the deque
 fun ArrayDeque<#Item>.get_last(): Optional<#Item> {
-    if len == 0 {
+    if this.count == 0 {
         ret None()
     }
 
-    let item_ptr = items.get_ptr(raw_index_of(len - 1)).read()
+    let item_ptr = items.get_ptr(raw_index_of(this.count - 1)).read()
     ret Some(item_ptr.unsafe_as_ref())
 }
 
 // Retrieve an item from the deque at the given index (0..<len)
 fun ArrayDeque<#Item>.get(index: Int): Optional<#Item> {
-    if index < 0 || index >= len {
+    if index < 0 || index >= this.count {
         ret None()
     }
 
@@ -178,7 +178,7 @@ fun ArrayDeque<#Item>.get(index: Int): Optional<#Item> {
 
 // Override an item in the deque at the given index (0..<len)
 fun ArrayDeque<#Item>.set(index: Int, item: #Item) {
-    if index < 0 || index >= len {
+    if index < 0 || index >= this.count {
         crash("Index out of bounds")
     }
 
@@ -190,7 +190,7 @@ fun ArrayDeque<#Item>.set(index: Int, item: #Item) {
 fun ArrayDeque<#Item>.to_list(): List<#Item> {
     let list = List::new<#Item>()
 
-    repeat this.len {
+    repeat this.count {
         list[] = this[it]!!
     }
 
@@ -202,7 +202,7 @@ fun <#Item: ToString> ArrayDeque<#Item>.to_string(): String {
     let s = "^[".to_string()
     let first = true
 
-    repeat this.len {
+    repeat this.count {
         let item = this[it]!!
         if first {
             first = false
@@ -232,7 +232,7 @@ fun <#Item> ArrayDeque<#Item>.to_iterator(): ArrayDequeIterator<#Item> {
 
 // Gives the next item in the iterator
 fun ArrayDequeIterator<#Item>.next(): Optional<#Item> {
-    if index >= deque.len() {
+    if index >= deque.count {
         ret None()
     }
 

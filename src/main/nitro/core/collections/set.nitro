@@ -39,8 +39,8 @@ fun <#Item: MapKey> Set<#Item>.contains(item: #Item): Boolean {
 }
 
 // Gets the length of the set, meaning the number of items in it
-fun <#Item: MapKey> Set<#Item>.len(): Int {
-   ret map.len()
+fun <#Item: MapKey> Set<#Item>.get_len(): Int {
+   ret map.len
 }
 
 // Checks if the set is empty
@@ -68,12 +68,12 @@ fun <#Item: MapKey> Set<#Item>.union(other: Set<#Item>): Set<#Item> {
    let result = Set::new<#Item>()
 
    let list = this.to_list()
-   repeat list.len() {
+   repeat list.len {
       result[] = list[it]!!
    }
 
    let list = other.to_list()
-   repeat list.len() {
+   repeat list.len {
        result[] = list[it]!!
    }
 
@@ -85,7 +85,7 @@ fun <#Item: MapKey> Set<#Item>.intersection(other: Set<#Item>): Set<#Item> {
    let result = Set::new<#Item>()
    let list = this.to_list()
 
-   repeat list.len() {
+   repeat list.len {
       let item = list[it]!!
 
       if other.contains(item) {
@@ -102,7 +102,7 @@ fun <#Item: MapKey> Set<#Item>.difference(other: Set<#Item>): Set<#Item> {
    let result = Set::new<#Item>()
    let list = this.to_list()
 
-   repeat list.len() {
+   repeat list.len {
       let item = list[it]!!
 
       if !other.contains(item) {
@@ -117,7 +117,7 @@ fun <#Item: MapKey> Set<#Item>.difference(other: Set<#Item>): Set<#Item> {
 fun <#Item: MapKey> Set<#Item>.is_subset(other: Set<#Item>): Boolean {
    let list = this.to_list()
 
-   repeat list.len() {
+   repeat list.len {
       let item = list[it]!!
 
       if !other.contains(item) {
@@ -132,7 +132,7 @@ fun <#Item: MapKey> Set<#Item>.is_subset(other: Set<#Item>): Boolean {
 fun <#Item: MapKey> Set<#Item>.is_superset(other: Set<#Item>): Boolean {
    let list = other.to_list()
 
-   repeat list.len() {
+   repeat list.len {
       let item = list[it]!!
 
       if !this.contains(item) {
@@ -153,11 +153,11 @@ fun <#Item: MapKey, ToString> Set<#Item>.to_string(): String {
    let result = "%["
    let list = this.to_list()
 
-   repeat list.len() {
+   repeat list.len {
       let value = list[it]!!.to_string()
       result = result.concat(value)
 
-      if it < list.len() - 1 {
+      if it < list.len - 1 {
          result = result.concat(", ")
       }
    }

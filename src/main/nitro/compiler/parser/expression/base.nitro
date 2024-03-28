@@ -168,7 +168,7 @@ fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInst
         ret found(inst.id)
     }
 
-    if type_args.len() > 0 {
+    if type_args.len > 0 {
         report_error("Type arguments are not allowed here", span)
     }
 
@@ -229,7 +229,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
     // modulePath? anyName typeParamArg? PLAIN_STRING
     // modulePath? anyName typeParamArg? STRING_START stringContents* STRING_END
     if lexer.current_token_kind == TokenKind::PLAIN_STRING || lexer.current_token_kind == TokenKind::STRING_START {
-        if type_args.len() > 0 {
+        if type_args.len > 0 {
             report_error("Type arguments are not allowed here", span)
         }
 
@@ -237,7 +237,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
     }
 
     if allow_expression_assignment && lexer.current_token_kind == TokenKind::ASSIGN || lexer.current_token_kind == TokenKind::ADD_ASSIGN || lexer.current_token_kind == TokenKind::SUB_ASSIGN || lexer.current_token_kind == TokenKind::MUL_ASSIGN || lexer.current_token_kind == TokenKind::DIV_ASSIGN || lexer.current_token_kind == TokenKind::MOD_ASSIGN {
-        if type_args.len() > 0 {
+        if type_args.len > 0 {
             report_error("Type arguments are not allowed here", span)
         }
 
@@ -246,7 +246,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
 
     // Variable:
     // modulePath? anyName
-    if type_args.len() > 0 {
+    if type_args.len > 0 {
         report_error("Type arguments are not allowed here", span)
     }
     

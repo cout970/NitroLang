@@ -85,9 +85,9 @@ fun Parser.read_int(): Parsed<Int> {
     lexer.next_token()
 
     let parse_result = when {
-        text.starts_with("0x") -> text.slice(2, text.len()).to_int_in_base(16)
-        text.starts_with("0o") -> text.slice(2, text.len()).to_int_in_base(8)
-        text.starts_with("0b") -> text.slice(2, text.len()).to_int_in_base(2)
+        text.starts_with("0x") -> text.slice(2, text.len).to_int_in_base(16)
+        text.starts_with("0o") -> text.slice(2, text.len).to_int_in_base(8)
+        text.starts_with("0b") -> text.slice(2, text.len).to_int_in_base(2)
         else -> text.to_int()
     }
 
@@ -107,9 +107,9 @@ fun Parser.read_long(): Parsed<Long> {
     lexer.next_token()
 
     let parse_result = when {
-        text.starts_with("0x") -> text.slice(2, text.len()).to_long_in_base(16L)
-        text.starts_with("0o") -> text.slice(2, text.len()).to_long_in_base(8L)
-        text.starts_with("0b") -> text.slice(2, text.len()).to_long_in_base(2L)
+        text.starts_with("0x") -> text.slice(2, text.len).to_long_in_base(16L)
+        text.starts_with("0o") -> text.slice(2, text.len).to_long_in_base(8L)
+        text.starts_with("0b") -> text.slice(2, text.len).to_long_in_base(2L)
         else -> text.to_long()
     }
 

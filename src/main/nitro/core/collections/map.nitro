@@ -231,7 +231,7 @@ fun <#Value: GetOrdering> Map<#Key, #Value>.contains_value(value: #Value): Boole
 }
 
 // Length/size of the map, a.k.a the number of items in the map
-fun <#Key: MapKey> Map<#Key, #Value>.len(): Int { ret this.len }
+fun <#Key: MapKey> Map<#Key, #Value>.get_len(): Int { ret this.len }
 
 // Checks if the map has no items
 fun <#Key: MapKey> Map<#Key, #Value>.is_empty(): Boolean = this.len == 0

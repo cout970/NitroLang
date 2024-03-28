@@ -254,8 +254,7 @@ fun <#Item: GetOrdering> List<#Item>.index_of(item: #Item): Optional<Int> {
 }
 
 // Returns the size of the list, meaning the number of items it contains
-// Deprecated, use property `.len` instead
-fun List<#Item>.len(): Int {
+fun List<#Item>.get_len(): Int {
     ret this.count
 }
 
@@ -501,12 +500,12 @@ fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
         start = 0
     }
 
-    let len = end - start
-    if len <= 0 {
+    let length = end - start
+    if length <= 0 {
         ret List::new<#Item>()
     }
 
-    let sublist = List::new<#Item>(len)
+    let sublist = List::new<#Item>(length)
     let i: Int = start
 
     while i < end {

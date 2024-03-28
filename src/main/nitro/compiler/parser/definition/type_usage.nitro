@@ -245,9 +245,9 @@ fun NTypeUsage.to_string(): String {
 
     s = s + name
 
-    if params.len() > 0 {
+    if params.len > 0 {
         s = s + "<"
-        repeat params.len() {
+        repeat params.len {
             s += params[it]!!.to_string()
             if it < limit - 1 {
                 s += ", "

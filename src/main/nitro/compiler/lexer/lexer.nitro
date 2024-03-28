@@ -123,7 +123,7 @@ fun Lexer.read_all() {
 }
 
 fun Lexer.next_token() {
-    if tk < tokens.len() - 4 {
+    if tk < tokens.len - 4 {
         tk += 1
     }
 }
@@ -140,7 +140,7 @@ fun Lexer.get_current_token_kind(): TokenKind {
 fun Lexer.get_next_non_nl_token_kind(): TokenKind {
     let i = tk
 
-    while i < tokens.len() {
+    while i < tokens.len {
         let token = tokens[i]!!
         if token.kind != TokenKind::NL {
             ret token.kind
@@ -216,7 +216,7 @@ fun Lexer.restore_state(saved_state: SavedState) {
 
 // Creates a new span from the given token
 fun Lexer.span_of(token: Token): Span {
-    let len = if token.kind.len > 0 { token.kind.len } else { token.extra.len() }
+    let len = if token.kind.len > 0 { token.kind.len } else { token.extra.len }
 
     ret Span::new(token.offset, len, src, file)
 }
@@ -250,7 +250,7 @@ fun Lexer.add_token_with_extra(kind: TokenKind, offset: Int, extra: String) {
 
 // Tries to read the next token, returns true if there are more tokens to read
 fun Lexer.next(): Boolean {
-    if cur >= src.len() {
+    if cur >= src.len {
         // We add extra so the parser can always look ahead 4 tokens
         add_token(TokenKind::EOF)
         add_token(TokenKind::EOF)
@@ -259,7 +259,7 @@ fun Lexer.next(): Boolean {
         ret false
     }
 
-    let cur_state = if state.len() > 0 { state.last()!! } else { 0 }
+    let cur_state = if state.len > 0 { state.last()!! } else { 0 }
 
     if cur_state == 1 {
         read_string_blob()
@@ -340,10 +340,10 @@ fun Lexer.next(): Boolean {
         c0 == a"}" -> {
 
             // If we are inside a string interpolation, we need to close it
-            if state.len() > 0 {
+            if state.len > 0 {
                 state.remove_last()!!
 
-                cur_state = if state.len() > 0 { state[state.len() - 1]!! } else { 0 }
+                cur_state = if state.len > 0 { state[state.len - 1]!! } else { 0 }
 
                 if cur_state != 0 {
                     add_token(TokenKind::STRING_INTERP_END)
@@ -761,7 +761,7 @@ fun Lexer.read_block_comment() {
     cur += 2
 
     // Detect /** vs /* at the beginning of a comment
-    let kind = if extra.len() > 1 && extra.get_byte(0).to_int() == a"*" {
+    let kind = if extra.len > 1 && extra.get_byte(0).to_int() == a"*" {
         TokenKind::DOC_COMMENT
     } else {
         TokenKind::BLOCK_COMMENT
@@ -1125,7 +1125,7 @@ fun Lexer.read_identifier() {
     let lower = first >= a"a" && first <= a"z"
 
     // Ascii string
-    if first == a"a" && extra.len() == 1 && current_byte == a"\"" {
+    if first == a"a" && extra.len == 1 && current_byte == a"\"" {
         cur -= 1
         read_ascii_string()
         ret
@@ -1307,7 +1307,7 @@ fun Lexer.read_digits(): Boolean {
 fun Lexer.print_debug_info() {
     println("Tokens around print_debug_info():")
     let start = max(tk - 5, 0)
-    let end = min(tk + 5, tokens.len() - 1)
+    let end = min(tk + 5, tokens.len - 1)
 
     while start <= end {
         let token = tokens[start]!!
@@ -1320,7 +1320,7 @@ fun Lexer.print_debug_info() {
 fun Lexer.print_char_debug_info() {
     println("Chars around print_char_debug_info():")
     let start = max(cur - 5, 0)
-    let end = min(cur + 5, src.len() - 1)
+    let end = min(cur + 5, src.len - 1)
 
     while start <= end {
         let byte = src.get_byte(start).to_int()

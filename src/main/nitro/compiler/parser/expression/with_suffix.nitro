@@ -208,7 +208,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 continue
             }
 
-            if type_param_args.len() > 0 {
+            if type_param_args.len > 0 {
                 report_error("Type arguments are only allowed in field access", span)
             }
 

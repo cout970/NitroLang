@@ -168,7 +168,7 @@ fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>
 
     let replacements: Map<NGeneric, TypeToken> = #[]
 
-    repeat min(generics.len(), args.len()) {
+    repeat min(generics.len, args.len) {
         replacements[generics[it]!!] = args[it]!!
     }
 

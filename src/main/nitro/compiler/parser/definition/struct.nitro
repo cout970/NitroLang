@@ -86,7 +86,7 @@ fun NStruct.to_string(): String {
         prefix = "$prefix$a\n"
     }
 
-    let fields_str = if fields.len() > 0 { "{\n" } else { "{" }
+    let fields_str = if fields.len > 0 { "{\n" } else { "{" }
 
     for field in fields {
         fields_str += "  ${field.name}: ${field.type_usage}\n"

@@ -31,11 +31,11 @@ fun Reporter::new(): Reporter {
 }
 
 fun Reporter.has_reports(): Boolean {
-    ret errors.len() > 0 || warnings.len() > 0 || suggestions.len() > 0
+    ret errors.len > 0 || warnings.len > 0 || suggestions.len > 0
 }
 
 fun Reporter.get_report_count(): Int {
-    ret errors.len() + warnings.len() + suggestions.len()
+    ret errors.len + warnings.len + suggestions.len
 }
 
 fun Reporter.print_all() {

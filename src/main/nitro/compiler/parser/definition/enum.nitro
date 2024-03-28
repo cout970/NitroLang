@@ -232,7 +232,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         }
 
         // Missing fields to init?
-        if all_field_names.len() > used_field_names.len() {
+        if all_field_names.len > used_field_names.len {
             let missing_fields: List<String> = []
             for field in all_field_names {
                 if !used_field_names.contains(field) {

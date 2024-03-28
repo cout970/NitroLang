@@ -87,7 +87,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
 
     ret found(NOptionItem @[
         span,
-        index: parent.items.len(),
+        index: parent.items.len,
         parent,
         def,
     ])
@@ -110,7 +110,7 @@ fun NOption.to_string(): String {
         prefix = "$prefix$a\n"
     }
 
-    let items_str = if items.len() > 0 { "{\n" } else { "{" }
+    let items_str = if items.len > 0 { "{\n" } else { "{" }
 
     for item in items {
         let line = item.to_string().indent(2)
@@ -129,7 +129,7 @@ fun NOptionItem.to_string(): String {
         prefix = "$prefix$a\n"
     }
 
-    let fields_str = if def.fields.len() > 0 { "{\n" } else { "{" }
+    let fields_str = if def.fields.len > 0 { "{\n" } else { "{" }
 
     for field in def.fields {
         fields_str += "  ${field.name}: ${field.type_usage}\n"

@@ -78,7 +78,7 @@ fun run_test() {
     println("Time: $elapsed ms")
     println("Memory used: $bytes bytes")
 
-    print_program(program)
+//    print_program(program)
 
     if program.reporter.has_reports() {
         println("Found ${program.reporter.report_count} compiler reports:")
@@ -142,4 +142,5 @@ fun print_program(program: Program) {
         println(def)
         println("--------")
     }
+    println("--------")
 }
