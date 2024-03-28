@@ -29,8 +29,8 @@
 struct NTypePattern {
     kind: TypePatternKind
     name: String
-    module_path: String
-    type_params: List<NTypePattern>
+    path: String
+    params: List<NTypePattern>
 }
 
 enum TypePatternKind {
@@ -47,8 +47,8 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
         ret found(NTypePattern @[
             kind: TypePatternKind::TYPE_ANY,
             name: "*",
-            module_path: "",
-            type_params: [],
+            path: "",
+            params: [],
         ])
     }
 
@@ -58,8 +58,8 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
         ret found(NTypePattern @[
             kind: TypePatternKind::TYPE_THIS,
             name: "This",
-            module_path: "",
-            type_params: [],
+            path: "",
+            params: [],
         ])
     }
 
@@ -71,8 +71,8 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
         ret found(NTypePattern @[
             kind: TypePatternKind::TYPE_PARAM,
             name,
-            module_path: "",
-            type_params: [],
+            path: "",
+            params: [],
         ])
     }
 
@@ -95,19 +95,19 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
     }
 
     // core::Int, List<Int>
-    let module_path: String = read_module_path()?
+    let path: String = read_module_path()?
     let name: String = read_name()?
-    let type_params: List<NTypePattern> = []
+    let params: List<NTypePattern> = []
 
     if lexer.current_token_kind == TokenKind::LTH {
-        type_params = read_type_pattern_param_args()?
+        params = read_type_pattern_param_args()?
     }
 
     let ty = NTypePattern @[
         kind: TypePatternKind::TYPE_SIMPLE,
         name,
-        module_path,
-        type_params,
+        path,
+        params,
     ]
 
     if lexer.current_token_kind != TokenKind::DOT {
@@ -142,30 +142,30 @@ fun Parser.read_function_type_pattern(arg1: Optional<NTypePattern>): Parsed<NTyp
     //       : LPAREN RPAREN ARROW typePattern
     //       | LPAREN functionTypePatternParam (commaOrNl functionTypePatternParam)* RPAREN ARROW typePattern
     //       ;
-    let type_params = []
+    let params = []
 
     if arg1.is_some() {
-        type_params[] = arg1!!
+        params[] = arg1!!
     }
 
     skip_token_kind(TokenKind::LPAREN)?
     skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
         lexer.next_token()
-        type_params[] = read_function_type_pattern_param()?
+        params[] = read_function_type_pattern_param()?
         ret found(nothing)
     }?
 
     skip_token_kind(TokenKind::RPAREN)?
     skip_token_kind(TokenKind::ARROW)?
 
-    type_params[] = read_type_pattern()?
+    params[] = read_type_pattern()?
 
     ret found(NTypePattern @[
         kind: TypePatternKind::TYPE_SIMPLE,
         name: "Function",
-        module_path: "",
-        type_params,
+        path: "",
+        params,
     ])
 }
 
@@ -200,16 +200,16 @@ fun NTypePattern.to_string(): String {
         ret this.name
     }
 
-    if module_path != "" {
-        s = module_path + "::"
+    if path != "" {
+        s = path + "::"
     }
 
     s = s + name
 
-    if type_params.len() > 0 {
+    if params.len() > 0 {
         s = s + "<"
-        repeat type_params.len() {
-            s += type_params[it]!!.to_string()
+        repeat params.len() {
+            s += params[it]!!.to_string()
             if it < limit - 1 {
                 s += ", "
             }

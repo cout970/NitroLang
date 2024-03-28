@@ -299,8 +299,8 @@ fun Parser.read_expression_new_instance(code: NCode, path: String, name: String,
     skip_token_kind(TokenKind::STRUCT_START)?
     skip_nl()
 
-    let type_usage = NTypeUsage::simple_with_path(path, name)
-    type_usage.type_params = type_args
+    let type_usage = NTypeUsage::simple_with_path(span, path, name)
+    type_usage.params = type_args
     let instance = code.add_alloc(span, type_usage)
 
     read_until_delimited(TokenKind::RBRACKET) @{
@@ -350,14 +350,14 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
 
     if lexer.current_token_kind == TokenKind::PLAIN_STRING {
         let expr = read_expression_string(code)?
-        let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("String")])
+        let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "String")])
         code.add_fun_call(span, "", "add", [expr], [])
 
         let inst = code.add_fun_call(span, path, name, [list.id], [])
         ret found(inst.id)
     }
 
-    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("String")]).id
+    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "String")]).id
     let args = [list]
     let prev_is_string = false
 

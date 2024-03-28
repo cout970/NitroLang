@@ -28,10 +28,12 @@
 //       : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;
 
 struct NTypeUsage {
+    span: Span
     kind: TypeUsageKind
     name: String
-    module_path: String
-    type_params: List<NTypeUsage>
+    path: String
+    params: List<NTypeUsage>
+    type_token: Optional<TypeToken>
 }
 
 enum TypeUsageKind {
@@ -41,51 +43,57 @@ enum TypeUsageKind {
     TYPE_UNRESOLVED,
 }
 
-fun NTypeUsage::unresolved(): NTypeUsage {
+// FIXME: temporary fix for a bug with the compiler not generating this function for enums automatically
+fun TypeUsageKind.is_equal(other: TypeUsageKind): Boolean {
+    ret this.variant == other.variant
+}
+
+fun NTypeUsage::unresolved(span: Span): NTypeUsage {
     ret NTypeUsage @[
+        span,
         kind: TypeUsageKind::TYPE_UNRESOLVED,
         name: "[unresolved]",
-        module_path: "",
-        type_params: [],
+        path: "",
+        params: [],
+        type_token: None(),
     ]
 }
 
-fun NTypeUsage::simple(name: String): NTypeUsage {
+fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
     ret NTypeUsage @[
+        span,
         kind: TypeUsageKind::TYPE_SIMPLE,
         name,
-        module_path: "",
-        type_params: [],
+        path: "",
+        params: [],
+        type_token: None(),
     ]
 }
 
-fun NTypeUsage::simple_with_path(path: String, name: String): NTypeUsage {
+fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeUsage {
     ret NTypeUsage @[
+        span,
         kind: TypeUsageKind::TYPE_SIMPLE,
         name,
-        module_path: path,
-        type_params: [],
-    ]
-}
-
-fun NTypeUsage::simple_with_params(name: String, type_params: List<NTypeUsage>): NTypeUsage {
-    ret NTypeUsage @[
-        kind: TypeUsageKind::TYPE_SIMPLE,
-        name,
-        module_path: "",
-        type_params,
+        path: path,
+        params: [],
+        type_token: None(),
     ]
 }
 
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
+    let span = lexer.current_token_span
+
     // This
     if lexer.current_token_kind == TokenKind::THIS_TYPE {
         lexer.next_token()
         ret found(NTypeUsage @[
+            span,
             kind: TypeUsageKind::TYPE_THIS,
             name: "This",
-            module_path: "",
-            type_params: [],
+            path: "",
+            params: [],
+            type_token: None(),
         ])
     }
 
@@ -95,16 +103,18 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         let name: String = read_name()?
 
         ret found(NTypeUsage @[
+            span,
             kind: TypeUsageKind::TYPE_PARAM,
             name,
-            module_path: "",
-            type_params: [],
+            path: "",
+            params: [],
+            type_token: None(),
         ])
     }
 
     // (Int, Boolean)->Float
     if lexer.current_token_kind == TokenKind::LPAREN {
-        ret read_function_type_usage(None())
+        ret read_function_type_usage(span, None())
     }
 
     // <T>
@@ -121,19 +131,21 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     }
 
     // core::Int, List<Int>
-    let module_path: String = read_module_path()?
+    let path: String = read_module_path()?
     let name: String = read_name()?
-    let type_params: List<NTypeUsage> = []
+    let params: List<NTypeUsage> = []
 
     if lexer.current_token_kind == TokenKind::LTH {
-        type_params = read_type_param_args()?
+        params = read_type_param_args()?
     }
 
     let ty = NTypeUsage @[
+        span,
         kind: TypeUsageKind::TYPE_SIMPLE,
         name,
-        module_path,
-        type_params,
+        path,
+        params,
+        type_token: None(),
     ]
 
     // If `.(` is found after the name, it is a function type like `Int.() -> Nothing`
@@ -145,7 +157,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     lexer.next_token()
 
     // Int.() -> Nothing
-    ret read_function_type_usage(Some(ty))
+    ret read_function_type_usage(span, Some(ty))
 }
 
 // <A, B, C>
@@ -163,34 +175,36 @@ fun Parser.read_type_param_args(): Parsed<List<NTypeUsage>> {
 }
 
 // (Int, Boolean)->Float
-fun Parser.read_function_type_usage(arg1: Optional<NTypeUsage>): Parsed<NTypeUsage> {
+fun Parser.read_function_type_usage(span: Span, arg1: Optional<NTypeUsage>): Parsed<NTypeUsage> {
     // // (Int) -> Int
     // functionTypeUsage
     //       : LPAREN RPAREN ARROW typeUsage
     //       | LPAREN functionTypeUsageParam (commaOrNl functionTypeUsageParam)* RPAREN ARROW typeUsage
     //       ;
-    let type_params = []
+    let params = []
 
     if arg1.is_some() {
-        type_params[] = arg1!!
+        params[] = arg1!!
     }
 
     skip_token_kind(TokenKind::LPAREN)?
     skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
-        type_params[] = read_function_type_usage_param()?
+        params[] = read_function_type_usage_param()?
         ret found(nothing)
     }?
 
     skip_token_kind(TokenKind::ARROW)?
 
-    type_params[] = read_type_usage()?
+    params[] = read_type_usage()?
 
     ret found(NTypeUsage @[
+        span,
         kind: TypeUsageKind::TYPE_SIMPLE,
         name: "Function",
-        module_path: "",
-        type_params,
+        path: "",
+        params,
+        type_token: None(),
     ])
 }
 
@@ -225,16 +239,16 @@ fun NTypeUsage.to_string(): String {
         ret this.name
     }
 
-    if module_path != "" {
-        s = module_path + "::"
+    if path != "" {
+        s = path + "::"
     }
 
     s = s + name
 
-    if type_params.len() > 0 {
+    if params.len() > 0 {
         s = s + "<"
-        repeat type_params.len() {
-            s += type_params[it]!!.to_string()
+        repeat params.len() {
+            s += params[it]!!.to_string()
             if it < limit - 1 {
                 s += ", "
             }

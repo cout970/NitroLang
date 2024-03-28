@@ -1,3 +1,6 @@
 let source_code: String = r#"//////////////////////////
 
+struct A {}
+
+let instance: A = A @[]
 "#

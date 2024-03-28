@@ -1,0 +1,192 @@
+
+type_alias TypeToken = Int
+type_alias TypeId = Int
+
+struct Type {
+    id: TypeId
+    kind: TypeKind
+    params: List<TypeToken>
+}
+
+option TypeKind {
+    Struct {
+        instance: NStruct
+    }
+    Option {
+        instance: NOption
+    }
+    OptionItem {
+        instance: NStruct
+    }
+    Lambda {
+        instance: NLambda
+    }
+    Generic {
+        instance: NGeneric
+    }
+    Union {
+        span: Span
+    }
+    Unresolved {
+        span: Span
+    }
+    UnresolvedFunction {
+        span: Span
+    }
+    Invalid {
+        message: String
+        span: Span
+    }
+}
+
+struct TypeContainer {
+    all_types: Map<TypeId, Type>
+    type_tokens: Map<TypeToken, TypeId>
+    last_type_id: TypeId
+    last_type_token: TypeToken
+}
+
+fun TypeContainer::new(): TypeContainer {
+    let instance = TypeContainer @[
+        all_types: #[],
+        type_tokens: #[],
+        last_type_id: 0,
+        last_type_token: 0,
+    ]
+
+    ret instance
+}
+
+fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToken {
+    // Create type
+    last_type_id += 1
+    let ty = Type @[
+        id: last_type_id,
+        kind,
+        params,
+    ]
+    all_types[last_type_id] = ty
+
+    // Create type token
+    last_type_token += 1
+    type_tokens[last_type_token] = last_type_id
+    ret last_type_token
+}
+
+fun TypeContainer.get_type(token: TypeToken): Type {
+    let id = type_tokens[token]!!
+    ret get_type_by_id(id)
+}
+
+fun TypeContainer.get_type_by_id(id: TypeId): Type {
+    ret all_types[id]!!
+}
+
+fun TypeKind.get_kind_name(): String {
+    ret when {
+        this is TypeKind::Struct -> "Struct"
+        this is TypeKind::Option -> "Option"
+        this is TypeKind::OptionItem -> "OptionItem"
+        this is TypeKind::Lambda -> "Lambda"
+        this is TypeKind::Generic -> "Generic"
+        this is TypeKind::Union -> "Union"
+        this is TypeKind::Unresolved -> "Unresolved"
+        this is TypeKind::UnresolvedFunction -> "UnresolvedFunction"
+        this is TypeKind::Invalid -> "Invalid"
+        else -> crash("Unknown type kind")
+    }
+}
+
+fun TypeKind.get_span(): Span {
+    ret when {
+        this is TypeKind::Struct -> (this as TypeKind::Struct).instance.span
+        this is TypeKind::Option -> (this as TypeKind::Option).instance.span
+        this is TypeKind::OptionItem -> (this as TypeKind::OptionItem).instance.span
+        this is TypeKind::Lambda -> (this as TypeKind::Lambda).instance.span
+        this is TypeKind::Generic -> (this as TypeKind::Generic).instance.span
+        this is TypeKind::Union -> (this as TypeKind::Union).span
+        this is TypeKind::Unresolved -> (this as TypeKind::Unresolved).span
+        this is TypeKind::UnresolvedFunction -> (this as TypeKind::UnresolvedFunction).span
+        this is TypeKind::Invalid -> (this as TypeKind::Invalid).span
+        else -> crash("Unknown type kind")
+    }
+}
+
+fun TypeKind.is_equal(other: TypeKind): Boolean {
+    ret this.kind_name == other.kind_name && this.span == other.span
+}
+
+fun Type.is_equal(other: Type): Boolean {
+    if !this.kind.is_equal(other.kind) {
+        ret false
+    }
+
+    if this.params.len() != other.params.len() {
+        ret false
+    }
+
+    repeat params.len() {
+        if !this.params[it]!!.is_equal(other.params[it]!!) {
+            ret false
+        }
+    }
+
+    ret true
+}
+
+fun Type.to_string(): String {
+    let result = kind.to_string()
+
+    if params.len() > 0 {
+        result += "<"
+        repeat params.len() {
+            result += params[it]!!.to_string()
+            if it < params.len() - 1 {
+                result += ", "
+            }
+        }
+        result += ">"
+    }
+
+    ret result
+}
+
+fun TypeKind.to_string(): String {
+    if this is TypeKind::Struct {
+        let kind = this as TypeKind::Struct
+        ret "Struct(${kind.instance.span})"
+    }
+    if this is TypeKind::Option {
+        let kind = this as TypeKind::Option
+        ret "Option(${kind.instance.span})"
+    }
+    if this is TypeKind::OptionItem {
+        let kind = this as TypeKind::OptionItem
+        ret "OptionItem(${kind.instance.span})"
+    }
+    if this is TypeKind::Lambda {
+        let kind = this as TypeKind::Lambda
+        ret "Lambda(${kind.instance.span})"
+    }
+    if this is TypeKind::Generic {
+        let kind = this as TypeKind::Generic
+        ret "Generic(${kind.instance.span})"
+    }
+    if this is TypeKind::Union {
+        let kind = this as TypeKind::Union
+        ret "Union(${kind.span})"
+    }
+    if this is TypeKind::Unresolved {
+        let kind = this as TypeKind::Unresolved
+        ret "Unresolved(${kind.span})"
+    }
+    if this is TypeKind::UnresolvedFunction {
+        let kind = this as TypeKind::UnresolvedFunction
+        ret "UnresolvedFunction(${kind.span})"
+    }
+    if this is TypeKind::Invalid {
+        let kind = this as TypeKind::Invalid
+        ret "Invalid(\"${kind.message}\")"
+    }
+    crash("Unknown type kind")
+}

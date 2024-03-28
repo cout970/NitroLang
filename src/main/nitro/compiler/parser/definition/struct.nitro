@@ -16,7 +16,9 @@ struct NStruct {
     path: String
     name: String
     fields: List<NStructField>
-    type_params: List<NGeneric>
+    generics: NGenericParams
+    parent: Optional<NOption>
+    full_name_cache: Optional<String>
 }
 
 struct NStructField {
@@ -35,13 +37,15 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
         annotations,
         path,
         name,
-        type_params: [],
+        generics: NGenericParams::new(),
         fields: [],
+        parent: None(),
+        full_name_cache: None(),
     ]
     program.structs[] = def
     program.declare_name(get_full_path(def.path, def.name), def.span)
 
-    def.type_params = read_type_params_def()?
+    read_type_params_def(def.generics)?
 
     skip_nl()
     skip_token_kind(TokenKind::LBRACE)?
@@ -63,6 +67,16 @@ fun Parser.read_struct_field(): Parsed<NStructField> {
     let type_usage = read_type_usage()?
 
     ret found(NStructField @[name, type_usage])
+}
+
+fun NStruct.get_full_name(): String {
+    if full_name_cache.is_some() {
+        ret full_name_cache!!
+    }
+
+    let full_name = get_full_path(path, name)
+    full_name_cache = Some(full_name)
+    ret full_name
 }
 
 fun NStruct.to_string(): String {

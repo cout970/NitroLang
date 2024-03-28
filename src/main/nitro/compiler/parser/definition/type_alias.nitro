@@ -9,7 +9,7 @@ struct NTypeAlias {
     path: String
     name: String
     type_usage: NTypeUsage
-    type_params: List<NGeneric>
+    generics: NGenericParams
 }
 
 fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
@@ -17,8 +17,9 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?
     let name = read_name()?
+    let generics = NGenericParams::new()
 
-    let type_params = read_type_params_def()?
+    read_type_params_def(generics)?
 
     skip_token_kind(TokenKind::ASSIGN)?
 
@@ -30,7 +31,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
         path,
         name,
         type_usage,
-        type_params,
+        generics,
     ]
 
     program.type_aliases[] = def
@@ -39,22 +40,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
 }
 
 fun NTypeAlias.to_string() -> String {
-    let tp = if type_params.is_not_empty() {
-        let s = ""
-
-        for type_param in type_params {
-            if s.is_not_empty() {
-                s += ", "
-            }
-            s += type_param.to_string()
-        }
-
-        "<$s>"
-    } else {
-        ""
-    }
-
     let full_name = get_full_path(path, name)
 
-    return "typealias $full_name$tp = $type_usage // $span"
+    return "typealias $full_name$generics = $type_usage // $span"
 }

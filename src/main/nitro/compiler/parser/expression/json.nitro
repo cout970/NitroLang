@@ -103,7 +103,10 @@ fun Parser.read_expression_json_object(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
-    let map = code.add_fun_call(span, "Map", "new", [], [NTypeUsage::simple("String"), NTypeUsage::simple("Json")]).id
+    let map = code.add_fun_call(span, "Map", "new", [], [
+        NTypeUsage::simple(span, "String"),
+        NTypeUsage::simple(span, "Json"),
+    ]).id
 
     read_until_delimited(TokenKind::RBRACE) @{
         let key = if lexer.current_token_kind == TokenKind::IDENTIFIER {
@@ -132,7 +135,7 @@ fun Parser.read_expression_json_array(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LBRACKET)?
     skip_nl()
 
-    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple("Json")]).id
+    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "Json")]).id
 
     read_until_delimited(TokenKind::RBRACKET) @{
         let value = read_expression_json_value(code)?

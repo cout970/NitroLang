@@ -35,7 +35,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     code.add_when_start(span)
     code.enter_block(false)
 
-    let type_usage = NTypeUsage::unresolved()
+    let type_usage = NTypeUsage::unresolved(span)
     let when_var = code.add_let(span, "when-result", Some(type_usage))
 
     let when_block = code.current_block

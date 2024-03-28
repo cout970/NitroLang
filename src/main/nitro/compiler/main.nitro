@@ -49,6 +49,9 @@ include "./parser/expression/size_of.nitro"
 include "./parser/expression/string.nitro"
 include "./parser/expression/when.nitro"
 include "./parser/expression/with_suffix.nitro"
+include "./type_checker/type.nitro"
+include "./type_checker/type_checker.nitro"
+include "./type_checker/type_checker_utils.nitro"
 include "./reporter.nitro"
 include "./program/program.nitro"
 include "./program/code.nitro"
@@ -57,17 +60,15 @@ include "./program/code_block.nitro"
 include "./program/var.nitro"
 include "./test2.nitro"
 
-@WasmName [name: "compile"]
-fun compile(source: String, file: String) {
+fun main() {
+    run_test()
+}
+
+fun run_test() {
+    let file = "test2.nitro"
     let start = Instant::now()
-    let program = Program::new()
 
-    let lexer = Lexer::new(source, file)
-    lexer.read_all()
-
-    let parser = Parser::new(lexer, program)
-
-    parser.read_file()
+    let program = compile(source_code, file)
 
     let end = Instant::now()
     let elapsed = (end - start).to_milliseconds()
@@ -77,49 +78,7 @@ fun compile(source: String, file: String) {
     println("Time: $elapsed ms")
     println("Memory used: $bytes bytes")
 
-//    println("Includes:")
-//    for def in program.includes {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("TypeAliases:")
-//    for def in program.type_aliases {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("Modules:")
-//    for def in program.modules {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("Structs:")
-//    for def in program.structs {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("Options:")
-//    for def in program.options {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("Consts:")
-//    for def in program.consts {
-//        println(def)
-//        println("--------")
-//    }
-//
-//    println("Functions:")
-//    for def in program.functions {
-//        println(def)
-//        println("--------")
-//    }
-
-    println("--------")
+    print_program(program)
 
     if program.reporter.has_reports() {
         println("Found ${program.reporter.report_count} compiler reports:")
@@ -127,6 +86,60 @@ fun compile(source: String, file: String) {
     }
 }
 
-fun main() {
-    compile(source_code, "test2.nitro")
+fun compile(source: String, file: String): Program {
+    let lexer = Lexer::new(source, file)
+    lexer.read_all()
+
+    let program = Program::new()
+
+    let parser = Parser::new(lexer, program)
+    parser.read_file()
+
+    ret program
+}
+
+fun print_program(program: Program) {
+    println("--------")
+
+    println("Includes:")
+    for def in program.includes {
+        println(def)
+        println("--------")
+    }
+
+    println("TypeAliases:")
+    for def in program.type_aliases {
+        println(def)
+        println("--------")
+    }
+
+    println("Modules:")
+    for def in program.modules {
+        println(def)
+        println("--------")
+    }
+
+    println("Structs:")
+    for def in program.structs {
+        println(def)
+        println("--------")
+    }
+
+    println("Options:")
+    for def in program.options {
+        println(def)
+        println("--------")
+    }
+
+    println("Consts:")
+    for def in program.consts {
+        println(def)
+        println("--------")
+    }
+
+    println("Functions:")
+    for def in program.functions {
+        println(def)
+        println("--------")
+    }
 }

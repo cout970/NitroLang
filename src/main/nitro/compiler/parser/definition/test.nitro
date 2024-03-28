@@ -31,12 +31,12 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     let def = NFunction @[
         span,
         annotations,
-        type_params: [],
+        generics: NGenericParams::new(),
         has_receiver: false,
         path: "",
         name,
         parameters: [],
-        return_type: NTypeUsage::simple("Nothing"),
+        return_type: NTypeUsage::simple(span, "Nothing"),
         body: NCode::new(),
     ]
     program.functions[] = def

@@ -14,8 +14,9 @@ struct NOption {
     annotations: List<NAnnotation>
     path: String
     name: String
-    type_params: List<NGeneric>
+    generics: NGenericParams
     items: List<NOptionItem>
+    full_name_cache: Optional<String>
 }
 
 struct NOptionItem {
@@ -36,13 +37,14 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         annotations,
         path,
         name,
-        type_params: [],
+        generics: NGenericParams::new(),
         items: [],
+        full_name_cache: None(),
     ]
     program.options[] = def
     program.declare_name(get_full_path(def.path, def.name), def.span)
 
-    def.type_params = read_type_params_def()?
+    read_type_params_def(def.generics)?
     skip_nl()
 
     skip_token_kind(TokenKind::LBRACE)?
@@ -65,9 +67,13 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         annotations: [],
         path: parent.path,
         name,
-        type_params: [],
+        generics: NGenericParams::new(),
         fields: [],
+        parent: Some(parent),
+        full_name_cache: None(),
     ]
+    program.structs[] = def
+    program.declare_name(get_full_path(def.path, def.name), def.span)
 
     if lexer.current_token_kind == TokenKind::LBRACE {
         skip_token_kind(TokenKind::LBRACE)?
@@ -85,6 +91,16 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         parent,
         def,
     ])
+}
+
+fun NOption.get_full_name(): String {
+    if full_name_cache.is_some() {
+        ret full_name_cache!!
+    }
+
+    let full_name = get_full_path(path, name)
+    full_name_cache = Some(full_name)
+    ret full_name
 }
 
 fun NOption.to_string(): String {

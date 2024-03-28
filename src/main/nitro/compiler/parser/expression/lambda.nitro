@@ -103,7 +103,7 @@ fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
         skip_token_kind(TokenKind::COLON)
         read_type_usage()?
     } else {
-        NTypeUsage::unresolved()
+        NTypeUsage::unresolved(span)
     }
 
     let def = NFunctionParameter @[

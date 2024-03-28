@@ -73,3 +73,5 @@ fun Span.get_ordering(other: Span): Ordering {
     }
     ret this.file.get_ordering(other.file)
 }
+
+fun Span.get_hash(): Int = start ^ file.get_hash()

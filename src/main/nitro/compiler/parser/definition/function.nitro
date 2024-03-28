@@ -37,7 +37,7 @@
 struct NFunction {
     span: Span
     annotations: List<NAnnotation>
-    type_params: List<NGeneric>
+    generics: NGenericParams
     has_receiver: Boolean
     path: String
     name: String
@@ -88,13 +88,13 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
 fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunction> {
     skip_token_kind(TokenKind::FUN)?
     skip_nl()
-    let type_params: List<NGeneric> = []
+    let generics = NGenericParams::new()
     let parameters: List<NFunctionParameter> = []
     let has_receiver = false
 
     // Type parameters
     if lexer.current_token_kind == TokenKind::LTH {
-        type_params.add_all(read_type_params_def()?)
+        read_type_params_def(generics)?
         skip_nl()
     }
 
@@ -122,12 +122,12 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     let def = NFunction @[
         span,
         annotations,
-        type_params,
+        generics,
         has_receiver,
         path,
         name,
         parameters,
-        return_type: NTypeUsage::simple("Nothing"),
+        return_type: NTypeUsage::simple(span, "Nothing"),
         body: NCode::new(),
     ]
     program.functions[] = def
@@ -135,7 +135,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     // Type parameters
     skip_nl()
     if lexer.current_token_kind == TokenKind::LTH {
-        type_params.add_all(read_type_params_def()?)
+        read_type_params_def(generics)?
         skip_nl()
     }
 

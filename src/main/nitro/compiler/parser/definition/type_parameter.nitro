@@ -17,23 +17,31 @@ struct NGeneric {
     constraints: List<NTypeUsage>
 }
 
-// <#T, #A>
-fun Parser.read_type_params_def(): Parsed<List<NGeneric>> {
-    let type_params: List<NGeneric> = []
+struct NGenericParams {
+    definitions: List<NGeneric>
+}
 
+fun NGenericParams::new(): NGenericParams {
+    ret NGenericParams @[
+        definitions: []
+    ]
+}
+
+// <#T, #A>
+fun Parser.read_type_params_def(generics: NGenericParams): Parsed<Nothing> {
     if lexer.current_token_kind != TokenKind::LTH {
-        return found(type_params)
+        ret found(nothing)
     }
 
     // Skip `<`
     lexer.next_token()
 
     read_until_delimited(TokenKind::GTH) @{
-        type_params[] = read_type_param_def()?
+        generics.definitions[] = read_type_param_def()?
         ret found(nothing)
     }?
 
-    return found(type_params)
+    ret found(nothing)
 }
 
 fun Parser.read_type_param_def(): Parsed<NGeneric> {
@@ -48,7 +56,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
     ]
 
     if lexer.current_token_kind != TokenKind::COLON {
-        return found(def)
+        ret found(def)
     }
 
     lexer.next_token()
@@ -75,7 +83,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
         }
     }
 
-    return found(def)
+    ret found(def)
 }
 
 fun Parser.read_type_parameter(): Parsed<String> {
@@ -89,11 +97,31 @@ fun Parser.read_type_parameter(): Parsed<String> {
     ret read_name()
 }
 
+fun NGeneric.get_hash(): Int = span.get_hash()
+fun NGeneric.get_ordering(other: NGeneric): Ordering = span.get_ordering(other.span)
+
 fun NGeneric.to_string(): String {
     if constraints.is_empty() {
-        return "#$name"
+        ret "#$name"
     }
     let s = constraints.join(", ")
 
-    return "#$name: s"
+    ret "#$name: s"
+}
+
+fun NGenericParams.to_string(): String {
+    if definitions.is_empty() {
+        ret ""
+    }
+
+    let s = ""
+
+    for def in definitions {
+        if s.is_not_empty() {
+            s += ", "
+        }
+        s += def.to_string()
+    }
+
+    ret "<$s>"
 }

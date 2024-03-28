@@ -8,7 +8,7 @@ fun Parser.read_expression_set(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::SET_START)?
     skip_nl()
 
-    let set = code.add_fun_call(span, "Set", "new", [], [NTypeUsage::unresolved()])
+    let set = code.add_fun_call(span, "Set", "new", [], [NTypeUsage::unresolved(span)])
 
     read_until_delimited(TokenKind::RBRACKET) @{
         let expr = read_expression(code)?

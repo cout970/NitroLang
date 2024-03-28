@@ -78,15 +78,17 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         annotations,
         path,
         name,
-        type_params: [],
+        generics: NGenericParams::new(),
         fields: [],
+        parent: None(),
+        full_name_cache: None(),
     ]
     program.structs[] = def
     program.declare_name(get_full_path(def.path, def.name), def.span)
 
     def.fields[] = NStructField @[
         name: VARIANT_FIELD_NAME,
-        type_usage: NTypeUsage::simple("Int"),
+        type_usage: NTypeUsage::simple(span, "Int"),
     ]
 
     let module_def = NModule @[
@@ -200,13 +202,13 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             span: entry.span,
             path: module_path,
             name: entry.name,
-            type_usage: NTypeUsage::simple_with_path(path, name),
+            type_usage: NTypeUsage::simple_with_path(span, path, name),
             body: const_code,
         ]
         program.consts[] = const_def
         program.declare_name(get_full_path(const_def.path, const_def.name), const_def.span)
 
-        let type_usage = NTypeUsage::simple_with_path(path, name)
+        let type_usage = NTypeUsage::simple_with_path(span, path, name)
         let alloc = const_code.add_alloc(entry.span, type_usage).id
 
         let used_field_names: List<String> = []

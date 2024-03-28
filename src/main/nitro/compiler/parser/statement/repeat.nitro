@@ -27,11 +27,11 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     let count = read_expression(code)?
 
     // let limit = <count>
-    let var_limit = code.add_let(span, "limit", Some(NTypeUsage::simple("Int")))
+    let var_limit = code.add_let(span, "limit", Some(NTypeUsage::simple(span, "Int")))
     code.add_store_var(span, "", "limit", count, Some(var_limit))
 
     // let it = 0
-    let var_it = code.add_let(span, "it", Some(NTypeUsage::simple("Int")))
+    let var_it = code.add_let(span, "it", Some(NTypeUsage::simple(span, "Int")))
     let zero = code.add_lit_int(span, 0)
     code.add_store_var(span, "", "it", zero.id, Some(var_it))
 

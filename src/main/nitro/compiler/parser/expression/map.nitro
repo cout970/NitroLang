@@ -17,7 +17,7 @@ fun Parser.read_expression_map(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::MAP_START)?
     skip_nl()
 
-    let map = code.add_fun_call(span, "Map", "new", [], [NTypeUsage::unresolved(), NTypeUsage::unresolved()])
+    let map = code.add_fun_call(span, "Map", "new", [], [NTypeUsage::unresolved(span), NTypeUsage::unresolved(span)])
 
     read_until_delimited(TokenKind::RBRACKET) @{
         let span = lexer.current_token_span
