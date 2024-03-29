@@ -55,7 +55,13 @@ export function trace_get_stacktrace(): string {
 }
 
 export function trace_print_stack_trace() {
-    console.log(`Stack trace:  \n${trace_get_stacktrace()}`);
+    const str = trace_get_stacktrace();
+
+    if (str) {
+        console.log(`Stack trace:  \n${trace_get_stacktrace()}`);
+    } else {
+        console.log('No internal stack trace available');
+    }
 }
 
 export function trace_trim_flame_graph(node: FlameGraphNode): FlameGraphNode|null {
