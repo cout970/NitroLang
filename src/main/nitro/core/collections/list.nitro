@@ -17,7 +17,7 @@
 struct List<#Item> {
     capacity: Int
     count: Int
-    items: RawArray<Ptr<#Item>>
+    items: Array<#Item>
 }
 
 // Creates an empty list
@@ -25,7 +25,7 @@ fun List::new<#Item>(): List<#Item> {
     ret List<#Item> @[
         capacity: 0
         count: 0
-        items: null_ptr<Ptr<#Item>>().to_raw_array()
+        items: Array::new<#Item>(0)
     ]
 }
 
@@ -34,30 +34,30 @@ fun List::new<#Item>(capacity: Int): List<#Item> {
     ret List<#Item> @[
         capacity: capacity
         count: 0
-        items: RawArray::new<Ptr<#Item>>(capacity)
+        items: Array::new<#Item>(capacity)
     ]
 }
 
 // Makes sure the list has capacity for the requested number of items
-fun List<#Item>.ensure_capacity(capacity: Int) {
-    if capacity <= this.capacity {
+fun List<#Item>.ensure_capacity(required_capacity: Int) {
+    if required_capacity <= capacity {
        ret
     }
 
-    let new_capacity = max(this.capacity * 2, 16)
+    let new_capacity = max(capacity * 2, 16)
 
-    while new_capacity < capacity {
-        new_capacity = new_capacity * 2
+    while new_capacity < required_capacity {
+        new_capacity *= 2
     }
 
-    let new_items: RawArray<Ptr<#Item>> = RawArray::new<Ptr<#Item>>(new_capacity)
+    let new_items = Array::new<#Item>(new_capacity)
 
-    if this.count > 0 {
-        this.items.copy_into(new_items, this.capacity)
+    repeat count {
+        new_items[it] = items[it]
     }
 
-    this.items = new_items
-    this.capacity = new_capacity
+    items = new_items
+    capacity = new_capacity
 }
 
 // Adds the given item to the list
@@ -66,32 +66,31 @@ fun List<#Item>.ensure_capacity(capacity: Int) {
 //
 fun List<#Item>.add(item: #Item) {
     // Expand list if needed
-    this.ensure_capacity(this.count + 1)
+    ensure_capacity(count + 1)
 
-    let item_ptr = this.items.get_ptr(this.count)
-    item_ptr.write(ptr_of<#Item>(item))
-    this.count += 1
+    items[count] = item
+    count += 1
 }
 
 // Adds the given item to the list `count` times
-fun List<#Item>.add_multiple_times(item: #Item, count: Int) {
+fun List<#Item>.add_multiple_times(item: #Item, times: Int) {
     // Expand list if needed
-    this.ensure_capacity(this.count + count)
+    ensure_capacity(count + times)
 
     // Write the item `count` times
-    repeat count {
-        this.items.get_ptr(this.count).write(ptr_of<#Item>(item))
-        this.count += 1
+    repeat times {
+        items[count] = item
+        count += 1
     }
 }
 
 fun List<#Item>.add_all(other: List<#Item>) {
     // Expand list if needed
-    this.ensure_capacity(this.count + other.count)
+    ensure_capacity(this.count + other.count)
 
     // Copy the items from the other list
     repeat other.count {
-        this.add(other[it]!!)
+        this[] = other[it]!!
     }
 }
 
@@ -100,24 +99,22 @@ fun List<#Item>.add_all(other: List<#Item>) {
 // `my_list[0]` is equivalent to `my_list.get(0)`
 //
 fun List<#Item>.get(index: Int): Optional<#Item> {
-    if index < 0 || index >= this.count {
+    if index < 0 || index >= count {
         ret None<#Item>()
     }
 
-    let item_ptr: Ptr<#Item> = this.items.get_ptr(index).read()
-    ret Some(item_ptr.unsafe_as_ref())
+    ret Some(items[index])
 }
 
 // Set the item at the given index, if the index is out of bounds, the program crashes
 // Can be called using the `list[index] = value` syntax:
 // `my_list[0] = 1` is equivalent to `my_list.set(0, 1)`
 fun List<#Item>.set(index: Int, item: #Item) {
-    if index < 0 || index >= this.count {
-        crash("Invalid list index: $index, len: ${this.count}")
+    if index < 0 || index >= count {
+        crash("Invalid list index: $index, len: ${count}")
     }
 
-    let item_ptr = this.items.get_ptr(index)
-    item_ptr.write(ptr_of<#Item>(item))
+    items[index] = item
 }
 
 // Swaps the items at the given indexes
@@ -129,27 +126,27 @@ fun List<#Item>.swap(index1: Int, index2: Int) {
 
 // Insert a new item at the given index, if the index is out of bounds, the program crashes
 fun List<#Item>.insert(index: Int, value: #Item) {
-    if index < 0 || index > this.count {
-        crash("Invalid list index: $index, len: ${this.count}")
+    if index < 0 || index > count {
+        crash("Invalid list index: $index, len: ${count}")
     }
 
     // Insert at the end
-    if index == this.count {
-        this.add(value)
+    if index == count {
+        this[] = value
         ret
     }
 
     // Expand list if needed
-    this.ensure_capacity(this.count + 1)
+    ensure_capacity(count + 1)
 
-    let prev_len = this.count
+    let prev_len = count
 
     // Add a new item slot at the end
-    this.count += 1
+    count += 1
 
     // Move every item one place to the right
     repeat prev_len - index {
-        this.swap(prev_len - it - 1, prev_len - it)
+        swap(prev_len - it - 1, prev_len - it)
     }
 
     // Finish by inserting the new item
@@ -158,24 +155,24 @@ fun List<#Item>.insert(index: Int, value: #Item) {
 
 // Insert at the start and shift all other items to the right
 fun List<#Item>.add_first(value: #Item) {
-    this.insert(0, value)
+    insert(0, value)
 }
 
 // Insert at the end of the list
 fun List<#Item>.add_last(value: #Item) {
-    this.add(value)
+    this[] = value
 }
 
 // Creates a new list with the given item added at the end
 fun List<#Item>.plus(item: #Item): List<#Item> {
-    let result = this.to_list()
+    let result = to_list()
     result[] = item
     ret result
 }
 
 // Crea a new list with the given items added at the end
 fun List<#Item>.plus(other: List<#Item>): List<#Item> {
-    let result = this.to_list()
+    let result = to_list()
 
     repeat other.count {
         result[] = other[it]!!
@@ -186,18 +183,18 @@ fun List<#Item>.plus(other: List<#Item>): List<#Item> {
 
 // Removes the item at the given index, if the index is out of bounds, the program crashes
 fun List<#Item>.remove_at(index: Int): Optional<#Item> {
-    if index < 0 || index >= this.count {
+    if index < 0 || index >= count {
         ret None()
     }
 
     let value = this[index]
 
     // Move every item one place to the left
-    repeat this.count - index - 1 {
-        this.swap(index + it, index + it + 1)
+    repeat count - index - 1 {
+        swap(index + it, index + it + 1)
     }
 
-    this.count -= 1
+    count -= 1
     ret value
 }
 
@@ -214,28 +211,28 @@ fun List<#Item>.remove_last(): Optional<#Item> {
 
 // Removes the last item in the array
 fun List<#Item>.remove_first(): Optional<#Item> {
-    ret this.remove_at(0)
+    ret remove_at(0)
 }
 
 // Removes the given item from the list, if the item is not in the list, nothing happens
 fun <#Item: GetOrdering> List<#Item>.remove_value(item: #Item) {
-    let index = this.index_of(item)
+    let index = index_of(item)
 
     if index.is_some() {
-        this.remove_at(index!!)!!
+        remove_at(index!!)!!
     }
 }
 
 fun List<#Item>.clear() {
-    this.count = 0
+    count = 0
 }
 
 fun List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
     let i = 0
 
-    while i < this.count {
+    while i < count {
         if predicate(this[i]!!) {
-            this.remove_at(i)!!
+            remove_at(i)!!
         } else {
             i += 1
         }
@@ -244,7 +241,7 @@ fun List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
 
 // Returns the index of the given item, if the item is not in the list, returns `None`
 fun <#Item: GetOrdering> List<#Item>.index_of(item: #Item): Optional<Int> {
-    repeat this.count {
+    repeat count {
         if this[it]!! == item {
             ret Some(it)
         }
@@ -254,26 +251,24 @@ fun <#Item: GetOrdering> List<#Item>.index_of(item: #Item): Optional<Int> {
 }
 
 // Returns the size of the list, meaning the number of items it contains
-fun List<#Item>.get_len(): Int {
-    ret this.count
-}
+fun List<#Item>.get_len(): Int = count
 
 // Checks if the list is empty
-fun List<#Item>.is_empty(): Boolean = this.count == 0
+fun List<#Item>.is_empty(): Boolean = count == 0
 
 // Checks if the list is not empty
-fun List<#Item>.is_not_empty(): Boolean = this.count != 0
+fun List<#Item>.is_not_empty(): Boolean = count != 0
 
 // Checks if the list contains the given item
 fun <#Item: GetOrdering> List<#Item>.contains(item: #Item): Boolean {
-    ret this.index_of(item).is_some()
+    ret index_of(item).is_some()
 }
 
 // Returns a new list where each item is replaced by the result of the given function
 fun <#Item, #Other> List<#Item>.map(func: (#Item) -> #Other): List<#Other> {
-    let result = List::new<#Other>(this.count)
+    let result = List::new<#Other>(count)
 
-    repeat this.count {
+    repeat count {
         result[] = func(this[it]!!)
     }
 
@@ -282,9 +277,9 @@ fun <#Item, #Other> List<#Item>.map(func: (#Item) -> #Other): List<#Other> {
 
 // Each item is passed to the given function to get a new list, the result is a list will all the items
 fun List<#Item>.flat_map(func: (#Item) -> List<#Other>): List<#Other> {
-    let result = List::new<#Other>(this.count)
+    let result = List::new<#Other>(count)
 
-    repeat this.count {
+    repeat count {
         let items = func(this[it]!!)
         repeat items.count {
             result[] = items[it]!!
@@ -296,11 +291,12 @@ fun List<#Item>.flat_map(func: (#Item) -> List<#Other>): List<#Other> {
 
 // Returns a new list with only the items that match the given predicate
 fun List<#Item>.filter(func: (#Item) -> Boolean): List<#Item> {
-    let result = List::new<#Item>(this.count)
+    let result = List::new<#Item>(count)
 
-    repeat this.count {
-        if func(this[it]!!) {
-            result[] = this[it]!!
+    repeat count {
+        let item = this[it]!!
+        if func(item) {
+            result[] = item
         }
     }
 
@@ -309,9 +305,9 @@ fun List<#Item>.filter(func: (#Item) -> Boolean): List<#Item> {
 
 // Given a list of lists, returns a new list with all the items in the sublists
 fun List<List<#Item>>.flatten(): List<#Item> {
-    let result = List::new<#Item>(this.count)
+    let result = List::new<#Item>(count)
 
-    repeat this.count {
+    repeat count {
         let items = this[it]!!
         repeat items.count {
             result[] = items[it]!!
@@ -325,7 +321,7 @@ fun List<List<#Item>>.flatten(): List<#Item> {
 fun List<#Item>.count(predicate: (#Item) -> Boolean): Int {
     let count = 0
 
-    repeat this.count {
+    repeat count {
         if predicate(this[it]!!) {
             count += 1
         }
@@ -337,7 +333,7 @@ fun List<#Item>.count(predicate: (#Item) -> Boolean): Int {
 // Returns true if all the items in the list match the given predicate
 // If the list is empty, returns true
 fun List<#Item>.all(predicate: (#Item) -> Boolean): Boolean {
-    repeat this.count {
+    repeat count {
         if !predicate(this[it]!!) {
             ret false
         }
@@ -349,7 +345,7 @@ fun List<#Item>.all(predicate: (#Item) -> Boolean): Boolean {
 // Returns true if any of the items in the list match the given predicate
 // If the list is empty, returns false
 fun List<#Item>.any(predicate: (#Item) -> Boolean): Boolean {
-    repeat this.count {
+    repeat count {
         if predicate(this[it]!!) {
             ret true
         }
@@ -361,7 +357,7 @@ fun List<#Item>.any(predicate: (#Item) -> Boolean): Boolean {
 // Returns true if none of the items in the list match the given predicate
 // If the list is empty, returns true
 fun List<#Item>.none(predicate: (#Item) -> Boolean): Boolean {
-    repeat this.count {
+    repeat count {
         if predicate(this[it]!!) {
             ret false
         }
@@ -372,7 +368,7 @@ fun List<#Item>.none(predicate: (#Item) -> Boolean): Boolean {
 
 // Returns the first item in the list, if the list is empty, returns `None`
 fun List<#Item>.first(): Optional<#Item> {
-    if this.is_empty() {
+    if is_empty() {
         ret None()
     }
 
@@ -381,9 +377,9 @@ fun List<#Item>.first(): Optional<#Item> {
 
 // Returns a new list with all the items except the first one
 fun List<#Item>.rest(): List<#Item> {
-    let result = List::new<#Item>(this.count - 1)
+    let result = List::new<#Item>(count - 1)
 
-    repeat this.count - 1 {
+    repeat count - 1 {
         result[] = this[it + 1]!!
     }
 
@@ -392,16 +388,16 @@ fun List<#Item>.rest(): List<#Item> {
 
 // Returns the last item in the list, if the list is empty, returns `None`
 fun List<#Item>.last(): Optional<#Item> {
-    if this.is_empty() {
+    if is_empty() {
         ret None()
     }
 
-    ret Some(this[this.count - 1]!!)
+    ret Some(this[count - 1]!!)
 }
 
 // Finds the first item in the list that matches the given predicate, if no item matches, returns `None`
 fun List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
-    repeat this.count {
+    repeat count {
         if predicate(this[it]!!) {
             ret Some(this[it]!!)
         }
@@ -412,7 +408,7 @@ fun List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
 
 // Finds the index of the first item in the list that matches the given predicate, if no item matches, returns `None`
 fun List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
-    repeat this.count {
+    repeat count {
         if predicate(this[it]!!) {
             ret Some(it)
         }
@@ -421,26 +417,21 @@ fun List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
     ret None()
 }
 
-// Generates a string with debug information about the list internals
-fun List<#Item>.to_debug_string(): String {
-    ret "List @[capacity: ${this.capacity}, len: ${this.count}, data: ${this.items}]"
-}
-
 // Converts the list to a string
 fun <#Item: ToString> List<#Item>.to_string(): String {
     let str = "["
 
-    repeat this.count {
+    repeat count {
         let item = this[it]!!.to_string()
-        str = str.concat(item)
+        str += item
 
         if it != limit - 1 {
-            str = str.concat(", ")
+            str += ", "
         }
     }
+    str += "]"
 
-
-    ret str.concat("]")
+    ret str
 }
 
 // Iterates over the list and calls the given function for each item
@@ -451,7 +442,7 @@ fun <#Item: ToString> List<#Item>.to_string(): String {
 // }
 // ```
 fun List<#Item>.for_each(func: (#Item) -> Nothing) {
-    repeat this.count {
+    repeat count {
         func(this[it]!!)
     }
 }
@@ -463,7 +454,7 @@ fun List<#Item>.for_each(func: (#Item) -> Nothing) {
 //     println("Item at index $index is $item")
 // }
 fun List<#Item>.for_each_entry(func: (Int, #Item) -> Nothing) {
-    repeat this.count {
+    repeat count {
         func(it, this[it]!!)
     }
 }
@@ -472,10 +463,10 @@ fun List<#Item>.for_each_entry(func: (Int, #Item) -> Nothing) {
 fun <#Item: ToString> List<#Item>.join(separator: String): String {
     let str = ""
 
-    repeat this.count {
+    repeat count {
         str = str.concat(this[it]!!.to_string())
 
-        if it != this.count - 1 {
+        if it != count - 1 {
             str = str.concat(separator)
         }
     }
@@ -487,14 +478,14 @@ fun <#Item: ToString> List<#Item>.join(separator: String): String {
 // If start or end are negative, they are counted from the end of the list
 fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
     if end < 0 {
-       end = this.count + end
+       end = count + end
     }
-    if end >= this.count {
-        end = this.count - 1
+    if end >= count {
+        end = count - 1
     }
 
     if start < 0 {
-       start = this.count + start
+       start = count + start
     }
     if start < 0 {
         start = 0
@@ -518,9 +509,9 @@ fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
 
 // Creates a copy of this list
 fun List<#Item>.to_list(): List<#Item> {
-    let list = List::new<#Item>(this.count)
+    let list = List::new<#Item>(count)
 
-    repeat this.count {
+    repeat count {
         list[] = this[it]!!
     }
 
@@ -531,7 +522,7 @@ fun List<#Item>.to_list(): List<#Item> {
 fun <#Item: MapKey> List<#Item>.to_set(): Set<#Item> {
     let set = Set::new<#Item>()
 
-    repeat this.count {
+    repeat count {
         set[] = this[it]!!
     }
 
@@ -540,10 +531,10 @@ fun <#Item: MapKey> List<#Item>.to_set(): Set<#Item> {
 
 // Creates new list with all the items in reverse order
 fun List<#Item>.to_reversed(): List<#Item> {
-    let list = List::new<#Item>(this.count)
+    let list = List::new<#Item>(count)
 
-    repeat this.count {
-        list[] = this[this.count - it - 1]!!
+    repeat count {
+        list[] = this[count - it - 1]!!
     }
 
     ret list
@@ -552,16 +543,16 @@ fun List<#Item>.to_reversed(): List<#Item> {
 // Sorts the list in place, without allocating a new list
 fun <#Item: GetOrdering> List<#Item>.sort_in_place() {
     // Already sorted
-    if this.count <= 1 {
+    if count <= 1 {
         ret
     }
 
-    this.quicksort_in_place()
+    quicksort_in_place()
 }
 
 // Returns a sorted copy of the list
 fun <#Item: GetOrdering> List<#Item>.to_sorted_list(): List<#Item> {
-    let sorted = this.to_list()
+    let sorted = to_list()
     sorted.sort_in_place()
     ret sorted
 }
