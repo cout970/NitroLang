@@ -32,7 +32,7 @@ fun MonoBuilder.getMonoFunction(func: LstFunction, ctx: MonoCtx): MonoFunction {
     }
 
     // External functions cannot be duplicated, generics become plain pointers, represented with Int
-    val key = if (func.isExternal) {
+    val key = if (func.isExternal && !func.autogenerate) {
         val params = func.params.map {
             typeToMonoType(program.removeAllGenerics(it.type), ctx)
         }
@@ -86,10 +86,18 @@ fun MonoBuilder.createMonoFunction(
     mono.name = signature.fullName
     mono.returnType = signature.returnType
     mono.annotations += function.annotations
-    mono.code.isExternal = function.isExternal
+    mono.code.isExternal = function.isExternal && !function.autogenerate
 
     current = mono.code
+
     processCode(mono.code, ctx)
+
+    if (function.autogenerate) {
+        // Let the wasm backend handle this part
+        mono.code.instructions.clear()
+        mono.code.variables.clear()
+        mono.code.instructions += MonoAutogenerate(mono.code.nextId(), function.span, signature)
+    }
 
     current = prev
 }
@@ -659,8 +667,27 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
             val thisVar = mono.variableMap[inst.usesImplicitThis!!.ref]!!
             mono.instructions += MonoLoadVar(mono.nextId(), inst.span, thisVar)
         }
+
+        val generics = mutableMapOf<LstTypeParameter, MonoType>()
+
+        if (function.autogenerate) {
+            val replacements = mutableMapOf<LstTypeParameter, TType>()
+
+            repeat(function.typeParameters.size) {
+                val tp = function.typeParameters[it]
+
+                replacements[tp] = inst.typeParamsTypes[it].type
+            }
+
+            for ((key, type) in replacements) {
+                generics[key] = typeToMonoType(program.replaceGenerics(type, replacements), ctx)
+            }
+        }
+
+        val newCtx = MonoCtx(generics, ctx)
+
         inst.arguments.forEach { ref -> consumer(inst.span, ref) }
-        mono.instructions += MonoFunCall(mono.nextId(), inst.span, getMonoFunction(function, ctx))
+        mono.instructions += MonoFunCall(mono.nextId(), inst.span, getMonoFunction(function, newCtx))
         provider(inst.span, inst.ref, finalType)
         return
     }
@@ -713,7 +740,6 @@ fun MonoBuilder.processFunctionCall(mono: MonoCode, function: LstFunction, inst:
         findReplacements(ty, paramType, generics)
 
         val newCtx = MonoCtx(generics, ctx)
-
         getMonoFunction(finalFunction, newCtx)
     } else {
         val newCtx = MonoCtx(generics, ctx)

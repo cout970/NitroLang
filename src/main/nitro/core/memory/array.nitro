@@ -1,0 +1,19 @@
+
+@Extern [lib: "core", name: "Array"]
+@Intrinsic
+struct Array<#Item> {}
+
+@Extern [lib: "core", name: "array_new", autogenerate: true]
+fun Array::new<#Item>(len: Int): Array<#Item> {}
+
+@Extern [lib: "core", name: "array_len", autogenerate: true]
+fun Array<#Item>.get_len(): Int {}
+
+@Extern [lib: "core", name: "array_fill", autogenerate: true]
+fun Array<#Item>.fill(value: #Item) {}
+
+@Extern [lib: "core", name: "array_get", autogenerate: true]
+fun Array<#Item>.get(index: Int): #Item {}
+
+@Extern [lib: "core", name: "array_set", autogenerate: true]
+fun Array<#Item>.set(index: Int, value: #Item) {}

@@ -52,6 +52,8 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
             val name = external.args["name"] as? ConstString ?: error("Missing external name")
             val lib = external.args["lib"] as? ConstString ?: error("Missing external lib name")
 
+            if (func.autogenerate) continue
+
             val mono = getMonoFunction(func, MonoCtx())
 
             builder.compileImport(func, mono, name, lib)

@@ -21,8 +21,32 @@ fun MonoType.heapSize(): Int {
                 "Float" -> 4
                 "Ptr" -> 4
                 "RawArray" -> 4
+                "Array" -> 4
                 "Long" -> 8
                 else -> base.size
+            }
+        }
+    }
+}
+
+fun MonoType.arraySize(): Int {
+    return when (base) {
+        is MonoOption -> 4
+        is MonoLambda -> 4
+        is MonoStruct -> {
+            when (base.instance.fullName) {
+                "Never" -> 0
+                "Nothing" -> 0
+                "Byte" -> 1
+                "Boolean" -> 1
+                "Short" -> 2
+                "Char" -> 4
+                "Int" -> 4
+                "Float" -> 4
+                "Ptr" -> 4
+                "RawArray" -> 4
+                "Long" -> 8
+                else -> 4
             }
         }
     }

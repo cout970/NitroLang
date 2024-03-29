@@ -506,7 +506,6 @@ class LstStoreVar(
 interface HasFieldRef {
     val name: String
     val instance: Ref
-    var fieldRef: FieldRef?
 }
 
 class LstLoadField(
@@ -516,11 +515,10 @@ class LstLoadField(
     override val instance: Ref,
     override val name: String
 ) : LstExpression(ref, span, block), HasFieldRef {
-    override var fieldRef: FieldRef? = null
     var struct: LstStruct? = null
     var field: LstStructField? = null
 
-    override fun toString(): String = "$ref = load_field $name ($fieldRef) $instance [$typeBox]"
+    override fun toString(): String = "$ref = load_field $name (${field?.ref}) $instance [$typeBox]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -529,7 +527,7 @@ class LstLoadField(
         it.add("type", typeBox?.dump())
         it.add("name", name.dump())
         it.add("instance", instance.dump())
-        it.add("field_ref", fieldRef?.dump())
+        it.add("field_ref", field?.ref?.dump())
     }
 }
 
@@ -541,11 +539,10 @@ class LstStoreField(
     override val instance: Ref,
     val expr: Ref
 ) : LstExpression(ref, span, block), HasFieldRef {
-    override var fieldRef: FieldRef? = null
     var struct: LstStruct? = null
     var field: LstStructField? = null
 
-    override fun toString(): String = "$ref store_field $name ($fieldRef) $instance $expr [$typeBox]"
+    override fun toString(): String = "$ref store_field $name (${field?.ref}) $instance $expr [$typeBox]"
 
     override fun dump(): JsonElement = JsonObject().also {
         it.add("ref", ref.dump())
@@ -554,7 +551,7 @@ class LstStoreField(
         it.add("type", typeBox?.dump())
         it.add("name", name.dump())
         it.add("instance", instance.dump())
-        it.add("field_ref", fieldRef?.dump())
+        it.add("field_ref", field?.ref?.dump())
         it.add("expr", expr.dump())
     }
 }

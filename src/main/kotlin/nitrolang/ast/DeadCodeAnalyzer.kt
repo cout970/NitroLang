@@ -46,6 +46,11 @@ class DeadCodeAnalyzer(val program: LstProgram) {
         visitedFunctions += func
         func.isDeadCode = false
 
+        // Required for Array::new()
+        if (func.autogenerate) {
+            usesAlloc = true
+        }
+
         func.tag?.functionImplementations?.values?.forEach { perType ->
             perType.values.forEach { newFunc ->
                 newFunc.isDeadCode = false
