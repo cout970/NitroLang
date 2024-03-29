@@ -24,6 +24,8 @@ class TypeEnv(val collector: ErrorCollector) {
     private val unresolved = mutableSetOf<TUnresolved>()
     private val unresolvedFunction = mutableSetOf<TUnresolvedFunction>()
     private val boxes = mutableListOf<TypeBox>()
+    private val boxesWithUnresolved = mutableListOf<TypeBox>()
+    private val boxesWithUnresolvedFunction = mutableListOf<TypeBox>()
 
     private val subCtx = SubstitutionCtx(this)
 
@@ -42,7 +44,21 @@ class TypeEnv(val collector: ErrorCollector) {
         allTypeBases.values.filter { it is TStruct || it is TOption || it is TOptionItem }
 
     fun box(type: TType, span: Span): TypeBox {
-        return TypeBox(this, type, span).also { boxes += it }
+        return TypeBox(this, type, span).also {
+            boxes += it
+            sortBox(it)
+        }
+    }
+
+    fun sortBox(box: TypeBox) {
+        if (!box.hasUnresolved && box.type.hasUnresolved()) {
+            box.hasUnresolved = true
+            boxesWithUnresolved += box
+        }
+        if (!box.unresolvedFunction && box.type.hasUnresolvedFunction()) {
+            box.unresolvedFunction = true
+            boxesWithUnresolvedFunction += box
+        }
     }
 
     fun find(name: String): TType = tComposite.values.find {
@@ -73,27 +89,47 @@ class TypeEnv(val collector: ErrorCollector) {
 
         when (find) {
             is TUnresolved -> {
-                boxes.forEach {
-                    if (it.hasUnresolved) {
-                        it.replace(find, replacement)
-                        it.hasUnresolved = it.type.hasUnresolved()
+                if (boxesWithUnresolved.isNotEmpty()) {
+                    val iter = boxesWithUnresolved.listIterator()
+                    while (iter.hasNext()) {
+                        val box = iter.next()
+
+                        if (box.replace(find, replacement)) {
+                            sortBox(box)
+                        }
+
+                        if (!box.hasUnresolved) {
+                            iter.remove()
+                        }
                     }
                 }
                 unresolved.remove(find)
             }
 
             is TUnresolvedFunction -> {
-                boxes.forEach {
-                    if (it.unresolvedFunction) {
-                        it.replace(find, replacement)
-                        it.unresolvedFunction = it.type.hasUnresolvedFunction()
+                if (boxesWithUnresolvedFunction.isNotEmpty()) {
+                    val iter = boxesWithUnresolvedFunction.listIterator()
+                    while (iter.hasNext()) {
+                        val box = iter.next()
+
+                        if (box.replace(find, replacement)) {
+                            sortBox(box)
+                        }
+
+                        if (!box.unresolvedFunction) {
+                            iter.remove()
+                        }
                     }
                 }
                 unresolvedFunction.remove(find)
             }
 
             else -> {
-                boxes.forEach { it.replace(find, replacement) }
+                boxes.forEach {
+                    if (it.replace(find, replacement)) {
+                        sortBox(it)
+                    }
+                }
             }
         }
         Prof.end()
@@ -387,6 +423,7 @@ class TypeEnv(val collector: ErrorCollector) {
         val remainingUnresolved = ArrayDeque<Pair<TUnresolved, TType>>()
         val remainingUnresolvedFunctions = ArrayDeque<Pair<TUnresolvedFunction, TType>>()
         var madeProgress: Boolean
+        var iterations = 0
         subCtx.clear()
 
         do {
@@ -411,8 +448,13 @@ class TypeEnv(val collector: ErrorCollector) {
             Prof.next("replace_unresolved_types")
             if (subCtx.unresolvedTypes.isNotEmpty()) {
                 madeProgress = true
-                subCtx.unresolvedTypes.forEach { (a, b) -> remainingUnresolved.add(a to b) }
-                subCtx.unresolvedTypes.clear()
+                // Move from subCtx.unresolvedTypes to remainingUnresolved
+                val iter = subCtx.unresolvedTypes.iterator()
+                while (iter.hasNext()) {
+                    val entry = iter.next()
+                    remainingUnresolved.add(entry.key to entry.value)
+                    iter.remove()
+                }
 
                 while (remainingUnresolved.isNotEmpty()) {
                     val (key, value) = remainingUnresolved.first()
@@ -530,6 +572,7 @@ class TypeEnv(val collector: ErrorCollector) {
             }
             Prof.end()
             Prof.end()
+            iterations++
         } while (madeProgress)
     }
 
