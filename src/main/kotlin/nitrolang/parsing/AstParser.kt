@@ -43,7 +43,7 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         ): Boolean {
             Prof.start("create_parser")
             val parser = createParser(source, program.collector)
-            Prof.next("parse_file")
+            Prof.next("parse_file: ${source.path.substringAfterLast('/')}")
             val fileCtx = parser.parseFile()
 
             if (program.collector.isNotEmpty()) {

@@ -5,6 +5,8 @@ import java.time.temporal.ChronoUnit
 
 object Prof {
     var enable: Boolean = false
+    var maxDepth: Int = -1
+    var minDuration: Int = 5
     private val stack = ArrayDeque<Pair<String, Instant>>()
 
     fun start(name: String) {
@@ -23,7 +25,7 @@ object Prof {
         val end = Instant.now()
         val interval = start.until(end, ChronoUnit.MILLIS)
 
-        if (interval > 0) {
+        if (interval > minDuration && (maxDepth == -1 || depth < maxDepth)) {
             println("${"| ".repeat(depth)}$name: $interval ms")
         }
     }

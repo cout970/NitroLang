@@ -394,7 +394,7 @@ private fun ParserCtx.visitCode(code: LstCode) {
     // Link variable usage with the corresponding variable in scope
     bindVariables(code)
 
-    Prof.next("nodes")
+    Prof.next("visit_fun_nodes")
     // Resolve the type of every expression and check other requirements
     code.nodes.toList().forEach { node ->
         when (node) {
