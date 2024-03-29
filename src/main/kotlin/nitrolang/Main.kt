@@ -222,12 +222,36 @@ fun dumpIr(program: LstProgram) {
 }
 
 fun compileToWasm(watFile: File, wasmFile: File): Boolean {
-    val status = ProcessBuilder("wat2wasm", "--enable-code-metadata", watFile.path, "-o", wasmFile.path)
-        .inheritIO()
-        .start()
-        .waitFor()
+    val optimize = true
 
-    return status == 0
+    if (optimize) {
+        val tmp = File(watFile.parentFile, "unoptimized.wasm")
+
+        val status = ProcessBuilder("wat2wasm", "--debug-names", "--enable-code-metadata", watFile.path, "-o", tmp.path)
+            .inheritIO()
+            .start()
+            .waitFor()
+
+        if (status != 0) {
+            println("Failed to compile to wasm")
+            return false
+        }
+
+        val status2 = ProcessBuilder("wasm-opt", tmp.path, "-o", wasmFile.path, "-all", "-Os", "--debuginfo")
+            .inheritIO()
+            .start()
+            .waitFor()
+
+        return status2 == 0
+    } else {
+        val status =
+            ProcessBuilder("wat2wasm", "--debug-names", "--enable-code-metadata", watFile.path, "-o", wasmFile.path)
+                .inheritIO()
+                .start()
+                .waitFor()
+
+        return status == 0
+    }
 }
 
 fun execute(watFile: File) = Prof.run("execute") {
