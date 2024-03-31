@@ -34,6 +34,7 @@ struct NTypeUsage {
     path: String
     params: List<NTypeUsage>
     type_token: Optional<TypeToken>
+    generic_definition: Optional<NGeneric>
 }
 
 enum TypeUsageKind {
@@ -56,6 +57,7 @@ fun NTypeUsage::unresolved(span: Span): NTypeUsage {
         path: "",
         params: [],
         type_token: None(),
+        generic_definition: None(),
     ]
 }
 
@@ -67,6 +69,7 @@ fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
         path: "",
         params: [],
         type_token: None(),
+        generic_definition: None(),
     ]
 }
 
@@ -78,6 +81,7 @@ fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeU
         path: path,
         params: [],
         type_token: None(),
+        generic_definition: None(),
     ]
 }
 
@@ -94,6 +98,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             path: "",
             params: [],
             type_token: None(),
+            generic_definition: None(),
         ])
     }
 
@@ -101,6 +106,18 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     if lexer.current_token_kind == TokenKind::HASH {
         lexer.next_token()
         let name: String = read_name()?
+        let def: Optional<NGeneric> = current_generics[name]
+
+        if def.is_none() && allow_generics_collection {
+            let instance = NGeneric @[
+               id_wrapper: id_provider.next(),
+               span,
+               name,
+               constraints: []
+            ]
+            current_generics.definitions[] = instance
+            def = Some(instance)
+        }
 
         ret found(NTypeUsage @[
             span,
@@ -109,6 +126,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             path: "",
             params: [],
             type_token: None(),
+            generic_definition: def,
         ])
     }
 
@@ -146,6 +164,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         path,
         params,
         type_token: None(),
+        generic_definition: None(),
     ]
 
     // If `.(` is found after the name, it is a function type like `Int.() -> Nothing`
@@ -205,6 +224,7 @@ fun Parser.read_function_type_usage(span: Span, arg1: Optional<NTypeUsage>): Par
         path: "",
         params,
         type_token: None(),
+        generic_definition: None(),
     ])
 }
 

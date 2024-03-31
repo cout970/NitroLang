@@ -1,0 +1,85 @@
+
+include "./test_code2.nitro"
+
+fun run_test() {
+    let file = "test_code2.nitro"
+    let reporter = Reporter::new()
+    let start = Instant::now()
+
+    let program = compile(source_code, file, reporter)
+
+    let end = Instant::now()
+    let elapsed = (end - start).to_milliseconds()
+    let bytes = get_memory().get_used_bytes()
+
+    println("File: $file")
+    println("Time: $elapsed ms")
+    println("Memory used: $bytes bytes")
+
+    print_program(program)
+
+    if reporter.has_reports() {
+        println("Found ${reporter.report_count} compiler reports:")
+        reporter.print_all()
+    }
+}
+
+
+fun compile(source: String, file: String, reporter: Reporter): Program {
+    let lexer = Lexer::new(source, file)
+    lexer.read_all()
+
+    let program = Program::new()
+
+    let parser = Parser::new(lexer, reporter, program)
+    parser.read_file()
+
+    ret program
+}
+
+fun print_program(program: Program) {
+    println("--------")
+
+    println("Includes:")
+    for def in program.includes {
+        println(def)
+        println("--------")
+    }
+
+    println("TypeAliases:")
+    for def in program.type_aliases {
+        println(def)
+        println("--------")
+    }
+
+    println("Modules:")
+    for def in program.modules {
+        println(def)
+        println("--------")
+    }
+
+    println("Structs:")
+    for def in program.structs {
+        println(def)
+        println("--------")
+    }
+
+    println("Options:")
+    for def in program.options {
+        println(def)
+        println("--------")
+    }
+
+    println("Consts:")
+    for def in program.consts {
+        println(def)
+        println("--------")
+    }
+
+    println("Functions:")
+    for def in program.functions {
+        println(def)
+        println("--------")
+    }
+    println("--------")
+}

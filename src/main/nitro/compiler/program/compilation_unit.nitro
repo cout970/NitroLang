@@ -1,0 +1,69 @@
+
+struct CompilationUnit {
+    reporter: Reporter
+    included_paths: List<String>
+    program: Program
+}
+
+fun CompilationUnit::new(): CompilationUnit {
+    ret CompilationUnit @[
+        reporter: Reporter::new(),
+        included_paths: [],
+        program: Program::new(),
+    ]
+}
+
+fun CompilationUnit.include_file(path: String) {
+    if path in included_paths {
+        ret
+    }
+    included_paths[] = path
+
+    let source = FilePath::new(path).read_text()!!
+
+    include_source(source, path)
+}
+
+fun CompilationUnit.include_source(source: String, path: String) {
+//    println("Including file: $path")
+    let start = Instant::now()
+    let file_program = Program::new()
+
+    let lexer = Lexer::new(source, path)
+    lexer.read_all()
+
+    let parser = Parser::new(lexer, reporter, file_program)
+    parser.read_file()
+
+    for inc in file_program.includes {
+        let include_path = CompilationUnit::process_path(inc.path, path)
+        include_file(include_path)
+    }
+
+    program.merge(file_program)
+    let end = Instant::now()
+    println("Included file: $path in ${(end - start).to_milliseconds()} ms")
+}
+
+fun CompilationUnit::process_path(path: String, current_path: String): String {
+    if ":" in path {
+        path = path.split(":")[1]!!
+    }
+
+    let dir = FilePath::directory_name(current_path)
+    ret FilePath::join(dir, path)
+}
+
+fun CompilationUnit.compile() {
+    let type_checker = TypeChecker::new(reporter, program)
+    type_checker.check_all()
+
+    // backend...
+
+    // Report errors
+
+}
+
+fun CompilationUnit.report_errors() {
+    reporter.print_all()
+}

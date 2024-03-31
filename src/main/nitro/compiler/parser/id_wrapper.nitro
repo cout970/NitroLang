@@ -1,0 +1,27 @@
+
+struct IdProvider {
+    all_wrappers: List<IdWrapper>
+    last_id: Int
+}
+
+struct IdWrapper {
+    id: Int
+}
+
+fun IdProvider::new(): IdProvider {
+    ret IdProvider @[
+        all_wrappers: [],
+        last_id: -1,
+    ]
+}
+
+fun IdProvider.next(): IdWrapper {
+    last_id += 1
+    ret IdWrapper @[id: last_id]
+}
+
+fun IdProvider.update_ids(offset: Int) {
+    for wrapper in all_wrappers {
+        wrapper.id += offset
+    }
+}

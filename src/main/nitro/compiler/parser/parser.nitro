@@ -1,19 +1,27 @@
 
 struct Parser {
     lexer: Lexer
+    reporter: Reporter
     program: Program
+    id_provider: IdProvider
     allow_defer: Boolean
     module_path_stack: List<String>
+    current_generics: NGenericParams
     allow_expression_assignment: Boolean
+    allow_generics_collection: Boolean
 }
 
-fun Parser::new(lexer: Lexer, program: Program): Parser {
+fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
     ret Parser @[
         lexer,
+        reporter,
         program,
+        id_provider: IdProvider::new(),
         allow_defer: true,
         module_path_stack: [],
-        allow_expression_assignment: false
+        current_generics: NGenericParams::new(),
+        allow_expression_assignment: false,
+        allow_generics_collection: false,
     ]
 }
 
@@ -34,7 +42,7 @@ fun Parser.read_file() {
             println("Reporting error: ${res.to_string()}")
             lexer.print_debug_info()
 
-            program.reporter.report_parse_error(res.to_string(), span, error.stack_trace)
+            reporter.report_parse_error(res.to_string(), span, error.stack_trace)
             recover_from_error()
             break
         }

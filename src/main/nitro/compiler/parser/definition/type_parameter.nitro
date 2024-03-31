@@ -12,23 +12,40 @@
 //       : HASH anyName ;
 
 struct NGeneric {
+    id_wrapper: IdWrapper
     span: Span
     name: String
-    constraints: List<NTypeUsage>
+    constraints: List<NGenericConstraint>
 }
 
 struct NGenericParams {
     definitions: List<NGeneric>
+    type_tokens: List<TypeToken>
+}
+
+struct NGenericConstraint {
+    name: String
+    tag_definition: Optional<NTag>
 }
 
 fun NGenericParams::new(): NGenericParams {
     ret NGenericParams @[
-        definitions: []
+        definitions: [],
+        type_tokens: [],
     ]
 }
 
+fun NGenericParams.get(name: String): Optional<NGeneric> {
+    for def in definitions {
+        if def.name == name {
+            ret Some(def)
+        }
+    }
+    ret None()
+}
+
 // <#T, #A>
-fun Parser.read_type_params_def(generics: NGenericParams): Parsed<Nothing> {
+fun Parser.read_type_params_def(): Parsed<Nothing> {
     if lexer.current_token_kind != TokenKind::LTH {
         ret found(nothing)
     }
@@ -37,7 +54,7 @@ fun Parser.read_type_params_def(generics: NGenericParams): Parsed<Nothing> {
     lexer.next_token()
 
     read_until_delimited(TokenKind::GTH) @{
-        generics.definitions[] = read_type_param_def()?
+        current_generics.definitions[] = read_type_param_def()?
         ret found(nothing)
     }?
 
@@ -50,6 +67,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
     let name = read_type_parameter()?
 
     let def = NGeneric @[
+        id_wrapper: id_provider.next(),
         span,
         name,
         constraints: []
@@ -61,7 +79,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
 
     lexer.next_token()
 
-    def.constraints[] = read_type_usage()?
+    def.constraints[] = NGenericConstraint @[name: read_name()?, tag_definition: None()]
 
     loop {
         // End of the list
@@ -79,7 +97,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
 
         // Found new constraint
         if lexer.current_token_kind != TokenKind::HASH {
-            def.constraints[] = read_type_usage()?
+            def.constraints[] = NGenericConstraint @[name: read_name()?, tag_definition: None()]
         }
     }
 
@@ -97,14 +115,14 @@ fun Parser.read_type_parameter(): Parsed<String> {
     ret read_name()
 }
 
-fun NGeneric.get_hash(): Int = span.get_hash()
-fun NGeneric.get_ordering(other: NGeneric): Ordering = span.get_ordering(other.span)
+fun NGeneric.get_hash(): Int = id_wrapper.id
+fun NGeneric.get_ordering(other: NGeneric): Ordering = id_wrapper.id.get_ordering(other.id_wrapper.id)
 
 fun NGeneric.to_string(): String {
     if constraints.is_empty() {
         ret "#$name"
     }
-    let s = constraints.join(", ")
+    let s = constraints.join_to_string(", ") @{ i -> i.name }
 
     ret "#$name: s"
 }

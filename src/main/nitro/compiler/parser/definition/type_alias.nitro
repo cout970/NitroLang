@@ -19,7 +19,11 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
     let name = read_name()?
     let generics = NGenericParams::new()
 
-    read_type_params_def(generics)?
+    start_generics_collection(generics)
+
+    read_type_params_def()?
+
+    stop_generics_collection()
 
     skip_token_kind(TokenKind::ASSIGN)?
 

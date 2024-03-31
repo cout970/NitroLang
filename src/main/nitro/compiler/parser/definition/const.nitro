@@ -4,6 +4,7 @@
 //     : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
 
 struct NConst {
+    id_wrapper: IdWrapper
     span: Span
     path: String
     name: String
@@ -21,6 +22,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     let type_usage = read_type_usage()?
 
     let def = NConst @[
+        id_wrapper: id_provider.next(),
         span,
         path,
         name,
@@ -28,7 +30,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         body: NCode::new()
     ]
     program.consts[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(get_full_path(def.path, def.name), def.span)
 
     skip_token_kind(TokenKind::ASSIGN)?
     skip_nl()

@@ -1,0 +1,72 @@
+
+fun run_benchmarks() {
+    benchmark()
+    benchmark2()
+    benchmark3()
+}
+
+fun benchmark() {
+    let memory_before = get_memory().get_used_bytes()
+    let start = Instant::now()
+    let array = Array::new<Int>(1_000_000)
+    let sum = 0
+
+    repeat 1_000_000 {
+        array[it] = 1
+    }
+
+    repeat 1_000_000 {
+        sum += array[it]
+    }
+
+    let end = Instant::now()
+    let elapsed = (end - start).to_milliseconds()
+    let memory_after = get_memory().get_used_bytes()
+
+    println("Array: Time: $elapsed ms, Memory: ${(memory_after - memory_before) / 1024} KB")
+    println("Sum: $sum")
+}
+
+fun benchmark2() {
+    let memory_before = get_memory().get_used_bytes()
+    let start = Instant::now()
+    let list = List::new<Int>()
+    let sum = 0
+
+    repeat 1_000_000 {
+        list[] = 1
+    }
+
+    repeat 1_000_000 {
+        sum += list[it]!!
+    }
+
+    let end = Instant::now()
+    let elapsed = (end - start).to_milliseconds()
+    let memory_after = get_memory().get_used_bytes()
+
+    println("List: Time: $elapsed ms, Memory: ${(memory_after - memory_before) / 1024} KB")
+    println("Sum: $sum")
+}
+
+fun benchmark3() {
+    let memory_before = get_memory().get_used_bytes()
+    let start = Instant::now()
+    let map = Map::new<Int, Int>(1_000_000)
+    let sum = 0
+
+    repeat 1_000_000 {
+        map[it] = 1
+    }
+
+    repeat 1_000_000 {
+        sum += map[it]!!
+    }
+
+    let end = Instant::now()
+    let elapsed = (end - start).to_milliseconds()
+    let memory_after = get_memory().get_used_bytes()
+
+    println("Map: Time: $elapsed ms, Memory: ${(memory_after - memory_before) / 1024} KB")
+    println("Sum: $sum")
+}

@@ -49,7 +49,7 @@ fun Parser.read_statement_block_end(code: NCode): Parsed<Nothing> {
         // A delimiter is required after each statement
         // If no delimiter is found, means that we are unable to parse the complete line
         if lexer.current_token_kind != TokenKind::NL {
-            program.reporter.report_error("Invalid statement, unable to parse the complete line, stopped at ${lexer.current_token_kind}", span)
+            report_error("Invalid statement, unable to parse the complete line, stopped at ${lexer.current_token_kind}", span)
             lexer.next_token()
         }
 

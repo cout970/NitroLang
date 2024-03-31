@@ -29,6 +29,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     let name = "test_${program.last_test_id}"
 
     let def = NFunction @[
+        id_wrapper: id_provider.next(),
         span,
         annotations,
         generics: NGenericParams::new(),
@@ -40,7 +41,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         body: NCode::new(),
     ]
     program.functions[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(get_full_path(def.path, def.name), def.span)
 
     read_code_block(def.body)?
 

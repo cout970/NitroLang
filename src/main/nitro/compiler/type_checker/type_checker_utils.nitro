@@ -1,8 +1,8 @@
 
 fun TypeChecker.report_error(msg: String, span: Span) {
-    program.reporter.report_error(msg, span)
+    reporter.report_error(msg, span)
 }
 
 fun TypeChecker.report_warning(msg: String, span: Span) {
-    program.reporter.report_warning(msg, span)
+    reporter.report_warning(msg, span)
 }

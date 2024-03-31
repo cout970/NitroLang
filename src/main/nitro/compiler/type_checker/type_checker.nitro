@@ -1,9 +1,11 @@
 
 struct TypeChecker {
+    reporter: Reporter
     program: Program
     types: TypeContainer
     type_cache: Map<String, TypeToken>
     type_kind_cache: Map<String, TypeKind>
+    type_generic_cache: Map<NGeneric, TypeKind>
     type_ctx: TypeContext
 }
 
@@ -11,14 +13,87 @@ struct TypeContext {
     parent: Optional<TypeContext>
 }
 
-fun TypeChecker::new(program: Program): TypeChecker {
+fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
     ret TypeChecker @[
+        reporter,
         program,
         types: TypeContainer::new(),
         type_cache: #[],
         type_kind_cache: #[],
+        type_generic_cache: #[],
         type_ctx: TypeContext @[parent: None()]
     ]
+}
+
+fun TypeChecker.check_all() {
+    for s in program.structs {
+        check_struct(s)
+    }
+    for s in program.options {
+        check_option(s)
+    }
+    for s in program.type_aliases {
+        check_type_alias(s)
+    }
+    for s in program.consts {
+        check_const_header(s)
+    }
+    for s in program.functions {
+        check_function_header(s)
+    }
+}
+
+fun TypeChecker.check_struct(s: NStruct) {
+    check_generics(s.generics)
+    for field in s.fields {
+        check_type_usage(field.type_usage)
+    }
+}
+
+fun TypeChecker.check_option(s: NOption) {
+    check_generics(s.generics)
+    for item in s.items {
+        check_struct(item.def)
+    }
+}
+
+fun TypeChecker.check_type_alias(s: NTypeAlias) {
+    check_generics(s.generics)
+    check_type_usage(s.type_usage)
+}
+
+fun TypeChecker.check_const_header(s: NConst) {
+    check_type_usage(s.type_usage)
+}
+
+fun TypeChecker.check_function_header(s: NFunction) {
+    check_generics(s.generics)
+    for param in s.parameters {
+        check_type_usage(param.type_usage)
+    }
+    check_type_usage(s.return_type)
+}
+
+fun TypeChecker.check_generics(generics: NGenericParams) {
+    for def in generics.definitions {
+        generics.type_tokens[] = get_or_create_generic_type(def)
+
+        for constraint in def.constraints {
+            let found = false
+
+            for tag_def in program.tags {
+                if tag_def.name == constraint.name {
+                    found = true
+                    constraint.tag_definition = Some(tag_def)
+                    break
+                }
+            }
+
+            if !found {
+                report_error("Tag not found: ${constraint.name}", def.span)
+            }
+        }
+    }
 }
 
 fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
@@ -43,8 +118,9 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                 if params.is_empty() {
                     let cache = type_cache[segment]
                     if cache.is_some() {
-                        tu.type_token = Some(cache!!)
-                        ret cache!!
+                        let tt = cache!!
+                        tu.type_token = Some(tt)
+                        ret tt
                     }
                 }
 
@@ -77,7 +153,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
                 for i in program.options {
                     if i.full_name == segment {
-                        let kind = TypeKind::Option @[instance: i]
+                        let kind: TypeKind = TypeKind::Option @[instance: i]
                         type_kind_cache[segment] = kind
 
                         let tt = types.create_type(kind, params)
@@ -93,7 +169,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
                 for i in program.structs {
                     if i.full_name == segment {
-                        let kind = if i.parent.is_some() {
+                        let kind: TypeKind = if i.parent.is_some() {
                             TypeKind::OptionItem @[instance: i]
                         } else {
                             TypeKind::Struct @[instance: i]
@@ -118,13 +194,12 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
             ret tt
         }
         TypeUsageKind::TYPE_THIS -> {
-            // TODO
             let tt = create_error_type("TODO: This type", tu.span)
             tu.type_token = Some(tt)
             ret tt
         }
         TypeUsageKind::TYPE_PARAM -> {
-            let generic = find_generic(tu.name)
+            let generic: Optional<NGeneric> = tu.generic_definition
 
             if generic.is_none() {
                 let tt = create_error_type("Generic not found: ${tu.name}", tu.span)
@@ -132,34 +207,41 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                 ret tt
             }
 
-            let tt = types.create_type(TypeKind::Generic @[
-                instance: generic!!
-            ], params)
-
+            let tt = get_or_create_generic_type(generic!!)
             tu.type_token = Some(tt)
             ret tt
         }
         TypeUsageKind::TYPE_UNRESOLVED -> {
-            let tt = types.create_type(TypeKind::Unresolved @[
-                span: tu.span
-            ], params)
-
+            let tt = types.create_type(TypeKind::Unresolved @[span: tu.span], params)
             tu.type_token = Some(tt)
             ret tt
         }
     }
 
-    ret crash("TODO")
+    unreachable()
+}
+
+fun TypeChecker.get_or_create_generic_type(generic: NGeneric): TypeToken {
+    let kind_cache = type_generic_cache[generic]
+    if kind_cache.is_some() {
+        let kind = kind_cache!!
+        let tt = types.create_type(kind, [])
+        ret tt
+    }
+
+    let kind = TypeKind::Generic @[instance: generic]
+
+    type_generic_cache[generic] = kind
+
+    ret types.create_type(kind, [])
 }
 
 fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
+    println("TypeChecker.create_error_type(): $message // $span")
     report_error(message, span)
     ret types.create_type(TypeKind::Invalid @[message, span], [])
 }
 
-fun TypeChecker.find_generic(name: String): Optional<NGeneric> {
-    ret None()
-}
 
 fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>, args: List<TypeToken>): TypeToken {
     if generics.is_empty() || args.is_empty() {
@@ -177,9 +259,10 @@ fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>
 
     for param_token in t.params {
         let param = types.get_type(param_token)
+        let kind = param.kind
 
-        if param.kind is TypeKind::Generic {
-            let replacement = replacements[(param as TypeKind::Generic).instance]
+        if kind is TypeKind::Generic {
+            let replacement = replacements[(kind as TypeKind::Generic).instance]
 
             if replacement.is_some() {
                 new_params[] = replacement!!
@@ -195,5 +278,14 @@ fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>
 }
 
 fun create_path_segments(full_name: String): List<String> {
-    ret [full_name]
+    let parts = full_name.split("::")
+    let result: List<String> = []
+
+    repeat parts.len {
+        let segments = parts.to_sublist(parts.len - it - 1, parts.len)
+        result[] = segments.join("::")
+    }
+
+    println("create_path_segments($full_name): $result")
+    ret result
 }

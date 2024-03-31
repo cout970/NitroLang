@@ -575,7 +575,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             let kind = i.kind as NInstKind::FunCall
             let args = []
 
-            for arg in kind.arguments{
+            for arg in kind.arguments {
                 args[] = mapping[arg]!!
             }
 

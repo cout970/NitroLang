@@ -7,6 +7,7 @@
 //     : annotation* functionHeader;
 
 struct NTag {
+    id_wrapper: IdWrapper
     span: Span
     annotations: List<NAnnotation>
     path: String
@@ -21,6 +22,7 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
     let name = read_name()?
 
     let def = NTag @[
+        id_wrapper: id_provider.next(),
         span,
         annotations
         path,
@@ -28,7 +30,7 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
         functions: [],
     ]
     program.tags[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(get_full_path(def.path, def.name), def.span)
 
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()

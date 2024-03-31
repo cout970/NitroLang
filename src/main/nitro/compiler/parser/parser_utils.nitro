@@ -211,9 +211,28 @@ fun Parser.recover_from_error() {
 }
 
 fun Parser.report_error(msg: String, span: Span) {
-    program.reporter.report_error(msg, span)
+    reporter.report_error(msg, span)
 }
 
 fun Parser.report_warning(msg: String, span: Span) {
-    program.reporter.report_warning(msg, span)
+    reporter.report_warning(msg, span)
+}
+
+fun Parser.declare_name(name: String, span: Span) {
+    if name in program.declared_names {
+        let prev_location = program.declared_names[name]!!
+        reporter.report_error("Name '$name' defined at $span, was already defined at $prev_location", span)
+    }
+
+    program.declared_names[name] = span
+}
+
+fun Parser.start_generics_collection(generics: NGenericParams) {
+    current_generics = generics
+    allow_generics_collection = true
+}
+
+fun Parser.stop_generics_collection() {
+    allow_generics_collection = false
+    current_generics = NGenericParams::new()
 }

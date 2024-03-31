@@ -10,6 +10,7 @@
 //     : anyName structBody?;
 
 struct NOption {
+    id_wrapper: IdWrapper
     span: Span
     annotations: List<NAnnotation>
     path: String
@@ -33,6 +34,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
     let name = read_name()?
 
     let def = NOption @[
+        id_wrapper: id_provider.next(),
         span,
         annotations,
         path,
@@ -42,9 +44,11 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         full_name_cache: None(),
     ]
     program.options[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(get_full_path(def.path, def.name), def.span)
 
-    read_type_params_def(def.generics)?
+    start_generics_collection(def.generics)
+
+    read_type_params_def()?
     skip_nl()
 
     skip_token_kind(TokenKind::LBRACE)?
@@ -55,6 +59,8 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         ret found(nothing)
     }?
 
+    stop_generics_collection()
+
     ret found(nothing)
 }
 
@@ -63,6 +69,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     let name = read_name()?
 
     let def = NStruct @[
+        id_wrapper: id_provider.next(),
         span,
         annotations: [],
         path: parent.path,
@@ -73,7 +80,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         full_name_cache: None(),
     ]
     program.structs[] = def
-    program.declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(get_full_path(def.path, def.name), def.span)
 
     if lexer.current_token_kind == TokenKind::LBRACE {
         skip_token_kind(TokenKind::LBRACE)?

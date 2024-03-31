@@ -35,6 +35,7 @@
 //     ;
 
 struct NFunction {
+    id_wrapper: IdWrapper
     span: Span
     annotations: List<NAnnotation>
     generics: NGenericParams
@@ -92,9 +93,11 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     let parameters: List<NFunctionParameter> = []
     let has_receiver = false
 
+    start_generics_collection(generics)
+
     // Type parameters
     if lexer.current_token_kind == TokenKind::LTH {
-        read_type_params_def(generics)?
+        read_type_params_def()?
         skip_nl()
     }
 
@@ -120,6 +123,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
 
     // Register function
     let def = NFunction @[
+        id_wrapper: id_provider.next(),
         span,
         annotations,
         generics,
@@ -135,7 +139,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     // Type parameters
     skip_nl()
     if lexer.current_token_kind == TokenKind::LTH {
-        read_type_params_def(generics)?
+        read_type_params_def()?
         skip_nl()
     }
 
@@ -159,6 +163,8 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
             def.return_type = read_type_usage()?
         }
     }
+
+    stop_generics_collection()
 
     ret found(def)
 }
