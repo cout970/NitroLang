@@ -12,11 +12,14 @@ export const mem = {
 
 export const fs = {
     isSupported: false,
-    readFileSync: (path: string): string => {
-       throw new Error('fs.readFileSync not implemented');
+    readTextFileSync: (path: string): string => {
+       throw new Error('fs.readTextFileSync not implemented');
     },
-    writeFileSync: (filename: string, data: string) => {
-        throw new Error('fs.readFileSync not implemented');
+    writeTextFileSync: (filename: string, data: string) => {
+        throw new Error('fs.writeTextFileSync not implemented');
+    },
+    fileExistsSync: (path: string): boolean => {
+        throw new Error('fs.fileExistsSync not implemented');
     }
 }
 

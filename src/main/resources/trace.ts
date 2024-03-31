@@ -3,6 +3,7 @@ import {getString, createString, fs} from './internal.ts'
 interface StackFrame {
     name: string;
     file: string;
+    alloc_total: number;
     start_time: number;
 }
 
@@ -16,6 +17,9 @@ interface FlameGraphNode {
 const trace_stack: StackFrame[] = [];
 const root: FlameGraphNode = {name: 'root', value: 0, children: []};
 const flame_graph_stack: FlameGraphNode[] = [root];
+const flame_graph_enable = false;
+const min_samples = 1;
+const trace_type: 'cpu'|'memory' = 'memory';
 
 export function trace_enter(func_info: string) {
     // func_info has format "len: main/nitro/core/collections/list.nitro(list.nitro:258)"
@@ -25,13 +29,17 @@ export function trace_enter(func_info: string) {
     trace_stack.push({
         name,
         file,
+        alloc_total: 0,
         start_time: performance.now()
     });
+
+    if (!flame_graph_enable) return;
 
     const child = {
         name: `${name} // ${file}`,
         value: 0,
         children: [],
+        enable: true,
     };
     const current = flame_graph_stack[flame_graph_stack.length - 1];
     current.children.push(child);
@@ -40,14 +48,34 @@ export function trace_enter(func_info: string) {
 
 export function trace_exit() {
     const frame = trace_stack.pop();
+
+    if (!flame_graph_enable) return;
+
     const current = flame_graph_stack[flame_graph_stack.length - 1];
     const now = performance.now();
 
-    current.value = now - frame.start_time;
+    if (trace_type === 'memory') {
+        current.value = frame.alloc_total + current.children.reduce((acc, child) => acc + child.value, 0);
+    } else {
+        current.value = now - frame.start_time;
+    }
+
+    if (current.value < min_samples) {
+        current.enable = false;
+    }
+
+    // Untested, may reduce memory usage
+    // current.children = current.children.filter(child => child.enable);
 
     if (flame_graph_stack.length > 1) {
         flame_graph_stack.pop();
     }
+}
+
+export function trace_alloc(size: number) {
+    if (!trace_stack.length) return;
+    const frame = trace_stack[trace_stack.length - 1];
+    frame.alloc_total += size;
 }
 
 export function trace_get_stacktrace(): string {
@@ -65,13 +93,12 @@ export function trace_print_stack_trace() {
 }
 
 export function trace_trim_flame_graph(node: FlameGraphNode): FlameGraphNode|null {
-    const min_samples = 3;
     node.total = node.value;
 
     const children = node.children.map(trace_trim_flame_graph).filter(Boolean);
     const total = node.total + children.reduce((acc, child) => acc + child.value, 0);
 
-    if (total < min_samples && node.name !== 'root') {
+    if (total <= min_samples && node.name !== 'root') {
         return null;
     }
 
@@ -85,9 +112,10 @@ export function trace_save_flame_graph(path) {
     }
 
     try {
-        const trimmed = trace_trim_flame_graph(root);
+        const trimmed = trace_trim_flame_graph(root) as any;
+        trimmed.type = trace_type;
         const json = JSON.stringify(trimmed, null, 2);
-        fs.writeFileSync(path, json);
+        fs.writeTextFileSync(path, json);
     } catch (e) {
         console.error("Failed to write flamegraph.json", e);
     }

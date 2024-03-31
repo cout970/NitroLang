@@ -43,9 +43,9 @@ tag MapKey {
 // Creates an empty map
 fun <#Key: MapKey> Map::new(): Map<#Key, #Value> {
     ret Map<#Key, #Value> @[
-        capacity: 0
-        count: 0
-        table: Array::new<Optional<MapEntry<#Key, #Value>>>(0)
+        capacity: 0,
+        count: 0,
+        table: Array::new<Optional<MapEntry<#Key, #Value>>>(0),
     ]
 }
 
@@ -65,7 +65,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(required_capacity: Int) {
         ret
     }
 
-    let new_capacity = max(capacity * 2, 32)
+    let new_capacity = max(capacity * 2, 16)
 
     while new_capacity.to_float() * load_factor <= required_capacity.to_float() {
         new_capacity *= 2
@@ -141,7 +141,6 @@ fun <#Key: MapKey> Map<#Key, #Value>.set_entry(new_entry: Pair<#Key, #Value>) {
     ])
     count += 1
 }
-
 
 // Copies all entries from another map into this map
 fun <#Key: MapKey> Map<#Key, #Value>.set_all(other: Map<#Key, #Value>) {
@@ -363,12 +362,13 @@ fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): St
 
     for_each_entry @{ key: #Key, value: #Value ->
         if str.is_not_empty() {
-            str += ", "
+            str += ",\n"
         }
+        str += "  "
         str += key.to_string()
         str += " => "
         str +=  value.to_string()
     }
 
-    ret "#[$str]"
+    ret if str.is_empty() { "#[]" } else { "#[\n$str\n]" }
 }

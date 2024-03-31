@@ -7,6 +7,26 @@ option Optional<#Value> {
     Some { value: #Value }
 }
 
+/* TODO: Optimize this using intrinsics to decrease memory usage
+
+@Extern [lib: "core", name: "optional_some", autogenerate: true]
+fun Some(value: #Value): Optional<#Value> {}
+
+@Extern [lib: "core", name: "optional_none", autogenerate: true]
+fun None<#Value>(): Optional<#Value> {}
+
+@Extern [lib: "core", name: "optional_is_some", autogenerate: true]
+fun Optional<#Value>.is_some(): Boolean {}
+
+@Extern [lib: "core", name: "optional_is_none", autogenerate: true]
+fun Optional<#Value>.is_none(): Boolean {}
+
+@Extern [lib: "core", name: "optional_get_or_crash", autogenerate: true]
+fun Optional<#Value>.get_or_crash(): #Value {}
+
+*/
+
+
 // Creates an instance of the Some variant of the Optional type
 fun Some(value: #Value): Optional<#Value> {
     ret Optional::Some<#Value> @[value]
@@ -23,17 +43,6 @@ fun Optional<#Value>.is_some(): Boolean = this is Optional::Some<#Value>
 // Checks if the Optional is the None variant
 fun Optional<#Value>.is_none(): Boolean = this is Optional::None<#Value>
 
-// Allows the use of `?` to perform an early return if value is None
-fun Optional<#Value>.is_returnable_error(): Boolean = this is Optional::None<#Value>
-
-fun Optional<#A>.convert_error(): Optional<#B> {
-    if this.is_none() {
-        ret Optional::None<#B> @[]
-    }
-
-    crash("Call to convert_error() on Optional::Some variant")
-}
-
 // Returns the value of the Some variant, or crashes if the Optional is the None variant
 // Can be called with the syntax `optional!!`
 fun Optional<#Value>.get_or_crash(): #Value {
@@ -42,6 +51,17 @@ fun Optional<#Value>.get_or_crash(): #Value {
     }
 
     crash("Call to get_or_crash() '!!' on None variant")
+}
+
+// Allows the use of `?` to perform an early return if value is None
+fun Optional<#Value>.is_returnable_error(): Boolean = this.is_none()
+
+fun Optional<#A>.convert_error(): Optional<#B> {
+    if this.is_none() {
+        ret None<#B>()
+    }
+
+    crash("Call to convert_error() on Optional::Some variant")
 }
 
 // Returns the value of the Some variant, or the default value if the Optional is the None variant

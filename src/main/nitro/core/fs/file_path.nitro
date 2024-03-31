@@ -1,0 +1,62 @@
+
+struct FilePath {
+    path: String
+}
+
+struct IoError {
+    message: String
+    code: String
+}
+
+fun FilePath::new(path: String): FilePath {
+    ret FilePath @[path]
+}
+
+@Extern [lib: "core", name: "file_path_join"]
+fun FilePath::join(dir: String, sub: String): String {}
+
+@Extern [lib: "core", name: "file_path_dirname"]
+fun FilePath::directory_name(path: String): String {}
+
+@Extern [lib: "core", name: "file_path_basename"]
+fun FilePath::base_name(path: String): String {}
+
+@Extern [lib: "core", name: "file_path_read_text"]
+fun FilePath.read_text(): Result<String, IoError> {}
+
+@Extern [lib: "core", name: "file_path_write_text"]
+fun FilePath.write_text(text: String): Result<Nothing, IoError> {}
+
+@Extern [lib: "core", name: "file_path_exists"]
+fun FilePath.exists(): Result<Boolean, IoError> {}
+
+//
+//@Extern [lib: "core", name: "file_path_read_bytes"]
+//fun FilePath.read_bytes(): Result<List<Byte>, IoError> {}
+//
+//@Extern [lib: "core", name: "file_path_write_bytes"]
+//fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {}
+//
+//@Extern [lib: "core", name: "file_path_delete"]
+//fun FilePath.delete(): Result<Nothing, IoError> {}
+//
+//@Extern [lib: "core", name: "file_path_delete_recursive"]
+//fun FilePath.delete_recursive(): Result<Nothing, IoError> {}
+
+fun FilePath.to_string(): String = path
+
+fun IoError.to_string(): String = "$message ($code)"
+
+// Utilities to create Result<#Any, IoError> instances from JS
+
+@WasmName [name: "io_error_result_ok"]
+@Required
+fun IoError::result_ok(value: Int): Result<Int, IoError> {
+    ret Ok(value)
+}
+
+@WasmName [name: "io_error_result_error"]
+@Required
+fun IoError::result_error(message: String, code: String): Result<Int, IoError> {
+    ret Err(IoError @[message, code])
+}

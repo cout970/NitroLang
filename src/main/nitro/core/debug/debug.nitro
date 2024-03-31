@@ -6,26 +6,25 @@ fun println() {
 
 // String argument
 @Extern [lib: "core", name: "println_string"]
-fun println(i: String): String {}
+fun println(i: String) {}
 
 // Int argument
 @Extern [lib: "core", name: "println_int"]
-fun println(i: Int): Int {}
+fun println(i: Int) {}
 
 // Long argument
 @Extern [lib: "core", name: "println_long"]
-fun println(i: Long): Long {}
+fun println(i: Long) {}
 
 // Float argument
 @Extern [lib: "core", name: "println_float"]
-fun println(i: Float): Float {}
+fun println(i: Float) {}
 
 // Boolean argument
 @Extern [lib: "core", name: "println_boolean"]
-fun println(i: Boolean): Boolean {}
+fun println(i: Boolean) {}
 
 // Generic version of println() for any type that has a to_string() function
-fun <#Value: ToString> println(value: #Value): #Value {
+fun <#Value: ToString> println(value: #Value) {
     println(value.to_string())
-    ret value
 }

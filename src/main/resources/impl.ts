@@ -8,7 +8,13 @@ import {
   setByte,
   memcopy,
   dumpMemory,
-  mem, setFloat, alloc, PTR, setLong, getLong,
+  mem,
+  setFloat,
+  alloc,
+  PTR,
+  setLong,
+  getLong,
+  fs
 } from './internal.ts'
 
 import * as trace from './trace.ts'
@@ -133,6 +139,7 @@ export function memory_copy_internal(target: number, source: number, len: number
 export function memory_alloc_trace(amount: number, ptr: number): void {
     // console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
     // console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
+    trace.trace_alloc(amount);
 }
 
 // -------------------------------------------------------------------------
@@ -434,6 +441,67 @@ export function instant_format_to_iso8601(self: number): number {
     let seconds = Number(getLong(self))
     let nanos = getInt(self + 2)
     return createString(new Date(seconds + nanos / 1_000_000_000).toISOString());
+}
+
+// -------------------------------------------------------------------------
+// From file_path.nitro
+// -------------------------------------------------------------------------
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:16)
+// @Extern [lib="core", name="file_path_join"]
+// fun FilePath::join(String, String): String
+export function file_path_join(dir: number, sub: number): number {
+    return createString(fs.join(getString(dir), getString(sub)));
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:19)
+// @Extern [lib="core", name="file_path_dirname"]
+// fun FilePath::directory_name(String): String
+export function file_path_dirname(path: number): number {
+    return createString(fs.dirname(getString(path)));
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:22)
+// @Extern [lib="core", name="file_path_basename"]
+// fun FilePath::base_name(String): String
+export function file_path_basename(path: number): number {
+    return createString(fs.basename(getString(path)));
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:16)
+// @Extern [lib="core", name="file_path_read_text"]
+// fun read_text(FilePath): Result<String, IoError>
+export function file_path_read_text(self: number): number {
+    try {
+        const path = getInt(self)
+        const data = fs.readTextFileSync(getString(path))
+        return mem.program.io_error_result_ok(createString(data));
+    } catch(e) {
+        return mem.program.io_error_result_error(
+            createString(e.message),
+            createString("Exception while reading file")
+        );
+    }
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:19)
+// @Extern [lib="core", name="file_path_write_text"]
+// fun write_text(FilePath, String): Result<Nothing, IoError>
+export function file_path_write_text(self: number, text: number): number {
+    try {
+        const path = getInt(self)
+        fs.writeTextFileSync(getString(path), getString(text))
+        return mem.program.io_error_result_ok(0);
+    } catch(e) {
+        return mem.program.io_error_result_error(createString(e.message), "Exception while writing file");
+    }
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:22)
+// @Extern [lib="core", name="file_path_exists"]
+// fun exists(FilePath): Result<Boolean, IoError>
+export function file_path_exists(self: number): boolean {
+    return fs.fileExistsSync(getString(self));
 }
 
 // -------------------------------------------------------------------------

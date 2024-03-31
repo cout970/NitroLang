@@ -51,6 +51,32 @@ fun MemoryArena.get_free_bytes(): Int {
     ret this.capacity - this.len
 }
 
+// Give an string with stats of memory used/available
+fun MemoryArena.get_stats(): String {
+    let usage = get_used_bytes()
+    let free = get_free_bytes()
+    ret "Used: ${format_bytes(usage)} / ${format_bytes(capacity)}"
+}
+
+// Format an amount of bytes into the nearest unit: KB, MB, etc.
+fun format_bytes(amount: Int): String {
+     if amount == 0 {
+        ret "0 Bytes"
+    }
+
+    let l = 0
+    let n = amount.abs()
+
+    while n >= 1024 {
+        n /= 1024
+        l += 1
+    }
+
+    let units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+    let prefix = if amount < 0 { "-" } else { "" }
+    ret "$prefix$n ${units[l]!!}"
+}
+
 // Efficiently copies a number of bytes from one location to another
 // Must not overlap and all bytes must be within the arena
 @Extern [lib: "core", name: "memory_copy_within"]

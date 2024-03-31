@@ -464,10 +464,25 @@ fun <#Item: ToString> List<#Item>.join(separator: String): String {
     let str = ""
 
     repeat count {
-        str = str.concat(this[it]!!.to_string())
+        str += this[it]!!.to_string()
 
         if it != count - 1 {
-            str = str.concat(separator)
+            str += separator
+        }
+    }
+
+    ret str
+}
+
+// Concatenates all the items in the list into a string, separated by the given separator
+fun List<#Item>.join_to_string(separator: String, func: (#Item) -> String): String {
+    let str = ""
+
+    repeat count {
+        str += func(this[it]!!)
+
+        if it != count - 1 {
+            str += separator
         }
     }
 
@@ -475,17 +490,23 @@ fun <#Item: ToString> List<#Item>.join(separator: String): String {
 }
 
 // Creates a new list with items between the given start and end indexes
+// start is inclusive and end is exclusive:
+// - `list.to_sublist(0, list.len)` will return all items
+// - `list.to_sublist(0, 1)` will return only the first item
+// - `list.to_sublist(list.len - 1, list.len)` will return only the last item
 // If start or end are negative, they are counted from the end of the list
+// - `list.to_sublist(-1, list.len)` will return only the last item
+// - `list.to_sublist(0, -1)` will return all items except the last one
 fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
     if end < 0 {
-       end = count + end
+        end = count + end
     }
-    if end >= count {
-        end = count - 1
+    if end > count {
+        end = count
     }
 
     if start < 0 {
-       start = count + start
+        start = count + start
     }
     if start < 0 {
         start = 0
