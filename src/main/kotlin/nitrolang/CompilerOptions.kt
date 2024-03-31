@@ -13,7 +13,7 @@ data class CompilerOptions(
     var dumpExtern: Boolean = false,
     var dumpWasm: Boolean = false,
     var runTests: Boolean = false,
-    var traceFunctions: Boolean = true,
+    var traceFunctions: Boolean = false,
     var listenChanges: MutableList<String> = mutableListOf(),
 ) {
     companion object {
@@ -98,9 +98,9 @@ data class CompilerOptions(
                         opt.profile = true
                     }
 
-                    "--no-trace" -> {
+                    "--trace" -> {
                         i++
-                        opt.traceFunctions = false
+                        opt.traceFunctions = true
                     }
 
                     "--dump-ir" -> {

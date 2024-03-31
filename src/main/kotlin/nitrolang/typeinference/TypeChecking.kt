@@ -202,7 +202,7 @@ private fun ParserCtx.finishCode(code: LstCode, returnType: TType, name: String,
         return
     }
 
-    if (returnType is TUnresolved) {
+    if (returnType is TUnresolved || returnType is TUnresolvedFunction) {
         collector.report("Unable to resolve return type, not enough information", span)
         return
     }

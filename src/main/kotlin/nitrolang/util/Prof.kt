@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 
 object Prof {
     var enable: Boolean = false
-    var maxDepth: Int = -1
+    var maxDepth: Int = 1
     var minDuration: Int = 5
     private val stack = ArrayDeque<Pair<String, Instant>>()
 

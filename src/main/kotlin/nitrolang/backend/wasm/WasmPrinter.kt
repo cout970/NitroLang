@@ -26,7 +26,6 @@ fun CodePrinter.wasmModule(module: WasmModule) {
         +"(elem"
         for (label in module.lambdaLabels) {
             sep()
-            +"$"
             +label
         }
         +")"

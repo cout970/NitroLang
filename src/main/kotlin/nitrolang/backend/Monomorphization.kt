@@ -433,12 +433,14 @@ fun MonoBuilder.processInst(
                 }
                 call(inst.span, "as_type_internal", ctx)
                 provider(inst.span, inst.ref, type)
-            } else {
-                // Invalid cast
-                this.program.collector.report("Invalid type cast", inst.span)
-                unreachable(inst.span)
-                provider(inst.span, inst.ref, type)
+                return
             }
+
+            // Invalid cast
+            this.program.collector.report("Invalid type cast", inst.span)
+            unreachable(inst.span)
+            consumer(inst.span, inst.expr)
+            provider(inst.span, inst.ref, type)
         }
 
         is LstIfChoose -> {

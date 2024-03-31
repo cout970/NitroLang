@@ -15,6 +15,7 @@ open class WasmBuilder(
 ) : IBuilder {
     var initialMemoryAddr: Int = 0
     var root: MonoBuilder? = null
+    val stringCache = mutableMapOf<String, Int>()
 
     companion object {
         fun compile(program: LstProgram, out: Appendable) {
@@ -117,12 +118,15 @@ open class WasmBuilder(
         )
     }
 
-    override fun compileConst(const: LstConst, mono: MonoConst) {
+    override fun preCompileConst(const: LstConst, mono: MonoConst) {
         mono.offset = module.sectionOffset
         mono.size = mono.type.heapSize()
         val section = WasmDataSection(mono.offset, ByteArray(mono.size), "${const.fullName} at ${mono.offset}")
         module.addSection(section)
+        mono.section = section
+    }
 
+    override fun compileConst(const: LstConst, mono: MonoConst) {
         var value: ByteArray? = null
 
         if (const.body.nodes.size == 1) {
@@ -136,7 +140,7 @@ open class WasmBuilder(
         }
 
         if (value != null) {
-            section.data = value
+            mono.section!!.data = value
             return
         }
 
@@ -227,7 +231,7 @@ open class WasmBuilder(
     }
 
     override fun onCompileLambda(mono: MonoFunction) {
-        module.lambdaLabels += mono.name
+        module.lambdaLabels += mono.finalName
     }
 
     override fun onCompileFunctionCall(
@@ -251,6 +255,9 @@ open class WasmBuilder(
     }
 
     fun compileInstruction(inst: MonoInstruction, wasmFunc: WasmFunction) {
+        // Different kind of comments to help debugging .wat files
+        // wasmFunc.instructions += WasmInst("; $inst ;")
+
         when (inst) {
             is MonoConsumer -> error("MonoConsumer")
             is MonoProvider -> error("MonoProvider")
@@ -337,7 +344,7 @@ open class WasmBuilder(
                 wasmFunc.instructions += WasmInst("call \$memory_alloc_internal")
                 wasmFunc.dup(WasmPrimitive.i32)
 
-                val index = module.lambdaLabels.indexOf(inst.lambda.name)
+                val index = module.lambdaLabels.indexOf(inst.lambda.finalName)
                 val msg = "Lambda function \$${inst.lambda.name} at index $index in \$lambdas"
                 wasmFunc.instructions += WasmInst("; $msg ;")
                 wasmFunc.instructions += WasmInst("i32.const $index")
@@ -368,6 +375,8 @@ open class WasmBuilder(
             }
 
             is MonoLoadConst -> {
+                if (inst.const.offset == 0) error("Constant not initialized: Invalid offset")
+
                 if (inst.const.type.isIntrinsic()) {
                     wasmFunc.instructions += WasmInst("i32.const ${inst.const.offset}")
                     val prim = monoTypeToPrimitive(inst.const.type)
@@ -732,19 +741,23 @@ open class WasmBuilder(
     }
 
     private fun pushString(value: String, wasmFunc: WasmFunction) {
-        // Align to 4 bytes for the 32bit length field
-        module.sectionOffset = pad(module.sectionOffset)
+        if (value !in stringCache) {
 
-        val bytes = value.encodeToByteArray()
-        val start = module.sectionOffset
-        val contentStart = module.sectionOffset + PTR_SIZE * 2
-        val size = intToWasm(bytes.size)
-        val contentsPtr = intToWasm(contentStart)
+            // Align to 4 bytes for the 32bit length field
+            module.sectionOffset = pad(module.sectionOffset)
 
-        module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
-        module.addSection(WasmDataSection(contentStart, bytes, "String \"${value}\""))
+            val bytes = value.encodeToByteArray()
+            val start = module.sectionOffset
+            val contentStart = module.sectionOffset + PTR_SIZE * 2
+            val size = intToWasm(bytes.size)
+            val contentsPtr = intToWasm(contentStart)
 
-        wasmFunc.instructions += WasmInst("i32.const $start")
+            module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
+            module.addSection(WasmDataSection(contentStart, bytes, "String \"${value}\""))
+            stringCache[value] = start
+        }
+
+        wasmFunc.instructions += WasmInst("i32.const ${stringCache[value]}")
     }
 
     fun monoTypeToPrimitive(mono: MonoType): WasmPrimitive {

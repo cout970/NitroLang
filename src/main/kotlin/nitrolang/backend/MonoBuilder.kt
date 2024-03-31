@@ -8,6 +8,7 @@ interface IBuilder {
     fun init(root: MonoBuilder)
     fun finish()
     fun compileImport(func: LstFunction, mono: MonoFunction, name: ConstString, lib: ConstString)
+    fun preCompileConst(const: LstConst, mono: MonoConst)
     fun compileConst(const: LstConst, mono: MonoConst)
     fun compileFunction(lst: LstFunction?, func: MonoFunction)
     fun onCompileLambda(mono: MonoFunction)
@@ -73,6 +74,7 @@ class MonoBuilder(val program: LstProgram, val builder: IBuilder) {
 
             consts[const.ref.id] = monoConst
             aux += const to monoConst
+            builder.preCompileConst(const, monoConst)
 
             if (!type.isIntrinsic() && !type.isEncodedInRef()) {
                 if (!initMemoryCopyInternal) {
