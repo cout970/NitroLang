@@ -49,13 +49,13 @@ fun Matrix3.to_string(): String {
 
 fun Matrix3::from_string(str: String): Matrix3 {
     let lines = str.trim().split("\n")
-    let rows = lines.len()
+    let rows = lines.len
 
     if rows != 3 {
         crash("Matrix must have 3 rows")
     }
 
-    let columns = lines[0]!!.trim().split(" ").len()
+    let columns = lines[0]!!.trim().split(" ").len
 
     if columns != 3 {
         crash("Matrix must have 3 columns")
