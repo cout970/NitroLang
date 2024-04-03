@@ -1,8 +1,79 @@
 
+fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
+    println("TypeChecker.create_error_type(): $message // $span")
+    report_error(message, span)
+    ret types.create_type(TypeKind::Invalid @[message, span], [])
+}
+
+fun TypeChecker.get_or_create_generic_type(generic: NGeneric): TypeToken {
+    let kind_cache = type_generic_cache[generic]
+    if kind_cache.is_some() {
+        let kind = kind_cache!!
+        let tt = types.create_type(kind, [])
+        ret tt
+    }
+
+    let kind = TypeKind::Generic @[instance: generic]
+
+    type_generic_cache[generic] = kind
+
+    ret types.create_type(kind, [])
+}
+
+fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>, args: List<TypeToken>): TypeToken {
+    if generics.is_empty() || args.is_empty() {
+        ret type_token
+    }
+
+    let replacements: Map<NGeneric, TypeToken> = #[]
+
+    repeat min(generics.len, args.len) {
+        replacements[generics[it]!!] = args[it]!!
+    }
+
+    let t = types.get_type(type_token)
+    let new_params = []
+
+    for param_token in t.params {
+        let param = types.get_type(param_token)
+        let kind = param.kind
+
+        if kind is TypeKind::Generic {
+            let replacement = replacements[(kind as TypeKind::Generic).instance]
+
+            if replacement.is_some() {
+                new_params[] = replacement!!
+            } else {
+                new_params[] = param_token
+            }
+        } else {
+            new_params[] = param_token
+        }
+    }
+
+    ret types.create_type(t.kind, new_params)
+}
+
 fun TypeChecker.report_error(msg: String, span: Span) {
     reporter.report_error(msg, span)
 }
 
 fun TypeChecker.report_warning(msg: String, span: Span) {
     reporter.report_warning(msg, span)
+}
+
+fun create_path_segments(full_name: String): List<String> {
+    if "::" !in full_name {
+        ret [full_name]
+    }
+
+    let parts = full_name.split("::")
+    let result: List<String> = []
+
+    repeat parts.len {
+        let segments = parts.to_sublist(parts.len - it - 1, parts.len)
+        result[] = segments.join("::")
+    }
+
+    ret result
 }

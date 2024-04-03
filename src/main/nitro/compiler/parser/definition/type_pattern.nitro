@@ -35,7 +35,6 @@ struct NTypePattern {
 
 enum TypePatternKind {
     TYPE_SIMPLE,
-    TYPE_THIS,
     TYPE_PARAM,
     TYPE_ANY,
 }
@@ -47,17 +46,6 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
         ret found(NTypePattern @[
             kind: TypePatternKind::TYPE_ANY,
             name: "*",
-            path: "",
-            params: [],
-        ])
-    }
-
-    // This
-    if lexer.current_token_kind == TokenKind::THIS_TYPE {
-        lexer.next_token()
-        ret found(NTypePattern @[
-            kind: TypePatternKind::TYPE_THIS,
-            name: "This",
             path: "",
             params: [],
         ])
@@ -187,10 +175,6 @@ fun Parser.read_function_type_pattern_param(): Parsed<NTypePattern> {
 
 fun NTypePattern.to_string(): String {
     let s = ""
-
-    if kind == TypePatternKind::TYPE_THIS {
-        ret "This"
-    }
 
     if kind == TypePatternKind::TYPE_PARAM {
         ret "#$name"

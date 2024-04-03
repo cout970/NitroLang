@@ -1,0 +1,33 @@
+
+fun TypeContainer.is_equal(a: TypeToken, b: TypeToken): Boolean {
+    ret type_tokens[a]!! == type_tokens[b]!!
+}
+
+fun TypeContainer.is_named(tt: TypeToken, name: String): Boolean {
+    let ty = get_type(tt)
+
+    if ty.kind is TypeKind::Struct {
+        ret (ty.kind as TypeKind::Struct).instance.full_name == name
+    }
+
+    if ty.kind is TypeKind::Option {
+        ret (ty.kind as TypeKind::Option).instance.full_name == name
+    }
+
+    if ty.kind is TypeKind::OptionItem {
+        ret (ty.kind as TypeKind::OptionItem).instance.full_name == name
+    }
+
+    ret false
+}
+
+fun TypeContainer.is_boolean(tt: TypeToken): Boolean = this.is_named(tt, "Boolean")
+fun TypeContainer.is_byte(tt: TypeToken): Boolean = this.is_named(tt, "Byte")
+fun TypeContainer.is_char(tt: TypeToken): Boolean = this.is_named(tt, "Char")
+fun TypeContainer.is_float(tt: TypeToken): Boolean = this.is_named(tt, "Float")
+fun TypeContainer.is_function(tt: TypeToken): Boolean = this.is_named(tt, "Function")
+fun TypeContainer.is_int(tt: TypeToken): Boolean = this.is_named(tt, "Int")
+fun TypeContainer.is_long(tt: TypeToken): Boolean = this.is_named(tt, "Long")
+fun TypeContainer.is_never(tt: TypeToken): Boolean = this.is_named(tt, "Never")
+fun TypeContainer.is_nothing(tt: TypeToken): Boolean = this.is_named(tt, "Nothing")
+fun TypeContainer.is_string(tt: TypeToken): Boolean = this.is_named(tt, "String")

@@ -24,4 +24,5 @@ fun IdProvider.update_ids(offset: Int) {
     for wrapper in all_wrappers {
         wrapper.id += offset
     }
+    last_id += offset
 }

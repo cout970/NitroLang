@@ -3,6 +3,7 @@ let ANNOTATION_TEST: String = "Test"
 let VARIANT_FIELD_NAME: String = "variant"
 
 struct Program {
+    id_provider: IdProvider
     declared_names: Map<String, Span>
     structs: List<NStruct>
     options: List<NOption>
@@ -13,18 +14,22 @@ struct Program {
     consts: List<NConst>
     functions: List<NFunction>
     lambda_functions: List<NLambda>
-    property_getters: List<NPropertyGetter>
-    property_setters: List<NPropertySetter>
+    property_getters: List<NPropertyAccessor>
+    property_setters: List<NPropertyAccessor>
     all_function_signatures: List<NFunctionSignature>
-    last_test_id: Int
 }
 
-struct NPropertyGetter {}
-struct NPropertySetter {}
+struct NPropertyAccessor {
+    receiver_type: TypeToken
+    property_name: String
+    func: NFunction
+}
+
 struct NFunctionSignature {}
 
 fun Program::new(): Program {
     ret Program @[
+        id_provider: IdProvider::new(),
         declared_names: #[],
         structs: [],
         options: [],
@@ -38,12 +43,12 @@ fun Program::new(): Program {
         property_setters: [],
         lambda_functions: [],
         all_function_signatures: [],
-        last_test_id: 0,
     ]
 }
 
-fun Program.merge(other: Program) {
-    this.declared_names.set_all(other.declared_names)
+fun Program.extend_with(other: Program) {
+    other.id_provider.update_ids(this.id_provider.last_id + 1)
+    this.declared_names.add_all(other.declared_names)
     this.structs.add_all(other.structs)
     this.options.add_all(other.options)
     this.includes.add_all(other.includes)

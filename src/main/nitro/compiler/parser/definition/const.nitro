@@ -9,7 +9,9 @@ struct NConst {
     path: String
     name: String
     type_usage: NTypeUsage
-    body: NCode
+    type_token: Optional<TypeToken>
+    code: NCode
+    full_name_cache: Optional<String>
 }
 
 fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
@@ -27,7 +29,9 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         path,
         name,
         type_usage,
-        body: NCode::new()
+        type_token: None(),
+        code: NCode::new(),
+        full_name_cache: None(),
     ]
     program.consts[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
@@ -35,13 +39,24 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     skip_token_kind(TokenKind::ASSIGN)?
     skip_nl()
 
-    read_expression(def.body)?
+    read_expression(def.code)?
 
     ret found(nothing)
 }
 
+fun NConst.get_full_name(): String {
+    if full_name_cache.is_some() {
+        ret full_name_cache!!
+    }
+
+    let full_name = get_full_path(path, name)
+    full_name_cache = Some(full_name)
+    ret full_name
+}
+
+
 fun NConst.to_string(): String {
     let full_name = get_full_path(path, name)
 
-    return "const $full_name: $type_usage = $body // $span"
+    return "const $full_name: $type_usage = $code // $span"
 }

@@ -43,21 +43,30 @@ struct NFunction {
     path: String
     name: String
     parameters: List<NFunctionParameter>
-    return_type: NTypeUsage
-    body: NCode
+    return_type_usage: NTypeUsage
+    return_type_token: Optional<TypeToken>
+    code: NCode
 }
 
 struct NFunctionParameter {
     span: Span
     name: String
     type_usage: NTypeUsage
+    type_token: Optional<TypeToken>
 }
 
 fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     let def = read_function_header(annotations)?
 
     skip_nl()
-    read_code_block(def.body)?
+
+    // Create a local variable per function parameter
+    for param in def.parameters {
+        def.code.add_let(param.span, param.name, Some(param.type_usage))
+    }
+
+    // Read every statement/expression in the function body
+    read_code_block(def.code)?
 
     ret found(nothing)
 }
@@ -110,6 +119,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
             span: receiver_span,
             name: "this",
             type_usage: receiver_tu,
+            type_token: None(),
         ]
         has_receiver = true
 
@@ -131,8 +141,9 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         path,
         name,
         parameters,
-        return_type: NTypeUsage::simple(span, "Nothing"),
-        body: NCode::new(),
+        return_type_usage: NTypeUsage::simple(span, "Nothing"),
+        return_type_token: None(),
+        code: NCode::new(),
     ]
     program.functions[] = def
 
@@ -156,11 +167,11 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     when lexer.current_token_kind {
         TokenKind::COLON -> {
             skip_token_kind(TokenKind::COLON)?
-            def.return_type = read_type_usage()?
+            def.return_type_usage = read_type_usage()?
         }
         TokenKind::ARROW -> {
             skip_token_kind(TokenKind::ARROW)?
-            def.return_type = read_type_usage()?
+            def.return_type_usage = read_type_usage()?
         }
     }
 
@@ -188,6 +199,7 @@ fun Parser.read_function_parameter(): Parsed<NFunctionParameter> {
         span,
         name,
         type_usage,
+        type_token: None(),
     ]
 
     ret found(def)
@@ -212,6 +224,6 @@ fun NFunction.to_string(): String {
         args += "${p.name}: ${p.type_usage}"
     }
 
-    return "${prefix}fun $full_name($args): $return_type $body // $span"
+    return "${prefix}fun $full_name($args): $return_type_usage $code // $span"
 }
 

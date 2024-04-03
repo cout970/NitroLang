@@ -1,0 +1,47 @@
+
+struct TypeContainer {
+    all_types: Map<TypeId, Type>
+    type_tokens: Map<TypeToken, TypeId>
+    last_type_id: TypeId
+    last_type_token: TypeToken
+}
+
+fun TypeContainer::new(): TypeContainer {
+    let instance = TypeContainer @[
+        all_types: #[],
+        type_tokens: #[],
+        last_type_id: 0,
+        last_type_token: 0,
+    ]
+
+    ret instance
+}
+
+fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToken {
+    // Create type
+    last_type_id += 1
+    let ty = Type @[
+        id: last_type_id,
+        kind,
+        params,
+    ]
+    all_types[last_type_id] = ty
+
+    // Create type token
+    last_type_token += 1
+    type_tokens[last_type_token] = last_type_id
+    ret last_type_token
+}
+
+fun TypeContainer.get_type(token: TypeToken): Type {
+    let id = type_tokens[token]!!
+    ret get_type_by_id(id)
+}
+
+fun TypeContainer.get_type_by_id(id: TypeId): Type {
+    ret all_types[id]!!
+}
+
+fun TypeContainer.to_string(tt: TypeToken): String {
+    ret get_type(tt).to_string()
+}

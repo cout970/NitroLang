@@ -27,20 +27,20 @@ fun CompilationUnit.include_file(path: String) {
 fun CompilationUnit.include_source(source: String, path: String) {
 //    println("Including file: $path")
     let start = Instant::now()
-    let file_program = Program::new()
+    let sub_program = Program::new()
 
     let lexer = Lexer::new(source, path)
     lexer.read_all()
 
-    let parser = Parser::new(lexer, reporter, file_program)
+    let parser = Parser::new(lexer, reporter, sub_program)
     parser.read_file()
 
-    for inc in file_program.includes {
+    for inc in sub_program.includes {
         let include_path = CompilationUnit::process_path(inc.path, path)
         include_file(include_path)
     }
 
-    program.merge(file_program)
+    program.extend_with(sub_program)
     let end = Instant::now()
     println("Included file: $path in ${(end - start).to_milliseconds()} ms")
 }
@@ -61,7 +61,6 @@ fun CompilationUnit.compile() {
     // backend...
 
     // Report errors
-
 }
 
 fun CompilationUnit.report_errors() {

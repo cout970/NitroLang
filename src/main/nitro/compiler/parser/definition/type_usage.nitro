@@ -39,7 +39,6 @@ struct NTypeUsage {
 
 enum TypeUsageKind {
     TYPE_SIMPLE,
-    TYPE_THIS,
     TYPE_PARAM,
     TYPE_UNRESOLVED,
 }
@@ -90,15 +89,39 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
 
     // This
     if lexer.current_token_kind == TokenKind::THIS_TYPE {
+        let span = lexer.current_token_span
         lexer.next_token()
+
+        if current_tag.is_none() {
+            report_error("'This' type can only be used in a Tag definition", span)
+            ret found(NTypeUsage::unresolved(span))
+        }
+        // Translate
+        // tag Foo { fun This.test() }
+        // to
+        // tag Foo { fun <#Foo: Tag> #Foo.test() }
+
+        let instance = NGeneric @[
+            id_wrapper: id_provider.next(),
+            span,
+            name: "This",
+            constraints: [
+                NGenericConstraint @[
+                    name: current_tag!!.name,
+                    tag_definition: current_tag,
+                ]
+            ]
+        ]
+        current_generics.definitions[] = instance
+
         ret found(NTypeUsage @[
             span,
-            kind: TypeUsageKind::TYPE_THIS,
+            kind: TypeUsageKind::TYPE_PARAM,
             name: "This",
             path: "",
             params: [],
             type_token: None(),
-            generic_definition: None(),
+            generic_definition: Some(instance),
         ])
     }
 
@@ -246,10 +269,6 @@ fun Parser.read_function_type_usage_param(): Parsed<NTypeUsage> {
 
 fun NTypeUsage.to_string(): String {
     let s = ""
-
-    if kind == TypeUsageKind::TYPE_THIS {
-        ret "This"
-    }
 
     if kind == TypeUsageKind::TYPE_PARAM {
         ret "#$name"

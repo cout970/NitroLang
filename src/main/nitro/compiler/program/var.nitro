@@ -4,9 +4,10 @@ type_alias NVarId = Int
 struct NVar {
     id: NVarId
     span: Span
-    current_block: NBlock
+    block: NBlock
     name: String
-    type_usage: Optional<NTypeUsage>
+    type_usage: NTypeUsage
+    type_token: Optional<TypeToken>
     defined_by: NInstId
     defined_in: NCode
 }

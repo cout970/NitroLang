@@ -1,0 +1,114 @@
+
+fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, index: Int): Optional<NVar> {
+    let depth = block.depth
+
+    // Go backwards from this instruction to the beginning of the code
+    // We are looking for a variable declaration with same name and within the same block or a block that is less deep
+    repeat index {
+        let i = index - it - 1
+        let curr_inst: NInst = code.inst[i]!!
+
+        // If the instruction is in another block, there are 2 options:
+
+        // 1. The instruction is in a block that is deeper than the block we are looking for, we skip everything in this block
+        if curr_inst.block.depth > depth {
+            continue
+        }
+
+        // 2. The instruction is in a block that is less deep than the block we are looking for,
+        // we update the depth to apply case 1. to the following blocks
+        if curr_inst.block.depth < depth {
+            depth = curr_inst.block.depth
+        }
+
+        if curr_inst.kind is NInstKind::Let {
+            let kind = curr_inst.kind as NInstKind::Let
+
+            if kind.variable.name == name {
+                ret Some(kind.variable)
+            }
+        }
+    }
+
+    // Not found
+    ret None()
+}
+
+fun TypeChecker.find_constant(code: NCode, full_name: String): Optional<NConst> {
+    let path_segments = create_path_segments(full_name)
+
+    for segment in path_segments {
+        // The same name will always refer to the same constant, given that we are in the same function/constant (NCode)
+        let cached = code.const_cache[segment]
+        if cached.is_some() {
+            ret cached
+        }
+
+        // If the constant is not in the cache, we look for it in the global scope
+        for constant in program.consts {
+            if constant.full_name == segment || constant.name == segment {
+                code.const_cache[segment] = constant
+                ret Some(constant)
+            }
+        }
+    }
+
+    // Not found
+    ret None()
+}
+
+// find_field
+fun TypeChecker.find_field(receiver_type: TypeToken, full_name: String): Optional<NStructField> {
+    let ty = types.get_type(receiver_type)
+
+    // Field in Struct
+    if ty.kind is TypeKind::Struct {
+        let kind = ty.kind as TypeKind::Struct
+        let str: NStruct = kind.instance
+
+        for field in str.fields {
+            if field.name == full_name {
+                ret Some(field)
+            }
+        }
+    }
+
+    // Field in Option variant
+    if ty.kind is TypeKind::OptionItem {
+        let kind = ty.kind as TypeKind::OptionItem
+        let str: NStruct = kind.instance
+
+        for field in str.fields {
+            if field.name == full_name {
+                ret Some(field)
+            }
+        }
+    }
+
+    // Not found
+    ret None()
+}
+
+fun TypeChecker.find_getter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+    // TODO optimice search using Map<String, PropertyAccessor> to avoid iterating over all the getters
+    for getter in program.property_getters {
+        if getter.property_name == full_name && types.is_equal(getter.receiver_type, receiver_type) {
+            ret Some(getter.func)
+        }
+    }
+
+    // Not found
+    ret None()
+}
+
+fun TypeChecker.find_setter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+    // TODO optimice search using Map<String, PropertyAccessor> to avoid iterating over all the setters
+    for setter in program.property_setters {
+        if setter.property_name == full_name && types.is_equal(setter.receiver_type, receiver_type) {
+            ret Some(setter.func)
+        }
+    }
+
+    // Not found
+    ret None()
+}

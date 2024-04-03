@@ -1,0 +1,217 @@
+
+fun TypeChecker.check_code(code: NCode) {
+    for v in code.vars {
+        check_var(v, code)
+    }
+
+    // check_inst() can add new instructions, so we need to loop until the end
+    let index = 0
+    while index < code.inst.len {
+        check_inst(index, code.inst[index]!!, code)
+        index += 1
+    }
+}
+
+fun TypeChecker.check_var(v: NVar, code: NCode) {
+    if v.type_token.is_none() {
+        v.type_token = Some(check_type_usage(v.type_usage))
+
+        // Store the type of `this` for later
+        if v.name == "this" {
+            code.receiver_type = v.type_token
+        }
+    }
+}
+
+fun TypeChecker.check_inst(index: Int, inst: NInst, code: NCode) {
+    if inst.kind is NInstKind::Let {
+        let kind = (inst.kind as NInstKind::Let)
+        check_var(kind.variable, code)
+
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::IfStart {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::IfElse {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::IfEnd {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::IfChoose {
+        let kind = (inst.kind as NInstKind::IfChoose)
+        let cond_type = code.find_type(kind.condition)
+        let if_true_type = code.find_type(kind.if_true)
+        let if_false_type = code.find_type(kind.if_false)
+
+        if cond_type.is_none() {
+            println("ERROR: cond_type is none\n${inst.span}\n$inst")
+            inst.type_token = type_cache["Nothing"]
+            ret
+        }
+        if if_true_type.is_none() {
+            println("ERROR: if_true_type is none\n${inst.span}\n$inst")
+            inst.type_token = type_cache["Nothing"]
+            ret
+        }
+        if if_false_type.is_none() {
+            println("ERROR: if_false_type is none\n${inst.span}\n$inst")
+            inst.type_token = type_cache["Nothing"]
+            ret
+        }
+
+        let common = check_type_usage(NTypeUsage::unresolved(inst.span))
+
+        cons.is_equal(cond_type!!, type_cache["Boolean"]!!, inst.span)
+        cons.is_equal(common, if_true_type!!, inst.span)
+        cons.is_equal(common, if_false_type!!, inst.span)
+
+        inst.type_token = Some(common)
+        ret
+    }
+
+    if inst.kind is NInstKind::LoopStart {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::LoopEnd {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::BlockJump {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::WhenStart {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::WhenEnd {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::FunCall {
+        check_inst_fun_call(inst.kind as NInstKind::FunCall, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::Literal {
+        check_inst_literal(inst.kind as NInstKind::Literal, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::Return {
+        inst.type_token = type_cache["Never"]
+        ret
+    }
+
+    if inst.kind is NInstKind::IsType {
+        inst.type_token = type_cache["Boolean"]
+        ret
+    }
+
+    if inst.kind is NInstKind::AsType {
+        let kind = (inst.kind as NInstKind::AsType)
+        let tt = check_type_usage(kind.type_usage)
+        inst.type_token = Some(tt)
+        ret
+    }
+
+    if inst.kind is NInstKind::LoadVar {
+        check_inst_load_var(inst.kind as NInstKind::LoadVar, index, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::StoreVar {
+        check_inst_store_var(inst.kind as NInstKind::StoreVar, index, inst, code)
+        ret
+    }
+
+//    LoadField {
+//        instance: NInstId
+//        name: String
+//    }
+//    StoreField {
+//        instance: NInstId
+//        name: String
+//        value: NInstId
+//    }
+//    SizeOf {
+//        type_usage: NTypeUsage
+//    }
+//    Alloc {
+//        type_usage: NTypeUsage
+//    }
+//    Lambda {
+//        lambda: NLambda
+//    }
+//    Link {
+//        linked_id: NInstId
+//    }
+//    Comment {
+//        text: String
+//    }
+//    Noop {}
+}
+
+fun TypeChecker.add_load_this_var(code: NCode, index: Int): NInstId {
+    // Duplicate current instruction
+    code.duplicate_inst(index)
+    // Get the duplicated instruction (first of the two)
+    let dup = code.inst[index]!!
+    // Replace it's kind with LoadVar for `this`
+    dup.kind = NInstKind::LoadVar @[
+        path: "",
+        name: "this",
+        variable: None(),
+        constant: None(),
+    ]
+    // Check the new instruction now, because index is not getting incremented
+    check_inst(index, dup, code)
+
+    ret dup.id
+}
+
+fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code: NCode) {
+    // TODO
+    inst.type_token = type_cache["Nothing"]
+}
+
+fun TypeChecker.check_inst_literal(kind: NInstKind::Literal, inst: NInst, code: NCode) {
+    let expr: NConstExpr = kind.value
+
+    when {
+        expr is NConstExpr::NConstInt -> {
+            inst.type_token = type_cache["Int"]
+        }
+        expr is NConstExpr::NConstLong -> {
+            inst.type_token = type_cache["Long"]
+        }
+        expr is NConstExpr::NConstFloat -> {
+            inst.type_token = type_cache["Float"]
+        }
+        expr is NConstExpr::NConstString -> {
+            inst.type_token = type_cache["String"]
+        }
+        expr is NConstExpr::NConstBoolean -> {
+            inst.type_token = type_cache["Boolean"]
+        }
+        else -> {
+            inst.type_token = type_cache["Nothing"]
+        }
+    }
+}

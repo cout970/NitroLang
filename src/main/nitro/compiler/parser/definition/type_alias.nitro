@@ -9,6 +9,7 @@ struct NTypeAlias {
     path: String
     name: String
     type_usage: NTypeUsage
+    type_token: Optional<TypeToken>
     generics: NGenericParams
 }
 
@@ -36,6 +37,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
         name,
         type_usage,
         generics,
+        type_token: None(),
     ]
 
     program.type_aliases[] = def

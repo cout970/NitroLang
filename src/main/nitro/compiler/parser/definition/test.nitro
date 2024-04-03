@@ -25,8 +25,8 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         ]
     ]
 
-    program.last_test_id += 1
-    let name = "test_${program.last_test_id}"
+    let wrapper = id_provider.next()
+    let name = "test_${wrapper.id}"
 
     let def = NFunction @[
         id_wrapper: id_provider.next(),
@@ -37,13 +37,14 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         path: "",
         name,
         parameters: [],
-        return_type: NTypeUsage::simple(span, "Nothing"),
-        body: NCode::new(),
+        return_type_usage: NTypeUsage::simple(span, "Nothing"),
+        return_type_token: None(),
+        code: NCode::new(),
     ]
     program.functions[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
 
-    read_code_block(def.body)?
+    read_code_block(def.code)?
 
     ret found(nothing)
 }

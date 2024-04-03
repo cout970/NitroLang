@@ -32,6 +32,9 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
     program.tags[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
 
+    current_tag = Some(def)
+    defer { current_tag = None() }
+
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 

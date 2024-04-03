@@ -25,6 +25,7 @@ struct NStruct {
 struct NStructField {
     name: String
     type_usage: NTypeUsage
+    type_token: Optional<TypeToken>
 }
 
 fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
@@ -73,6 +74,7 @@ fun Parser.read_struct_field(): Parsed<NStructField> {
     ret found(NStructField @[
         name,
         type_usage,
+        type_token: None(),
     ])
 }
 

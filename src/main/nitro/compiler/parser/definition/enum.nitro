@@ -90,6 +90,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     def.fields[] = NStructField @[
         name: VARIANT_FIELD_NAME,
         type_usage: NTypeUsage::simple(span, "Int"),
+        type_token: None(),
     ]
 
     let module_def = NModule @[
@@ -111,6 +112,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         def.fields[] = NStructField @[
             name: field_name,
             type_usage,
+            type_token: None(),
         ]
 
         skip_nl()
@@ -182,6 +184,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         def.fields[] = NStructField @[
             name: field_name,
             type_usage,
+            type_token: None(),
         ]
 
         skip_nl()
@@ -205,7 +208,9 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             path: module_path,
             name: entry.name,
             type_usage: NTypeUsage::simple_with_path(span, path, name),
-            body: const_code,
+            type_token: None(),
+            code: const_code,
+            full_name_cache: None(),
         ]
         program.consts[] = const_def
         declare_name(get_full_path(const_def.path, const_def.name), const_def.span)

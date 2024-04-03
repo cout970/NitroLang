@@ -1,0 +1,18 @@
+
+struct TypeConstraints {
+    all: List<TypeConstraint>
+}
+
+option TypeConstraint {
+    Equality { a: TypeToken, b: TypeToken, span: Span }
+}
+
+fun TypeConstraints::new(): TypeConstraints {
+    ret TypeConstraints @[
+        all: [],
+    ]
+}
+
+fun TypeConstraints.is_equal(a: TypeToken, b: TypeToken, span: Span) {
+    all[] = TypeConstraint::Equality @[ a, b, span ]
+}
