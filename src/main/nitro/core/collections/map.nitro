@@ -84,7 +84,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(required_capacity: Int) {
     table.fill(None())
 
     // Copy previous items
-    set_all(old_map)
+    add_all(old_map)
 }
 
 fun Map::get_index(hash: Int, capacity: Int): Int {
@@ -99,11 +99,11 @@ fun <#Key: MapKey> Map<#Key, #Value>.clear() {
 
 // Override an entry of the map with a new value
 fun <#Key: MapKey> Map<#Key, #Value>.set(key: #Key, value: #Value) {
-    set_entry(Pair::of(key, value))
+    this[] = Pair::of(key, value)
 }
 
 // Equivalent to `Map.set(key, value)` but with a Pair
-fun <#Key: MapKey> Map<#Key, #Value>.set_entry(new_entry: Pair<#Key, #Value>) {
+fun <#Key: MapKey> Map<#Key, #Value>.add(new_entry: Pair<#Key, #Value>) {
     ensure_capacity(count + 1)
 
     // Index where to insert the value
@@ -143,7 +143,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.set_entry(new_entry: Pair<#Key, #Value>) {
 }
 
 // Copies all entries from another map into this map
-fun <#Key: MapKey> Map<#Key, #Value>.set_all(other: Map<#Key, #Value>) {
+fun <#Key: MapKey> Map<#Key, #Value>.add_all(other: Map<#Key, #Value>) {
     if other.is_empty() {
         ret
     }
@@ -151,7 +151,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.set_all(other: Map<#Key, #Value>) {
     this.ensure_capacity(this.count + other.count)
 
     other.for_each_entry @{ key: #Key, value: #Value ->
-        this.set_entry(Pair::of(key, value))
+        this[] = Pair::of(key, value)
     }
 }
 
