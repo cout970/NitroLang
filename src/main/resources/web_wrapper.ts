@@ -2,15 +2,46 @@
 // esbuild web_wrapper.ts --bundle --outfile=output/build.js
 //
 import {run} from './run.ts'
+import * as internals from './internal.ts';
+
+// File system emulation
+internals.fs.isSupported = true;
+
+internals.fs.readTextFileSync = (path: string) => {
+    const data = window.localStorage.getItem('file://' + path);
+    return data;
+};
+internals.fs.writeTextFileSync = (path: string, data: string) => {
+    window.localStorage.setItem('file://' + path, data);
+};
+internals.fs.fileExistsSync = (path: string) => {
+    return window.localStorage.getItem('file://' + path) !== null;
+};
+internals.fs.join = (a: string, b: string) => {
+    // Dumb implementation for now
+    return a + '/' + b;
+};
+internals.fs.dirname = (path: string) => {
+    const index = path.lastIndexOf('/');
+    return index === -1 ? path : path.substring(0, index);
+};
+internals.fs.basename = (path: string) => {
+    const index = path.lastIndexOf('/');
+    return index === -1 ? path : path.substring(index);
+};
 
 // Export for reuse in the browser console
 window.runWasm = run;
 
-if (!window.disableWasmRun) {
-  try {
-    run("./output/compiled.wasm");
-  } catch (e) {
-    console.error(e);
-    window.alert('Crashed');
-  }
+async function main() {
+    if (!window.disableWasmRun) {
+        try {
+            run("./output/compiled.wasm");
+        } catch (e) {
+            console.error(e);
+            window.alert('Crashed');
+        }
+    }
 }
+
+main();

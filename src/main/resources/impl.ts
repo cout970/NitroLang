@@ -477,6 +477,7 @@ export function file_path_read_text(self: number): number {
         const data = fs.readTextFileSync(getString(path))
         return mem.program.io_error_result_ok(createString(data));
     } catch(e) {
+        console.error(e);
         return mem.program.io_error_result_error(
             createString(e.message),
             createString("Exception while reading file")
@@ -493,6 +494,7 @@ export function file_path_write_text(self: number, text: number): number {
         fs.writeTextFileSync(getString(path), getString(text))
         return mem.program.io_error_result_ok(0);
     } catch(e) {
+        console.error(e);
         return mem.program.io_error_result_error(createString(e.message), "Exception while writing file");
     }
 }
