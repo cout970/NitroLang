@@ -4,6 +4,7 @@ struct Reporter {
     errors: List<Report>
     warnings: List<Report>
     suggestions: List<Report>
+    immediate_output: Boolean
 }
 
 // A single error, warning, or suggestion
@@ -27,6 +28,7 @@ fun Reporter::new(): Reporter {
         errors: [],
         warnings: [],
         suggestions: [],
+        immediate_output: true,
     ]
 }
 
@@ -52,42 +54,50 @@ fun Reporter.print_all() {
 
 // Report an parse error
 fun Reporter.report_parse_error(message: String, location: Span, stack_trace: List<String>) {
-    errors[] = Report @[
+    let error = Report @[
         kind: ReportKind::Error,
         message,
         location,
         stack_trace,
     ]
+    errors[] = error
+    if immediate_output { Log::error(error.to_string()) }
 }
 
 // Report an error
 fun Reporter.report_error(message: String, location: Span) {
-    errors[] = Report @[
+    let error = Report @[
         kind: ReportKind::Error,
         message,
         location,
         stack_trace: Trace::get_stack_trace()
     ]
+    errors[] = error
+    if immediate_output { Log::error(error.to_string()) }
 }
 
 // Report a warning
 fun Reporter.report_warning(message: String, location: Span) {
-    warnings[] = Report @[
+    let warn = Report @[
         kind: ReportKind::Warning,
         message,
         location,
         stack_trace: Trace::get_stack_trace()
     ]
+    warnings[] = warn
+    if immediate_output { Log::warn(warn.to_string()) }
 }
 
 // Report a suggestion
 fun Reporter.report_suggestion(message: String, location: Span) {
-    suggestions[] = Report @[
+    let suggestion = Report @[
         kind: ReportKind::Suggestion,
         message,
         location,
         stack_trace: Trace::get_stack_trace()
     ]
+    suggestions[] = suggestion
+    if immediate_output { Log::info(suggestion.to_string()) }
 }
 
 // Print the report

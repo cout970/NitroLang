@@ -1,8 +1,15 @@
 
 fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
-    println("TypeChecker.create_error_type(): $message // $span")
     report_error(message, span)
     ret types.create_type(TypeKind::Invalid @[message, span], [])
+}
+
+fun TypeChecker.create_unresolved_type(span: Span): TypeToken {
+    ret types.create_type(TypeKind::Unresolved @[span], [])
+}
+
+fun TypeChecker.create_unresolved_function_type(span: Span): TypeToken {
+    ret types.create_type(TypeKind::UnresolvedFunction @[span], [])
 }
 
 fun TypeChecker.get_or_create_generic_type(generic: NGeneric): TypeToken {

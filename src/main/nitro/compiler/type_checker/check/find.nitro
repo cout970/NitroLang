@@ -88,27 +88,3 @@ fun TypeChecker.find_field(receiver_type: TypeToken, full_name: String): Optiona
     // Not found
     ret None()
 }
-
-fun TypeChecker.find_getter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
-    // TODO optimice search using Map<String, PropertyAccessor> to avoid iterating over all the getters
-    for getter in program.property_getters {
-        if getter.property_name == full_name && types.is_equal(getter.receiver_type, receiver_type) {
-            ret Some(getter.func)
-        }
-    }
-
-    // Not found
-    ret None()
-}
-
-fun TypeChecker.find_setter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
-    // TODO optimice search using Map<String, PropertyAccessor> to avoid iterating over all the setters
-    for setter in program.property_setters {
-        if setter.property_name == full_name && types.is_equal(setter.receiver_type, receiver_type) {
-            ret Some(setter.func)
-        }
-    }
-
-    // Not found
-    ret None()
-}

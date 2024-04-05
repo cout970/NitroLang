@@ -1,18 +1,133 @@
 
 struct TypeConstraints {
     all: List<TypeConstraint>
+    actions: List<DeferredActions>
 }
 
 option TypeConstraint {
-    Equality { a: TypeToken, b: TypeToken, span: Span }
+    Unify { left: TypeToken, right: TypeToken, span: Span }
+}
+
+struct DeferredActions {
+    arg: TypeToken
+    action: (TypeToken) -> Nothing
 }
 
 fun TypeConstraints::new(): TypeConstraints {
     ret TypeConstraints @[
         all: [],
+        actions: [],
     ]
 }
 
-fun TypeConstraints.is_equal(a: TypeToken, b: TypeToken, span: Span) {
-    all[] = TypeConstraint::Equality @[ a, b, span ]
+// Assert that 2 types are related by equality
+fun TypeConstraints.unify(left: TypeToken, right: TypeToken, span: Span) {
+    all[] = TypeConstraint::Unify @[ left, right, span ]
 }
+
+// Run an action once all argument types are resolved
+fun TypeConstraints.once_resolved(arg: TypeToken, action: (TypeToken) -> Nothing) {
+    actions[] = DeferredActions @[ arg, action ]
+}
+
+struct UnifyCtx {
+    type_checker: TypeChecker
+    types: TypeContainer
+    span: Span
+}
+
+fun TypeConstraints.resolve(type_checker: TypeChecker, span: Span) {
+//    let ctx = UnifyCtx @[span, type_checker, types: type_checker.types]
+//
+//    for constraint in all {
+//        if constraint is TypeConstraint::Unify {
+//            let u = constraint as TypeConstraint::Unify
+//            ctx.unify(u.left, u.right)
+//            // TODO avoid dup reports on every lines
+//            // all.remove(constraint)
+//        }
+//    }
+}
+
+fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
+    if types.is_unresolved(left) {
+        add_substitution(left, right)
+        ret
+    }
+    if types.is_unresolved(right) {
+        add_substitution(left, right)
+        ret
+    }
+
+    if types.is_unresolved_function(left) {
+        add_function_substitution(left, right)
+        ret
+    }
+    if types.is_unresolved_function(right) {
+        add_function_substitution(left, right)
+        ret
+    }
+
+    if types.is_invalid(left) {
+        ret
+    }
+    if types.is_invalid(right) {
+        ret
+    }
+
+    if types.is_generic(left) {
+        if types.is_never(right) {
+            ret
+        }
+
+        if !types.is_equal(left, right) {
+            report_type_mismatch(left, right)
+        }
+        ret
+    }
+
+    if types.is_generic(right) {
+        if types.is_never(left) {
+            ret
+        }
+
+        if !types.is_equal(left, right) {
+            report_type_mismatch(left, right)
+        }
+        ret
+    }
+
+    if types.is_composite(left) && types.is_composite(right) {
+        let left_type = types.get_type(left)
+        let right_type = types.get_type(right)
+
+        repeat min(left_type.params.len, right_type.params.len) {
+            unify(left_type.params[it]!!, right_type.params[it]!!)
+        }
+
+        if left_type.params.len != right_type.params.len {
+            report_type_mismatch(left, right)
+            ret
+        }
+
+        if left_type.kind != right_type.kind && types.common_kind_type(left_type.kind, right_type.kind).is_none() {
+            report_type_mismatch(left, right)
+        }
+        ret
+    }
+
+    report_type_mismatch(left, right)
+}
+
+fun UnifyCtx.add_substitution(a: TypeToken, b: TypeToken) {
+
+}
+
+fun UnifyCtx.add_function_substitution(a: TypeToken, b: TypeToken) {
+
+}
+
+fun UnifyCtx.report_type_mismatch(a: TypeToken, b: TypeToken) {
+    type_checker.reporter.report_error("Type mismatch: ${types.get_type(a)} != ${types.get_type(b)}", span)
+}
+

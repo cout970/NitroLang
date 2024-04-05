@@ -1,0 +1,25 @@
+
+fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code: NCode) {
+    let return_tt = create_unresolved_type(inst.span)
+    let arg_types = []
+
+    for arg in kind.arguments {
+        arg_types[] = code.find_type(arg)!!
+    }
+
+    let first_arg = if arg_types.is_not_empty() { arg_types.first()!! } else { type_cache["Nothing"]!! }
+
+    // TODO support call local var with `var()` instead of `var.call()`
+
+    // Workaround for compiler bug with passing `this` to a closure
+    let checker = this
+    cons.once_resolved(first_arg) @{ ignored: TypeToken ->
+        checker.check_inst_fun_call_post(kind, inst, code, return_tt)
+    }
+
+    inst.type_token = Some(return_tt)
+}
+
+fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, code: NCode, return_tt: TypeToken) {
+    // TODO function resolution
+}

@@ -1,14 +1,35 @@
 
+struct Index {
+    current: Int
+}
+
 fun TypeChecker.check_code(code: NCode) {
+    current_code = Some(code)
+    defer { current_code = None() }
+
     for v in code.vars {
         check_var(v, code)
     }
 
     // check_inst() can add new instructions, so we need to loop until the end
-    let index = 0
-    while index < code.inst.len {
-        check_inst(index, code.inst[index]!!, code)
-        index += 1
+    let index = Index @[current: 0]
+    while index.current < code.inst.len {
+        let current = code.inst[index.current]!!
+        check_inst(index, current, code)
+        index.current += 1
+
+        // Resolve constraints to replace unresolved types
+        // We do this on every line, so when a error occurs, we at the location of the error
+        // If we solve at the end, we would have no way of knowing where the error occurred,
+        // because the are relations between types that are complex and can be solved in many different ways
+        cons.resolve(this, current.span)
+    }
+
+    // Sanity check
+    for i in code.inst {
+        if i.type_token.is_none() {
+            crash("All instructions must have a type: $i")
+        }
     }
 }
 
@@ -23,9 +44,14 @@ fun TypeChecker.check_var(v: NVar, code: NCode) {
     }
 }
 
-fun TypeChecker.check_inst(index: Int, inst: NInst, code: NCode) {
+fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
+    // Already visited
+    if inst.type_token.is_some() {
+        ret
+    }
+
     if inst.kind is NInstKind::Let {
-        let kind = (inst.kind as NInstKind::Let)
+        let kind = inst.kind as NInstKind::Let
         check_var(kind.variable, code)
 
         inst.type_token = type_cache["Nothing"]
@@ -48,32 +74,20 @@ fun TypeChecker.check_inst(index: Int, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::IfChoose {
-        let kind = (inst.kind as NInstKind::IfChoose)
+        let kind = inst.kind as NInstKind::IfChoose
         let cond_type = code.find_type(kind.condition)
         let if_true_type = code.find_type(kind.if_true)
         let if_false_type = code.find_type(kind.if_false)
 
-        if cond_type.is_none() {
-            println("ERROR: cond_type is none\n${inst.span}\n$inst")
-            inst.type_token = type_cache["Nothing"]
-            ret
-        }
-        if if_true_type.is_none() {
-            println("ERROR: if_true_type is none\n${inst.span}\n$inst")
-            inst.type_token = type_cache["Nothing"]
-            ret
-        }
-        if if_false_type.is_none() {
-            println("ERROR: if_false_type is none\n${inst.span}\n$inst")
-            inst.type_token = type_cache["Nothing"]
-            ret
+        if cond_type.is_none() || if_true_type.is_none() || if_false_type.is_none() {
+            crash("Previous instructions must have types (cond: $cond_type, if_true: $if_true_type, if_false: $if_false_type)")
         }
 
         let common = check_type_usage(NTypeUsage::unresolved(inst.span))
 
-        cons.is_equal(cond_type!!, type_cache["Boolean"]!!, inst.span)
-        cons.is_equal(common, if_true_type!!, inst.span)
-        cons.is_equal(common, if_false_type!!, inst.span)
+        cons.unify(cond_type!!, type_cache["Boolean"]!!, inst.span)
+        cons.unify(common, if_true_type!!, inst.span)
+        cons.unify(common, if_false_type!!, inst.span)
 
         inst.type_token = Some(common)
         ret
@@ -125,7 +139,7 @@ fun TypeChecker.check_inst(index: Int, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::AsType {
-        let kind = (inst.kind as NInstKind::AsType)
+        let kind = inst.kind as NInstKind::AsType
         let tt = check_type_usage(kind.type_usage)
         inst.type_token = Some(tt)
         ret
@@ -141,38 +155,69 @@ fun TypeChecker.check_inst(index: Int, inst: NInst, code: NCode) {
         ret
     }
 
-//    LoadField {
-//        instance: NInstId
-//        name: String
-//    }
-//    StoreField {
-//        instance: NInstId
-//        name: String
-//        value: NInstId
-//    }
-//    SizeOf {
-//        type_usage: NTypeUsage
-//    }
-//    Alloc {
-//        type_usage: NTypeUsage
-//    }
-//    Lambda {
-//        lambda: NLambda
-//    }
-//    Link {
-//        linked_id: NInstId
-//    }
-//    Comment {
-//        text: String
-//    }
-//    Noop {}
+    if inst.kind is NInstKind::LoadField {
+        check_inst_load_field(inst.kind as NInstKind::LoadField, index, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::StoreField {
+        check_inst_store_field(inst.kind as NInstKind::StoreField, index, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::SizeOf {
+        let kind = inst.kind as NInstKind::SizeOf
+        kind.type_token = Some(check_type_usage(kind.type_usage))
+        inst.type_token = type_cache["Int"]
+        ret
+    }
+
+    if inst.kind is NInstKind::Alloc {
+        let kind = inst.kind as NInstKind::Alloc
+        kind.type_token = Some(check_type_usage(kind.type_usage))
+
+        // TODO is type instantiable?
+
+        inst.type_token = kind.type_token
+        ret
+    }
+
+    if inst.kind is NInstKind::Lambda {
+        check_inst_lambda(inst.kind as NInstKind::Lambda, inst, code)
+        ret
+    }
+
+    if inst.kind is NInstKind::Link {
+        let kind = inst.kind as NInstKind::Link
+        let link_type = code.find_type(kind.linked_id)
+
+        if link_type.is_none() {
+            crash("Linked instruction must have a type (#${kind.linked_id})")
+        }
+
+        inst.type_token = link_type
+        ret
+    }
+
+    if inst.kind is NInstKind::Comment {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    if inst.kind is NInstKind::Noop {
+        inst.type_token = type_cache["Nothing"]
+        ret
+    }
+
+    inst.type_token = type_cache["Nothing"]
+    ret
 }
 
-fun TypeChecker.add_load_this_var(code: NCode, index: Int): NInstId {
+fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
     // Duplicate current instruction
-    code.duplicate_inst(index)
+    code.duplicate_inst(index.current)
     // Get the duplicated instruction (first of the two)
-    let dup = code.inst[index]!!
+    let dup = code.inst[index.current]!!
     // Replace it's kind with LoadVar for `this`
     dup.kind = NInstKind::LoadVar @[
         path: "",
@@ -180,15 +225,13 @@ fun TypeChecker.add_load_this_var(code: NCode, index: Int): NInstId {
         variable: None(),
         constant: None(),
     ]
-    // Check the new instruction now, because index is not getting incremented
+    // Check the new instruction now
     check_inst(index, dup, code)
 
-    ret dup.id
-}
+    // Skip the LoadVar instruction
+    index.current += 1
 
-fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code: NCode) {
-    // TODO
-    inst.type_token = type_cache["Nothing"]
+    ret dup.id
 }
 
 fun TypeChecker.check_inst_literal(kind: NInstKind::Literal, inst: NInst, code: NCode) {

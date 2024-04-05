@@ -42,6 +42,119 @@ fun TypeContainer.get_type_by_id(id: TypeId): Type {
     ret all_types[id]!!
 }
 
-fun TypeContainer.to_string(tt: TypeToken): String {
-    ret get_type(tt).to_string()
+fun TypeContainer.is_equal(a: TypeToken, b: TypeToken): Boolean {
+    ret type_tokens[a]!! == type_tokens[b]!!
+}
+
+fun TypeContainer.is_unresolved(tt: TypeToken): Boolean {
+    ret get_type(tt).kind is TypeKind::Unresolved
+}
+
+fun TypeContainer.is_unresolved_function(tt: TypeToken): Boolean {
+    ret get_type(tt).kind is TypeKind::UnresolvedFunction
+}
+
+fun TypeContainer.is_generic(tt: TypeToken): Boolean {
+    ret get_type(tt).kind is TypeKind::Generic
+}
+
+fun TypeContainer.is_invalid(tt: TypeToken): Boolean {
+    ret get_type(tt).kind is TypeKind::Invalid
+}
+
+fun TypeContainer.is_composite(tt: TypeToken): Boolean {
+    let kind = get_type(tt).kind
+    ret kind is TypeKind::Struct || kind is TypeKind::Option || kind is TypeKind::OptionItem
+}
+
+fun TypeContainer.is_named(tt: TypeToken, name: String): Boolean {
+    let ty = get_type(tt)
+
+    if ty.kind is TypeKind::Struct {
+        ret (ty.kind as TypeKind::Struct).instance.full_name == name
+    }
+
+    if ty.kind is TypeKind::Option {
+        ret (ty.kind as TypeKind::Option).instance.full_name == name
+    }
+
+    if ty.kind is TypeKind::OptionItem {
+        ret (ty.kind as TypeKind::OptionItem).instance.full_name == name
+    }
+
+    ret false
+}
+
+fun TypeContainer.is_boolean(tt: TypeToken): Boolean = this.is_named(tt, "Boolean")
+fun TypeContainer.is_byte(tt: TypeToken): Boolean = this.is_named(tt, "Byte")
+fun TypeContainer.is_char(tt: TypeToken): Boolean = this.is_named(tt, "Char")
+fun TypeContainer.is_float(tt: TypeToken): Boolean = this.is_named(tt, "Float")
+fun TypeContainer.is_function(tt: TypeToken): Boolean = this.is_named(tt, "Function")
+fun TypeContainer.is_int(tt: TypeToken): Boolean = this.is_named(tt, "Int")
+fun TypeContainer.is_long(tt: TypeToken): Boolean = this.is_named(tt, "Long")
+fun TypeContainer.is_never(tt: TypeToken): Boolean = this.is_named(tt, "Never")
+fun TypeContainer.is_nothing(tt: TypeToken): Boolean = this.is_named(tt, "Nothing")
+fun TypeContainer.is_string(tt: TypeToken): Boolean = this.is_named(tt, "String")
+
+fun TypeContainer.common_kind_type(left: TypeKind, right: TypeKind): Optional<TypeKind> {
+    if left == right {
+        ret Some(left)
+    }
+
+    if left is TypeKind::Struct && (left as TypeKind::Struct).instance.full_name == "Never" {
+        ret Some(right)
+    }
+    if right is TypeKind::Struct && (right as TypeKind::Struct).instance.full_name == "Never" {
+        ret Some(left)
+    }
+
+    // Ordering and Ordering::Equals => Ordering
+    if left is TypeKind::Option && right is TypeKind::OptionItem {
+        let left_option: NOption = (left as TypeKind::Option).instance
+        let right_struct = (right as TypeKind::OptionItem).instance
+
+        for item in left_option.items {
+            if item.def == right_struct {
+                ret Some(left)
+            }
+        }
+
+        ret None()
+    }
+
+    // Ordering::Equals and Ordering => Ordering
+    if left is TypeKind::OptionItem && right is TypeKind::Option {
+        let left_struct = (left as TypeKind::OptionItem).instance
+        let right_option: NOption = (right as TypeKind::Option).instance
+
+        for item in right_option.items {
+            if item.def == left_struct {
+                ret Some(right)
+            }
+        }
+
+        ret None()
+    }
+
+    // Ordering::Less and Ordering::Equals => Ordering
+    if left is TypeKind::OptionItem && right is TypeKind::OptionItem {
+        let left_struct = (left as TypeKind::OptionItem).instance
+        let right_struct = (right as TypeKind::OptionItem).instance
+
+        if left_struct == right_struct {
+            ret Some(left)
+        }
+
+        ret None()
+    }
+
+    // Function and Lambda => Function
+    if left is TypeKind::Struct && (left as TypeKind::Struct).instance.full_name == "Function" && right is TypeKind::Lambda {
+        ret Some(left)
+    }
+    if right is TypeKind::Struct && (right as TypeKind::Struct).instance.full_name == "Function" && left is TypeKind::Lambda {
+        ret Some(right)
+    }
+
+    ret None()
 }

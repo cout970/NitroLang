@@ -6,6 +6,7 @@ struct NCode {
     parent_inst: Optional<NInstId>
     parent_block: Optional<NBlock>
     parent_span: Optional<Span>
+    generics: NGenericParams
     // List of instructions of the function/constant
     inst: List<NInst>
     // Declared variables, names can be duplicated
@@ -51,6 +52,7 @@ fun NCode::new(): NCode {
         parent_inst: None(),
         parent_block: None(),
         parent_span: None(),
+        generics: NGenericParams::new(),
         inst: [],
         vars: [],
         last_id: -1,
@@ -189,6 +191,9 @@ fun NCode.to_string(): String {
         let prefix_len = line.len
         line += "  " * i.block.depth
         line += i.to_string().indent(prefix_len).trim()
+        line += "  [type: "
+        line += i.type_token.to_string()
+        line += "]"
 
         body_str += "\n"
         body_str += line

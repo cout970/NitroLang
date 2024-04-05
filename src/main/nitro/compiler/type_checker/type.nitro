@@ -91,6 +91,16 @@ fun Type.is_equal(other: Type): Boolean {
     ret true
 }
 
+fun TypeKind.get_ordering(other: TypeKind): Ordering {
+    let ord = this.kind_name <=> other.kind_name
+
+    if ord != Ordering::Equals {
+        ret ord
+    }
+
+    ret this.span <=> other.span
+}
+
 fun Type.to_string(): String {
     let result = kind.to_string()
 

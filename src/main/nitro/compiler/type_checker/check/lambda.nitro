@@ -1,0 +1,25 @@
+
+fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NCode) {
+    let kind = inst.kind as NInstKind::Lambda
+    let inst_type: TypeToken = create_unresolved_function_type(inst.span)
+    let checker = this
+
+    cons.once_resolved(inst_type) @{ inst_tt: TypeToken ->
+
+        if !checker.types.is_function(inst_tt) {
+            let error = checker.create_error_type("Lambda type cannot be resolved", inst.span)
+            checker.cons.unify(inst_type, error, inst.span)
+            ret
+        }
+
+        let inst_ty: Type = checker.types.get_type(inst_tt)
+        let type_kind = TypeKind::Lambda @[instance: kind.instance]
+        let real_type = checker.types.create_type(type_kind, inst_ty.params)
+
+        checker.cons.unify(inst_type, real_type, inst.span)
+        // TODO check ParserCtx.visitLambda() for missing checks
+        ret
+    }
+
+    inst.type_token = Some(inst_type)
+}

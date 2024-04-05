@@ -1,0 +1,91 @@
+
+struct PropertyAccessor {
+    pattern: TypePattern
+    property_name: String
+    func: NFunction
+}
+
+struct PropertyCache {
+    getters: Map<String, List<PropertyAccessor>>
+    setters: Map<String, List<PropertyAccessor>>
+}
+
+fun PropertyCache::new(): PropertyCache {
+    ret PropertyCache @[getters: #[], setters: #[]]
+}
+
+fun TypeChecker.collect_getters_and_setters(func: NFunction) {
+    let name = func.name
+
+    if name.len <= 4 || !func.has_receiver || func.parameters.is_empty() {
+        ret
+    }
+
+    let receiver_type = check_type_usage(func.parameters.first()!!.type_usage)
+    let ret_ty = func.return_type_token!!
+
+    if name.starts_with("get_") && func.parameters.len == 1 {
+        if !types.is_nothing(ret_ty) && !types.is_never(ret_ty) {
+            let property_name = name.slice(4, name.len - 4)
+            let pattern = types.type_to_pattern(receiver_type)
+
+            if property_name !in property_cache.getters {
+                property_cache.getters[property_name] = []
+            }
+
+            let list: List<PropertyAccessor> = property_cache.getters[property_name]!!
+            list[] = PropertyAccessor @[pattern, property_name, func]
+            ret
+        }
+    }
+
+    if name.starts_with("set_") && func.parameters.len == 2 {
+        if types.is_nothing(ret_ty) || types.is_equal(ret_ty, receiver_type) {
+            let property_name = name.slice(4, name.len - 4)
+            let pattern = types.type_to_pattern(receiver_type)
+
+            if property_name !in property_cache.setters {
+                property_cache.setters[property_name] = []
+            }
+
+            let list: List<PropertyAccessor> = property_cache.setters[property_name]!!
+            list[] = PropertyAccessor @[pattern, property_name, func]
+        }
+    }
+}
+
+fun TypeChecker.find_getter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+    let opt = property_cache.getters[full_name]
+
+    // No getters for this property
+    if opt.is_none() {
+        ret None()
+    }
+
+    for getter in opt!! {
+        if types.matches_pattern(receiver_type, getter.pattern) {
+            ret Some(getter.func)
+        }
+    }
+
+    // Not found
+    ret None()
+}
+
+fun TypeChecker.find_setter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+    let opt = property_cache.setters[full_name]
+
+    // No setter for this property
+    if opt.is_none() {
+        ret None()
+    }
+
+    for setter in opt!! {
+        if types.matches_pattern(receiver_type, setter.pattern) {
+            ret Some(setter.func)
+        }
+    }
+
+    // Not found
+    ret None()
+}

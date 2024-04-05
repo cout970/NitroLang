@@ -14,15 +14,7 @@ struct Program {
     consts: List<NConst>
     functions: List<NFunction>
     lambda_functions: List<NLambda>
-    property_getters: List<NPropertyAccessor>
-    property_setters: List<NPropertyAccessor>
     all_function_signatures: List<NFunctionSignature>
-}
-
-struct NPropertyAccessor {
-    receiver_type: TypeToken
-    property_name: String
-    func: NFunction
 }
 
 struct NFunctionSignature {}
@@ -39,8 +31,6 @@ fun Program::new(): Program {
         tags: [],
         consts: [],
         functions: [],
-        property_getters: [],
-        property_setters: [],
         lambda_functions: [],
         all_function_signatures: [],
     ]
@@ -57,8 +47,6 @@ fun Program.extend_with(other: Program) {
     this.tags.add_all(other.tags)
     this.consts.add_all(other.consts)
     this.functions.add_all(other.functions)
-    this.property_getters.add_all(other.property_getters)
-    this.property_setters.add_all(other.property_setters)
     this.lambda_functions.add_all(other.lambda_functions)
     this.all_function_signatures.add_all(other.all_function_signatures)
 }

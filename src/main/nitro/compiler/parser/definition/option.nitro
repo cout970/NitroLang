@@ -110,6 +110,8 @@ fun NOption.get_full_name(): String {
     ret full_name
 }
 
+fun NOption.get_ordering(other: NOption): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+
 fun NOption.to_string(): String {
     let prefix = ""
 

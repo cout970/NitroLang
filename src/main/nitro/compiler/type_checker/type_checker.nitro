@@ -6,12 +6,9 @@ struct TypeChecker {
     type_cache: Map<String, TypeToken>
     type_kind_cache: Map<String, TypeKind>
     type_generic_cache: Map<NGeneric, TypeKind>
-    type_ctx: TypeContext
     cons: TypeConstraints
-}
-
-struct TypeContext {
-    parent: Optional<TypeContext>
+    property_cache: PropertyCache
+    current_code: Optional<NCode>
 }
 
 fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
@@ -22,8 +19,9 @@ fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
         type_cache: #[],
         type_kind_cache: #[],
         type_generic_cache: #[],
-        type_ctx: TypeContext @[parent: None()],
         cons: TypeConstraints::new(),
+        property_cache: PropertyCache::new(),
+        current_code: None(),
     ]
 }
 
@@ -106,31 +104,6 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
             if !found {
                 report_error("Tag not found: ${constraint.name}", def.span)
             }
-        }
-    }
-}
-
-fun TypeChecker.collect_getters_and_setters(func: NFunction) {
-    if func.name.starts_with("get_") && func.parameters.len == 1 && func.has_receiver {
-        let ret_ty = func.return_type_token!!
-
-        if !types.is_nothing(ret_ty) && !types.is_never(ret_ty) {
-            let property_name = func.name.slice(4, func.name.len - 4)
-            let receiver_type = check_type_usage(func.parameters.first()!!.type_usage)
-
-            program.property_getters[] = NPropertyAccessor @[receiver_type, property_name, func]
-            ret
-        }
-    }
-
-    if func.name.starts_with("set_") && func.parameters.len == 2 && func.has_receiver {
-        let ret_ty = func.return_type_token!!
-        let receiver_type = check_type_usage(func.parameters.first()!!.type_usage)
-
-        if types.is_nothing(ret_ty) || types.is_equal(ret_ty, receiver_type) {
-            let property_name = func.name.slice(4, func.name.len - 4)
-
-            program.property_setters[] = NPropertyAccessor @[receiver_type, property_name, func]
         }
     }
 }

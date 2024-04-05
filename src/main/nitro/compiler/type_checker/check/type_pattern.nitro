@@ -1,0 +1,111 @@
+
+struct TypePattern {
+    kind: PatternKind
+    params: List<TypePattern>
+}
+
+option PatternKind {
+    Any {}
+    Struct { instance: NStruct }
+    Option { instance: NOption }
+    Union {}
+}
+
+fun TypeContainer.type_to_pattern(tt: TypeToken): TypePattern {
+    let ty: Type = get_type(tt)
+    let params = []
+
+    for p in ty.params {
+        params += type_to_pattern(p)
+    }
+
+    return TypePattern @[
+        kind: type_kind_to_pattern(ty.kind)
+        params,
+    ]
+}
+
+fun TypeContainer.type_kind_to_pattern(tk: TypeKind): PatternKind {
+    if tk is TypeKind::Struct {
+        ret PatternKind::Struct @[instance: (tk as TypeKind::Struct).instance]
+    }
+    if tk is TypeKind::Option {
+        ret PatternKind::Option @[instance: (tk as TypeKind::Option).instance]
+    }
+    if tk is TypeKind::Union {
+        ret PatternKind::Union @[]
+    }
+    ret PatternKind::Any @[]
+}
+
+fun TypeContainer.matches_pattern(a: TypeToken, b: TypePattern): Boolean {
+    ret matches_pattern(get_type(a), b)
+}
+
+fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
+    let pattern_kind = b.kind
+
+    if pattern_kind is PatternKind::Any {
+        ret true
+    }
+
+    if pattern_kind is PatternKind::Struct {
+        if a.params.len != b.params.len {
+            ret false
+        }
+        repeat a.params.len {
+            if !matches_pattern(a.params[it]!!, b.params[it]!!) {
+                ret false
+            }
+        }
+
+        if a.kind is TypeKind::Struct {
+            let a_id: NStruct = (a.kind as TypeKind::Struct).instance
+            let b_id: NStruct = (pattern_kind as PatternKind::Struct).instance
+
+            ret a_id == b_id
+        }
+        ret false
+    }
+
+    if pattern_kind is PatternKind::Option {
+        if a.params.len != b.params.len {
+            ret false
+        }
+        repeat a.params.len {
+            if !matches_pattern(a.params[it]!!, b.params[it]!!) {
+                ret false
+            }
+        }
+
+        if a.kind is TypeKind::Option {
+            let a_id: NOption = (a.kind as TypeKind::Option).instance
+            let b_id: NOption = (pattern_kind as PatternKind::Option).instance
+
+            ret a_id == b_id
+        }
+
+        if a.kind is TypeKind::Struct {
+            let a_struct: NStruct = (a.kind as TypeKind::Struct).instance
+            let opt: NOption = (pattern_kind as PatternKind::Option).instance
+
+            for item in opt.items {
+                if item.def == a_struct {
+                    ret true
+                }
+            }
+        }
+        ret false
+    }
+
+    if pattern_kind is PatternKind::Union {
+        repeat b.params.len {
+            if matches_pattern(a, b.params[it]!!) {
+                ret true
+            }
+        }
+        ret false
+    }
+
+    unreachable()
+}

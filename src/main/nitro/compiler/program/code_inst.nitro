@@ -79,12 +79,14 @@ option NInstKind {
     }
     SizeOf {
         type_usage: NTypeUsage
+        type_token: Optional<TypeToken>
     }
     Alloc {
         type_usage: NTypeUsage
+        type_token: Optional<TypeToken>
     }
     Lambda {
-        lambda: NLambda
+        instance: NLambda
     }
     Link {
         linked_id: NInstId
@@ -507,6 +509,7 @@ fun NCode.add_size_of(
         block: current_block,
         kind: NInstKind::SizeOf @[
             type_usage,
+            type_token: None(),
         ],
         type_token: None(),
     ]
@@ -525,6 +528,7 @@ fun NCode.add_alloc(
         block: current_block,
         kind: NInstKind::Alloc @[
             type_usage,
+            type_token: None(),
         ],
         type_token: None(),
     ]
@@ -534,7 +538,7 @@ fun NCode.add_alloc(
 
 fun NCode.add_lambda(
     span: Span,
-    lambda: NLambda,
+    instance: NLambda,
 ): NInst {
     last_id += 1
     let i = NInst @[
@@ -542,7 +546,7 @@ fun NCode.add_lambda(
         span,
         block: current_block,
         kind: NInstKind::Lambda @[
-            lambda,
+            instance,
         ],
         type_token: None(),
     ]
@@ -568,14 +572,21 @@ fun NCode.add_link(
 
 fun NCode.duplicate_inst(index: Int) {
     last_id += 1
-    let dup = inst[index]!!
+    let original = inst[index]!!
+
+    let dup = NInst @[
+        id: last_id,
+        span: original.span,
+        block: original.block,
+        kind: original.kind,
+        type_token: original.type_token,
+    ]
 
     // If the last expression is the one being duplicated, update it
-    if last_expression.is_some() && last_expression!! == dup.id {
-        last_expression = Some(last_id)
+    if last_expression.is_some() && last_expression!! == original.id {
+        last_expression = Some(dup.id)
     }
 
-    dup.id = last_id
     inst.insert(index + 1, dup)
 }
 
@@ -686,7 +697,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::Lambda -> {
             let kind = i.kind as NInstKind::Lambda
 
-            add_lambda(i.span, kind.lambda)
+            add_lambda(i.span, kind.instance)
         }
         i.kind is NInstKind::Link -> {
             let kind = i.kind as NInstKind::Link
@@ -842,7 +853,7 @@ fun NInst.to_string(): String {
         t is NInstKind::Lambda -> {
             let kind = t as NInstKind::Lambda
 
-            "lambda ${kind.lambda}"
+            "lambda ${kind.instance}"
         }
         t is NInstKind::Link -> {
             let kind = t as NInstKind::Link

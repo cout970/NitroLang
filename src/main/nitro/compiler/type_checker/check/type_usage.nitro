@@ -28,6 +28,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                     }
                 }
 
+                // Type alias
                 for i in program.type_aliases {
                     if get_full_path(i.path, i.name) == segment {
                         let alias_type = check_type_usage(i.type_usage)
@@ -42,6 +43,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                     }
                 }
 
+                // Cache for type kinds
                 let kind_cache = type_kind_cache[segment]
                 if kind_cache.is_some() {
                     let kind = kind_cache!!
@@ -55,6 +57,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                     ret tt
                 }
 
+                // Is an Option?
                 for i in program.options {
                     if i.full_name == segment {
                         let kind: TypeKind = TypeKind::Option @[instance: i]
@@ -71,6 +74,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                     }
                 }
 
+                // Is a Struct?
                 for i in program.structs {
                     if i.full_name == segment {
                         let kind: TypeKind = if i.parent.is_some() {
@@ -93,6 +97,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                 }
             }
 
+            // Not found
             let tt = create_error_type("Type '$full_name' not found", tu.span)
             tu.type_token = Some(tt)
             ret tt
@@ -100,13 +105,29 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
         TypeUsageKind::TYPE_PARAM -> {
             let generic: Optional<NGeneric> = tu.generic_definition
 
-            if generic.is_none() {
-                let tt = create_error_type("Generic not found: ${tu.name}", tu.span)
+            // Usage in definition
+            if generic.is_some() {
+                let tt = get_or_create_generic_type(generic!!)
                 tu.type_token = Some(tt)
                 ret tt
             }
 
-            let tt = get_or_create_generic_type(generic!!)
+            // Usage in code
+            if current_code.is_some() {
+                let code = current_code!!
+                repeat code.generics.definitions.len {
+                    let def = code.generics.definitions[it]!!
+
+                    if def.name == tu.name {
+                        let opt = code.generics.type_tokens[it]
+                        tu.type_token = opt
+                        ret opt!!
+                    }
+                }
+            }
+
+            // Not found
+            let tt = create_error_type("Generic not found: ${tu.name}", tu.span)
             tu.type_token = Some(tt)
             ret tt
         }

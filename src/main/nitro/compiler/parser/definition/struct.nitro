@@ -88,6 +88,8 @@ fun NStruct.get_full_name(): String {
     ret full_name
 }
 
+fun NStruct.get_ordering(other: NStruct): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+
 fun NStruct.to_string(): String {
     let prefix = ""
 

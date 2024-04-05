@@ -147,6 +147,9 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     ]
     program.functions[] = def
 
+    // Pass generics to the code block to resolve inner references
+    def.code.generics = def.generics
+
     // Type parameters
     skip_nl()
     if lexer.current_token_kind == TokenKind::LTH {

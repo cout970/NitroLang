@@ -55,6 +55,8 @@ fun NConst.get_full_name(): String {
 }
 
 
+fun NConst.get_ordering(other: NConst): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+
 fun NConst.to_string(): String {
     let full_name = get_full_path(path, name)
 
