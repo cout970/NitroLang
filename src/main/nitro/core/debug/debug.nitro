@@ -1,4 +1,10 @@
 
+// Allow to toggle debug mode on/off
+struct DebugMode {
+    enable: Boolean
+}
+let debug_mode: DebugMode = DebugMode @[enable: false]
+
 // No arguments
 fun println() {
     println("")
