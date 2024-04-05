@@ -112,6 +112,10 @@ export function assert(ptr: number) {
 }
 
 export function alloc(bytes: number): number {
+  if (mem.program.memory_alloc_internal) {
+    return mem.program.memory_alloc_internal(bytes);
+  }
+
   // Port of: `fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {}`
   // from memory_arena.nitro
   // Memory: capacity = getInt(4), len = getInt(8), bytes = getInt(12)
