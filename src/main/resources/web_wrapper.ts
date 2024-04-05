@@ -9,6 +9,13 @@ internals.fs.isSupported = true;
 
 internals.fs.readTextFileSync = (path: string) => {
     const data = window.localStorage.getItem('file://' + path);
+
+    if (data === null) {
+        fetch(path).then(r => r.text()).then(data => {
+            window.localStorage.setItem('file://' + path, data);
+        });
+    }
+
     return data;
 };
 internals.fs.writeTextFileSync = (path: string, data: string) => {
