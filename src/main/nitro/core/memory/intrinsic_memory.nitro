@@ -17,3 +17,7 @@ fun memory_copy_internal(target: Int, source: Int, len: Int) {}
 // Intrinsic function that tracks the memory allocated
 @Extern [lib: "core", name: "memory_alloc_trace"]
 fun memory_alloc_trace(amount: Int, ptr: Int) {}
+
+// Intrinsic function that handles out of memory errors
+@Extern [lib: "core", name: "memory_alloc_error"]
+fun memory_alloc_error(amount: Int, return_ptr: Int, capacity: Int, len: Int, bytes_ptr: Int) {}

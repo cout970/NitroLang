@@ -1,8 +1,11 @@
 
 // Represents and area on the heap where the user can allocate instances
 struct MemoryArena {
+    // Total bytes available in the arena
     capacity: Int
+    // Number of bytes used in the arena
     len: Int
+    // Pointer to the start of the arena
     bytes: RawArray<Byte>
 }
 
@@ -13,7 +16,7 @@ struct MemoryCrashBuffer {
 let crash_buffer: MemoryCrashBuffer = MemoryCrashBuffer @[value: 64 * 1024]
 
 // Allocates a number of bytes, returning a pointer to the start of the allocation
-fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
+fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     let ptr_size = size_of<Ptr<Byte>>
 
     let next = this.len
@@ -21,18 +24,17 @@ fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {
     let pad = (ptr_size - next) % ptr_size;
     next = next + (if pad < 0 { pad + ptr_size } else { pad })
 
-    this.len = next + bytes
-    let result = this.bytes.get_ptr(next)
+    this.len = next + amount
+    let result = bytes.get_ptr(next)
 
-    let end = result.get_address() + this.bytes.get_address()
-    let limit = this.bytes.get_address() + this.capacity
+    let end = result.get_address() + bytes.get_address()
+    let limit = bytes.get_address() + this.capacity
 
-    if (end > limit - crash_buffer.value) {
-        crash_buffer.value = 0
-        crash("Out of memory while trying to allocate ${bytes} bytes, current usage is ${this.len} bytes")
+    if end > limit - crash_buffer.value {
+        memory_alloc_error(amount, result.get_address(), capacity, len, bytes.get_address())
     }
 
-    memory_alloc_trace(bytes, result.get_address())
+    memory_alloc_trace(amount, result.get_address())
     ret result
 }
 

@@ -137,9 +137,16 @@ export function memory_copy_internal(target: number, source: number, len: number
 // @Extern [lib="core", name="memory_alloc_trace"]
 // fun memory_alloc_trace(Int, Int): Nothing
 export function memory_alloc_trace(amount: number, ptr: number): void {
-    // console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
-    // console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
+    //console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
+    //console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
     trace.trace_alloc(amount);
+}
+
+// @Extern [lib="core", name="memory_alloc_trace"]
+// fun memory_alloc_error(amount: Int, return_ptr: Int, capacity: Int, len: Int, bytes_ptr: Int) {}
+export function memory_alloc_error(amount: number, return_ptr: number, capacity: number, len: number, bytes_ptr: number): void {
+    debugger;
+    throw new Error(`Failed to allocate ${amount} bytes\n - return_ptr: ${return_ptr}, capacity: ${capacity}, len: ${len}, bytes_ptr: ${bytes_ptr}`);
 }
 
 // -------------------------------------------------------------------------
