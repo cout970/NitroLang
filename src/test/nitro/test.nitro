@@ -1,7 +1,8 @@
 
+include "compiler:includes.nitro"
 include "./test_code2.nitro"
 
-fun run_test() {
+fun main() {
     let file = "test_code2.nitro"
     let reporter = Reporter::new()
     let start = Instant::now()
@@ -23,7 +24,6 @@ fun run_test() {
         reporter.print_all()
     }
 }
-
 
 fun compile(source: String, file: String, reporter: Reporter): Program {
     let lexer = Lexer::new(source, file)

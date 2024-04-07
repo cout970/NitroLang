@@ -23,6 +23,7 @@ class LstProgram(var compilerOptions: CompilerOptions) : Dumpable {
     val allFunctionSignatures = mutableMapOf<TFunctionSignature, LstFunction>()
 
     val includedFiles = mutableSetOf<String>()
+    val includeNamespaces = mutableMapOf<String, String>()
     var usesAlloc: Boolean = false
 
     private var lastStruct = 0

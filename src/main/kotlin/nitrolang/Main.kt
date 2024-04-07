@@ -72,8 +72,17 @@ fun compileToWat(opt: CompilerOptions): LstProgram = Prof.run("compile") {
     Prof.start("program")
     val program = LstProgram(opt)
 
+    opt.namespaces.forEach { (ns, include) ->
+        program.includeNamespaces[ns] = include
+    }
+
     Prof.next("parse_core")
     AstParser.includeFile("core", "core.nitro", program, null)
+
+    Prof.next("includes")
+    opt.includes.forEach { include ->
+        AstParser.includeFile("", include, program, null)
+    }
 
     Prof.next("parse_source")
     AstParser.parseFile(SourceFile.load(opt.source), program)

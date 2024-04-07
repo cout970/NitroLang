@@ -7,6 +7,7 @@ data class CompilerOptions(
     var output: String = "out.wat",
     var server: String? = null,
     var includes: MutableList<String> = mutableListOf(),
+    var namespaces: MutableList<Pair<String, String>> = mutableListOf(),
     var profile: Boolean = false,
     var execute: Boolean = false,
     var dumpIr: Boolean = false,
@@ -41,6 +42,7 @@ data class CompilerOptions(
                         }
 
                         val include = args[i]
+                        i++
                         if (!File(include).exists()) {
                             println("Include file not found: $include")
                             return null
@@ -54,6 +56,37 @@ data class CompilerOptions(
                         if (include !in opt.includes) {
                             opt.includes.add(include)
                         }
+                    }
+
+                    "-n", "--namespace" -> {
+                        i++
+                        if (args.size <= i) {
+                            println("Missing namespace")
+                            return null
+                        }
+
+                        val arg = args[i]
+                        i++
+
+                        if (!arg.contains(":")) {
+                            println("Required namespace and path separated by a colon")
+                            return null
+                        }
+
+                        val ns = arg.substringBefore(":")
+                        val include = arg.substringAfter(":")
+
+                        if (!File(include).exists()) {
+                            println("File not found: $include")
+                            return null
+                        }
+                        if (!File(include).isDirectory) {
+                            println("This is a regular file, it must be a directory: $include")
+                            return null
+                        }
+
+                        // Avoid duplicated includes
+                        opt.namespaces.add(ns to include)
                     }
 
                     "-s", "--server" -> {
@@ -162,6 +195,7 @@ data class CompilerOptions(
             println("Options:")
             println("  -o, --output <file>          Output file")
             println("  -i, --include <file>         Includes a file to the compilation unit")
+            println("  -n, --namespace <ns>:<file>  Add an alias to a folder to use in includes")
             println("  -t, --test                   Run tests")
             println("  -w, --watch <dir>[,<dir2>]   Watch directories for changes")
             println("  -e, --execute                Execute the compiled program")

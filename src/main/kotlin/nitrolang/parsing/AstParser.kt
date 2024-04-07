@@ -20,7 +20,9 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
         fun includeFile(ns: String, path: String, program: LstProgram, prevSource: SourceFile?): Boolean {
             val absPath = if (ns == "core") {
                 File("src/main/nitro/core/$path").absolutePath
-            } else if (prevSource != null) {
+            } else if (ns in program.includeNamespaces) {
+                File(program.includeNamespaces[ns], path).absolutePath
+            } else if (ns == "" && prevSource != null) {
                 File(prevSource.path).absoluteFile.parent + "/$path"
             } else {
                 error("Missing source!")
@@ -100,7 +102,7 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
                 ) {
                     recognizer as MainParser
 
-                    var errorMsg =  "Syntax error: $msg"
+                    var errorMsg = "Syntax error: $msg"
                     var span = Span(
                         recognizer.currentToken.startIndex,
                         recognizer.currentToken.stopIndex,
