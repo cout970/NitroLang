@@ -4,6 +4,7 @@ import nitrolang.backend.MonoLambda
 import nitrolang.backend.MonoOption
 import nitrolang.backend.MonoStruct
 import nitrolang.backend.MonoType
+import kotlin.math.min
 
 fun MonoType.heapSize(): Int {
     return when (base) {
@@ -22,6 +23,7 @@ fun MonoType.heapSize(): Int {
                 "Ptr" -> 4
                 "RawArray" -> 4
                 "Array" -> 4
+                "Function" -> 4
                 "Long" -> 8
                 else -> base.size
             }
@@ -45,6 +47,7 @@ fun MonoType.arraySize(): Int {
                 "Float" -> 4
                 "Ptr" -> 4
                 "RawArray" -> 4
+                "Function" -> 4
                 "Long" -> 8
                 else -> 4
             }
