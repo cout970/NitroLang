@@ -30,7 +30,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         name,
         type_usage,
         type_token: None(),
-        code: NCode::new(),
+        code: NCode::new(span),
         full_name_cache: None(),
     ]
     program.consts[] = def

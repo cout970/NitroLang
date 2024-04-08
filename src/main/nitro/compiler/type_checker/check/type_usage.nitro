@@ -132,7 +132,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
             ret tt
         }
         TypeUsageKind::TYPE_UNRESOLVED -> {
-            let tt = types.create_type(TypeKind::Unresolved @[span: tu.span], params)
+            let tt = create_unresolved_type(tu.span)
             tu.type_token = Some(tt)
             ret tt
         }

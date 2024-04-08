@@ -143,7 +143,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         parameters,
         return_type_usage: NTypeUsage::simple(span, "Nothing"),
         return_type_token: None(),
-        code: NCode::new(),
+        code: NCode::new(span),
     ]
     program.functions[] = def
 

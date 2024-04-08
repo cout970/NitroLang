@@ -28,15 +28,22 @@ option TypeKind {
         span: Span
     }
     Unresolved {
+        id: Int
         span: Span
     }
     UnresolvedFunction {
+        id: Int
         span: Span
     }
     Invalid {
         message: String
         span: Span
     }
+}
+
+struct TypeWrapper {
+    container: TypeContainer
+    type_token: TypeToken
 }
 
 fun TypeKind.get_kind_name(): String {
@@ -98,6 +105,18 @@ fun TypeKind.get_ordering(other: TypeKind): Ordering {
         ret ord
     }
 
+    if this is TypeKind::Unresolved && other is TypeKind::Unresolved {
+        let this_unresolved = this as TypeKind::Unresolved
+        let other_unresolved = other as TypeKind::Unresolved
+        ret this_unresolved.id <=> other_unresolved.id
+    }
+
+    if this is TypeKind::UnresolvedFunction && other is TypeKind::UnresolvedFunction {
+        let this_unresolved = this as TypeKind::UnresolvedFunction
+        let other_unresolved = other as TypeKind::UnresolvedFunction
+        ret this_unresolved.id <=> other_unresolved.id
+    }
+
     ret this.span <=> other.span
 }
 
@@ -121,39 +140,47 @@ fun Type.to_string(): String {
 fun TypeKind.to_string(): String {
     if this is TypeKind::Struct {
         let kind = this as TypeKind::Struct
-        ret "Struct(${kind.instance.span})"
+        let instance: NStruct = kind.instance
+        ret "[struct ${instance.full_name}]"
     }
     if this is TypeKind::Option {
         let kind = this as TypeKind::Option
-        ret "Option(${kind.instance.span})"
+        let instance: NOption = kind.instance
+        ret "[option ${instance.full_name}]"
     }
     if this is TypeKind::OptionItem {
         let kind = this as TypeKind::OptionItem
-        ret "OptionItem(${kind.instance.span})"
+        let instance: NStruct = kind.instance
+        ret "[option-item ${instance.full_name}]"
     }
     if this is TypeKind::Lambda {
         let kind = this as TypeKind::Lambda
-        ret "Lambda(${kind.instance.span})"
+        ret "[lambda ${kind.instance.span}]"
     }
     if this is TypeKind::Generic {
         let kind = this as TypeKind::Generic
-        ret "Generic(${kind.instance.span})"
+        let instance: NGeneric = kind.instance
+        ret "[generic ${instance.name}, ${instance.span}]"
     }
     if this is TypeKind::Union {
         let kind = this as TypeKind::Union
-        ret "Union(${kind.span})"
+        ret "[union]"
     }
     if this is TypeKind::Unresolved {
         let kind = this as TypeKind::Unresolved
-        ret "Unresolved(${kind.span})"
+        ret "[unresolved ${kind.id}]"
     }
     if this is TypeKind::UnresolvedFunction {
         let kind = this as TypeKind::UnresolvedFunction
-        ret "UnresolvedFunction(${kind.span})"
+        ret "[unresolved-function ${kind.id}]"
     }
     if this is TypeKind::Invalid {
         let kind = this as TypeKind::Invalid
-        ret "Invalid(\"${kind.message}\")"
+        ret "[invalid \"${kind.message}\"]"
     }
     crash("Unknown type kind")
+}
+
+fun TypeWrapper.to_string(): String {
+    ret container.get_type(type_token).to_string()
 }

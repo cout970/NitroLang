@@ -5,26 +5,26 @@ fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
 }
 
 fun TypeChecker.create_unresolved_type(span: Span): TypeToken {
-    ret types.create_type(TypeKind::Unresolved @[span], [])
+    types.last_unresolved_id += 1
+    ret types.create_type(TypeKind::Unresolved @[span, id: types.last_unresolved_id], [])
 }
 
 fun TypeChecker.create_unresolved_function_type(span: Span): TypeToken {
-    ret types.create_type(TypeKind::UnresolvedFunction @[span], [])
+    types.last_unresolved_id += 1
+    ret types.create_type(TypeKind::UnresolvedFunction @[span, id: types.last_unresolved_id], [])
 }
 
 fun TypeChecker.get_or_create_generic_type(generic: NGeneric): TypeToken {
-    let kind_cache = type_generic_cache[generic]
-    if kind_cache.is_some() {
-        let kind = kind_cache!!
-        let tt = types.create_type(kind, [])
-        ret tt
+    let cache = type_generic_cache[generic]
+    if cache.is_some() {
+        ret cache!!
     }
 
     let kind = TypeKind::Generic @[instance: generic]
+    let tt = types.create_type(kind, [])
 
-    type_generic_cache[generic] = kind
-
-    ret types.create_type(kind, [])
+    type_generic_cache[generic] = tt
+    ret tt
 }
 
 fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>, args: List<TypeToken>): TypeToken {

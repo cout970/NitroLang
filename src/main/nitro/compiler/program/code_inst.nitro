@@ -6,7 +6,7 @@ struct NInst {
     span: Span
     block: NBlock
     kind: NInstKind
-    type_token: Optional<TypeToken>
+    type_wrapper: Optional<TypeWrapper>
 }
 
 option NInstKind {
@@ -104,7 +104,7 @@ fun NCode.add_noop(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::Noop @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -117,7 +117,7 @@ fun NCode.add_comment(span: Span, text: String): NInst {
         span,
         block: current_block,
         kind: NInstKind::Comment @[text],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -148,7 +148,7 @@ fun NCode.add_let(
         span,
         block: current_block,
         kind: NInstKind::Let @[variable],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret variable
@@ -166,7 +166,7 @@ fun NCode.add_if_start(
         kind: NInstKind::IfStart @[
             condition,
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -181,7 +181,7 @@ fun NCode.add_if_else(
         span,
         block: current_block,
         kind: NInstKind::IfElse @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -196,7 +196,7 @@ fun NCode.add_if_end(
         span,
         block: current_block,
         kind: NInstKind::IfEnd @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -214,7 +214,7 @@ fun NCode.add_if_choose(
         span,
         block: current_block,
         kind: NInstKind::IfChoose @[condition, if_true, if_false],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -230,7 +230,7 @@ fun NCode.add_lit(
         span,
         block: current_block,
         kind: NInstKind::Literal @[value],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -270,7 +270,7 @@ fun NCode.add_return(
         span,
         block: current_block,
         kind: NInstKind::Return @[value],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -287,7 +287,7 @@ fun NCode.add_is_type(
         span,
         block: current_block,
         kind: NInstKind::IsType @[value, type_pattern],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -304,7 +304,7 @@ fun NCode.add_as_type(
         span,
         block: current_block,
         kind: NInstKind::AsType @[value, type_usage],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -327,7 +327,7 @@ fun NCode.add_load_var(
             variable,
             constant: None(),
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -351,7 +351,7 @@ fun NCode.add_store_var(
             value,
             variable,
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -372,7 +372,7 @@ fun NCode.add_load_field(
             name,
             field: None(),
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -395,7 +395,7 @@ fun NCode.add_store_field(
             field: None(),
             value,
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -412,7 +412,7 @@ fun NCode.add_loop_start(
         span,
         block: current_block,
         kind: NInstKind::LoopStart @[break_block, continue_block],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -425,7 +425,7 @@ fun NCode.add_loop_end(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::LoopEnd @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -442,7 +442,7 @@ fun NCode.add_block_jump(
         span,
         block: current_block,
         kind: NInstKind::BlockJump @[backwards, block],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -466,7 +466,7 @@ fun NCode.add_fun_call(
             arguments,
             explicit_type_arguments,
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -479,7 +479,7 @@ fun NCode.add_when_start(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::WhenStart @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -492,7 +492,7 @@ fun NCode.add_when_end(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::WhenEnd @[],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -511,7 +511,7 @@ fun NCode.add_size_of(
             type_usage,
             type_token: None(),
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -530,7 +530,7 @@ fun NCode.add_alloc(
             type_usage,
             type_token: None(),
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -548,7 +548,7 @@ fun NCode.add_lambda(
         kind: NInstKind::Lambda @[
             instance,
         ],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -564,7 +564,7 @@ fun NCode.add_link(
         span,
         block: current_block,
         kind: NInstKind::Link @[linked_id],
-        type_token: None(),
+        type_wrapper: None(),
     ]
     inst[] = i
     ret i
@@ -579,7 +579,7 @@ fun NCode.duplicate_inst(index: Int) {
         span: original.span,
         block: original.block,
         kind: original.kind,
-        type_token: original.type_token,
+        type_wrapper: original.type_wrapper,
     ]
 
     // If the last expression is the one being duplicated, update it
@@ -612,7 +612,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::IfChoose -> {
             let kind = i.kind as NInstKind::IfChoose
 
-            add_if_choose(i.span, kind.condition, kind.if_true, kind.if_false)
+            add_if_choose(i.span, mapping[kind.condition]!!, mapping[kind.if_true]!!, mapping[kind.if_false]!!)
         }
         i.kind is NInstKind::LoopStart -> {
             let kind = i.kind as NInstKind::LoopStart

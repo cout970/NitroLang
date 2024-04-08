@@ -8,7 +8,7 @@ fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, index: Index, 
     }
 
     let inst_type = create_unresolved_type(inst.span)
-    inst.type_token = Some(inst_type)
+    inst.type_wrapper = types.wrap(Some(inst_type))
 
     let checker = this
     cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
@@ -41,7 +41,7 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, index: In
             explicit_type_arguments: [],
         ]
         check_inst(index, inst, code)
-        cons.unify(inst_type, inst.type_token!!, inst.span)
+        cons.unify(inst_type, inst.type_wrapper!!.type_token, inst.span)
         ret
     }
 
@@ -57,7 +57,7 @@ fun TypeChecker.check_inst_store_field(kind: NInstKind::LoadField, index: Index,
         crash("Instance must have a type (#${kind.instance})")
     }
 
-    inst.type_token = type_cache["Nothing"]
+    inst.type_wrapper = types.wrap(type_cache["Nothing"])
 
     let checker = this
     cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
@@ -94,5 +94,5 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::LoadField, index: I
 
     let instance_type = types.get_type(instance_tt)
     let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span)
-    inst.type_token = Some(error)
+    inst.type_wrapper = types.wrap(Some(error))
 }

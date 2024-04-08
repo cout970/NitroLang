@@ -17,9 +17,19 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
         checker.check_inst_fun_call_post(kind, inst, code, return_tt)
     }
 
-    inst.type_token = Some(return_tt)
+    inst.type_wrapper = types.wrap(Some(return_tt))
 }
 
 fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, code: NCode, return_tt: TypeToken) {
-    // TODO function resolution
+    let arg_tt = []
+    let arg_types = []
+
+    for arg in kind.arguments {
+        let tt = code.find_type(arg)!!
+        arg_tt[] = tt
+        arg_types[] = types.get_type(tt)
+    }
+
+    let str = arg_types.join(",")
+    println("TODO resolve function call: ${kind.name} args=$str")
 }

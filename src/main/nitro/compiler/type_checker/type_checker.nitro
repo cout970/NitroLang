@@ -5,7 +5,7 @@ struct TypeChecker {
     types: TypeContainer
     type_cache: Map<String, TypeToken>
     type_kind_cache: Map<String, TypeKind>
-    type_generic_cache: Map<NGeneric, TypeKind>
+    type_generic_cache: Map<NGeneric, TypeToken>
     cons: TypeConstraints
     property_cache: PropertyCache
     current_code: Optional<NCode>

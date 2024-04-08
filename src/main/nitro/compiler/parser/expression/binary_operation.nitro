@@ -82,10 +82,10 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
     let root = create_binary_tree(expressions, operators)
 
     // Traverse the binary tree to generate the code
-    depth_first_traverse(root, code)
+    let result = depth_first_traverse(root, code)
 
     // Return the last generated expression
-    ret found(code.last_expression!!)
+    ret found(result)
 }
 
 // Create a binary tree of operations from the list of expressions and operators,
@@ -142,11 +142,11 @@ fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOper
 }
 
 // Perform a depth first traversal of the binary tree to generate the code in the correct order
-fun depth_first_traverse(tree: BinaryTree, code: NCode) {
+fun depth_first_traverse(tree: BinaryTree, code: NCode): NInstId {
     if tree is BinaryTree::Expression {
         let leaf = tree as BinaryTree::Expression
         code.merge(leaf.code)
-        ret
+        ret code.last_expression!!
     }
 
     if tree is BinaryTree::Operation {
@@ -158,13 +158,14 @@ fun depth_first_traverse(tree: BinaryTree, code: NCode) {
         depth_first_traverse(op.right, code)
         let right_id = code.last_expression!!
 
-        if op.operator.uses_ordering {
+        let inst = if op.operator.uses_ordering {
             let get_ordering = code.add_fun_call(op.span, "", "get_ordering", [left_id, right_id], [])
             code.add_fun_call(op.span, "", op.operator.method, [get_ordering.id], [])
         } else {
             code.add_fun_call(op.span, "", op.operator.method, [left_id, right_id], [])
         }
-        ret
+
+        ret inst.id
     }
 }
 

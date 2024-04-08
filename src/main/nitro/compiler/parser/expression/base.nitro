@@ -119,7 +119,9 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
 
 fun Parser.read_expression_in_parens(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LPAREN)?
+    skip_nl()
     let expr = read_expression(code)?
+    skip_nl()
     skip_token_kind(TokenKind::RPAREN)?
     ret read_expression_call_suffix(code, expr)
 }

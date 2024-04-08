@@ -40,7 +40,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
     }
 
     if name.starts_with("set_") && func.parameters.len == 2 {
-        if types.is_nothing(ret_ty) || types.is_equal(ret_ty, receiver_type) {
+        if types.is_nothing(ret_ty) || types.are_equal(ret_ty, receiver_type) {
             let property_name = name.slice(4, name.len - 4)
             let pattern = types.type_to_pattern(receiver_type)
 

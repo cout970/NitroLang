@@ -6,6 +6,9 @@ struct NCode {
     parent_inst: Optional<NInstId>
     parent_block: Optional<NBlock>
     parent_span: Optional<Span>
+    // Span of the start of the block
+    span: Span
+    // Generics defined for this block of code
     generics: NGenericParams
     // List of instructions of the function/constant
     inst: List<NInst>
@@ -38,7 +41,7 @@ struct NCode {
     const_cache: Map<String, NConst>
 }
 
-fun NCode::new(): NCode {
+fun NCode::new(span: Span): NCode {
     let root_block = NBlock @[
         id: 0,
         parent: None(),
@@ -52,6 +55,7 @@ fun NCode::new(): NCode {
         parent_inst: None(),
         parent_block: None(),
         parent_span: None(),
+        span,
         generics: NGenericParams::new(),
         inst: [],
         vars: [],
@@ -71,7 +75,7 @@ fun NCode::new(): NCode {
 }
 
 fun NCode.new_child(span: Span): NCode {
-    let subcode = NCode::new()
+    let subcode = NCode::new(span)
     subcode.parent_code = Some(this)
     subcode.parent_inst = Some(last_id)
     subcode.parent_block = Some(current_block)
@@ -114,7 +118,10 @@ fun NCode.find(id: NInstId): Optional<NInst> {
 fun NCode.find_type(id: NInstId): Optional<TypeToken> {
     for i in this.inst {
         if i.id == id {
-            ret i.type_token
+            if i.type_wrapper.is_some() {
+                ret Some(i.type_wrapper!!.type_token)
+            }
+            ret None()
         }
     }
 
@@ -191,9 +198,13 @@ fun NCode.to_string(): String {
         let prefix_len = line.len
         line += "  " * i.block.depth
         line += i.to_string().indent(prefix_len).trim()
-        line += "  [type: "
-        line += i.type_token.to_string()
-        line += "]"
+
+        line += "  "
+        if i.type_wrapper.is_some() {
+            line += i.type_wrapper!!.to_string()
+        } else {
+            line += "None()"
+        }
 
         body_str += "\n"
         body_str += line
