@@ -16,19 +16,19 @@ struct ListIterator<#Item> {
 
 // Iterator for lists
 fun List<#Item>.to_iterator(): ListIterator<#Item> {
-    ret ListIterator<#Item> @[
+    ret ListIterator @[
         list: this
         index: 0
     ]
 }
 
 fun ListIterator<#Item>.next(): Optional<#Item> {
-    if this.index >= this.list.len {
+    if index >= list.len {
         ret None()
     }
 
-    let item = this.list[this.index]!!
-    this.index = this.index + 1
+    let item = list[index]!!
+    index += 1
     ret Some(item)
 }
 
@@ -41,11 +41,35 @@ struct IntRangeIterator {
 }
 
 fun IntRangeIterator.next(): Optional<Int> {
-    if this.current > this.last {
+    if current > last {
         ret None()
     }
 
-    let item = this.current
-    this.current = this.current + 1
+    let item = current
+    current += 1
     ret Some(item)
+}
+
+// for entry in map {}
+struct MapIterator<#Key, #Value> {
+    entries: List<Pair<#Key, #Value>>
+    index: Int
+}
+
+// Iterator for map entries
+fun <#Key: MapKey> Map<#Key, #Value>.to_iterator(): MapIterator<#Key, #Value> {
+    ret MapIterator @[
+        entries: entries_to_list()
+        index: 0
+    ]
+}
+
+fun MapIterator<#Key, #Value>.next(): Optional<Pair<#Key, #Value>> {
+    if index >= entries.len {
+        ret None()
+    }
+
+    let entry = entries[index]!!
+    index += 1
+    ret Some(entry)
 }

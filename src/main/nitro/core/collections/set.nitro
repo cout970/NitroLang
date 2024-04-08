@@ -28,6 +28,13 @@ fun <#Item: MapKey> Set<#Item>.add(item: #Item) {
    map[item] = true
 }
 
+// Add all items from a list to the set
+fun <#Item: MapKey> Set<#Item>.add_all(list: List<#Item>) {
+   for item in list {
+      map[item] = true
+   }
+}
+
 // Removes an item from the set
 fun <#Item: MapKey> Set<#Item>.remove(item: #Item) {
    map.remove(item)
@@ -39,24 +46,16 @@ fun <#Item: MapKey> Set<#Item>.contains(item: #Item): Boolean {
 }
 
 // Gets the length of the set, meaning the number of items in it
-fun <#Item: MapKey> Set<#Item>.get_len(): Int {
-   ret map.len
-}
+fun <#Item: MapKey> Set<#Item>.get_len(): Int = map.len
 
 // Checks if the set is empty
-fun <#Item: MapKey> Set<#Item>.is_empty(): Boolean {
-   ret map.is_empty()
-}
+fun <#Item: MapKey> Set<#Item>.is_empty(): Boolean = map.is_empty()
 
 // Checks if the set is not empty
-fun <#Item: MapKey> Set<#Item>.is_not_empty(): Boolean {
-   ret map.is_not_empty()
-}
+fun <#Item: MapKey> Set<#Item>.is_not_empty(): Boolean = map.is_not_empty()
 
 // Converts the set to a list
-fun <#Item: MapKey> Set<#Item>.to_list(): List<#Item> {
-    ret map.keys_to_list()
-}
+fun <#Item: MapKey> Set<#Item>.to_list(): List<#Item> = map.keys_to_list()
 
 // Iterates over each item in the set
 fun <#Item: MapKey> Set<#Item>.for_each(func: (#Item) -> Nothing) {

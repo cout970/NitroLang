@@ -528,6 +528,19 @@ fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
     ret sublist
 }
 
+// Removes all items that match the given predicate
+fun List<#Item>.remove_if(condition: (#Item) -> Boolean) {
+    let i = 0
+
+    while i < count {
+        if condition(this[i]!!) {
+            remove_at(i)
+        } else {
+            i += 1
+        }
+    }
+}
+
 // Creates a copy of this list
 fun List<#Item>.to_list(): List<#Item> {
     let list = List::new<#Item>(count)
@@ -576,4 +589,23 @@ fun <#Item: GetOrdering> List<#Item>.to_sorted_list(): List<#Item> {
     let sorted = to_list()
     sorted.sort_in_place()
     ret sorted
+}
+
+// Compares two lists
+fun <#Item: GetOrdering> List<#Item>.get_ordering(other: List<#Item>): Ordering {
+    if count < other.count {
+        ret Ordering::Less
+    }
+    if count > other.count {
+        ret Ordering::Greater
+    }
+
+    repeat count {
+        let cmp = this[it]!!.get_ordering(other[it]!!)
+        if cmp != Ordering::Equals {
+            ret cmp
+        }
+    }
+
+    ret Ordering::Equals
 }
