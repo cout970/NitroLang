@@ -122,7 +122,7 @@ fun main() {
     ]
     
     // Inline JSON support
-    let my_beloved_json: Json = json {
+    let my_beloved_json: Json = json! {
         "name": "John Doe",
         "age": 42,
         "is_admin": true,
