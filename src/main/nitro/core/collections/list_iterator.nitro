@@ -1,0 +1,25 @@
+
+// for i in list {}
+struct ListIterator<#Item> {
+    list: List<#Item>
+    index: Int
+}
+
+// Create an iterator for this list
+fun List<#Item>.to_iterator(): ListIterator<#Item> {
+    ret ListIterator @[
+        list: this
+        index: 0
+    ]
+}
+
+// Gives the next item in the iterator
+fun ListIterator<#Item>.next(): Optional<#Item> {
+    if index >= list.len {
+        ret None()
+    }
+
+    let item = list[index]!!
+    index += 1
+    ret Some(item)
+}

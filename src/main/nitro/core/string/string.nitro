@@ -2,8 +2,8 @@
 // This type is used to represent a string in the language
 // Strings are immutable and are stored as UTF-8 encoded bytes
 struct String {
-    byte_len: Int
-    ptr: RawArray<Byte>
+    bytes_len: Int
+    bytes: Array<Byte>
 }
 
 // Tag for types that can be converted to a string
@@ -11,28 +11,23 @@ tag ToString {
     fun This.to_string(): String
 }
 
-// Returns the length of the string in bytes
-fun String.byte_len(): Int {
-    ret this.byte_len
-}
-
 // Reads a single byte from the string
 // This is unrecommended as it does not account for UTF-8 encoding
 fun String.get_byte(index: Int): Byte {
-    ret this.ptr.get(index)
+    ret bytes[index]
 }
 
 // tag Slice<Char>
 
 // Returns the length of the string in chars (unicode codepoints)
 fun String.get_len(): Int {
-    ret this.codepoint_len()
+    ret codepoint_len()
 }
 
 // Gets a single char (unicode codepoint) from the string
 // This operation is slow as it has to decode the UTF-8 encoding of the string
 fun String.get(index: Int): Char {
-    ret this.get_codepoint(index).to_char()
+    ret get_codepoint(index).to_char()
 }
 
 // Codepoints
@@ -70,18 +65,18 @@ fun String.is_equal(other: String): Boolean {}
 fun String.is_not_equal(other: String): Boolean {}
 
 // Checks if the string has no characters
-fun String.is_empty(): Boolean = this.byte_len == 0
+fun String.is_empty(): Boolean = bytes_len == 0
 
 // Checks if the string has at least one character
-fun String.is_not_empty(): Boolean = this.byte_len != 0
+fun String.is_not_empty(): Boolean = bytes_len != 0
 
 // Checks if the string has at least one printable character
 fun String.is_blank(): Boolean {
-    let total_len = this.byte_len
+    let total_len = bytes_len
     let cursor = 0
 
     while cursor < total_len {
-        let byte = this.get_byte(cursor).to_int()
+        let byte = get_byte(cursor).to_int()
 
         // Ascii space is 32, anything below that is a control character
         // UTF-8 codepoints will start with a byte bigger than 127,
@@ -100,8 +95,8 @@ fun String.is_blank(): Boolean {
 fun String.get_hash(): Int {
     let hash: Int = 0
 
-    repeat this.byte_len() {
-        hash = (31 * hash).bitwise_xor(this.get_byte(it).to_int())
+    repeat bytes_len {
+        hash = (31 * hash).bitwise_xor(get_byte(it).to_int())
     }
 
     ret hash
@@ -113,12 +108,12 @@ fun String.replace(find: String, replacement: String): String {}
 
 // Indents all lines of a string with a certain indentation
 fun String.indent(indentation: String): String {
-    ret indentation.concat(this.replace("\n", "\n$indentation"))
+    ret indentation.concat(replace("\n", "\n$indentation"))
 }
 
 // Indents all lines of a string with a certain number of space characters
 fun String.indent(spaces: Int): String {
-    ret this.indent(" ".mul(spaces))
+    ret indent(" ".mul(spaces))
 }
 
 // Remove all whitespace characters from the start and end of a string
@@ -129,23 +124,23 @@ fun String.substring(start: Int, end: Int): String {}
 fun String.slice(offset: Int, len: Int): String {
     if len < 0 {
         // `len` is negative, so we add it instead of subtracting it
-        len = this.byte_len() + len
+        len = bytes_len + len
     }
-    ret this.substring(offset, offset + len)
+    ret substring(offset, offset + len)
 }
 
 // Checks if a string contains a substring at a certain index
 fun String.contains_substring_at(at: Int, substring: String): Boolean {
-    let substring_len = substring.byte_len()
+    let substring_len = substring.bytes_len
 
-    if at + substring.byte_len() > this.byte_len() {
+    if at + substring.bytes_len > bytes_len {
         ret false
     }
 
     let cursor = 0
 
     while cursor < substring_len {
-        if this.get_byte(at + cursor) != substring.get_byte(cursor) {
+        if get_byte(at + cursor) != substring.get_byte(cursor) {
             ret false
         }
 
@@ -158,10 +153,10 @@ fun String.contains_substring_at(at: Int, substring: String): Boolean {
 // Gets the index of the first instance of a substring
 fun String.index_of(substring: String): Optional<Int> {
     let current = 0
-    let total_len = this.byte_len()
+    let total_len = bytes_len
 
     while current < total_len {
-        if this.contains_substring_at(current, substring) {
+        if contains_substring_at(current, substring) {
             ret Some(current)
         } else {
             current += 1
@@ -173,10 +168,10 @@ fun String.index_of(substring: String): Optional<Int> {
 
 // Gets the index of the last instance of a substring
 fun String.last_index_of(substring: String): Optional<Int> {
-    let current = this.byte_len() - substring.byte_len()
+    let current = bytes_len - substring.bytes_len
 
     while current >= 0 {
-        if this.contains_substring_at(current, substring) {
+        if contains_substring_at(current, substring) {
             ret Some(current)
         } else {
             current -= 1
@@ -188,24 +183,24 @@ fun String.last_index_of(substring: String): Optional<Int> {
 
 // Checks if a string contains a substring
 fun String.contains(substring: String): Boolean {
-    ret this.index_of(substring).is_some()
+    ret index_of(substring).is_some()
 }
 
 // Checks if a string starts with a prefix
 fun String.starts_with(prefix: String): Boolean {
-    let index = this.index_of(prefix)
+    let index = index_of(prefix)
     ret index.is_some() && index!! == 0
 }
 
 // Checks if a string ends with a suffix
 fun String.ends_with(suffix: String): Boolean {
-    let index = this.last_index_of(suffix)
-    ret index.is_some() && index!! + suffix.byte_len() == this.byte_len()
+    let index = last_index_of(suffix)
+    ret index.is_some() && index!! + suffix.bytes_len == bytes_len
 }
 
 // Adds padding to the start of a string until it reaches a certain length
 fun String.pad_start(len: Int, pad_character: Char): String {
-    let padding_len = len - this.byte_len()
+    let padding_len = len - bytes_len
 
     if padding_len <= 0 {
         ret this
@@ -217,14 +212,14 @@ fun String.pad_start(len: Int, pad_character: Char): String {
 
 // Adds padding to the end of a string until it reaches a certain length
 fun String.pad_end(len: Int, pad_character: Char): String {
-    let padding_len = len - this.byte_len()
+    let padding_len = len - bytes_len
 
     if padding_len <= 0 {
         ret this
     }
 
     let padding = pad_character.to_string() * padding_len
-    ret this.concat(padding)
+    ret concat(padding)
 }
 
 // Splits a string into a list of strings based on a separator
@@ -232,8 +227,8 @@ fun String.split(separator: String): List<String> {
     let list: List<String> = []
     let start: Int = 0
     let cursor: Int = 0
-    let total_len = this.byte_len()
-    let sep_len = separator.byte_len()
+    let total_len = bytes_len
+    let sep_len = separator.bytes_len
 
     while cursor < total_len {
         if sep_len == 0 && start == cursor {
@@ -241,8 +236,8 @@ fun String.split(separator: String): List<String> {
             continue
         }
 
-        if this.contains_substring_at(cursor, separator) {
-            list[] = this.substring(start, cursor)
+        if contains_substring_at(cursor, separator) {
+            list[] = substring(start, cursor)
             start = cursor + sep_len
             cursor = start
         } else {
@@ -251,7 +246,7 @@ fun String.split(separator: String): List<String> {
     }
 
     if start < cursor {
-        list[] = this.substring(start, cursor)
+        list[] = substring(start, cursor)
     }
 
     ret list
@@ -259,16 +254,16 @@ fun String.split(separator: String): List<String> {
 
 // Remove all whitespace characters from the start and end of the string
 fun String.trim(): String {
-    ret this.trim_start().trim_end()
+    ret trim_start().trim_end()
 }
 
 // Remove all whitespace characters from the start of the string
 fun String.trim_start(): String {
     let start = 0
-    let total_len = this.byte_len()
+    let total_len = bytes_len
 
     while start < total_len {
-        let byte = this.get_byte(start).to_int()
+        let byte = get_byte(start).to_int()
 
         // Space characters: ' ' \t \n \v \f \r
         if byte != 32 && byte != 9 && byte != 10 && byte != 11 && byte != 12 && byte != 13 {
@@ -278,15 +273,15 @@ fun String.trim_start(): String {
         start += 1
     }
 
-    ret this.substring(start, total_len)
+    ret substring(start, total_len)
 }
 
 // Remove all whitespace characters from the end of the string
 fun String.trim_end(): String {
-    let end = this.byte_len() - 1
+    let end = bytes_len - 1
 
     while end >= 0 {
-        let byte = this.get_byte(end).to_int()
+        let byte = get_byte(end).to_int()
 
         // Space characters: ' ' \t \n \v \f \r
         if byte != 32 && byte != 9 && byte != 10 && byte != 11 && byte != 12 && byte != 13 {
@@ -296,7 +291,7 @@ fun String.trim_end(): String {
         end -= 1
     }
 
-    ret this.substring(0, end + 1)
+    ret substring(0, end + 1)
 }
 
 // Converts a string to lowercase but only for ASCII characters
@@ -325,7 +320,7 @@ fun String.to_string(): String = this
 // TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
-    let total_len = this.len
+    let total_len = len
     let cursor = 0
     let sign = 1
 
@@ -367,7 +362,7 @@ fun String.to_int(): Optional<Int> {
 // Converts a string to an integer, only [_\-\+0-9a-zA-Z] chars are allowed
 fun String.to_int_in_base(base: Int): Optional<Int> {
     let result = 0
-    let total_len = this.len
+    let total_len = len
     let cursor = 0
     let sign = 1
 
@@ -441,12 +436,12 @@ fun String.to_int_in_base(base: Int): Optional<Int> {
 }
 
 fun String.to_long(): Optional<Long> {
-    ret this.to_long_in_base(10L)
+    ret to_long_in_base(10L)
 }
 
 fun String.to_long_in_base(base: Long): Optional<Long> {
     let result = 0L
-    let total_len = this.len
+    let total_len = len
     let cursor = 0
     let sign = 1L
 
@@ -532,7 +527,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
 // Ignores all appearances of '_' between digits
 fun String.to_float(): Optional<Float> {
     let result = 0f
-    let total_len = this.len
+    let total_len = len
     let cursor = 0
     let sign = 1f
     let has_dot = false
@@ -732,16 +727,4 @@ fun String.to_float(): Optional<Float> {
     }
 
     ret Some(sign * result)
-}
-
-// Give the ascii (Int) value of the first char of the given string
-//
-// This is a temporary hack until we support the following syntax:
-// - a"M" for the ascii value of 'M'
-// - c"M" for the char 'M'
-// - b"ABC" gives a byte array with the contents of the string in UTF8
-//
-fun a(str: List<String>): Int {
-    crash("Using the nitro implementation instead of the native compiler implementation: $str")
-    ret str[0]!!.get_byte(0).to_int()
 }

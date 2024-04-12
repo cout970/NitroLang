@@ -6,36 +6,39 @@ struct MemoryArena {
     // Number of bytes used in the arena
     len: Int
     // Pointer to the start of the arena
-    bytes: RawArray<Byte>
+    bytes: Array<Byte>
 }
 
 struct MemoryCrashBuffer {
     value: Int
 }
-// 64 KB, to print stack traces and handle the error
-let crash_buffer: MemoryCrashBuffer = MemoryCrashBuffer @[value: 64 * 1024]
 
 // Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     let ptr_size = size_of<Ptr<Byte>>
 
-    let next = this.len
-
+    // Bump allocator
+    let next = len
     let pad = (ptr_size - next) % ptr_size;
     next = next + (if pad < 0 { pad + ptr_size } else { pad })
 
-    this.len = next + amount
-    let result = bytes.get_ptr(next)
+    len = next + amount
 
-    let end = result.get_address() + bytes.get_address()
-    let limit = bytes.get_address() + this.capacity
+    // Translate to address
+    let base_start = ptr_of(bytes).address
+    let base_end = base_start + capacity
 
-    if end > limit - crash_buffer.value {
-        memory_alloc_error(amount, result.get_address(), capacity, len, bytes.get_address())
+    let start = base_start + next
+    let end = start + amount
+
+    // Check we are out-of-memory
+    if end > base_end {
+        // Error handled in native code, since we don't have enough memory to generate a stacktrace
+        memory_alloc_error(amount, start, capacity, len, base_start)
     }
 
-    memory_alloc_trace(amount, result.get_address())
-    ret result
+    memory_alloc_trace(amount, start)
+    ret ptr_from_address(start)
 }
 
 // Allocates a value on the heap, using the size of the value to determine the number of bytes to allocate
@@ -78,35 +81,6 @@ fun format_bytes(amount: Int): String {
     let prefix = if amount < 0 { "-" } else { "" }
     ret "$prefix$n ${units[l]!!}"
 }
-
-// Efficiently copies a number of bytes from one location to another
-// Must not overlap and all bytes must be within the arena
-@Extern [lib: "core", name: "memory_copy_within"]
-fun MemoryArena.copy_within(dst: Ptr<Byte>, src: Ptr<Byte>, byte_len: Int) {}
-
-// Reads a single byte from the memory
-@Extern [lib: "core", name: "memory_read_byte"]
-fun MemoryArena.read_byte(ptr: Ptr<Byte>): Byte {}
-
-// Writes a single byte to the memory
-@Extern [lib: "core", name: "memory_write_byte"]
-fun MemoryArena.write_byte(ptr: Ptr<Byte>, value: Byte) {}
-
-// Reads a single integer from the memory
-@Extern [lib: "core", name: "memory_read_int"]
-fun MemoryArena.read_int(ptr: Ptr<Int>): Int {}
-
-// Writes a single integer to the memory
-@Extern [lib: "core", name: "memory_write_int"]
-fun MemoryArena.write_int(ptr: Ptr<Int>, value: Int) {}
-
-// Reads a single float from the memory
-@Extern [lib: "core", name: "memory_read_float"]
-fun MemoryArena.read_float(ptr: Ptr<Float>): Float {}
-
-// Writes a single float to the memory
-@Extern [lib: "core", name: "memory_write_float"]
-fun MemoryArena.write_float(ptr: Ptr<Float>, value: Float) {}
 
 // Prints the contents of the heap to the console, for debugging purposes
 @Extern [lib: "core", name: "memory_dump"]

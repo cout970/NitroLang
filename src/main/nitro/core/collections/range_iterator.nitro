@@ -1,0 +1,18 @@
+
+// Iterator for int ranges
+// for i in 0..=10 {}
+// for i in 0..<10 {}
+struct IntRangeIterator {
+    current: Int
+    last: Int
+}
+
+fun IntRangeIterator.next(): Optional<Int> {
+    if current > last {
+        ret None()
+    }
+
+    let item = current
+    current += 1
+    ret Some(item)
+}

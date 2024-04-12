@@ -1,0 +1,25 @@
+
+// Iterator for the deque
+struct ArrayDequeIterator<#Item> {
+    deque: ArrayDeque<#Item>
+    index: Int
+}
+
+// Create an iterator for this deque
+fun ArrayDeque<#Item>.to_iterator(): ArrayDequeIterator<#Item> {
+    ret ArrayDequeIterator<#Item> @[
+        deque: this,
+        index: 0,
+    ]
+}
+
+// Gives the next item in the iterator
+fun ArrayDequeIterator<#Item>.next(): Optional<#Item> {
+    if index >= deque.count {
+        ret None()
+    }
+
+    let item = deque[index]
+    index += 1
+    ret item
+}

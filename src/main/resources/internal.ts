@@ -145,7 +145,7 @@ export function alloc(bytes: number): number {
 export function createString(value: string): number {
   // Heap:
   // - 4 byte: String len in bytes
-  // - 4 byte: Pointer to string characters in heap or data section
+  // - 4 byte: Pointer to Array<Byte> in heap or data section
   const ptr = alloc(PTR * 2);
   const len_ptr = ptr;
   const bytes_ptr = ptr + PTR;
@@ -153,8 +153,9 @@ export function createString(value: string): number {
   //console.debug(`createString(${value}) => 0x${ptr.toString(16).padStart(4, '0')}`);
 
   const uint8array = (new TextEncoder()).encode(value);
-  const data_ptr = alloc(uint8array.length);
-  mem.u8.set(uint8array, data_ptr);
+  const data_ptr = alloc(PTR + uint8array.length);
+  mem.u8.set(uint8array, data_ptr + PTR);
+  setInt(data_ptr, uint8array.length);
 
   setInt(len_ptr, uint8array.length);
   setInt(bytes_ptr, data_ptr);
@@ -165,14 +166,14 @@ export function getString(ptr: number): string {
   assert(ptr);
   // Heap:
   // - 4 byte: String len in bytes
-  // - 4 byte: Pointer to string characters in heap or data section
+  // - 4 byte: Pointer to Array<Byte> in heap or data section
   const len = getInt(ptr);
   const bytes = getInt(ptr + PTR);
 
   // console.log('getString', {ptr, len, bytes})
   // dumpMemory(bytes, len);
 
-  const contents = mem.u8.subarray(bytes, bytes + len);
+  const contents = mem.u8.subarray(bytes + PTR, bytes + PTR + len);
 
   const textDecoder = new TextDecoder('utf-8', {fatal: true});
   return textDecoder.decode(contents);

@@ -1,0 +1,25 @@
+
+// for entry in map {}
+struct MapIterator<#Key, #Value> {
+    entries: List<Pair<#Key, #Value>>
+    index: Int
+}
+
+// Create an iterator for this map
+fun <#Key: MapKey> Map<#Key, #Value>.to_iterator(): MapIterator<#Key, #Value> {
+    ret MapIterator @[
+        entries: to_list()
+        index: 0
+    ]
+}
+
+// Gives the next item in the iterator
+fun MapIterator<#Key, #Value>.next(): Optional<Pair<#Key, #Value>> {
+    if index >= entries.len {
+        ret None()
+    }
+
+    let entry = entries[index]!!
+    index += 1
+    ret Some(entry)
+}

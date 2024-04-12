@@ -1,6 +1,6 @@
 
 // This type represents a unordered map, a.k.a a dictionary or an associative array
-// It is implemented as a hash table with open addressing and linear probing
+// It is implemented as a hash table with bucketing for collisions
 // Any type that has the functions Type.get_hash() and Type.get_ordering(Type) can be used as a key
 //
 // A map can be created using the `#[...]` syntax:
@@ -225,6 +225,18 @@ fun <#Key: MapKey> Map<#Key, #Value>.remove(key: #Key): Boolean {
     ret false
 }
 
+fun <#Key: MapKey> Map<#Key, #Value>.get_or_set(key: #Key, create_value: () -> #Value): #Value {
+    let opt = this[key]
+
+    if opt.is_some() {
+        ret opt!!
+    }
+
+    let value = create_value()
+    this[key] = value
+    ret value
+}
+
 // Iterates over the each entry in the map
 fun <#Key: MapKey> Map<#Key, #Value>.for_each_entry(func: (#Key, #Value) -> Nothing) {
     repeat capacity {
@@ -346,11 +358,22 @@ fun <#Key: MapKey> Map<#Key, #Value>.map(func: (#Key, #Value) -> #Value): List<#
 }
 
 // Returns the list of entries in the map
-fun <#Key: MapKey> Map<#Key, #Value>.entries_to_list(): List<Pair<#Key, #Value>> {
+fun <#Key: MapKey> Map<#Key, #Value>.to_list(): List<Pair<#Key, #Value>> {
     let res = List::new<Pair<#Key, #Value>>()
 
     for_each_entry @{ key: #Key, value: #Value ->
         res[] = Pair::of(key, value)
+    }
+
+    ret res
+}
+
+// Create a clone of this map
+fun <#Key: MapKey> Map<#Key, #Value>.to_map(): Map<#Key, #Value> {
+    let res = Map::new<#Key, #Value>(count)
+
+    for_each_entry @{ key: #Key, value: #Value ->
+        res[key] = value
     }
 
     ret res

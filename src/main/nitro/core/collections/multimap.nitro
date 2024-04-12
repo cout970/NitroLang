@@ -1,0 +1,139 @@
+
+// This type represents a map with multiple values for each key
+// It is implemented as using a hashmap when list as keys
+struct Multimap<#Key, #Value> {
+    map: Map<#Key, List<#Value>>
+}
+
+// Create a new multimap
+fun <#Key: MapKey> Multimap::new(): Multimap<#Key, #Value> {
+    ret Multimap @[
+        map: #[]
+    ]
+}
+
+// Create a new multimap with a pre-allocated capacity
+fun <#Key: MapKey> Multimap::new(capacity: Int): Multimap<#Key, #Value> {
+    ret Multimap @[
+        map: Map::new(capacity)
+    ]
+}
+
+// Replaces the list of values for a key
+fun <#Key: MapKey> Multimap<#Key, #Value>.set(key: #Key, value: List<#Value>) {
+    map[key] = value
+}
+
+// Adds a value to the list of values for a key
+fun <#Key: MapKey> Multimap<#Key, #Value>.add(key: #Key, value: #Value) {
+    let opt = map[key]
+
+    let list = if opt.is_none() {
+        let new_list = []
+        map[key] = new_list
+        new_list
+    } else {
+        opt!!
+    }
+
+    list[] = value
+}
+
+// Adds a key-value pair to the multimap
+fun <#Key: MapKey> Multimap<#Key, #Value>.add(pair: Pair<#Key, #Value>): Nothing = this.add(pair.first, pair.second)
+
+// Gets the list of values for a key
+fun <#Key: MapKey> Multimap<#Key, #Value>.get(key: #Key): List<#Value> {
+    let opt = map[key]
+
+    if opt.is_none() {
+        ret []
+    } else {
+        ret opt!!
+    }
+}
+
+// Removes all values on the map
+fun <#Key: MapKey> Multimap<#Key, #Value>.clear(): Nothing = map.clear()
+
+// Removes all values for a key
+fun <#Key: MapKey> Multimap<#Key, #Value>.remove(key: #Key): Nothing = map.remove(key)
+
+// Removes a value from all lists on the map
+fun <#Key: MapKey, #Value: GetOrdering> Multimap<#Key, #Value>.remove_value(value: #Value) {
+    for entry in map {
+        entry.second.remove_value(value)
+    }
+}
+
+// Creates a list with all keys
+fun <#Key: MapKey> Multimap<#Key, #Value>.keys_to_list(): List<#Key> = map.keys_to_list()
+
+// Creates a list with all values
+fun <#Key: MapKey> Multimap<#Key, #Value>.values_to_list(): List<#Value> {
+    let values = []
+
+    for entry in map {
+        values.add_all(entry.second)
+    }
+
+    ret values
+}
+
+// Creates a list with all key-value pairs
+fun <#Key: MapKey> Multimap<#Key, #Value>.to_list(): List<Pair<#Key, #Value>> {
+    let pairs: List<Pair<#Key, #Value>> = []
+
+    for entry in map {
+        for value in entry.second {
+            pairs[] = Pair::of(entry.first, value)
+        }
+    }
+
+    ret pairs
+}
+
+// Checks if a key is present on the map
+fun <#Key: MapKey> Multimap<#Key, #Value>.contains_key(key: #Key): Boolean = map.contains_key(key)
+
+// Checks if a value is present on the map
+fun <#Key: MapKey, #Value: GetOrdering> Multimap<#Key, #Value>.contains_value(value: #Value): Boolean {
+    for entry in map {
+        if entry.second.contains(value) {
+            ret true
+        }
+    }
+
+    ret false
+}
+
+// Create a map with the same keys and lists of values
+fun <#Key: MapKey> Multimap<#Key, #Value>.to_map(): Map<#Key, List<#Value>> = map.to_map()
+
+// Returns the number of keys on the multimap
+fun <#Key: MapKey> Multimap<#Key, #Value>.len(): Int = map.len
+
+// Checks if the multimap is empty
+fun <#Key: MapKey> Multimap<#Key, #Value>.is_empty(): Boolean = map.is_empty()
+
+// Checks if the multimap is not empty
+fun <#Key: MapKey> Multimap<#Key, #Value>.is_not_empty(): Boolean = map.is_not_empty()
+
+// Returns a string representation of the multimap
+fun <#Key: MapKey, ToString, #Value: ToString> Multimap<#Key, #Value>.to_string(): String {
+    let s = ""
+
+    for entry in map {
+        if s.is_not_empty() {
+            s += ", \n"
+        }
+        s += "  "
+        s += entry.first.to_string() + ": " + entry.second.to_string()
+    }
+
+    if s.is_not_empty() {
+        s = "\n$s\n"
+    }
+
+    ret "Multimap @[$s]"
+}
