@@ -446,7 +446,7 @@ open class WasmBuilder(
                     }
 
                     1 -> {
-                        wasmFunc.instructions += WasmInst("i32.load8_s")
+                        wasmFunc.instructions += WasmInst("i32.load8_u")
                     }
 
                     2 -> {
@@ -581,7 +581,7 @@ open class WasmBuilder(
                     is MonoStruct -> {
                         when (itemType.base.instance.fullName) {
                             "Never", "Nothing" -> error("Zero size type")
-                            "Byte", "Boolean" -> wasmFunc.instructions += WasmInst("i32.load8")
+                            "Byte", "Boolean" -> wasmFunc.instructions += WasmInst("i32.load8_u")
                             "Short" -> wasmFunc.instructions += WasmInst("i32.load16")
                             "Float" -> wasmFunc.instructions += WasmInst("f32.load")
                             "Long" -> wasmFunc.instructions += WasmInst("i64.load")
@@ -753,7 +753,7 @@ open class WasmBuilder(
             val contentsPtr = intToWasm(contentStart)
 
             module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
-            module.addSection(WasmDataSection(contentStart, bytes, "String \"${value}\""))
+            module.addSection(WasmDataSection(contentStart, byteArrayOf(*size, *bytes), "String($size) \"${value}\""))
             stringCache[value] = start
         }
 
