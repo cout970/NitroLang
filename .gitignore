@@ -48,3 +48,6 @@ bin/
 MainLexer.tokens
 /ignore
 out.wat
+
+# Not ready
+/tree-sitter-nitro
