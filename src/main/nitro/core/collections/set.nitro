@@ -148,7 +148,7 @@ fun <#Item: MapKey> Set<#Item>.is_equal(other: Set<#Item>): Boolean {
 }
 
 // Converts the set to a string
-fun <#Item: MapKey, ToString> Set<#Item>.to_string(): String {
+fun <#Item: MapKey | ToString> Set<#Item>.to_string(): String {
    let result = "%["
    let list = this.to_list()
 

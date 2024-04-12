@@ -7,14 +7,14 @@ fun check(condition: Boolean, message: String) {
 }
 
 // Crashes the program if the values are **not equal**
-fun <#Any: GetOrdering, ToString> check_equal(a: #Any, b: #Any, message: String) {
+fun <#Any: GetOrdering | ToString> check_equal(a: #Any, b: #Any, message: String) {
     if (a != b) {
         crash("Check equal failed: $message\nLeft: $a\nRight: $b")
     }
 }
 
 // Crashes the program if the values are **equal**
-fun <#Any: GetOrdering, ToString> check_not_equal(a: #Any, b: #Any, message: String) {
+fun <#Any: GetOrdering | ToString> check_not_equal(a: #Any, b: #Any, message: String) {
     if (a == b) {
         crash("Check not equal failed: $message\nLeft: $a\nRight: $b")
     }

@@ -380,7 +380,7 @@ fun <#Key: MapKey> Map<#Key, #Value>.to_map(): Map<#Key, #Value> {
 }
 
 // Converts the map to a string
-fun <#Key: MapKey, ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
+fun <#Key: MapKey | ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
     let str = ""
 
     for_each_entry @{ key: #Key, value: #Value ->

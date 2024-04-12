@@ -153,7 +153,7 @@ fun compileToWat(opt: CompilerOptions): LstProgram = Prof.run("compile") {
                     }
 
                     println("   // At src/${func.span.toString().substringAfter("src/")}")
-                    println("   // @Extern [lib=\"$lib\", name=\"$name\"]")
+                    println("   // @Extern [lib: \"$lib\", name: \"$name\"]")
                     println("   // fun ${func.fullName}(${func.params.joinToString(", ") { it.type.toString() }}): ${func.returnType}")
                     println("   $name($tsDef): ${tsType(func.returnType)} { return impl.$name($params); },")
                     println("   //")

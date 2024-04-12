@@ -550,7 +550,7 @@ typeParamsDef
     : LTH NL* typeParamDef (commaOrNl typeParamDef)* COMMA? NL* GTH ;
 
 typeParamDef
-    : typeParameter COLON typeUsage (commaOrNl typeUsage)*
+    : typeParameter COLON typeUsage (OR typeUsage)*
     | typeParameter
     ;
 

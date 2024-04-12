@@ -120,7 +120,7 @@ fun <#Key: MapKey> Multimap<#Key, #Value>.is_empty(): Boolean = map.is_empty()
 fun <#Key: MapKey> Multimap<#Key, #Value>.is_not_empty(): Boolean = map.is_not_empty()
 
 // Returns a string representation of the multimap
-fun <#Key: MapKey, ToString, #Value: ToString> Multimap<#Key, #Value>.to_string(): String {
+fun <#Key: MapKey | ToString, #Value: ToString> Multimap<#Key, #Value>.to_string(): String {
     let s = ""
 
     for entry in map {
