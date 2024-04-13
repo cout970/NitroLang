@@ -122,6 +122,7 @@ class AstParser(val parserCtx: ParserCtx) : MainParserBaseListener() {
                     }
 
                     collector.report(errorMsg, span)
+                    throw RuntimeException("Parser error, aborting further processing to avoid printing an excessive amount of errors.\n$collector")
                 }
             })
 
