@@ -6,7 +6,7 @@ struct NInst {
     span: Span
     block: NBlock
     kind: NInstKind
-    type_wrapper: Optional<TypeWrapper>
+    type_token: Optional<TypeToken>
 }
 
 option NInstKind {
@@ -39,6 +39,7 @@ option NInstKind {
         name: String
         arguments: List<NInstId>
         explicit_type_arguments: List<NTypeUsage>
+        call_site: Optional<FunCallSite>
     }
     Literal {
         value: NConstExpr
@@ -84,6 +85,7 @@ option NInstKind {
     Alloc {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
+        is_enum: Boolean
     }
     Lambda {
         instance: NLambda
@@ -104,7 +106,7 @@ fun NCode.add_noop(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::Noop @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -117,7 +119,7 @@ fun NCode.add_comment(span: Span, text: String): NInst {
         span,
         block: current_block,
         kind: NInstKind::Comment @[text],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -148,7 +150,7 @@ fun NCode.add_let(
         span,
         block: current_block,
         kind: NInstKind::Let @[variable],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret variable
@@ -166,7 +168,7 @@ fun NCode.add_if_start(
         kind: NInstKind::IfStart @[
             condition,
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -181,7 +183,7 @@ fun NCode.add_if_else(
         span,
         block: current_block,
         kind: NInstKind::IfElse @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -196,7 +198,7 @@ fun NCode.add_if_end(
         span,
         block: current_block,
         kind: NInstKind::IfEnd @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -214,7 +216,7 @@ fun NCode.add_if_choose(
         span,
         block: current_block,
         kind: NInstKind::IfChoose @[condition, if_true, if_false],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -230,7 +232,7 @@ fun NCode.add_lit(
         span,
         block: current_block,
         kind: NInstKind::Literal @[value],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -270,7 +272,7 @@ fun NCode.add_return(
         span,
         block: current_block,
         kind: NInstKind::Return @[value],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -287,7 +289,7 @@ fun NCode.add_is_type(
         span,
         block: current_block,
         kind: NInstKind::IsType @[value, type_pattern],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -304,7 +306,7 @@ fun NCode.add_as_type(
         span,
         block: current_block,
         kind: NInstKind::AsType @[value, type_usage],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -327,7 +329,7 @@ fun NCode.add_load_var(
             variable,
             constant: None(),
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -351,7 +353,7 @@ fun NCode.add_store_var(
             value,
             variable,
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -372,7 +374,7 @@ fun NCode.add_load_field(
             name,
             field: None(),
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -395,7 +397,7 @@ fun NCode.add_store_field(
             field: None(),
             value,
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -412,7 +414,7 @@ fun NCode.add_loop_start(
         span,
         block: current_block,
         kind: NInstKind::LoopStart @[break_block, continue_block],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -425,7 +427,7 @@ fun NCode.add_loop_end(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::LoopEnd @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -442,7 +444,7 @@ fun NCode.add_block_jump(
         span,
         block: current_block,
         kind: NInstKind::BlockJump @[backwards, block],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -465,8 +467,9 @@ fun NCode.add_fun_call(
             name,
             arguments,
             explicit_type_arguments,
+            call_site: None(),
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -479,7 +482,7 @@ fun NCode.add_when_start(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::WhenStart @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -492,7 +495,7 @@ fun NCode.add_when_end(span: Span): NInst {
         span,
         block: current_block,
         kind: NInstKind::WhenEnd @[],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -511,7 +514,7 @@ fun NCode.add_size_of(
             type_usage,
             type_token: None(),
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -529,8 +532,9 @@ fun NCode.add_alloc(
         kind: NInstKind::Alloc @[
             type_usage,
             type_token: None(),
+            is_enum: false,
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -548,7 +552,7 @@ fun NCode.add_lambda(
         kind: NInstKind::Lambda @[
             instance,
         ],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
@@ -564,28 +568,34 @@ fun NCode.add_link(
         span,
         block: current_block,
         kind: NInstKind::Link @[linked_id],
-        type_wrapper: None(),
+        type_token: None(),
     ]
     inst[] = i
     ret i
 }
 
 fun NCode.duplicate_inst(index: Int) {
-    last_id += 1
     let original = inst[index]!!
 
     let dup = NInst @[
-        id: last_id,
+        id: original.id,
         span: original.span,
         block: original.block,
         kind: original.kind,
-        type_wrapper: original.type_wrapper,
+        type_token: original.type_token,
     ]
 
-    // If the last expression is the one being duplicated, update it
-    if last_expression.is_some() && last_expression!! == original.id {
-        last_expression = Some(dup.id)
-    }
+    // We swap the ids, to preserve references to this instruction
+    // For example:
+    // #1 = load_var "x"
+    // #2 = store_var "y" #1
+    // After duplication:
+    // #3 = load_var "x"
+    // #1 = load_var "x"
+    // #2 = store_var "y" #1
+    // The store_var doesn't need to be updated, because we didn't change the order, and #3 can be safely modified
+    last_id += 1
+    original.id = last_id
 
     inst.insert(index + 1, dup)
 }
@@ -692,7 +702,9 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::Alloc -> {
             let kind = i.kind as NInstKind::Alloc
 
-            add_alloc(i.span, kind.type_usage)
+            let inst = add_alloc(i.span, kind.type_usage)
+            (inst.kind as NInstKind::Alloc).is_enum = kind.is_enum
+            inst
         }
         i.kind is NInstKind::Lambda -> {
             let kind = i.kind as NInstKind::Lambda
@@ -720,12 +732,46 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
     ret new_inst
 }
 
+fun NInstKind.get_name(): String {
+    ret when {
+        this is NInstKind::Let -> "let"
+        this is NInstKind::IfStart -> "if-start"
+        this is NInstKind::IfElse -> "if-else"
+        this is NInstKind::IfEnd -> "if-end"
+        this is NInstKind::IfChoose -> "if-choose"
+        this is NInstKind::LoopStart -> "loop-start"
+        this is NInstKind::LoopEnd -> "loop-end"
+        this is NInstKind::BlockJump -> "block-jump"
+        this is NInstKind::FunCall -> "fun-call"
+        this is NInstKind::WhenStart -> "when-start"
+        this is NInstKind::WhenEnd -> "when-end"
+        this is NInstKind::Literal -> "literal"
+        this is NInstKind::Return -> "return"
+        this is NInstKind::IsType -> "is-type"
+        this is NInstKind::AsType -> "as-type"
+        this is NInstKind::LoadVar -> "load-var"
+        this is NInstKind::StoreVar -> "store-var"
+        this is NInstKind::LoadField -> "load-field"
+        this is NInstKind::StoreField -> "store-field"
+        this is NInstKind::SizeOf -> "size-of"
+        this is NInstKind::Alloc -> "alloc"
+        this is NInstKind::Lambda -> "lambda"
+        this is NInstKind::Link -> "link"
+        this is NInstKind::Noop -> "noop"
+        this is NInstKind::Comment -> "comment"
+        else -> crash("Unknown NInstKind variant")
+    }
+}
+
 fun NInst.to_string(): String {
     let t = this.kind
     ret when {
         t is NInstKind::Let -> {
             let kind = t as NInstKind::Let
 
+            if kind.variable.type_token.is_some() {
+                ret "let ${kind.variable.name}: ${kind.variable.type_token!!}"
+            }
             "let ${kind.variable.name}: ${kind.variable.type_usage}"
         }
         t is NInstKind::IfStart -> {
@@ -760,7 +806,28 @@ fun NInst.to_string(): String {
         }
         t is NInstKind::FunCall -> {
             let kind = t as NInstKind::FunCall
-            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+
+            if kind.call_site.is_some() {
+                let call_site = kind.call_site!!
+                let tp = ""
+
+                if call_site.type_parameters.is_not_empty() {
+                    tp = "<${call_site.type_parameters}>"
+                }
+
+                let args = ""
+
+                repeat call_site.argument_types.len {
+                    if args.is_not_empty() {
+                        args += ", "
+                    }
+
+                    args += "#${kind.arguments[it]!!}[${call_site.func.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
+                }
+
+                ret "fun-call ${call_site.func.full_name}$tp($args) ${call_site.func.span.link}"
+            }
+
             let args = "()"
             let type_args = ""
 
@@ -782,7 +849,9 @@ fun NInst.to_string(): String {
                 type_args += ">"
             }
 
-            "call $full_name$type_args$args"
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+
+            "fun-call $full_name$type_args$args"
         }
         t is NInstKind::WhenStart -> {
             "when-start"
@@ -813,22 +882,27 @@ fun NInst.to_string(): String {
         t is NInstKind::LoadVar -> {
             let kind = t as NInstKind::LoadVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
-            let extra = "[unlinked]"
+            let extra = "$full_name [unlinked]"
 
             if kind.variable.is_some() {
-                extra = "[var: ${kind.variable!!.span}]"
+                extra = kind.variable!!.to_string()
             }
             if kind.constant.is_some() {
-                extra = "[const: ${kind.constant!!.span}]"
+                extra = "[const: ${kind.constant!!.full_name} ${kind.constant!!.span.link}]"
             }
 
-            "load-var $full_name $extra"
+            "load-var $extra"
         }
         t is NInstKind::StoreVar -> {
             let kind = t as NInstKind::StoreVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+            let extra = "$full_name = #${kind.value} [unlinked]"
 
-            "store-var $full_name = #${kind.value}"
+            if kind.variable.is_some() {
+                extra = "${kind.variable!!.to_string()} = #${kind.value}"
+            }
+
+            "store-var $extra"
         }
         t is NInstKind::LoadField -> {
             let kind = t as NInstKind::LoadField

@@ -57,7 +57,24 @@ fun Span.to_string(): String {
         file
     }
 
-    ret "$line:$column $file($filename:$line)"
+    let m = max(file.len, 27)
+    let sub = if m < file.len {
+        "..." + file.slice(file.len - m, m)
+    } else {
+        file
+    }
+
+    ret "$sub($filename:$line)"
+}
+
+fun Span.get_link(): String {
+    let filename = if "/" in file {
+        file.split("/").last()!!
+    } else {
+        file
+    }
+
+    ret " go.to($filename:$line)"
 }
 
 fun Span.is_equal(other: Span): Boolean {

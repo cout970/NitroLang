@@ -19,11 +19,13 @@ struct NStruct {
     fields: List<NStructField>
     generics: NGenericParams
     parent: Optional<NOption>
+    is_enum: Boolean
     full_name_cache: Optional<String>
 }
 
 struct NStructField {
     name: String
+    parent_struct: NStruct
     type_usage: NTypeUsage
     type_token: Optional<TypeToken>
 }
@@ -43,27 +45,29 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
         generics: NGenericParams::new(),
         fields: [],
         parent: None(),
+        is_enum: false,
         full_name_cache: None(),
     ]
     program.structs[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
 
-    start_generics_collection(def.generics)
+    start_generics_collection(def.generics, NGenericSource::Struct)
+    defer { stop_generics_collection() }
+
     read_type_params_def()?
 
     skip_nl()
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
     read_until_delimited(TokenKind::RBRACE) @{
-        def.fields[] = read_struct_field()?
+        def.fields[] = read_struct_field(def)?
         ret found(nothing)
     }?
 
-    stop_generics_collection()
     ret found(nothing)
 }
 
-fun Parser.read_struct_field(): Parsed<NStructField> {
+fun Parser.read_struct_field(def: NStruct): Parsed<NStructField> {
     ignore_token_kind(TokenKind::INTERNAL)
     let name = read_name()?
 
@@ -73,6 +77,7 @@ fun Parser.read_struct_field(): Parsed<NStructField> {
 
     ret found(NStructField @[
         name,
+        parent_struct: def,
         type_usage,
         type_token: None(),
     ])

@@ -38,11 +38,11 @@ fun TypeChecker.replace_generics(type_token: TypeToken, generics: List<NGeneric>
         replacements[generics[it]!!] = args[it]!!
     }
 
-    let t = types.get_type(type_token)
+    let t = type_token.find_type()
     let new_params = []
 
     for param_token in t.params {
-        let param = types.get_type(param_token)
+        let param = param_token.find_type()
         let kind = param.kind
 
         if kind is TypeKind::Generic {
@@ -78,7 +78,7 @@ fun create_path_segments(full_name: String): List<String> {
     let result: List<String> = []
 
     repeat parts.len {
-        let segments = parts.to_sublist(parts.len - it - 1, parts.len)
+        let segments = parts.to_sublist(it, parts.len)
         result[] = segments.join("::")
     }
 

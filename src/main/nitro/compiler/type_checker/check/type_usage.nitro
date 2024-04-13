@@ -116,7 +116,12 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
             if current_code.is_some() {
                 let code = current_code!!
                 repeat code.generics.definitions.len {
-                    let def = code.generics.definitions[it]!!
+                    let def: NGeneric = code.generics.definitions[it]!!
+
+                    // Safety check
+                    if def.source != NGenericSource::Function {
+                        crash("Invalid generic source $def\n$code")
+                    }
 
                     if def.name == tu.name {
                         let opt = code.generics.type_tokens[it]

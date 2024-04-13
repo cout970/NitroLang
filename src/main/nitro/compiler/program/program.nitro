@@ -37,7 +37,7 @@ fun Program::new(): Program {
 }
 
 fun Program.extend_with(other: Program) {
-    other.id_provider.update_ids(this.id_provider.last_id + 1)
+    IdProvider::merge_into(other.id_provider, this.id_provider)
     this.declared_names.add_all(other.declared_names)
     this.structs.add_all(other.structs)
     this.options.add_all(other.options)

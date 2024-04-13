@@ -64,7 +64,7 @@ let keyword_map: Map<String, TokenKind> = #[
   "or": TokenKind::OROR,
   "and": TokenKind::ANDAND,
   "xor": TokenKind::XORXOR,
-  // Reserved
+  // Reserved (the annoying part of making a language by steps)
   "self": TokenKind::RESERVED,
   "Self": TokenKind::RESERVED,
   "function": TokenKind::RESERVED,
@@ -692,7 +692,7 @@ fun Lexer.next(): Boolean {
 
 // Skip whitespaces
 fun Lexer.strip_whitespace() {
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         // c is ' ', '\t', '\r'
@@ -711,7 +711,7 @@ fun Lexer.strip_whitespace() {
 fun Lexer.read_line_comment() {
     let start = cur
 
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         if c == a"\n" {
@@ -739,7 +739,7 @@ fun Lexer.read_block_comment() {
     // skip "/*"
     cur += 2
     let start = cur
-    let max = src.byte_len() - 1
+    let max = src.bytes_len - 1
 
     while cur < max {
         let c: Int = current_byte
@@ -783,7 +783,7 @@ fun Lexer.read_foreign_block() {
     cur += 3
 
     let start = cur
-    let max = src.byte_len()
+    let max = src.bytes_len
 
     while cur < max {
         let c: Int = current_byte
@@ -818,7 +818,7 @@ fun Lexer.read_string() {
     let start = cur
     let is_plain = true
 
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         if c == a"\"" {
@@ -933,7 +933,7 @@ fun Lexer.read_string_blob() {
             cur += 1
             let start2 = cur
 
-            while cur < src.byte_len() {
+            while cur < src.bytes_len {
                 let c: Int = current_byte
 
                 if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
@@ -949,7 +949,7 @@ fun Lexer.read_string_blob() {
         }
     }
 
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         if c == a"\$" || c == a"\\" || c == a"\"" {
@@ -1046,7 +1046,7 @@ fun Lexer.read_string2() {
     add_token(TokenKind::STRING2_START)
 
     let start = cur
-    let max = src.byte_len() - 1
+    let max = src.bytes_len - 1
 
     while cur < max {
         if current_byte == a"\"" && next_byte == a"#" {
@@ -1076,7 +1076,7 @@ fun Lexer.read_string2() {
 fun Lexer.read_identifier() {
     let start = cur
 
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
@@ -1089,7 +1089,7 @@ fun Lexer.read_identifier() {
     let extra = src.substring(start, cur)
 
     // Identifiers cannot end in '_'
-    if extra.get_byte(extra.byte_len() - 1).to_int() == a"_" {
+    if extra.get_byte(extra.bytes_len - 1).to_int() == a"_" {
         cur -= 1
         extra = src.substring(start, cur)
     }
@@ -1160,7 +1160,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"x" {
         cur += 2
 
-        while cur < src.byte_len() {
+        while cur < src.bytes_len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"9" || c >= a"a" && c <= a"f" || c >= a"A" && c <= a"F" || c == a"_" {
@@ -1179,7 +1179,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"o" {
         cur += 2
 
-        while cur < src.byte_len() {
+        while cur < src.bytes_len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"7" || c == a"_" {
@@ -1198,7 +1198,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"b" {
         cur += 2
 
-        while cur < src.byte_len() {
+        while cur < src.bytes_len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"1" || c == a"_" {
@@ -1280,7 +1280,7 @@ fun Lexer.read_digits(): Boolean {
     let start = cur
     let prev_was_digit = false
 
-    while cur < src.byte_len() {
+    while cur < src.bytes_len {
         let c: Int = current_byte
 
         // ignore '_' between digits

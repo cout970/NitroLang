@@ -141,7 +141,7 @@ fun NConstExpr.to_string(): String {
         this is NConstExpr::NConstInt -> (this as NConstExpr::NConstInt).value.to_string()
         this is NConstExpr::NConstLong -> (this as NConstExpr::NConstLong).value.to_string()
         this is NConstExpr::NConstFloat -> (this as NConstExpr::NConstFloat).value.to_string()
-        this is NConstExpr::NConstString -> "\"" + (this as NConstExpr::NConstString).value + "\""
+        this is NConstExpr::NConstString -> "\"" + (this as NConstExpr::NConstString).value.replace("\n", "\\n") + "\""
         this is NConstExpr::NConstBoolean -> (this as NConstExpr::NConstBoolean).value.to_string()
         this is NConstExpr::NConstNothing -> "nothing"
         else -> unreachable()

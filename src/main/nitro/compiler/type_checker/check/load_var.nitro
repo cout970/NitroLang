@@ -8,7 +8,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
 
         // Is variable?
         if variable.is_some() {
-            inst.type_wrapper = types.wrap(variable!!.type_token)
+            inst.type_token = variable!!.type_token
             kind.variable = variable
             ret
         }
@@ -50,6 +50,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
                 name: "get_${var_name}",
                 arguments: [load_this],
                 explicit_type_arguments: [],
+                call_site: None(),
             ]
             check_inst(index, inst, code)
             ret
@@ -61,14 +62,14 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
 
     // Is a constant?
     if constant.is_some() {
-        inst.type_wrapper = types.wrap(constant!!.type_token)
+        inst.type_token = constant!!.type_token
         kind.constant = constant
         ret
     }
 
     // Not found
     let error = create_error_type("Variable not found '$full_name'", inst.span)
-    inst.type_wrapper = types.wrap(Some(error))
+    inst.type_token = Some(error)
     ret
 }
 
@@ -82,7 +83,12 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         // Is variable?
         if variable.is_some() {
             kind.variable = variable
-            inst.type_wrapper = types.wrap(type_cache["Nothing"])
+            inst.type_token = type_cache["Nothing"]
+
+            let value_type_token = code.find_type(kind.value)
+            if value_type_token.is_some() {
+                cons.unify(value_type_token!!, variable!!.type_token!!, inst.span)
+            }
             ret
         }
     }
@@ -119,6 +125,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 name: "set_${var_name}",
                 arguments: [load_this, kind.value],
                 explicit_type_arguments: [],
+                call_site: None(),
             ]
             check_inst(index, inst, code)
             ret
@@ -131,12 +138,12 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
     // Is a constant?
     if constant.is_some() {
         let error = create_error_type("Constant '$full_name' cannot be changed", inst.span)
-        inst.type_wrapper = types.wrap(Some(error))
+        inst.type_token = Some(error)
         ret
     }
 
     // Not found
     let error = create_error_type("Variable not found '$full_name'", inst.span)
-    inst.type_wrapper = types.wrap(Some(error))
+    inst.type_token = Some(error)
     ret
 }

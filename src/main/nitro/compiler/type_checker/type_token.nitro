@@ -1,0 +1,42 @@
+
+struct TypeToken {
+   container: TypeContainer
+   token_id: Int
+}
+
+fun TypeToken.find_type(): Type {
+    ret container.get_type_by_token_id(token_id)
+}
+
+fun TypeToken.is_equal(other: TypeToken): Boolean = container.are_equal(this, other)
+fun TypeToken.get_ordering(other: TypeToken): Ordering = token_id <=> other.token_id
+fun TypeToken.get_hash(): Int = token_id
+
+fun TypeToken.to_string(): String {
+    let ty = find_type()
+    let result = ty.kind.to_string()
+
+    if ty.params.len > 0 {
+        result += "<"
+        repeat ty.params.len {
+            result += ty.params[it]!!.to_string()
+            if it < ty.params.len - 1 {
+                result += ", "
+            }
+        }
+        result += ">"
+    }
+
+    ret result
+}
+
+fun List<TypeToken>.to_string(): String {
+    let str = ""
+    for item in this {
+        if str.is_not_empty() {
+            str += ", "
+        }
+        str += item.to_string()
+    }
+    ret str
+}

@@ -59,7 +59,7 @@ fun TypeChecker.find_constant(code: NCode, full_name: String): Optional<NConst> 
 
 // find_field
 fun TypeChecker.find_field(receiver_type: TypeToken, full_name: String): Optional<NStructField> {
-    let ty = types.get_type(receiver_type)
+    let ty = receiver_type.find_type()
 
     // Field in Struct
     if ty.kind is TypeKind::Struct {

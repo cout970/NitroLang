@@ -15,15 +15,25 @@ struct NGeneric {
     id_wrapper: IdWrapper
     span: Span
     name: String
-    constraints: List<NGenericConstraint>
+    source: NGenericSource
+    bounds: List<NGenericBounds>
+}
+
+enum NGenericSource {
+    Struct,
+    Option,
+    Function,
+    TypeAlias,
+    Invalid,
 }
 
 struct NGenericParams {
     definitions: List<NGeneric>
     type_tokens: List<TypeToken>
+    source: NGenericSource
 }
 
-struct NGenericConstraint {
+struct NGenericBounds {
     name: String
     tag_definition: Optional<NTag>
 }
@@ -32,6 +42,7 @@ fun NGenericParams::new(): NGenericParams {
     ret NGenericParams @[
         definitions: [],
         type_tokens: [],
+        source: NGenericSource::Invalid
     ]
 }
 
@@ -62,7 +73,7 @@ fun Parser.read_type_params_def(): Parsed<Nothing> {
 }
 
 fun Parser.read_type_param_def(): Parsed<NGeneric> {
-    // `#A: Type1, Type2` or just `#B`
+    // `#A: Type1 | Type2` or just `#B`
     let span = lexer.current_token_span
     let name = read_type_parameter()?
 
@@ -70,7 +81,8 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
         id_wrapper: id_provider.next(),
         span,
         name,
-        constraints: []
+        source: current_generics.source,
+        bounds: []
     ]
 
     if lexer.current_token_kind != TokenKind::COLON {
@@ -79,11 +91,11 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
 
     lexer.next_token()
 
-    def.constraints[] = NGenericConstraint @[name: read_name()?, tag_definition: None()]
+    def.bounds[] = NGenericBounds @[name: read_name()?, tag_definition: None()]
 
     loop {
         // End of the list
-        if lexer.current_token_kind != TokenKind::COMMA {
+        if lexer.current_token_kind != TokenKind::OR {
             break
         }
 
@@ -97,7 +109,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
 
         // Found new constraint
         if lexer.current_token_kind != TokenKind::HASH {
-            def.constraints[] = NGenericConstraint @[name: read_name()?, tag_definition: None()]
+            def.bounds[] = NGenericBounds @[name: read_name()?, tag_definition: None()]
         }
     }
 
@@ -119,10 +131,10 @@ fun NGeneric.get_hash(): Int = id_wrapper.id
 fun NGeneric.get_ordering(other: NGeneric): Ordering = id_wrapper.id.get_ordering(other.id_wrapper.id)
 
 fun NGeneric.to_string(): String {
-    if constraints.is_empty() {
+    if bounds.is_empty() {
         ret "#$name"
     }
-    let s = constraints.join_to_string(", ") @{ i -> i.name }
+    let s = bounds.join_to_string(", ") @{ i -> i.name }
 
     ret "#$name: s"
 }
@@ -143,3 +155,7 @@ fun NGenericParams.to_string(): String {
 
     ret "<$s>"
 }
+
+fun NGenericBounds.get_ordering(other: NGenericBounds): Ordering = name.get_ordering(other.name)
+
+fun NGenericBounds.get_hash(): Int = name.get_hash()

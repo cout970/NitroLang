@@ -12,7 +12,7 @@ fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NC
             ret
         }
 
-        let inst_ty: Type = checker.types.get_type(inst_tt)
+        let inst_ty: Type = inst_tt.find_type()
         let type_kind = TypeKind::Lambda @[instance: kind.instance]
         let real_type = checker.types.create_type(type_kind, inst_ty.params)
 
@@ -21,5 +21,5 @@ fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NC
         ret
     }
 
-    inst.type_wrapper = types.wrap(Some(inst_type))
+    inst.type_token = Some(inst_type)
 }

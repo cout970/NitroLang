@@ -1,6 +1,7 @@
 
 struct UnifyCtx {
     reporter: Reporter
+    current_inst: NInstId
     types: TypeContainer
     cons: TypeConstraints
     code: NCode
@@ -8,14 +9,13 @@ struct UnifyCtx {
     unresolved_types: Map<TypeToken, TypeToken>
 }
 
-
 fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
     if types.is_unresolved(left) || types.is_unresolved_function(left) {
         add_substitution(left, right)
         ret
     }
     if types.is_unresolved(right) || types.is_unresolved_function(right){
-        add_substitution(left, right)
+        add_substitution(right, left)
         ret
     }
 
@@ -49,8 +49,8 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
     }
 
     if types.is_composite(left) && types.is_composite(right) {
-        let left_type = types.get_type(left)
-        let right_type = types.get_type(right)
+        let left_type = left.find_type()
+        let right_type = right.find_type()
 
         repeat min(left_type.params.len, right_type.params.len) {
             unify(left_type.params[it]!!, right_type.params[it]!!)
@@ -62,6 +62,20 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
         }
 
         if left_type.kind != right_type.kind && types.common_kind_type(left_type.kind, right_type.kind).is_none() {
+            report_type_mismatch(left, right)
+        }
+        ret
+    }
+
+    if (types.is_lambda(left) && types.is_function(right)) || (types.is_lambda(right) && types.is_function(left)) {
+        let left_type = left.find_type()
+        let right_type = right.find_type()
+
+        repeat min(left_type.params.len, right_type.params.len) {
+            unify(left_type.params[it]!!, right_type.params[it]!!)
+        }
+
+        if left_type.params.len != right_type.params.len {
             report_type_mismatch(left, right)
         }
         ret
@@ -119,6 +133,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
     // Partial conflict
     let sub_ctx = UnifyCtx @[
         reporter,
+        current_inst,
         types,
         cons,
         span,
@@ -131,18 +146,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
 }
 
 fun UnifyCtx.report_type_mismatch(a: TypeToken, b: TypeToken) {
-    let ty_a = types.get_type(a)
-    let ty_b = types.get_type(b)
-
-    if ty_a.kind is TypeKind::Generic && ty_b.kind is TypeKind::Generic {
-        let a_generic: NGeneric = (ty_a.kind as TypeKind::Generic).instance
-        let b_generic: NGeneric = (ty_b.kind as TypeKind::Generic).instance
-
-        reporter.report_error("Type mismatch: ${ty_a} (${a_generic.id_wrapper.id}) != ${ty_b} (${b_generic.id_wrapper.id})", span)
-        ret
-    }
-
-    reporter.report_error("Type mismatch: ${ty_a} != ${ty_b}", span)
+    reporter.report_error("Type mismatch: $a != $b at #$current_inst\n$code", span)
 }
 
 fun UnifyCtx.merge_into(other: UnifyCtx) {
@@ -157,5 +161,21 @@ fun UnifyCtx.merge_into(other: UnifyCtx) {
         let prev = this.unresolved_types[entry.first]!!
 
         this.unresolved_types[entry.first] = types.create_union(prev, entry.second)
+    }
+}
+
+fun UnifyCtx.debug() {
+    println("---")
+    println("Code:\n$code")
+    println("---")
+    println("Span: $span")
+    println("Current inst: $current_inst")
+    println("Constraints:")
+    for c in cons.all {
+        println("  - ${c.to_string(types)}")
+    }
+    println("Replacements:")
+    for entry in unresolved_types {
+        println("  - ${entry.first} => ${entry.second}")
     }
 }

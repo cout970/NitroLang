@@ -118,11 +118,23 @@ fun NCode.find(id: NInstId): Optional<NInst> {
 fun NCode.find_type(id: NInstId): Optional<TypeToken> {
     for i in this.inst {
         if i.id == id {
-            if i.type_wrapper.is_some() {
-                ret Some(i.type_wrapper!!.type_token)
+            if i.type_token.is_some() {
+                ret Some(i.type_token!!)
             }
             ret None()
         }
+    }
+
+    ret None()
+}
+
+fun NCode.index_of(id: NInstId): Optional<Index> {
+    let current = 0
+    for i in this.inst {
+        if i.id == id {
+            ret Some(Index @[current])
+        }
+        current += 1
     }
 
     ret None()
@@ -199,9 +211,9 @@ fun NCode.to_string(): String {
         line += "  " * i.block.depth
         line += i.to_string().indent(prefix_len).trim()
 
-        line += "  "
-        if i.type_wrapper.is_some() {
-            line += i.type_wrapper!!.to_string()
+        line += " | "
+        if i.type_token.is_some() {
+            line += i.type_token!!.to_string()
         } else {
             line += "None()"
         }

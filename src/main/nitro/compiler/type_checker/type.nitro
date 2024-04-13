@@ -1,5 +1,4 @@
 
-type_alias TypeToken = Int
 type_alias TypeId = Int
 
 struct Type {
@@ -39,11 +38,6 @@ option TypeKind {
         message: String
         span: Span
     }
-}
-
-struct TypeWrapper {
-    container: TypeContainer
-    type_token: TypeToken
 }
 
 fun TypeKind.get_kind_name(): String {
@@ -141,17 +135,20 @@ fun TypeKind.to_string(): String {
     if this is TypeKind::Struct {
         let kind = this as TypeKind::Struct
         let instance: NStruct = kind.instance
-        ret "[struct ${instance.full_name}]"
+        ret instance.full_name
+//        ret "[struct ${instance.full_name}]"
     }
     if this is TypeKind::Option {
         let kind = this as TypeKind::Option
         let instance: NOption = kind.instance
-        ret "[option ${instance.full_name}]"
+        ret instance.full_name
+//        ret "[option ${instance.full_name}]"
     }
     if this is TypeKind::OptionItem {
         let kind = this as TypeKind::OptionItem
         let instance: NStruct = kind.instance
-        ret "[option-item ${instance.full_name}]"
+        ret instance.full_name
+//        ret "[option-item ${instance.full_name}]"
     }
     if this is TypeKind::Lambda {
         let kind = this as TypeKind::Lambda
@@ -160,7 +157,7 @@ fun TypeKind.to_string(): String {
     if this is TypeKind::Generic {
         let kind = this as TypeKind::Generic
         let instance: NGeneric = kind.instance
-        ret "[generic ${instance.name}, ${instance.span}]"
+        ret "[generic #${instance.name} ${instance.source} ${instance.span.link}]"
     }
     if this is TypeKind::Union {
         let kind = this as TypeKind::Union
@@ -179,8 +176,4 @@ fun TypeKind.to_string(): String {
         ret "[invalid \"${kind.message}\"]"
     }
     crash("Unknown type kind")
-}
-
-fun TypeWrapper.to_string(): String {
-    ret container.get_type(type_token).to_string()
 }

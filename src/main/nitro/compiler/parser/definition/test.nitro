@@ -39,7 +39,9 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         parameters: [],
         return_type_usage: NTypeUsage::simple(span, "Nothing"),
         return_type_token: None(),
+        parent_tag: None(),
         code: NCode::new(span),
+        full_name_cache: None(),
     ]
     program.functions[] = def
     declare_name(get_full_path(def.path, def.name), def.span)

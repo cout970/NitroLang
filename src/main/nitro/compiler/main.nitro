@@ -12,8 +12,8 @@ fun compile_all() {
     unit.include_file("../nitro/core/core.nitro")
     println("Core included (Memory ${get_memory().get_stats()})")
 
-    unit.include_file("../nitro/compiler/main.nitro")
-    println("Compiler included (Memory ${get_memory().get_stats()})")
+//    unit.include_file("../nitro/compiler/main.nitro")
+//    println("Compiler included (Memory ${get_memory().get_stats()})")
 
     // Parsing errors
     unit.report_errors()

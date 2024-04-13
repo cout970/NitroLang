@@ -9,6 +9,7 @@ struct TypeChecker {
     cons: TypeConstraints
     property_cache: PropertyCache
     current_code: Optional<NCode>
+    function_lookup: Multimap<String, NFunction>
 }
 
 fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
@@ -22,6 +23,7 @@ fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
         cons: TypeConstraints::new(),
         property_cache: PropertyCache::new(),
         current_code: None(),
+        function_lookup: Multimap::new(),
     ]
 }
 
@@ -42,6 +44,11 @@ fun TypeChecker.check_all() {
     for s in program.functions {
         check_function_header(s)
         collect_getters_and_setters(s)
+
+        // Store the function in the lookup map
+        for seg in create_path_segments(s.full_name) {
+            function_lookup.add(seg, s)
+        }
     }
 
     // Step 2: Code
@@ -90,19 +97,19 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
     for def in generics.definitions {
         generics.type_tokens[] = get_or_create_generic_type(def)
 
-        for constraint in def.constraints {
+        for bounds in def.bounds {
             let found = false
 
             for tag_def in program.tags {
-                if tag_def.name == constraint.name {
+                if tag_def.name == bounds.name {
                     found = true
-                    constraint.tag_definition = Some(tag_def)
+                    bounds.tag_definition = Some(tag_def)
                     break
                 }
             }
 
             if !found {
-                report_error("Tag not found: ${constraint.name}", def.span)
+                report_error("Tag not found: ${bounds.name}", def.span)
             }
         }
     }

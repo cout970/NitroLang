@@ -11,3 +11,7 @@ struct NVar {
     defined_by: NInstId
     defined_in: NCode
 }
+
+fun NVar.to_string(): String {
+    ret "[var: $name $type_token ${span.link}]"
+}

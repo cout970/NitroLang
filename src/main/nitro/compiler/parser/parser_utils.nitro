@@ -227,12 +227,17 @@ fun Parser.declare_name(name: String, span: Span) {
     program.declared_names[name] = span
 }
 
-fun Parser.start_generics_collection(generics: NGenericParams) {
+fun Parser.start_generics_collection(generics: NGenericParams, source: NGenericSource) {
+    if current_generics.definitions.is_not_empty() {
+        crash("Generics where collected outside of a type definition: ${current_generics.definitions}")
+    }
     current_generics = generics
+    current_generics.source = source
     allow_generics_collection = true
 }
 
 fun Parser.stop_generics_collection() {
     allow_generics_collection = false
     current_generics = NGenericParams::new()
+    current_generics.source = NGenericSource::Invalid
 }

@@ -8,7 +8,7 @@ fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, index: Index, 
     }
 
     let inst_type = create_unresolved_type(inst.span)
-    inst.type_wrapper = types.wrap(Some(inst_type))
+    inst.type_token = Some(inst_type)
 
     let checker = this
     cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
@@ -22,7 +22,20 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, index: In
     let field: Optional<NStructField> = find_field(instance_tt, field_name)
 
     if field.is_some() {
-        cons.unify(inst_type, field!!.type_token!!, inst.span)
+        let field_type_token = field!!.type_token!!
+        let generics = field!!.parent_struct.generics
+        let type_parameters = []
+
+        // Convert every generic type defined in the struct to a unresolved type at the call site
+        for generic_tt in generics.type_tokens {
+            let un = create_unresolved_type(inst.span)
+            type_parameters[] = un
+            // TODO type bounds
+
+            field_type_token = types.replace(field_type_token, generic_tt, un)
+        }
+
+        cons.unify(inst_type, field_type_token, inst.span)
         ret
     }
 
@@ -30,34 +43,32 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, index: In
     let getter = find_getter(instance_tt, field_name)
 
     if getter.is_some() {
-        let load_this = add_load_this_var(code, index)
-        inst = code.inst[index.current]!!
-
         // Overwrite with a FunCall
         inst.kind = NInstKind::FunCall @[
             path: "",
             name: "get_$field_name",
-            arguments: [load_this],
+            arguments: [kind.instance],
             explicit_type_arguments: [],
+            call_site: None(),
         ]
         check_inst(index, inst, code)
-        cons.unify(inst_type, inst.type_wrapper!!.type_token, inst.span)
+        cons.unify(inst_type, inst.type_token!!, inst.span)
         ret
     }
 
-    let instance_type = types.get_type(instance_tt)
+    let instance_type = instance_tt.find_type()
     let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span)
     cons.unify(inst_type, error, inst.span)
 }
 
-fun TypeChecker.check_inst_store_field(kind: NInstKind::LoadField, index: Index, inst: NInst, code: NCode) {
+fun TypeChecker.check_inst_store_field(kind: NInstKind::StoreField, index: Index, inst: NInst, code: NCode) {
     let instance_tt = code.find_type(kind.instance)
 
     if instance_tt.is_none() {
         crash("Instance must have a type (#${kind.instance})")
     }
 
-    inst.type_wrapper = types.wrap(type_cache["Nothing"])
+    inst.type_token = type_cache["Nothing"]
 
     let checker = this
     cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
@@ -65,7 +76,7 @@ fun TypeChecker.check_inst_store_field(kind: NInstKind::LoadField, index: Index,
     }
 }
 
-fun TypeChecker.check_inst_store_field_post(kind: NInstKind::LoadField, index: Index, inst: NInst, code: NCode, instance_tt: TypeToken) {
+fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, index: Index, inst: NInst, code: NCode, instance_tt: TypeToken) {
     // Direct struct field
     let field_name = kind.name
     let field: Optional<NStructField> = find_field(instance_tt, field_name)
@@ -78,21 +89,19 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::LoadField, index: I
     let setter = find_setter(instance_tt, field_name)
 
     if setter.is_some() {
-        let load_this = add_load_this_var(code, index)
-        inst = code.inst[index.current]!!
-
         // Overwrite with a FunCall
         inst.kind = NInstKind::FunCall @[
             path: "",
             name: "set_$field_name",
-            arguments: [load_this],
+            arguments: [kind.instance, kind.value],
             explicit_type_arguments: [],
+            call_site: None(),
         ]
         check_inst(index, inst, code)
         ret
     }
 
-    let instance_type = types.get_type(instance_tt)
+    let instance_type = instance_tt.find_type()
     let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span)
-    inst.type_wrapper = types.wrap(Some(error))
+    inst.type_token = Some(error)
 }

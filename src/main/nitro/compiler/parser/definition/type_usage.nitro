@@ -105,8 +105,9 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             id_wrapper: id_provider.next(),
             span,
             name: "This",
-            constraints: [
-                NGenericConstraint @[
+            source: NGenericSource::Function,
+            bounds: [
+                NGenericBounds @[
                     name: current_tag!!.name,
                     tag_definition: current_tag,
                 ]
@@ -136,7 +137,8 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
                id_wrapper: id_provider.next(),
                span,
                name,
-               constraints: []
+               source: current_generics.source,
+               bounds: []
             ]
             current_generics.definitions[] = instance
             def = Some(instance)

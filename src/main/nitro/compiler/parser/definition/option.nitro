@@ -46,7 +46,8 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
     program.options[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
 
-    start_generics_collection(def.generics)
+    start_generics_collection(def.generics, NGenericSource::Option)
+    defer { stop_generics_collection() }
 
     read_type_params_def()?
     skip_nl()
@@ -59,8 +60,6 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         ret found(nothing)
     }?
 
-    stop_generics_collection()
-
     ret found(nothing)
 }
 
@@ -72,11 +71,12 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         id_wrapper: id_provider.next(),
         span,
         annotations: [],
-        path: parent.path,
+        path: get_full_path(parent.path, parent.name),
         name,
         generics: NGenericParams::new(),
         fields: [],
         parent: Some(parent),
+        is_enum: false,
         full_name_cache: None(),
     ]
     program.structs[] = def
@@ -87,7 +87,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         skip_nl()
 
         read_until_delimited(TokenKind::RBRACE) @{
-            def.fields[] = read_struct_field()?
+            def.fields[] = read_struct_field(def)?
             ret found(nothing)
         }?
     }

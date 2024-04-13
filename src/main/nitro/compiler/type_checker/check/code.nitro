@@ -22,12 +22,12 @@ fun TypeChecker.check_code(code: NCode) {
         // We do this on every line, so when a error occurs, we at the location of the error
         // If we solve at the end, we would have no way of knowing where the error occurred,
         // because the are relations between types that are complex and can be solved in many different ways
-        cons.resolve(this, code, current.span)
+        cons.resolve(this, code, current.id, current.span)
     }
 
     // Sanity check
     for i in code.inst {
-        if i.type_wrapper.is_none() {
+        if i.type_token.is_none() {
             crash("All instructions must have a type: $i")
         }
     }
@@ -49,7 +49,7 @@ fun TypeChecker.check_var(v: NVar, code: NCode) {
 
 fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     // Already visited
-    if inst.type_wrapper.is_some() {
+    if inst.type_token.is_some() {
         ret
     }
 
@@ -57,22 +57,22 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let kind = inst.kind as NInstKind::Let
         check_var(kind.variable, code)
 
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::IfStart {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::IfElse {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::IfEnd {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
@@ -92,32 +92,32 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         cons.unify(common, if_true_type!!, inst.span)
         cons.unify(common, if_false_type!!, inst.span)
 
-        inst.type_wrapper = types.wrap(Some(common))
+        inst.type_token = Some(common)
         ret
     }
 
     if inst.kind is NInstKind::LoopStart {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::LoopEnd {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::BlockJump {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::WhenStart {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::WhenEnd {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
@@ -132,19 +132,19 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::Return {
-        inst.type_wrapper = types.wrap(type_cache["Never"])
+        inst.type_token = type_cache["Never"]
         ret
     }
 
     if inst.kind is NInstKind::IsType {
-        inst.type_wrapper = types.wrap(type_cache["Boolean"])
+        inst.type_token = type_cache["Boolean"]
         ret
     }
 
     if inst.kind is NInstKind::AsType {
         let kind = inst.kind as NInstKind::AsType
         let tt = check_type_usage(kind.type_usage)
-        inst.type_wrapper = types.wrap(Some(tt))
+        inst.type_token = Some(tt)
         ret
     }
 
@@ -171,17 +171,12 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     if inst.kind is NInstKind::SizeOf {
         let kind = inst.kind as NInstKind::SizeOf
         kind.type_token = Some(check_type_usage(kind.type_usage))
-        inst.type_wrapper = types.wrap(type_cache["Int"])
+        inst.type_token = type_cache["Int"]
         ret
     }
 
     if inst.kind is NInstKind::Alloc {
-        let kind = inst.kind as NInstKind::Alloc
-        kind.type_token = Some(check_type_usage(kind.type_usage))
-
-        // TODO is type instantiable?
-
-        inst.type_wrapper = types.wrap(kind.type_token)
+        check_inst_alloc(inst.kind as NInstKind::Alloc, inst, code)
         ret
     }
 
@@ -198,21 +193,21 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
             crash("Linked instruction must have a type (#${kind.linked_id})")
         }
 
-        inst.type_wrapper = types.wrap(link_type)
+        inst.type_token = link_type
         ret
     }
 
     if inst.kind is NInstKind::Comment {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
     if inst.kind is NInstKind::Noop {
-        inst.type_wrapper = types.wrap(type_cache["Nothing"])
+        inst.type_token = type_cache["Nothing"]
         ret
     }
 
-    inst.type_wrapper = types.wrap(type_cache["Nothing"])
+    inst.type_token = type_cache["Nothing"]
     ret
 }
 
@@ -221,13 +216,21 @@ fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
     code.duplicate_inst(index.current)
     // Get the duplicated instruction (first of the two)
     let dup = code.inst[index.current]!!
+
+    let variable = find_variable(code, "this", dup.block, index.current)
+
+    if variable.is_none() {
+        crash("Unable to find variable `this`:\n$code")
+    }
+
     // Replace it's kind with LoadVar for `this`
     dup.kind = NInstKind::LoadVar @[
         path: "",
         name: "this",
-        variable: None(),
+        variable,
         constant: None(),
     ]
+
     // Check the new instruction now
     check_inst(index, dup, code)
 
@@ -242,22 +245,22 @@ fun TypeChecker.check_inst_literal(kind: NInstKind::Literal, inst: NInst, code: 
 
     when {
         expr is NConstExpr::NConstInt -> {
-            inst.type_wrapper = types.wrap(type_cache["Int"])
+            inst.type_token = type_cache["Int"]
         }
         expr is NConstExpr::NConstLong -> {
-            inst.type_wrapper = types.wrap(type_cache["Long"])
+            inst.type_token = type_cache["Long"]
         }
         expr is NConstExpr::NConstFloat -> {
-            inst.type_wrapper = types.wrap(type_cache["Float"])
+            inst.type_token = type_cache["Float"]
         }
         expr is NConstExpr::NConstString -> {
-            inst.type_wrapper = types.wrap(type_cache["String"])
+            inst.type_token = type_cache["String"]
         }
         expr is NConstExpr::NConstBoolean -> {
-            inst.type_wrapper = types.wrap(type_cache["Boolean"])
+            inst.type_token = type_cache["Boolean"]
         }
         else -> {
-            inst.type_wrapper = types.wrap(type_cache["Nothing"])
+            inst.type_token = type_cache["Nothing"]
         }
     }
 }

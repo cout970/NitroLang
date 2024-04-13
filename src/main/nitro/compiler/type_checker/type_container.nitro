@@ -1,9 +1,9 @@
 
 struct TypeContainer {
     all_types: Map<TypeId, Type>
-    type_tokens: Map<TypeToken, TypeId>
+    type_tokens: Map<Int, TypeId>
     last_type_id: TypeId
-    last_type_token: TypeToken
+    last_type_token_id: Int
     last_unresolved_id: Int
 }
 
@@ -12,22 +12,15 @@ fun TypeContainer::new(): TypeContainer {
         all_types: #[],
         type_tokens: #[],
         last_type_id: 0,
-        last_type_token: 0,
+        last_type_token_id: 0,
         last_unresolved_id: 0,
     ]
 
     ret instance
 }
 
-fun TypeContainer.wrap(arg: Optional<TypeToken>): Optional<TypeWrapper> {
-    if arg.is_none() {
-        ret None()
-    }
-
-    ret Some(TypeWrapper @[
-        type_token: arg!!,
-        container: this,
-    ])
+fun TypeContainer.wrap(arg: Optional<TypeToken>): Optional<TypeToken> {
+    ret arg
 }
 
 fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToken {
@@ -41,17 +34,17 @@ fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToke
     all_types[last_type_id] = ty
 
     // Create type token
-    last_type_token += 1
-    type_tokens[last_type_token] = last_type_id
-    ret last_type_token
+    last_type_token_id += 1
+    type_tokens[last_type_token_id] = last_type_id
+    ret TypeToken @[container: this, token_id: last_type_token_id]
 }
 
 fun TypeContainer.create_union(left: TypeToken, right: TypeToken): TypeToken {
     if left == right {
         ret left
     }
-    let left_ty = get_type(left)
-    let right_ty = get_type(right)
+    let left_ty = left.find_type()
+    let right_ty = right.find_type()
 
     if left_ty.kind is TypeKind::Union && right_ty.kind is TypeKind::Union {
         let set: Set<TypeToken> = %[]
@@ -83,7 +76,11 @@ fun TypeContainer.create_union(left: TypeToken, right: TypeToken): TypeToken {
     ret create_type(TypeKind::Union @[span: left_ty.kind.span], [left, right])
 }
 
-fun TypeContainer.get_type(token: TypeToken): Type {
+fun TypeContainer.get_type(tt: TypeToken): Type {
+    ret get_type_by_token_id(tt.token_id)
+}
+
+fun TypeContainer.get_type_by_token_id(token: Int): Type {
     let id = type_tokens[token]!!
     ret get_type_by_id(id)
 }
@@ -92,18 +89,38 @@ fun TypeContainer.get_type_by_id(id: TypeId): Type {
     ret all_types[id]!!
 }
 
-fun TypeContainer.replace(original: TypeToken, new_value: TypeToken) {
-    // TODO detect if all aliases are gone before removing the type
-    // all_types.remove(type_tokens[original]!!)
-    type_tokens[original] = type_tokens[new_value]!!
+fun TypeContainer.replace_all(original: TypeToken, new_value: TypeToken) {
+    if !has_unresolved(original) {
+        crash("Replacing existing type ${original} => ${new_value}")
+    }
+
+//    println("Replacing ${original} (${type_tokens[original.token_id]}) with ${new_value} (${type_tokens[new_value.token_id]!!})")
+    type_tokens[original.token_id] = type_tokens[new_value.token_id]!!
+    // TODO remove the original type if all aliases are gone
+}
+
+fun TypeContainer.contains_generic(tt: TypeToken): Boolean {
+    let ty = tt.find_type()
+
+    if ty.kind is TypeKind::Generic {
+        ret true
+    }
+
+    for param in ty.params {
+        if contains_generic(param) {
+            ret true
+        }
+    }
+
+    ret false
 }
 
 fun TypeContainer.are_equal(a: TypeToken, b: TypeToken): Boolean {
-    ret type_tokens[a]!! == type_tokens[b]!!
+    ret type_tokens[a.token_id]!! == type_tokens[b.token_id]!!
 }
 
 fun TypeContainer.contains_param(curr: TypeToken, find: TypeToken): Boolean {
-    let ty = get_type(curr)
+    let ty = curr.find_type()
 
     for param in ty.params {
         if param == find {
@@ -120,7 +137,7 @@ fun TypeContainer.contains_param(curr: TypeToken, find: TypeToken): Boolean {
 
 // Remove [find] from the list of params of Unions, returning [curr] is no changes were made
 fun TypeContainer.remove_unresolved(curr: TypeToken, find: TypeToken): TypeToken {
-    let ty = get_type(curr)
+    let ty = curr.find_type()
     let changed = false
     let new_params = []
 
@@ -159,15 +176,15 @@ fun TypeContainer.remove_unresolved(curr: TypeToken, find: TypeToken): TypeToken
 }
 
 fun TypeContainer.is_unresolved(tt: TypeToken): Boolean {
-    ret get_type(tt).kind is TypeKind::Unresolved
+    ret tt.find_type().kind is TypeKind::Unresolved
 }
 
 fun TypeContainer.is_unresolved_function(tt: TypeToken): Boolean {
-    ret get_type(tt).kind is TypeKind::UnresolvedFunction
+    ret tt.find_type().kind is TypeKind::UnresolvedFunction
 }
 
 fun TypeContainer.has_unresolved(tt: TypeToken): Boolean {
-    let ty = get_type(tt)
+    let ty = tt.find_type()
 
     if ty.kind is TypeKind::Unresolved || ty.kind is TypeKind::UnresolvedFunction {
         ret true
@@ -182,24 +199,29 @@ fun TypeContainer.has_unresolved(tt: TypeToken): Boolean {
 }
 
 fun TypeContainer.is_generic(tt: TypeToken): Boolean {
-    ret get_type(tt).kind is TypeKind::Generic
+    ret tt.find_type().kind is TypeKind::Generic
 }
 
 fun TypeContainer.is_union(tt: TypeToken): Boolean {
-    ret get_type(tt).kind is TypeKind::Union
+    ret tt.find_type().kind is TypeKind::Union
 }
 
 fun TypeContainer.is_invalid(tt: TypeToken): Boolean {
-    ret get_type(tt).kind is TypeKind::Invalid
+    ret tt.find_type().kind is TypeKind::Invalid
 }
 
 fun TypeContainer.is_composite(tt: TypeToken): Boolean {
-    let kind = get_type(tt).kind
+    let kind = tt.find_type().kind
     ret kind is TypeKind::Struct || kind is TypeKind::Option || kind is TypeKind::OptionItem
 }
 
+fun TypeContainer.is_lambda(tt: TypeToken): Boolean {
+    let kind = tt.find_type().kind
+    ret kind is TypeKind::Lambda
+}
+
 fun TypeContainer.is_named(tt: TypeToken, name: String): Boolean {
-    let ty = get_type(tt)
+    let ty = tt.find_type()
 
     if ty.kind is TypeKind::Struct {
         ret (ty.kind as TypeKind::Struct).instance.full_name == name
@@ -233,7 +255,7 @@ fun TypeContainer.find_type(kind: TypeKind, params: List<TypeToken>): Optional<T
         let ty = all_types[tt_entry.second]!!
 
         if ty.params == params && ty.kind == kind {
-            ret Some(tt)
+            ret Some(TypeToken @[container: this, token_id: tt])
         }
     }
     ret None()
@@ -267,8 +289,8 @@ fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeT
 
     // Union
     if is_union(left) && is_union(right) {
-        let left_ty = get_type(left)
-        let right_ty = get_type(right)
+        let left_ty = left.find_type()
+        let right_ty = right.find_type()
         let set = %[]
 
         set.add_all(left_ty.params)
@@ -277,7 +299,7 @@ fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeT
         ret common_type_of_list(set.to_list())
     }
     if is_union(left) {
-        let left_ty = get_type(left)
+        let left_ty = left.find_type()
         let set = %[]
 
         set.add_all(left_ty.params)
@@ -286,7 +308,7 @@ fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeT
         ret common_type_of_list(set.to_list())
     }
     if is_union(right) {
-        let right_ty = get_type(right)
+        let right_ty = right.find_type()
         let set = %[]
 
         set.add_all(right_ty.params)
@@ -297,8 +319,8 @@ fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeT
 
     // Composite
     if is_composite(left) && is_composite(right) {
-        let left_ty = get_type(left)
-        let right_ty = get_type(right)
+        let left_ty = left.find_type()
+        let right_ty = right.find_type()
 
         if left_ty.params.len != right_ty.params.len {
             ret None()
@@ -410,4 +432,38 @@ fun TypeContainer.common_kind_type(left: TypeKind, right: TypeKind): Optional<Ty
     }
 
     ret None()
+}
+
+fun TypeContainer.replace_list(list: List<TypeToken>, find: TypeToken, replace: TypeToken): List<TypeToken> {
+    let new_list = []
+
+    for item in list {
+        new_list[] = replace(item, find, replace)
+    }
+
+    ret new_list
+}
+
+fun TypeContainer.replace(src: TypeToken, find: TypeToken, replace: TypeToken): TypeToken {
+    if are_equal(src, find) {
+        ret replace
+    }
+
+    let ty = src.find_type()
+    let changed = false
+    let new_params = []
+
+    for param in ty.params {
+        let new_param = replace(param, find, replace)
+        new_params[] = new_param
+
+        if param != new_param {
+            changed = true
+        }
+    }
+
+    if changed {
+        ret get_or_create_type(ty.kind, new_params)
+    }
+    ret src
 }

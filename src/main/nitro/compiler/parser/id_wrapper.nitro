@@ -11,18 +11,32 @@ struct IdWrapper {
 fun IdProvider::new(): IdProvider {
     ret IdProvider @[
         all_wrappers: [],
-        last_id: -1,
+        last_id: 0,
     ]
 }
 
 fun IdProvider.next(): IdWrapper {
     last_id += 1
-    ret IdWrapper @[id: last_id]
+    let wrapper = IdWrapper @[id: last_id]
+    all_wrappers[] = wrapper
+    ret wrapper
 }
 
-fun IdProvider.update_ids(offset: Int) {
-    for wrapper in all_wrappers {
-        wrapper.id += offset
+fun IdProvider::merge_into(from: IdProvider, to: IdProvider) {
+    if from.all_wrappers.is_empty() {
+        ret
     }
-    last_id += offset
+
+    let offset = to.last_id + 1
+    let last = to.last_id
+
+    for wrapper in from.all_wrappers {
+        wrapper.id += offset
+        last = max(last, wrapper.id)
+    }
+
+    to.all_wrappers += from.all_wrappers
+    to.last_id = last
 }
+
+fun IdWrapper.to_string(): String = "IdWrapper @[id: $id]"

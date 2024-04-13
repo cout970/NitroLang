@@ -13,6 +13,7 @@ struct NTag {
     path: String
     name: String
     functions: List<NFunction>
+    implementors: List<TypeToken>
 }
 
 fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
@@ -28,6 +29,7 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
         path,
         name,
         functions: [],
+        implementors: [],
     ]
     program.tags[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
@@ -39,7 +41,9 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
     skip_nl()
 
     read_until_delimited_by(TokenKind::NL, TokenKind::RBRACE) @{
-        def.functions[] = read_tag_function_header()?
+        let func = read_tag_function_header()?
+        func.parent_tag = Some(def)
+        def.functions[] = func
         ret found(nothing)
     }?
 
