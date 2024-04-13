@@ -1,8 +1,14 @@
 let source_code: String = r#"//////////////////////////
 
-fun Float.is_infinite(): Boolean {
-    ret not (this.is_finite() || this.is_nan())
+struct Nothing {}
+struct String {}
+
+fun String.concat(other: String): String = String @[]
+
+option Json {
+    String { value: String }
+    Null {}
 }
 
-
+fun Json::String.to_string(): String = "\"".concat(this.value).concat("\"")
 "#

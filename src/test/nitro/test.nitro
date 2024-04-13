@@ -3,11 +3,18 @@ include "compiler:includes.nitro"
 include "./test_code2.nitro"
 
 fun main() {
+    run_file()
+}
+
+fun run_file() {
     let file = "test_code2.nitro"
     let reporter = Reporter::new()
     let start = Instant::now()
 
     let program = compile(source_code, file, reporter)
+
+    // Will probably break everything, since it doesn't have de core library
+    TypeChecker::new(reporter, program).check_all()
 
     let end = Instant::now()
     let elapsed = (end - start).to_milliseconds()
