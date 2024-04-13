@@ -13,36 +13,49 @@
 // ```
 @Extern [lib: "core", name: "Set"]
 struct Set<#Item> {
-   map: Map<#Item, Boolean>
+    map: Map<#Item, Boolean>
 }
 
 // Create a new empty set
 fun <#Item: MapKey> Set::new(): Set<#Item> {
-   ret Set<#Item> @[
-      map: Map::new<#Item, Boolean>()
-   ]
+    ret Set<#Item> @[
+        map: Map::new<#Item, Boolean>()
+    ]
 }
 
 // Adds an item to the set
 fun <#Item: MapKey> Set<#Item>.add(item: #Item) {
-   map[item] = true
+    map[item] = true
 }
 
 // Add all items from a list to the set
 fun <#Item: MapKey> Set<#Item>.add_all(list: List<#Item>) {
-   for item in list {
-      map[item] = true
-   }
+    for item in list {
+        map[item] = true
+    }
 }
 
 // Removes an item from the set
 fun <#Item: MapKey> Set<#Item>.remove(item: #Item) {
-   map.remove(item)
+    map.remove(item)
+}
+
+// Removes all the given items from the set
+fun <#Item: MapKey> Set<#Item>.remove_all(items: Set<#Item>) {
+    for item in items {
+        map.remove(item)
+    }
+}
+
+fun <#Item: MapKey> Set<#Item>.remove_all(items: List<#Item>) {
+    for item in items {
+        map.remove(item)
+    }
 }
 
 // Checks if the set contains an item
 fun <#Item: MapKey> Set<#Item>.contains(item: #Item): Boolean {
-   ret map.contains_key(item)
+    ret map.contains_key(item)
 }
 
 // Gets the length of the set, meaning the number of items in it
@@ -64,102 +77,110 @@ fun <#Item: MapKey> Set<#Item>.for_each(func: (#Item) -> Nothing) {
 
 // Creates a new set from the union of this set and another set
 fun <#Item: MapKey> Set<#Item>.union(other: Set<#Item>): Set<#Item> {
-   let result = Set::new<#Item>()
+    let result = Set::new<#Item>()
 
-   let list = this.to_list()
-   repeat list.len {
-      result[] = list[it]!!
-   }
+    let list = this.to_list()
+    repeat list.len {
+        result[] = list[it]!!
+    }
 
-   let list = other.to_list()
-   repeat list.len {
-       result[] = list[it]!!
-   }
+    let list = other.to_list()
+    repeat list.len {
+        result[] = list[it]!!
+    }
 
-   ret result
+    ret result
 }
 
 // Creates a new set from the intersection of this set and another set
 fun <#Item: MapKey> Set<#Item>.intersection(other: Set<#Item>): Set<#Item> {
-   let result = Set::new<#Item>()
-   let list = this.to_list()
+    let result = Set::new<#Item>()
+    let list = this.to_list()
 
-   repeat list.len {
-      let item = list[it]!!
+    repeat list.len {
+        let item = list[it]!!
 
-      if other.contains(item) {
-         result[] = item
-      }
-   }
+        if other.contains(item) {
+            result[] = item
+        }
+    }
 
-   ret result
+    ret result
 }
 
 // Creates a new set from the difference of this set and another set,
 // that is a set with all the items in this set that are not in the other set
 fun <#Item: MapKey> Set<#Item>.difference(other: Set<#Item>): Set<#Item> {
-   let result = Set::new<#Item>()
-   let list = this.to_list()
+    let result = Set::new<#Item>()
+    let list = this.to_list()
 
-   repeat list.len {
-      let item = list[it]!!
+    repeat list.len {
+        let item = list[it]!!
 
-      if !other.contains(item) {
-         result[] = item
-      }
-   }
+        if !other.contains(item) {
+            result[] = item
+        }
+    }
 
-   ret result
+    ret result
 }
 
 // Checks if this set is a subset of another set
 fun <#Item: MapKey> Set<#Item>.is_subset(other: Set<#Item>): Boolean {
-   let list = this.to_list()
+    let list = this.to_list()
 
-   repeat list.len {
-      let item = list[it]!!
+    repeat list.len {
+        let item = list[it]!!
 
-      if !other.contains(item) {
-         ret false
-      }
-   }
+        if !other.contains(item) {
+            ret false
+        }
+    }
 
-   ret true
+    ret true
 }
 
 // Checks if this set is a superset of another set
 fun <#Item: MapKey> Set<#Item>.is_superset(other: Set<#Item>): Boolean {
-   let list = other.to_list()
+    let list = other.to_list()
 
-   repeat list.len {
-      let item = list[it]!!
+    repeat list.len {
+        let item = list[it]!!
 
-      if !this.contains(item) {
-         ret false
-      }
-   }
+        if !this.contains(item) {
+            ret false
+        }
+    }
 
-   ret true
+    ret true
 }
 
 // Checks if this set is equal to another set
 fun <#Item: MapKey> Set<#Item>.is_equal(other: Set<#Item>): Boolean {
-   ret this.is_subset(other) && this.is_superset(other)
+    ret this.is_subset(other) && this.is_superset(other)
+}
+
+// Create an iterator for this set
+fun <#Item: MapKey> Set<#Item>.to_iterator(): ListIterator<#Item> {
+    ret ListIterator @[
+        list: this.to_list()
+        index: 0
+    ]
 }
 
 // Converts the set to a string
 fun <#Item: MapKey | ToString> Set<#Item>.to_string(): String {
-   let result = "%["
-   let list = this.to_list()
+    let result = "%["
+    let list = this.to_list()
 
-   repeat list.len {
-      let value = list[it]!!.to_string()
-      result = result.concat(value)
+    repeat list.len {
+        let value = list[it]!!.to_string()
+        result = result.concat(value)
 
-      if it < list.len - 1 {
-         result = result.concat(", ")
-      }
-   }
+        if it < list.len - 1 {
+            result = result.concat(", ")
+        }
+    }
 
-   ret result.concat("]")
+    ret result.concat("]")
 }

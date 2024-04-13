@@ -16,71 +16,24 @@ fun <#Item: GetOrdering> List<#Item>.quicksort_rec(low: Int, high: Int, partitio
 
         while j < high {
             if this[j]!! <= pivot {
-                i = i + 1
-                this.swap(i, j)
+                i += 1
+                swap(i, j)
             }
-            j = j + 1
+            j += 1
         }
 
-        this.swap(i + 1, high)
-
+        swap(i + 1, high)
         ret i + 1
     }
 
-    // Sort sublists
     if low >= high {
         ret 0
     }
 
-    // Number of items to sort
-    let len = high - low
-
-    // fast path to reduce recursion depth
-    if len == 2 {
-        if this[low]!! > this[high]!! {
-            this.swap(low, high)
-        }
-        ret 0
-    }
-
-    // fast path to reduce recursion depth
-    if len == 3 {
-        if this[low]!! > this[high]!! {
-            this.swap(low, high)
-        }
-        if this[low]!! > this[low + 1]!! {
-            this.swap(low, low + 1)
-        }
-        if this[low + 1]!! > this[high]!! {
-            this.swap(low + 1, high)
-        }
-        ret 0
-    }
-
-    // fast path to reduce recursion depth
-    if len == 4 {
-        if this[low]!! > this[high]!! {
-            this.swap(low, high)
-        }
-        if this[low]!! > this[low + 1]!! {
-            this.swap(low, low + 1)
-        }
-        if this[low + 1]!! > this[high]!! {
-            this.swap(low + 1, high)
-        }
-        if this[low + 1]!! > this[low + 2]!! {
-            this.swap(low + 1, low + 2)
-        }
-        if this[low + 2]!! > this[high]!! {
-            this.swap(low + 2, high)
-        }
-        ret 0
-    }
-
     // regular recursive quicksort
-    let pivot = this.quicksort_rec(low, high, true)
+    let pivot = quicksort_rec(low, high, true)
 
-    this.quicksort_rec(low, pivot - 1, false)
-    this.quicksort_rec(pivot + 1, high, false)
+    quicksort_rec(low, pivot - 1, false)
+    quicksort_rec(pivot + 1, high, false)
     ret 0
 }
