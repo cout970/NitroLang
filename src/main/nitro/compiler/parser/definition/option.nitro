@@ -73,7 +73,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         annotations: [],
         path: get_full_path(parent.path, parent.name),
         name,
-        generics: NGenericParams::new(),
+        generics: parent.generics,
         fields: [],
         parent: Some(parent),
         is_enum: false,

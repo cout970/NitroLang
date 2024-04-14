@@ -1,5 +1,44 @@
 
 fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code: NCode) {
+
+    // Support syntax `var()` instead of `var.call()` where var is local variable with type Function
+    if kind.path.is_empty() && kind.explicit_type_arguments.is_empty() {
+        let variable = find_variable(code, kind.name, inst.block, inst.id)
+        let index = code.index_of(inst.id)!!
+
+        if variable.is_some() && variable!!.type_token.is_some() && types.is_function(variable!!.type_token!!) {
+            code.duplicate_inst(index.current)
+            let dup = code.inst[index.current]!!
+
+            // Replace it's kind with LoadVar
+            dup.kind = NInstKind::LoadVar @[
+                path: "",
+                name: kind.name,
+                variable,
+                constant: None(),
+            ]
+            dup.type_token = None()
+            check_inst(index, dup, code)
+
+            // Next instruction will be the function call
+            index.current += 1
+            let next = code.inst[index.current]!!
+            let arguments = kind.arguments.to_list()
+            arguments.add_first(dup.id)
+
+            next.kind = NInstKind::FunCall @[
+                path: "",
+                name: "call",
+                arguments,
+                explicit_type_arguments: [],
+                call_site: None(),
+            ]
+            next.type_token = None()
+            check_inst(index, dup, code)
+            ret
+        }
+    }
+
     let return_tt = create_unresolved_type(inst.span)
     let arg_types = []
 
@@ -9,7 +48,15 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
 
     let first_arg = if arg_types.is_not_empty() { arg_types.first()!! } else { type_cache["Nothing"]!! }
 
-    // TODO support call local var with `var()` instead of `var.call()`
+    // If the first and only argument is a lambda, once_resolved will never be called
+    // since lambdas are resolved after the function is determined
+    if types.is_unresolved_function(first_arg) {
+        if code.receiver_type.is_some() {
+            first_arg = code.receiver_type!!
+        } else {
+            first_arg = arg_types[1].get_or_default(type_cache["Nothing"]!!)
+        }
+    }
 
     // Workaround for compiler bug with passing `this` to a closure
     let checker = this
@@ -39,7 +86,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
 
     if options.is_empty() {
         let error = create_error_type("Function '$full_name' not found", inst.span)
-        cons.unify(return_tt, error, inst.span)
+        cons.add_unify(return_tt, error, inst.span)
         ret
     }
 
@@ -51,7 +98,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         }
         let str = options_str.join("\n")
         let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", inst.span)
-        cons.unify(return_tt, error, inst.span)
+        cons.add_unify(return_tt, error, inst.span)
         ret
     }
 
@@ -63,6 +110,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         let index = code.index_of(inst.id)!!
         let load_this = add_load_this_var(code, index)
         inst = code.inst[index.current]!!
+        kind = inst.kind as NInstKind::FunCall
 
         kind.arguments.add_first(load_this)
         arg_types[] = code.receiver_type!!
@@ -98,7 +146,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
             continue
         }
 
-        cons.unify(tt, type_parameters[it]!!, e.span)
+        cons.add_unify(tt, type_parameters[it]!!, e.span)
     }
 
     let call_site = FunCallSite @[
@@ -109,11 +157,8 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     ]
     kind.call_site = Some(call_site)
 
-    repeat min(function_params_tt.len, arg_types.len) {
-        cons.unify(function_params_tt[it]!!, arg_types[it]!!, inst.span)
-    }
-
-    cons.unify(return_tt, function_return_tt, inst.span)
+    cons.add_unify_list(function_params_tt, arg_types, inst.span)
+    cons.add_unify(return_tt, function_return_tt, inst.span)
 }
 
 // Represents a function and its score for a given call site

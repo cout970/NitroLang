@@ -51,15 +51,17 @@ fun TypeChecker.check_all() {
         }
     }
 
-    // Step 2: Code
+    // Step 2: Code inside definitions
     for s in program.consts {
-        check_code(s.code)
+        println("Checking const: ${s.full_name}")
+        cons.add_code_to_check(s.code)
+        finalize()
     }
     for s in program.functions {
-        check_code(s.code)
+        println("Checking function: ${s.full_name}")
+        cons.add_code_to_check(s.code)
+        finalize()
     }
-
-    // Step 3: implicit return
 }
 
 fun TypeChecker.check_struct(s: NStruct) {
@@ -83,6 +85,7 @@ fun TypeChecker.check_type_alias(s: NTypeAlias) {
 
 fun TypeChecker.check_const_header(s: NConst) {
     s.type_token = Some(check_type_usage(s.type_usage))
+    s.code.return_type = s.type_token
 }
 
 fun TypeChecker.check_function_header(s: NFunction) {
@@ -91,11 +94,16 @@ fun TypeChecker.check_function_header(s: NFunction) {
         param.type_token = Some(check_type_usage(param.type_usage))
     }
     s.return_type_token = Some(check_type_usage(s.return_type_usage))
+    s.code.return_type = s.return_type_token
 }
 
 fun TypeChecker.check_generics(generics: NGenericParams) {
+    let index = 0
     for def in generics.definitions {
-        generics.type_tokens[] = get_or_create_generic_type(def)
+        if generics.type_tokens.len <= index {
+            generics.type_tokens[] = get_or_create_generic_type(def)
+        }
+        index += 1
 
         for bounds in def.bounds {
             let found = false

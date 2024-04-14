@@ -34,8 +34,10 @@
 struct NLambda {
     span: Span
     receiver_type: Optional<NTypeUsage>
-    return_type: Optional<NTypeUsage>
-    params: List<NFunctionParameter>
+    return_type_usage: Optional<NTypeUsage>
+    return_type_token: Optional<TypeToken>
+    type_token: Optional<TypeToken>
+    parameters: List<NFunctionParameter>
     code: NCode
 }
 
@@ -46,13 +48,34 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     let lambda = NLambda @[
         span,
         receiver_type: None(),
-        return_type: None(),
-        params: [],
+        return_type_usage: None(),
+        return_type_token: None(),
+        type_token: None(),
+        parameters: [],
         code: code.new_child(span),
     ]
 
     program.lambda_functions[] = lambda
 
+    // Parameter definition
+    read_lambda_header(lambda)?
+
+    // Create a local variable per parameter
+    // TODO implicit 'it' or 'this'
+    for param in lambda.parameters {
+        let variable = lambda.code.add_let(param.span, param.name, Some(param.type_usage))
+        variable.is_parameter = true
+    }
+
+    // Code of the lambda
+    skip_nl()
+    read_statement_block_end(lambda.code)
+
+    let inst = code.add_lambda(span, lambda)
+    ret found(inst.id)
+}
+
+fun Parser.read_lambda_header(lambda: NLambda): Parsed<Nothing> {
     // Has lambdaDef
     if lexer.find_token_kind_before2(TokenKind::ARROW, [TokenKind::NL, TokenKind::RBRACE]) {
         loop {
@@ -63,11 +86,11 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
                 }
                 TokenKind::RETURN -> {
                     lexer.next_token()
-                    lambda.return_type = Some(read_type_usage()?)
+                    lambda.return_type_usage = Some(read_type_usage()?)
                 }
                 else -> {
                     let param = read_lambda_parameter()?
-                    lambda.params[] = param
+                    lambda.parameters[] = param
                 }
             }
 
@@ -80,11 +103,7 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
         skip_token_kind(TokenKind::ARROW)
     }
 
-    skip_nl()
-    read_statement_block_end(lambda.code)
-
-    let inst = code.add_lambda(span, lambda)
-    ret found(inst.id)
+    ret found(nothing)
 }
 
 fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
@@ -123,7 +142,7 @@ fun NLambda.to_string(): String {
         s += "rec " + receiver_type!!.to_string()
     }
 
-    for param in params {
+    for param in parameters {
         if s.is_not_empty() {
             s += ", "
         }
@@ -132,11 +151,11 @@ fun NLambda.to_string(): String {
         s += param.type_usage.to_string()
     }
 
-    if return_type.is_some() {
+    if return_type_usage.is_some() {
         if s.is_not_empty() {
             s += ", "
         }
-        s += "ret " + return_type!!.to_string()
+        s += "ret " + return_type_usage!!.to_string()
     }
 
     if s.is_not_empty() {

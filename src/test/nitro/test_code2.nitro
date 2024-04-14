@@ -1,14 +1,5 @@
 let source_code: String = r#"//////////////////////////
 
-struct Nothing {}
-struct String {}
+fun ArrayDeque<#Item>.is_empty(): Boolean = count == 0
 
-fun String.concat(other: String): String = String @[]
-
-option Json {
-    String { value: String }
-    Null {}
-}
-
-fun Json::String.to_string(): String = "\"".concat(this.value).concat("\"")
 "#

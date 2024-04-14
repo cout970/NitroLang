@@ -23,6 +23,7 @@ enum NGenericSource {
     Struct,
     Option,
     Function,
+    Lambda,
     TypeAlias,
     Invalid,
 }

@@ -94,7 +94,6 @@ fun TypeContainer.replace_all(original: TypeToken, new_value: TypeToken) {
         crash("Replacing existing type ${original} => ${new_value}")
     }
 
-//    println("Replacing ${original} (${type_tokens[original.token_id]}) with ${new_value} (${type_tokens[new_value.token_id]!!})")
     type_tokens[original.token_id] = type_tokens[new_value.token_id]!!
     // TODO remove the original type if all aliases are gone
 }

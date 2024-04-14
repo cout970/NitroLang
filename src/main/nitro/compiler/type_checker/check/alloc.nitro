@@ -11,7 +11,7 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     // Not a struct
     if ty.kind !is TypeKind::Struct && ty.kind !is TypeKind::OptionItem {
         let error = create_error_type("Type '$tt' cannot be instantiated", inst.span)
-        cons.unify(unresolved, error, inst.span)
+        cons.add_unify(unresolved, error, inst.span)
         ret
     }
 
@@ -25,17 +25,29 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     // Check enum
     if instance.is_enum && !kind.is_enum {
         let error = create_error_type("Type '$tt' is an enum and cannot be instantiated", inst.span)
-        cons.unify(unresolved, error, inst.span)
+        cons.add_unify(unresolved, error, inst.span)
         ret
     }
 
     let params = []
 
-    repeat instance.generics.definitions.len {
-        params[] = if ty.params.len > it { ty.params[it]!! } else { create_unresolved_type(inst.span) }
+    repeat instance.generics.type_tokens.len {
+        let un = create_unresolved_type(inst.span)
+        params[] = un
+
+        if ty.params.len > it {
+            cons.add_unify(ty.params[it]!!, un, inst.span)
+        }
     }
 
     let final_type = types.get_or_create_type(ty.kind, params)
 
-    cons.unify(unresolved, final_type, inst.span)
+    repeat instance.generics.type_tokens.len {
+        let generic_tt = instance.generics.type_tokens[it]!!
+        let un = params[it]!!
+
+        final_type = types.replace(final_type, generic_tt, un)
+    }
+
+    cons.add_unify(unresolved, final_type, inst.span)
 }

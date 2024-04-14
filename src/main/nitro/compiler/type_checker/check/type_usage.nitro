@@ -114,20 +114,11 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
             // Usage in code
             if current_code.is_some() {
-                let code = current_code!!
-                repeat code.generics.definitions.len {
-                    let def: NGeneric = code.generics.definitions[it]!!
+                let opt = find_generic_by_name(current_code!!, tu.name)
 
-                    // Safety check
-                    if def.source != NGenericSource::Function {
-                        crash("Invalid generic source $def\n$code")
-                    }
-
-                    if def.name == tu.name {
-                        let opt = code.generics.type_tokens[it]
-                        tu.type_token = opt
-                        ret opt!!
-                    }
+                if opt.is_some() {
+                    tu.type_token = opt
+                    ret opt!!
                 }
             }
 
@@ -144,4 +135,25 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
     }
 
     unreachable()
+}
+
+fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<TypeToken> {
+    repeat code.generics.definitions.len {
+       let def: NGeneric = code.generics.definitions[it]!!
+
+       // Safety check
+       if def.source != NGenericSource::Function && def.source != NGenericSource::Lambda {
+           crash("Invalid generic source $def\n$code")
+       }
+
+       if def.name == name {
+           ret code.generics.type_tokens[it]
+       }
+   }
+
+   if code.parent_code.is_some() {
+       ret find_generic_by_name(code.parent_code!!, name)
+   }
+
+   ret None()
 }

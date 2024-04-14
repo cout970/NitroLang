@@ -4,7 +4,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
 
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
     if kind.path.is_empty() {
-        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, index.current)
+        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, inst.id)
 
         // Is variable?
         if variable.is_some() {
@@ -14,7 +14,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
         }
 
         if kind.name == "this" {
-            crash("This not found in local variables")
+            crash("This not found in local variables\n${inst.span}\n$code")
             ret
         }
     }
@@ -33,6 +33,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
                 name: var_name,
                 field,
             ]
+            inst.type_token = None()
             check_inst(index, inst, code)
             ret
         }
@@ -52,6 +53,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
                 explicit_type_arguments: [],
                 call_site: None(),
             ]
+            inst.type_token = None()
             check_inst(index, inst, code)
             ret
         }
@@ -67,6 +69,8 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
         ret
     }
 
+    println("Not found: $full_name:\n$code")
+
     // Not found
     let error = create_error_type("Variable not found '$full_name'", inst.span)
     inst.type_token = Some(error)
@@ -78,7 +82,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
     if kind.path.is_empty() {
-        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, index.current)
+        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, inst.id)
 
         // Is variable?
         if variable.is_some() {
@@ -87,7 +91,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
             let value_type_token = code.find_type(kind.value)
             if value_type_token.is_some() {
-                cons.unify(value_type_token!!, variable!!.type_token!!, inst.span)
+                cons.add_unify(value_type_token!!, variable!!.type_token!!, inst.span)
             }
             ret
         }
@@ -108,6 +112,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 field,
                 value: kind.value,
             ]
+            inst.type_token = None()
             check_inst(index, inst, code)
             ret
         }
@@ -127,6 +132,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 explicit_type_arguments: [],
                 call_site: None(),
             ]
+            inst.type_token = None()
             check_inst(index, inst, code)
             ret
         }

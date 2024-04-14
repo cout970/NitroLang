@@ -2,11 +2,13 @@
 struct TypeConstraints {
     all: List<TypeConstraint>
     actions: List<DeferredActions>
+    codes: List<NCode>
     last_constraint_id: Int
 }
 
 option TypeConstraint {
     Unify { id: Int, left: TypeToken, right: TypeToken, span: Span }
+    Bounds { id: Int, arg: TypeToken, required_tags: List<NTag>, span: Span }
 }
 
 struct DeferredActions {
@@ -18,19 +20,37 @@ fun TypeConstraints::new(): TypeConstraints {
     ret TypeConstraints @[
         all: [],
         actions: [],
+        codes: [],
         last_constraint_id: 0,
     ]
 }
 
 // Assert that 2 types are related by equality
-fun TypeConstraints.unify(left: TypeToken, right: TypeToken, span: Span) {
+fun TypeConstraints.add_unify(left: TypeToken, right: TypeToken, span: Span) {
     last_constraint_id += 1
     all[] = TypeConstraint::Unify @[ id: last_constraint_id, left, right, span ]
+}
+
+// Same as add_unify but with lists
+fun TypeConstraints.add_unify_list(left: List<TypeToken>, right: List<TypeToken>, span: Span) {
+    repeat min(left.len, right.len) {
+        add_unify(left[it]!!, right[it]!!, span)
+    }
+}
+
+// Assert that a type has the required tags
+fun TypeConstraints.add_bounds(arg: TypeToken, required_tags: List<NTag>, span: Span) {
+    last_constraint_id += 1
+    all[] = TypeConstraint::Bounds @[ id: last_constraint_id, arg, required_tags, span ]
 }
 
 // Run an action once all argument types are resolved
 fun TypeConstraints.once_resolved(arg: TypeToken, action: (TypeToken) -> Nothing) {
     actions[] = DeferredActions @[ arg, action ]
+}
+
+fun TypeConstraints.add_code_to_check(code: NCode) {
+    codes[] = code
 }
 
 fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst: NInstId, span: Span) {
@@ -54,8 +74,6 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                 ctx.unify(c.left, c.right)
             }
         }
-
-//        ctx.debug()
 
         // Apply substitutions
         for pair in ctx.unresolved_types {
@@ -113,7 +131,7 @@ fun TypeChecker.execute_deferred_actions(): Boolean {
     while index < cons.actions.len {
         let deferred = cons.actions[index]!!
 
-        if !types.has_unresolved(deferred.arg) {
+        if !types.is_unresolved(deferred.arg) && !types.is_unresolved_function(deferred.arg) {
             deferred.action.call(deferred.arg)
             cons.actions.remove_at(index)
             changes = true
@@ -126,29 +144,14 @@ fun TypeChecker.execute_deferred_actions(): Boolean {
     ret changes
 }
 
-fun TypeChecker.finalize(code: NCode, span: Span) {
-    if !cons.all.is_empty() {
-        reporter.report_error("Unresolved type constraints: ${cons.all.len}", span)
-    }
-
-    for i in code.inst {
-        if i.type_token.is_none() {
-            reporter.report_error("Corrupt instruction", i.span)
-            continue
-        }
-
-        let tt = i.type_token!!
-
-        if types.has_unresolved(tt) {
-            reporter.report_error("Not enough context information to infer type $tt", i.span)
-        }
-    }
-}
-
-fun TypeConstraint.to_string(types: TypeContainer): String {
+fun TypeConstraint.to_string(): String {
     if this is TypeConstraint::Unify {
         let c = this as TypeConstraint::Unify
         ret "Unify ${c.id}: ${c.left} == ${c.right}"
+    }
+    if this is TypeConstraint::Bounds {
+        let c = this as TypeConstraint::Bounds
+        ret "Bounds ${c.id}: ${c.arg}, ${c.required_tags}"
     }
 
     crash("Unknown constraint")

@@ -12,3 +12,7 @@ struct NBlock {
 fun NBlock.get_depth(): Int {
     ret if parent.is_none() { 0 } else { 1 + parent!!.get_depth() }
 }
+
+fun NBlock.to_string(): String {
+    ret "NBlock @[id: $id, is_jump_target: $is_jump_target, depth: ${get_depth()}]"
+}

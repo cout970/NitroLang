@@ -10,6 +10,8 @@ struct NVar {
     type_token: Optional<TypeToken>
     defined_by: NInstId
     defined_in: NCode
+    is_parameter: Boolean
+    is_upvalue: Boolean
 }
 
 fun NVar.to_string(): String {

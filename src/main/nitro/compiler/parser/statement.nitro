@@ -79,19 +79,20 @@ fun Parser.read_statement_block_expr(code: NCode): Parsed<Nothing> {
 
 fun Parser.read_statement(code: NCode): Parsed<Nothing> {
     let prev_last_expression = code.last_expression
-    code.last_expression = None()
 
     when lexer.current_token_kind {
         TokenKind::DEFER -> {
             read_defer_statement(code)?
             // Prevent this statement from affecting the last expression
             code.last_expression = prev_last_expression
+            ret found(nothing)
         }
         TokenKind::FOR -> read_for_statement(code)?
         TokenKind::FOREIGN_BLOCK -> {
             read_foreign_block_statement(code)?
             // Prevent this statement from affecting the last expression
             code.last_expression = prev_last_expression
+            ret found(nothing)
         }
         TokenKind::IF -> read_if_statement(code)?
         TokenKind::LET -> read_let_statement(code)?
@@ -103,12 +104,16 @@ fun Parser.read_statement(code: NCode): Parsed<Nothing> {
             read_test_definition([])?
             // Prevent this statement from affecting the last expression
             code.last_expression = prev_last_expression
+            ret found(nothing)
         }
         else -> {
             let expr = read_expression_assignment(code)?
             // Update last_expression, so at the end of the block we know the last expression
             code.last_expression = Some(expr)
+            ret found(nothing)
         }
     }
+
+    code.last_expression = None()
     ret found(nothing)
 }

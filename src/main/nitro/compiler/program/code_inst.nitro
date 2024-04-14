@@ -142,6 +142,8 @@ fun NCode.add_let(
         type_token: None(),
         defined_by: last_id,
         defined_in: this,
+        is_parameter: false,
+        is_upvalue: false,
     ]
     vars[] = variable
 
@@ -606,6 +608,8 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             let kind = i.kind as NInstKind::Let
 
             let let_var = add_let(i.span, kind.variable.name, Some(kind.variable.type_usage))
+            let_var.is_parameter = kind.variable.is_parameter
+            let_var.is_upvalue = kind.variable.is_upvalue
             this.find(let_var.defined_by)!!
         }
         i.kind is NInstKind::IfStart -> {
@@ -709,7 +713,12 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::Lambda -> {
             let kind = i.kind as NInstKind::Lambda
 
-            add_lambda(i.span, kind.instance)
+            let inst = add_lambda(i.span, kind.instance)
+            kind.instance.code.parent_code = Some(this)
+            kind.instance.code.parent_inst = Some(inst.id)
+            kind.instance.code.parent_block = Some(inst.block)
+            kind.instance.code.parent_span = Some(inst.span)
+            inst
         }
         i.kind is NInstKind::Link -> {
             let kind = i.kind as NInstKind::Link
@@ -728,7 +737,6 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
     }
 
     mapping[i.id] = new_inst.id
-    last_expression = Some(new_inst.id)
     ret new_inst
 }
 
@@ -906,6 +914,10 @@ fun NInst.to_string(): String {
         }
         t is NInstKind::LoadField -> {
             let kind = t as NInstKind::LoadField
+
+            if kind.field.is_some() && kind.field!!.type_token.is_some() {
+                ret "load-field #${kind.instance} -> ${kind.name}[${kind.field!!.type_token!!}]"
+            }
 
             "load-field #${kind.instance} -> ${kind.name}"
         }

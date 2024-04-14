@@ -1,6 +1,12 @@
 
-fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, index: Int): Optional<NVar> {
+fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, inst_id: NInstId): Optional<NVar> {
     let depth = block.depth
+    let index_opt = code.index_of(inst_id)
+    let index = 0
+
+    if index_opt.is_some() && index_opt!!.current >= 0 {
+        index = index_opt!!.current
+    }
 
     // Go backwards from this instruction to the beginning of the code
     // We are looking for a variable declaration with same name and within the same block or a block that is less deep
@@ -28,6 +34,21 @@ fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, index: I
                 ret Some(kind.variable)
             }
         }
+    }
+
+    // Try searching in the parent code
+    if code.parent_code.is_some() {
+        let parent_code = code.parent_code!!
+        let parent_block = code.parent_block!!
+        let parent_inst = code.parent_inst!!
+
+        let opt = find_variable(parent_code, name, parent_block, parent_inst)
+
+        if opt.is_some() {
+            opt!!.is_upvalue = true
+        }
+
+        ret opt
     }
 
     // Not found

@@ -157,6 +157,7 @@ fun TypeKind.to_string(): String {
     if this is TypeKind::Generic {
         let kind = this as TypeKind::Generic
         let instance: NGeneric = kind.instance
+//        ret "#${instance.name}"
         ret "[generic #${instance.name} ${instance.source} ${instance.span.link}]"
     }
     if this is TypeKind::Union {

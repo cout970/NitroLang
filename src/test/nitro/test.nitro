@@ -14,7 +14,7 @@ fun run_file() {
     let program = compile(source_code, file, reporter)
 
     // Will probably break everything, since it doesn't have de core library
-    TypeChecker::new(reporter, program).check_all()
+//    TypeChecker::new(reporter, program).check_all()
 
     let end = Instant::now()
     let elapsed = (end - start).to_milliseconds()

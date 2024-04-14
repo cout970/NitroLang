@@ -64,7 +64,8 @@ fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Noth
 
     // Create a local variable per function parameter
     for param in def.parameters {
-        def.code.add_let(param.span, param.name, Some(param.type_usage))
+        let variable = def.code.add_let(param.span, param.name, Some(param.type_usage))
+        variable.is_parameter = true
     }
 
     // Read every statement/expression in the function body
@@ -80,7 +81,7 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
         }
         TokenKind::ASSIGN -> {
             skip_token_kind(TokenKind::ASSIGN)?
-            read_expression(code)?
+            code.last_expression = Some(read_expression(code)?)
         }
     }
 

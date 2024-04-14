@@ -56,7 +56,9 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
             unify(left_type.params[it]!!, right_type.params[it]!!)
         }
 
-        if left_type.params.len != right_type.params.len {
+        let need_same_params = !(types.is_never(left) || types.is_never(left) || types.is_function(left) || types.is_function(left))
+
+        if need_same_params && left_type.params.len != right_type.params.len {
             report_type_mismatch(left, right)
             ret
         }
@@ -147,6 +149,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
 
 fun UnifyCtx.report_type_mismatch(a: TypeToken, b: TypeToken) {
     reporter.report_error("Type mismatch: $a != $b at #$current_inst\n$code", span)
+    crash("$span")
 }
 
 fun UnifyCtx.merge_into(other: UnifyCtx) {
@@ -161,21 +164,5 @@ fun UnifyCtx.merge_into(other: UnifyCtx) {
         let prev = this.unresolved_types[entry.first]!!
 
         this.unresolved_types[entry.first] = types.create_union(prev, entry.second)
-    }
-}
-
-fun UnifyCtx.debug() {
-    println("---")
-    println("Code:\n$code")
-    println("---")
-    println("Span: $span")
-    println("Current inst: $current_inst")
-    println("Constraints:")
-    for c in cons.all {
-        println("  - ${c.to_string(types)}")
-    }
-    println("Replacements:")
-    for entry in unresolved_types {
-        println("  - ${entry.first} => ${entry.second}")
     }
 }

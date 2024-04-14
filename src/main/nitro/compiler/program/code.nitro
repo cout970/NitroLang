@@ -36,6 +36,8 @@ struct NCode {
     last_expression: Optional<NInstId>
     // Type of the receiver of the function, used to generate implicit self references
     receiver_type: Optional<TypeToken>
+    // Expected type to be returned by the function
+    return_type: Optional<TypeToken>
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
@@ -70,6 +72,7 @@ fun NCode::new(span: Span): NCode {
         continue_jumps: [],
         last_expression: None(),
         receiver_type: None(),
+        return_type: None(),
         const_cache: #[],
     ]
 }
@@ -191,6 +194,10 @@ fun NCode.merge(other: NCode) {
     for i in other.inst {
         this.add_copy(i, mapping)
     }
+
+    if other.last_expression.is_some() {
+        last_expression = Some(mapping[other.last_expression!!]!!)
+    }
 }
 
 fun NCode.to_string(): String {
@@ -222,6 +229,7 @@ fun NCode.to_string(): String {
         body_str += line
     }
     body_str += "\n  last-expression: $last_expression"
+    body_str += "\n  parent_inst: $parent_inst"
     body_str += "\n}"
 
     ret body_str
