@@ -1,0 +1,128 @@
+
+struct TypeContainer {
+    all_types: Map<TypeId, Type>
+    type_token_cache: Multimap<TypeId, TypeToken>
+    type_tokens: List<TypeToken>
+    unresolved_index: Multimap<Int, TypeId>
+    last_unresolved_id: Int
+}
+
+fun TypeContainer::new(): TypeContainer {
+    ret TypeContainer @[
+        all_types: #[],
+        type_token_cache: Multimap::new(),
+        type_tokens: [],
+        unresolved_index: Multimap::new(),
+        last_unresolved_id: 0,
+    ]
+}
+
+fun TypeContainer.get_type_by_id(id: TypeId): Type {
+    let opt = all_types[id]
+    check(opt.is_some()) @{ "Attempt to get type by id '$id', but it does not exist" }
+    ret opt!!
+}
+
+fun TypeContainer.get_type_signature(kind: TypeKind, params: List<TypeId>): String {
+    let args = ""
+    for type_id in params {
+        if args.is_not_empty() {
+            args += ", "
+        }
+        args += type_id
+    }
+
+    if args.is_not_empty() {
+        ret "${kind.signature}<$args>"
+    }
+    ret kind.signature
+}
+
+fun TypeContainer.create_type_tokens(ids: List<TypeId>): List<TypeToken> {
+    let result = []
+    for id in ids {
+        result[] = create_type_token(id)
+    }
+    ret result
+}
+
+fun TypeContainer.create_type_token(type_id: TypeId): TypeToken {
+    let opt = type_token_cache[type_id]
+    if opt.is_not_empty() {
+        ret opt.first()!!
+    }
+
+    let tt = TypeToken @[container: this, type_id]
+    type_tokens[] = tt
+    type_token_cache.add(type_id, tt)
+    ret tt
+}
+
+fun TypeContainer.create_type_by_ids(kind: TypeKind, params: List<TypeId>): TypeToken {
+    let type_id = create_type_id_by_ids(kind, params)
+    ret create_type_token(type_id)
+}
+
+fun TypeContainer.create_type_id_by_ids(kind: TypeKind, params: List<TypeId>): TypeId {
+    let type_id = get_type_signature(kind, params)
+
+    if type_id !in all_types {
+        let ty = Type @[
+            id: type_id,
+            kind,
+            params,
+            container: this,
+        ]
+        all_types[type_id] = ty
+
+        let result: Set<Int> = %[]
+        get_unresolved_of(ty, result)
+
+        for unresolved_id in result {
+            unresolved_index.add(unresolved_id, ty.id)
+        }
+    }
+
+    ret type_id
+}
+
+fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToken {
+    let ids = []
+    for p in params {
+        ids[] = p.type_id
+    }
+    ret create_type_by_ids(kind, ids)
+}
+
+fun TypeContainer.get_unresolved_of(ty: Type, result: Set<Int>) {
+    if ty.kind is TypeKind::Unresolved {
+        let kind = ty.kind as TypeKind::Unresolved
+        result[] = kind.id
+        ret
+    }
+    if ty.kind is TypeKind::UnresolvedFunction {
+        let kind = ty.kind as TypeKind::UnresolvedFunction
+        result[] = kind.id
+        ret
+    }
+    for p in ty.params {
+        get_unresolved_of(get_type_by_id(p), result)
+    }
+}
+
+fun TypeContainer.type_to_string(ty: Type): String {
+    let result = ty.kind.to_string()
+
+    if ty.params.is_not_empty() {
+        let args = ""
+        for param in ty.params {
+            if args.is_not_empty() {
+                args += ", "
+            }
+            args += type_to_string(get_type_by_id(param))
+        }
+        result += "<$args>"
+    }
+
+    ret result
+}

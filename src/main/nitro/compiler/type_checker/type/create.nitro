@@ -1,0 +1,65 @@
+
+fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
+    report_error(message, span)
+    ret types.create_type(TypeKind::Invalid @[message, span], [])
+}
+
+fun TypeChecker.create_unresolved_type(span: Span): TypeToken {
+    types.last_unresolved_id += 1
+    ret types.create_type(TypeKind::Unresolved @[span, id: types.last_unresolved_id], [])
+}
+
+fun TypeChecker.create_unresolved_function_type(span: Span): TypeToken {
+    types.last_unresolved_id += 1
+    ret types.create_type(TypeKind::UnresolvedFunction @[span, id: types.last_unresolved_id], [])
+}
+
+fun TypeChecker.create_generic_type(generic: NGeneric): TypeToken {
+    let cache = type_generic_cache[generic]
+    if cache.is_some() {
+        ret cache!!
+    }
+
+    let kind = TypeKind::Generic @[instance: generic]
+    let tt = types.create_type(kind, [])
+
+    type_generic_cache[generic] = tt
+    ret tt
+}
+
+fun TypeContainer.create_union(left: TypeToken, right: TypeToken): TypeToken {
+    if left == right {
+        ret left
+    }
+    let left_ty = left.find_type()
+    let right_ty = right.find_type()
+
+    if left_ty.kind is TypeKind::Union && right_ty.kind is TypeKind::Union {
+        let set: Set<TypeId> = %[]
+
+        set.add_all(left_ty.params)
+        set.add_all(right_ty.params)
+
+        ret create_type_by_ids(left_ty.kind, set.to_list())
+    }
+
+    if left_ty.kind is TypeKind::Union {
+        let set: Set<TypeId> = %[]
+
+        set.add_all(left_ty.params)
+        set.add(right.type_id)
+
+        ret create_type_by_ids(left_ty.kind, set.to_list())
+    }
+
+    if right_ty.kind is TypeKind::Union {
+        let set: Set<TypeId> = %[]
+
+        set.add_all(right_ty.params)
+        set.add(left.type_id)
+
+        ret create_type_by_ids(right_ty.kind, set.to_list())
+    }
+
+    ret create_type_by_ids(TypeKind::Union @[span: left_ty.kind.span], [left.type_id, right.type_id])
+}

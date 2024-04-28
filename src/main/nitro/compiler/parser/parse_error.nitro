@@ -103,5 +103,5 @@ fun <#Ast: ToString> Parsed<#Ast>.to_string(): String {
         ret "${error.kind} at token ${error.token}"
     }
 
-    crash("Parsed::to_string called on unknown value")
+    unreachable()
 }

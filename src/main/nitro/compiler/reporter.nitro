@@ -40,7 +40,7 @@ fun Reporter.get_report_count(): Int {
     ret errors.len + warnings.len + suggestions.len
 }
 
-fun Reporter.print_all() {
+fun Reporter.report_errors() {
     for error in errors {
         Log::error(error.to_string())
     }

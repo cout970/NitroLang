@@ -9,19 +9,56 @@ fun compile_all() {
     let unit = CompilationUnit::new()
 
     // Include core library
+    let start_core = Instant::now()
     unit.include_file("../nitro/core/core.nitro")
-    println("Core included (Memory ${get_memory().get_stats()})")
 
+    // Parse errors
+    if unit.reporter.has_reports() {
+        unit.reporter.report_errors()
+        ret
+    }
+    let time_core = start_core.elapsed().to_milliseconds()
+    println("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+
+//    // Include compiler
+//    let start_compiler = Instant::now()
 //    unit.include_file("../nitro/compiler/main.nitro")
-//    println("Compiler included (Memory ${get_memory().get_stats()})")
+//
+//    // Parse errors
+//    if unit.reporter.has_reports() {
+//        unit.reporter.report_errors()
+//        ret
+//    }
+//
+//   let time_compiler = start_compiler.elapsed().to_milliseconds()
+//    println("Compiler included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
 
-    // Parsing errors
-    unit.report_errors()
+    // Perform type checking
+    let start_checking = Instant::now()
+    unit.check_types()
 
-    // Perform type checking and code generation
-    unit.compile()
-    println("Compilation finished (Memory ${get_memory().get_stats()})")
+    // Type errors
+    if unit.reporter.has_reports() {
+        unit.reporter.report_errors()
+        ret
+    }
 
-    // Final errors
-    unit.report_errors()
+    let time_checking = start_checking.elapsed().to_milliseconds()
+    println("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+
+//    // Perform code generation
+//    let start_compiling = Instant::now()
+//    unit.compile()
+//
+//    // Final errors
+//    if unit.reporter.has_reports() {
+//        unit.reporter.report_errors()
+//        ret
+//    }
+//
+//    let time_compiling = start_compiling.elapsed().to_milliseconds()
+//    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+
+    let total_time = start_core.elapsed().to_milliseconds()
+    println("Total time: $total_time ms")
 }

@@ -20,6 +20,9 @@ export async function run(url: string) {
 
     const main = wasmExports._start_main as CallableFunction;
 
+    // Increase stack trace print limit
+    Error.stackTraceLimit = 100;
+
     try {
         main();
     } catch (e) {

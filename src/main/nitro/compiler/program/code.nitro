@@ -228,7 +228,9 @@ fun NCode.to_string(): String {
         body_str += "\n"
         body_str += line
     }
-    body_str += "\n  last-expression: $last_expression"
+    body_str += "\n  last_expression: $last_expression"
+    body_str += "\n  receiver_type: $receiver_type"
+    body_str += "\n  return_type: $return_type"
     body_str += "\n  parent_inst: $parent_inst"
     body_str += "\n}"
 

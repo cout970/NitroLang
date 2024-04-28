@@ -25,7 +25,6 @@ fun CompilationUnit.include_file(path: String) {
 }
 
 fun CompilationUnit.include_source(source: String, path: String) {
-//    println("Including file: $path")
     let start = Instant::now()
     let sub_program = Program::new()
 
@@ -42,7 +41,7 @@ fun CompilationUnit.include_source(source: String, path: String) {
 
     program.extend_with(sub_program)
     let end = Instant::now()
-    println("Included file: $path in ${(end - start).to_milliseconds()} ms")
+    Log::debug("Included file: $path in ${(end - start).to_milliseconds()} ms")
 }
 
 fun CompilationUnit::process_path(path: String, current_path: String): String {
@@ -54,15 +53,13 @@ fun CompilationUnit::process_path(path: String, current_path: String): String {
     ret FilePath::join(dir, path)
 }
 
-fun CompilationUnit.compile() {
+fun CompilationUnit.check_types() {
     let type_checker = TypeChecker::new(reporter, program)
     type_checker.check_all()
+}
 
+fun CompilationUnit.compile() {
     // backend...
 
     // Report errors
-}
-
-fun CompilationUnit.report_errors() {
-    reporter.print_all()
 }

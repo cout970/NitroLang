@@ -36,11 +36,11 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
         params[] = un
 
         if ty.params.len > it {
-            cons.add_unify(ty.params[it]!!, un, inst.span)
+            cons.add_unify(types.create_type_token(ty.params[it]!!), un, inst.span)
         }
     }
 
-    let final_type = types.get_or_create_type(ty.kind, params)
+    let final_type = types.create_type(ty.kind, params)
 
     repeat instance.generics.type_tokens.len {
         let generic_tt = instance.generics.type_tokens[it]!!

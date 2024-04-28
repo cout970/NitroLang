@@ -13,10 +13,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
             ret
         }
 
-        if kind.name == "this" {
-            crash("This not found in local variables\n${inst.span}\n$code")
-            ret
-        }
+        check(kind.name != "this") @{ "This was not found in local variables\n${inst.span}\n$code" }
     }
 
     // Is it a property of `this`?
@@ -32,6 +29,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
                 instance: load_this,
                 name: var_name,
                 field,
+                field_type_token: None(),
             ]
             inst.type_token = None()
             check_inst(index, inst, code)
@@ -110,6 +108,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 instance: load_this,
                 name: var_name,
                 field,
+                field_type_token: None(),
                 value: kind.value,
             ]
             inst.type_token = None()

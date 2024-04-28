@@ -28,7 +28,7 @@ fun run_file() {
 
     if reporter.has_reports() {
         println("Found ${reporter.report_count} compiler reports:")
-        reporter.print_all()
+        reporter.report_errors()
     }
 }
 

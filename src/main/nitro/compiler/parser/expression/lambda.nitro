@@ -32,6 +32,7 @@
 //     ;
 
 struct NLambda {
+    id_wrapper: IdWrapper,
     span: Span
     receiver_type: Optional<NTypeUsage>
     return_type_usage: Optional<NTypeUsage>
@@ -46,6 +47,7 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LAMBDA_START)
 
     let lambda = NLambda @[
+        id_wrapper: id_provider.next(),
         span,
         receiver_type: None(),
         return_type_usage: None(),

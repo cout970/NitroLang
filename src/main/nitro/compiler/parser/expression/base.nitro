@@ -275,7 +275,7 @@ fun Parser.read_expression_name_assignment(code: NCode, path: String, name: Stri
         TokenKind::MUL_ASSIGN -> BinaryOperator::MUL
         TokenKind::DIV_ASSIGN -> BinaryOperator::DIV
         TokenKind::MOD_ASSIGN -> BinaryOperator::MOD
-        else -> crash("Unreachable")
+        else -> unreachable()
     }
     lexer.next_token()
     skip_nl()

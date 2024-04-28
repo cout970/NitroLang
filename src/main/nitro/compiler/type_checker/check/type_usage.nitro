@@ -32,7 +32,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                 for i in program.type_aliases {
                     if get_full_path(i.path, i.name) == segment {
                         let alias_type = check_type_usage(i.type_usage)
-                        let tt = replace_generics(alias_type, i.generics.definitions, params)
+                        let tt = types.replace_generics(alias_type, i.generics.definitions, params)
 
                         if params.is_empty() {
                             type_cache[segment] = tt
@@ -107,7 +107,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
             // Usage in definition
             if generic.is_some() {
-                let tt = get_or_create_generic_type(generic!!)
+                let tt = create_generic_type(generic!!)
                 tu.type_token = Some(tt)
                 ret tt
             }
@@ -139,16 +139,16 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
 fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<TypeToken> {
     repeat code.generics.definitions.len {
-       let def: NGeneric = code.generics.definitions[it]!!
+        let def: NGeneric = code.generics.definitions[it]!!
 
-       // Safety check
-       if def.source != NGenericSource::Function && def.source != NGenericSource::Lambda {
-           crash("Invalid generic source $def\n$code")
-       }
+        // Safety check
+        check_not(def.source != NGenericSource::Function && def.source != NGenericSource::Lambda) @{
+            "Invalid generic source $def"
+        }
 
-       if def.name == name {
-           ret code.generics.type_tokens[it]
-       }
+        if def.name == name {
+            ret code.generics.type_tokens[it]
+        }
    }
 
    if code.parent_code.is_some() {

@@ -12,10 +12,10 @@ option PatternKind {
 }
 
 fun TypeContainer.type_to_pattern(tt: TypeToken): TypePattern {
-    let ty: Type = get_type(tt)
+    let ty: Type = tt.find_type()
     let params = []
 
-    for p in ty.params {
+    for p in ty.type_tokens {
         params += type_to_pattern(p)
     }
 
@@ -39,7 +39,7 @@ fun TypeContainer.type_kind_to_pattern(tk: TypeKind): PatternKind {
 }
 
 fun TypeContainer.matches_pattern(a: TypeToken, b: TypePattern): Boolean {
-    ret matches_pattern(get_type(a), b)
+    ret matches_pattern(a.find_type(), b)
 }
 
 fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
@@ -54,7 +54,7 @@ fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
             ret false
         }
         repeat a.params.len {
-            if !matches_pattern(a.params[it]!!, b.params[it]!!) {
+            if !matches_pattern(get_type_by_id(a.params[it]!!), b.params[it]!!) {
                 ret false
             }
         }
@@ -73,7 +73,7 @@ fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
             ret false
         }
         repeat a.params.len {
-            if !matches_pattern(a.params[it]!!, b.params[it]!!) {
+            if !matches_pattern(get_type_by_id(a.params[it]!!), b.params[it]!!) {
                 ret false
             }
         }

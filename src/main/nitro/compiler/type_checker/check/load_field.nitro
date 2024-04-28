@@ -3,9 +3,7 @@
 fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, inst: NInst, code: NCode) {
     let instance_tt = code.find_type(kind.instance)
 
-    if instance_tt.is_none() {
-        crash("Instance must have a type (#${kind.instance})")
-    }
+    check(instance_tt.is_some()) @{ "Instance must have a type (#${kind.instance})" }
 
     let inst_type = create_unresolved_type(inst.span)
     inst.type_token = Some(inst_type)
@@ -37,7 +35,7 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
             field_type_token = types.replace(field_type_token, generic_tt, un)
         }
 
-        cons.add_unify_list(instance_ty.params, type_parameters, inst.span)
+        cons.add_unify_list(types.create_type_tokens(instance_ty.params), type_parameters, inst.span)
         cons.add_unify(inst_type, field_type_token, inst.span)
         ret
     }
@@ -69,9 +67,7 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
 fun TypeChecker.check_inst_store_field(kind: NInstKind::StoreField, inst: NInst, code: NCode) {
     let instance_tt = code.find_type(kind.instance)
 
-    if instance_tt.is_none() {
-        crash("Instance must have a type (#${kind.instance})")
-    }
+    check(instance_tt.is_some()) @{ "Instance must have a type (#${kind.instance})" }
 
     inst.type_token = type_cache["Nothing"]
 
@@ -102,7 +98,9 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
             field_type_token = types.replace(field_type_token, generic_tt, un)
         }
 
-        cons.add_unify_list(instance_ty.params, type_parameters, inst.span)
+        kind.field_type_token = Some(field_type_token)
+
+        cons.add_unify_list(instance_ty.type_tokens, type_parameters, inst.span)
 
         let value_tt = code.find_type(kind.value)
         if value_tt.is_some() {

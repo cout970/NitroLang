@@ -1,0 +1,153 @@
+
+fun TypeContainer.replace_all(from: TypeToken, to: TypeToken) {
+    if from.type_id == to.type_id {
+        ret
+    }
+
+    let from_id = from.type_id
+    let to_id = to.type_id
+    let to_remove = %[from_id]
+
+    let from_ty = from.find_type()
+    let und_id: Optional<Int> = None()
+
+    if from_ty.kind is TypeKind::Unresolved {
+        let kind = from_ty.kind as TypeKind::Unresolved
+        und_id = Some(kind.id)
+    }
+    if from_ty.kind is TypeKind::UnresolvedFunction {
+        let kind = from_ty.kind as TypeKind::UnresolvedFunction
+        und_id = Some(kind.id)
+    }
+
+    if und_id.is_some() {
+        let related_types = unresolved_index[und_id!!]
+        for type_id in related_types {
+            let tts = type_token_cache[type_id]
+
+            for tt in tts {
+                let new_type_id = replace_type_id(tt.type_id, from_id, to_id, to_remove)
+                if new_type_id != tt.type_id {
+                    type_token_cache.add(new_type_id, tt)
+                    tt.type_id = new_type_id
+                }
+            }
+        }
+
+        unresolved_index.remove(und_id!!)
+    } else {
+        crash("Attempt to replace a final type, only unresolved types can be replaced")
+    }
+
+    for id in to_remove {
+        let debug = all_types[id]
+        all_types.remove(id)
+        type_token_cache.remove(id)
+    }
+}
+
+fun TypeContainer.replace_type_id(id: TypeId, from: TypeId, to: TypeId, to_remove: Set<TypeId>): TypeId {
+    if id == from {
+        ret to
+    }
+
+    let ty = get_type_by_id(id)
+    let new_params = []
+
+    for param in ty.params {
+        new_params[] = replace_type_id(param, from, to, to_remove)
+    }
+
+    let new_type_id = create_type_id_by_ids(ty.kind, new_params)
+
+    if new_type_id != id {
+        to_remove[] = id
+    }
+
+    ret new_type_id
+}
+
+fun TypeContainer.replace_list(list: List<TypeToken>, find: TypeToken, replace: TypeToken): List<TypeToken> {
+    let new_list = []
+
+    for item in list {
+        new_list[] = replace(item, find, replace)
+    }
+
+    ret new_list
+}
+
+fun TypeContainer.replace(src: TypeToken, find: TypeToken, replace: TypeToken): TypeToken {
+    if src == find {
+        ret replace
+    }
+
+    let ty = src.find_type()
+    let new_params = []
+
+    for param in ty.params {
+        new_params[] = replace(create_type_token(param), find, replace)
+    }
+
+    ret create_type(ty.kind, new_params)
+}
+
+// Remove [find] from the list of params of Unions, returning [curr] is no changes were made
+fun TypeContainer.remove_unresolved(curr: TypeToken, find: TypeToken): TypeToken {
+    let ty = curr.find_type()
+    let new_params = []
+
+    // Union: remove [find] from the list of params
+    if ty.kind is TypeKind::Union {
+        for param in ty.params {
+            if param == find.type_id {
+                continue
+            }
+            new_params[] = remove_unresolved(create_type_token(param), find)
+        }
+
+        ret create_type(ty.kind, new_params)
+    }
+
+    // Any other type, update params calling remove_unresolved() recursively
+    for param in ty.params {
+        new_params[] = remove_unresolved(create_type_token(param), find)
+    }
+
+    ret create_type(ty.kind, new_params)
+}
+
+fun TypeContainer.replace_generics(type_token: TypeToken, generics: List<NGeneric>, args: List<TypeToken>): TypeToken {
+    if generics.is_empty() || args.is_empty() {
+        ret type_token
+    }
+
+    let replacements: Map<NGeneric, TypeToken> = #[]
+
+    repeat min(generics.len, args.len) {
+        replacements[generics[it]!!] = args[it]!!
+    }
+
+    let t = type_token.find_type()
+    let new_params = []
+
+    for param in t.params {
+        let param_token = create_type_token(param)
+        let param = param_token.find_type()
+        let kind = param.kind
+
+        if kind is TypeKind::Generic {
+            let replacement = replacements[(kind as TypeKind::Generic).instance]
+
+            if replacement.is_some() {
+                new_params[] = replacement!!
+            } else {
+                new_params[] = param_token
+            }
+        } else {
+            new_params[] = param_token
+        }
+    }
+
+    ret create_type(t.kind, new_params)
+}

@@ -86,9 +86,7 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
     }
 
     // Sanity checks
-    if code.block_stack.is_not_empty() {
-        crash("Block stack is not empty")
-    }
+    check(code.block_stack.is_empty(), "Block stack is not empty")
 
     // Execute deferred actions
     if !code.jumped_out_of_block {

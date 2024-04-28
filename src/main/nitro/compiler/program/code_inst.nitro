@@ -71,11 +71,13 @@ option NInstKind {
         instance: NInstId
         name: String
         field: Optional<NStructField>
+        field_type_token: Optional<TypeToken>
     }
     StoreField {
         instance: NInstId
         name: String
         field: Optional<NStructField>
+        field_type_token: Optional<TypeToken>
         value: NInstId
     }
     SizeOf {
@@ -375,6 +377,7 @@ fun NCode.add_load_field(
             instance,
             name,
             field: None(),
+            field_type_token: None(),
         ],
         type_token: None(),
     ]
@@ -397,6 +400,7 @@ fun NCode.add_store_field(
             instance,
             name,
             field: None(),
+            field_type_token: None(),
             value,
         ],
         type_token: None(),
@@ -915,14 +919,18 @@ fun NInst.to_string(): String {
         t is NInstKind::LoadField -> {
             let kind = t as NInstKind::LoadField
 
-            if kind.field.is_some() && kind.field!!.type_token.is_some() {
-                ret "load-field #${kind.instance} -> ${kind.name}[${kind.field!!.type_token!!}]"
+            if kind.field_type_token.is_some() {
+                ret "load-field #${kind.instance} -> ${kind.name}[${kind.field_type_token!!}]"
             }
 
             "load-field #${kind.instance} -> ${kind.name}"
         }
         t is NInstKind::StoreField -> {
             let kind = t as NInstKind::StoreField
+
+            if kind.field_type_token.is_some() {
+                ret "store-field #${kind.instance} -> ${kind.name}[${kind.field_type_token!!}] = #${kind.value}"
+            }
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
         }

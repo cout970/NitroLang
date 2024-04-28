@@ -1,0 +1,23 @@
+
+type_alias TypeId = String
+
+struct Type {
+    id: TypeId
+    kind: TypeKind
+    params: List<TypeId>
+    container: TypeContainer
+}
+
+fun Type.get_type_tokens(): List<TypeToken> {
+    let res = []
+    for p in params {
+        res[] = container.create_type_token(p)
+    }
+    ret res
+}
+
+fun Type.is_equal(other: Type): Boolean = this.id == other.id
+
+fun Type.get_ordering(other: Type): Ordering = this.id <=> other.id
+
+fun Type.to_string(): String = container.type_to_string(this)

@@ -91,8 +91,8 @@ fun Parser.read_int(): Parsed<Int> {
         else -> text.to_int()
     }
 
-    if parse_result.is_none() {
-        crash("Failed to parse int: " + text)
+    check_not(parse_result.is_none()) @{
+        "Failed to parse int: $text"
     }
 
     ret found(parse_result!!)
@@ -113,8 +113,8 @@ fun Parser.read_long(): Parsed<Long> {
         else -> text.to_long()
     }
 
-    if parse_result.is_none() {
-        crash("Failed to parse long: " + text)
+    check_not(parse_result.is_none()) @{
+        "Failed to parse long: $text"
     }
 
     ret found(parse_result!!)
@@ -129,8 +129,8 @@ fun Parser.read_float(): Parsed<Float> {
     lexer.next_token()
     let parse_result = text.to_float()
 
-    if parse_result.is_none() {
-        crash("Failed to parse float: " + text)
+    check_not(parse_result.is_none()) @{
+        "Failed to parse float: $text"
     }
 
     ret found(parse_result!!)

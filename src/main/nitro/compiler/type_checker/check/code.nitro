@@ -10,19 +10,33 @@ fun TypeChecker.finalize() {
         index += 1
     }
 
+    // Report unresolved types and unresolved constraints
+    if !cons.all.is_empty() {
+        let info = ""
+        for i in cons.all {
+            if i is TypeConstraint::Unify {
+                let c = i as TypeConstraint::Unify
+
+                info += "  - $i\nleft:${c.left.inspect()}\nright:${c.right.inspect()}\n"
+            }
+        }
+        reporter.report_error("Unresolved type constraints:\n$info\n${cons.codes}", cons.codes.first()!!.span)
+        cons.all.clear()
+    }
+
     index = 0
     while index < cons.codes.len {
         finalize_code(cons.codes[index]!!)
         index += 1
     }
+
+    cons.codes.clear()
 }
 
 fun TypeChecker.check_code(code: NCode) {
     let previous_code = current_code
     current_code = Some(code)
     defer { current_code = previous_code }
-
-//    println("Checking code: $code")
 
     for v in code.vars {
         check_var(v, code)
@@ -53,44 +67,30 @@ fun TypeChecker.check_code(code: NCode) {
 fun TypeChecker.finalize_code(code: NCode) {
 //    println("Finalizing code at ${code.span}")
 
-    // Report unresolved types and unresolved constraints
-    if !cons.all.is_empty() {
-        reporter.report_error("Unresolved type constraints: ${cons.all.len}", code.span)
-        cons.all.clear()
-    }
-
     // Sanity check
     for i in code.inst {
-        if i.type_token.is_none() {
-            crash("All instructions must have a type: $i\n$code")
-        }
+        check(i.type_token.is_some()) @{ "All instructions must have a type: $i\n$code" }
+
         if i.kind is NInstKind::LoadVar {
             let kind = i.kind as NInstKind::LoadVar
 
-            if kind.variable.is_none() && kind.constant.is_none() {
-                crash("LoadVar is not linked: $i\n${code.parent_code}")
-            }
+            check(kind.variable.is_some() || kind.constant.is_some()) @{ "LoadVar is not linked: $i\n${code.parent_code}" }
         }
         if i.kind is NInstKind::StoreVar {
             let kind = i.kind as NInstKind::StoreVar
 
-            if kind.variable.is_none() {
-                crash("StoreVar is not linked: $i\n$code")
-            }
+            check(kind.variable.is_some()) @{ "StoreVar is not linked: $i\n$code" }
         }
         if i.kind is NInstKind::FunCall {
             let kind = i.kind as NInstKind::FunCall
 
-            if kind.call_site.is_none() {
-                crash("FunCall is not linked: #${i.id} $i\n$code")
-            }
+            check(kind.call_site.is_some()) @{ "FunCall is not linked: #${i.id} $i\n$code" }
         }
 
         let tt = i.type_token!!
 
         if types.has_unresolved(tt) {
             reporter.report_error("Not enough context information to infer type $tt at #${i.id}", i.span)
-//            crash("Unresolved type\n$code")
         }
     }
 }
@@ -111,8 +111,6 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     if inst.type_token.is_some() {
         ret
     }
-
-//    println("Checking inst: $inst")
 
     if inst.kind is NInstKind::Let {
         let kind = inst.kind as NInstKind::Let
@@ -143,8 +141,8 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let if_true_type = code.find_type(kind.if_true)
         let if_false_type = code.find_type(kind.if_false)
 
-        if cond_type.is_none() || if_true_type.is_none() || if_false_type.is_none() {
-            crash("Previous instructions must have types (cond: $cond_type, if_true: $if_true_type, if_false: $if_false_type)")
+        check_not(cond_type.is_none() || if_true_type.is_none() || if_false_type.is_none()) @{
+            "Previous instructions must have types (cond: $cond_type, if_true: $if_true_type, if_false: $if_false_type)"
         }
 
         let common = check_type_usage(NTypeUsage::unresolved(inst.span))
@@ -258,8 +256,8 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let kind = inst.kind as NInstKind::Link
         let link_type = code.find_type(kind.linked_id)
 
-        if link_type.is_none() {
-            crash("Linked instruction must have a type (#${kind.linked_id})")
+        check_not(link_type.is_none()) @{
+            "Linked instruction must have a type (#${kind.linked_id})"
         }
 
         inst.type_token = link_type
@@ -288,8 +286,8 @@ fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
 
     let variable = find_variable(code, "this", dup.block, dup.id)
 
-    if variable.is_none() {
-        crash("Unable to find variable `this`:\n$code")
+    check_not(variable.is_none()) @{
+        "Unable to find variable `this`"
     }
 
     // Replace it's kind with LoadVar for `this`

@@ -1,11 +1,4 @@
 
-type_alias TypeId = Int
-
-struct Type {
-    id: TypeId
-    kind: TypeKind
-    params: List<TypeToken>
-}
 
 option TypeKind {
     Struct {
@@ -51,7 +44,7 @@ fun TypeKind.get_kind_name(): String {
         this is TypeKind::Unresolved -> "Unresolved"
         this is TypeKind::UnresolvedFunction -> "UnresolvedFunction"
         this is TypeKind::Invalid -> "Invalid"
-        else -> crash("Unknown type kind")
+        else -> unreachable()
     }
 }
 
@@ -66,70 +59,61 @@ fun TypeKind.get_span(): Span {
         this is TypeKind::Unresolved -> (this as TypeKind::Unresolved).span
         this is TypeKind::UnresolvedFunction -> (this as TypeKind::UnresolvedFunction).span
         this is TypeKind::Invalid -> (this as TypeKind::Invalid).span
-        else -> crash("Unknown type kind")
+        else -> unreachable()
     }
 }
 
-fun TypeKind.is_equal(other: TypeKind): Boolean {
-    ret this.kind_name == other.kind_name && this.span == other.span
+fun TypeKind.get_signature(): String {
+    if this is TypeKind::Struct {
+        let kind = this as TypeKind::Struct
+        let instance: NStruct = kind.instance
+        ret "S${instance.id_wrapper.id}"
+//        ret "struct ${instance.full_name}"
+    }
+    if this is TypeKind::Option {
+        let kind = this as TypeKind::Option
+        let instance: NOption = kind.instance
+        ret "O${instance.id_wrapper.id}"
+//        ret "option ${instance.full_name}"
+    }
+    if this is TypeKind::OptionItem {
+        let kind = this as TypeKind::OptionItem
+        let instance: NStruct = kind.instance
+        ret "I${instance.id_wrapper.id}"
+//        ret "option-item ${instance.full_name}"
+    }
+    if this is TypeKind::Lambda {
+        let kind = this as TypeKind::Lambda
+        let instance: NLambda = kind.instance
+        ret "L${instance.id_wrapper.id}"
+    }
+    if this is TypeKind::Generic {
+        let kind = this as TypeKind::Generic
+        let instance: NGeneric = kind.instance
+        ret "G${instance.id_wrapper.id}"
+    }
+    if this is TypeKind::Union {
+        let kind = this as TypeKind::Union
+        ret "U"
+    }
+    if this is TypeKind::Unresolved {
+        let kind = this as TypeKind::Unresolved
+        ret "N${kind.id}"
+    }
+    if this is TypeKind::UnresolvedFunction {
+        let kind = this as TypeKind::UnresolvedFunction
+        ret "F${kind.id}"
+    }
+    if this is TypeKind::Invalid {
+        let kind = this as TypeKind::Invalid
+        ret "E'${kind.message}'"
+    }
+    unreachable()
 }
 
-fun Type.is_equal(other: Type): Boolean {
-    if !this.kind.is_equal(other.kind) {
-        ret false
-    }
+fun TypeKind.is_equal(other: TypeKind): Boolean = this.signature == other.signature
 
-    if this.params.len != other.params.len {
-        ret false
-    }
-
-    repeat params.len {
-        if !this.params[it]!!.is_equal(other.params[it]!!) {
-            ret false
-        }
-    }
-
-    ret true
-}
-
-fun TypeKind.get_ordering(other: TypeKind): Ordering {
-    let ord = this.kind_name <=> other.kind_name
-
-    if ord != Ordering::Equals {
-        ret ord
-    }
-
-    if this is TypeKind::Unresolved && other is TypeKind::Unresolved {
-        let this_unresolved = this as TypeKind::Unresolved
-        let other_unresolved = other as TypeKind::Unresolved
-        ret this_unresolved.id <=> other_unresolved.id
-    }
-
-    if this is TypeKind::UnresolvedFunction && other is TypeKind::UnresolvedFunction {
-        let this_unresolved = this as TypeKind::UnresolvedFunction
-        let other_unresolved = other as TypeKind::UnresolvedFunction
-        ret this_unresolved.id <=> other_unresolved.id
-    }
-
-    ret this.span <=> other.span
-}
-
-fun Type.to_string(): String {
-    let result = kind.to_string()
-
-    if params.len > 0 {
-        result += "<"
-        repeat params.len {
-            result += params[it]!!.to_string()
-            if it < params.len - 1 {
-                result += ", "
-            }
-        }
-        result += ">"
-    }
-
-    ret result
-}
+fun TypeKind.get_ordering(other: TypeKind): Ordering = this.signature <=> other.signature
 
 fun TypeKind.to_string(): String {
     if this is TypeKind::Struct {
@@ -157,8 +141,8 @@ fun TypeKind.to_string(): String {
     if this is TypeKind::Generic {
         let kind = this as TypeKind::Generic
         let instance: NGeneric = kind.instance
-//        ret "#${instance.name}"
-        ret "[generic #${instance.name} ${instance.source} ${instance.span.link}]"
+        ret "#${instance.name}"
+//        ret "[generic #${instance.name} ${instance.source} ${instance.span.link}]"
     }
     if this is TypeKind::Union {
         let kind = this as TypeKind::Union
@@ -176,5 +160,5 @@ fun TypeKind.to_string(): String {
         let kind = this as TypeKind::Invalid
         ret "[invalid \"${kind.message}\"]"
     }
-    crash("Unknown type kind")
+    unreachable()
 }

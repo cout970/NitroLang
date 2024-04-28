@@ -37,7 +37,7 @@ fun Instant.elapsed_since(other: Instant): Duration {
     let seconds = this.seconds - other.seconds
     let nanoseconds = this.nanoseconds - other.nanoseconds
 
-    if (nanoseconds < 0) {
+    if nanoseconds < 0 {
         seconds -= 1L
         nanoseconds += 1_000_000_000
     }
@@ -52,7 +52,7 @@ fun Instant.add_duration(duration: Duration): Instant {
     let seconds = this.seconds + duration.seconds
     let nanoseconds = this.nanoseconds + duration.nanoseconds
 
-    if (nanoseconds >= 1_000_000_000) {
+    if nanoseconds >= 1_000_000_000 {
         seconds += 1L
         nanoseconds -= 1_000_000_000
     }

@@ -258,5 +258,5 @@ fun BinaryTree.to_string(): String {
         ret "${op.operator.symbol}:\n  - $left\n  - $right\n"
     }
 
-    crash("Unknown expression tree type")
+    unreachable()
 }

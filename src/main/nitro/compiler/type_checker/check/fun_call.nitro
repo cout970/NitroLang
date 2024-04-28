@@ -170,6 +170,9 @@ struct FunctionScore {
 // Allows to sort functions by score
 fun FunctionScore.get_ordering(other: FunctionScore): Ordering = this.score <=> other.score
 
+// Debug option when a conflict is found, to know why
+let debug_find_best_function_match: Boolean = false
+
 // Finds the best function match for a given name and arguments
 fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, receiver_tt: Optional<TypeToken>): List<NFunction> {
     let options: List<NFunction> = function_lookup[name]
@@ -178,7 +181,7 @@ fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, re
         ret options
     }
 
-//    println("Finding best function match for $name(${args})")
+    if debug_find_best_function_match { Log::debug("Finding best function match for $name(${args})") }
     let scored_options = []
 
     for func in options {
@@ -206,7 +209,7 @@ fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, re
             score += func.parent_tag!!.functions.len.to_float() * 0.01f
         }
 
-//        println("  - $score: ${func.full_name}($params)")
+        if debug_find_best_function_match { Log::debug("  - $score: ${func.full_name}($params)") }
         scored_options[] = FunctionScore @[func, score]
     }
 
@@ -224,10 +227,12 @@ fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, re
         }
     }
 
-//    println("Best score: ${best_score.score}")
-//    for func in result {
-//        println("  - ${func.full_name}(${func.param_types}) // ${func.span}")
-//    }
+    if debug_find_best_function_match {
+        Log::debug("Best score: ${best_score.score}")
+        for func in result {
+            Log::debug("  - ${func.full_name}(${func.param_types}) // ${func.span}")
+        }
+    }
     ret result
 }
 
@@ -266,7 +271,11 @@ fun TypeChecker.type_diff_score(param: TypeToken, arg: TypeToken): Float {
         let arg_ty = arg.find_type()
 
         if param_ty.kind != arg_ty.kind {
-            ret 1000f
+            if param_ty.params.is_empty() || arg_ty.params.is_empty() {
+                ret 100000f
+            }
+
+            ret 1500f
         }
 
         let score = 0f
@@ -276,7 +285,10 @@ fun TypeChecker.type_diff_score(param: TypeToken, arg: TypeToken): Float {
         }
 
         repeat min(param_ty.params.len, arg_ty.params.len) {
-            score += type_diff_score(param_ty.params[it]!!, arg_ty.params[it]!!) * 0.1f
+            score += type_diff_score(
+                types.create_type_token(param_ty.params[it]!!),
+                types.create_type_token(arg_ty.params[it]!!)
+            ) * 0.1f
         }
 
         ret score
@@ -308,7 +320,7 @@ fun TypeChecker.type_diff_score(param: TypeToken, arg: TypeToken): Float {
             let bounds_tag: NTag = bounds.tag_definition!!
 
             for imp in bounds_tag.implementors {
-                if types.are_equal(imp, arg) {
+                if imp == arg {
                     break
                 }
             }

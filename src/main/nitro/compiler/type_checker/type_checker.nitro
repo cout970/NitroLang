@@ -53,12 +53,12 @@ fun TypeChecker.check_all() {
 
     // Step 2: Code inside definitions
     for s in program.consts {
-        println("Checking const: ${s.full_name}")
+        Log::debug("Checking code for const ${s.full_name}")
         cons.add_code_to_check(s.code)
         finalize()
     }
     for s in program.functions {
-        println("Checking function: ${s.full_name}")
+        Log::debug("Checking code for function ${s.full_name}")
         cons.add_code_to_check(s.code)
         finalize()
     }
@@ -101,7 +101,7 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
     let index = 0
     for def in generics.definitions {
         if generics.type_tokens.len <= index {
-            generics.type_tokens[] = get_or_create_generic_type(def)
+            generics.type_tokens[] = create_generic_type(def)
         }
         index += 1
 
@@ -121,4 +121,29 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
             }
         }
     }
+}
+
+
+fun TypeChecker.report_error(msg: String, span: Span) {
+    reporter.report_error(msg, span)
+}
+
+fun TypeChecker.report_warning(msg: String, span: Span) {
+    reporter.report_warning(msg, span)
+}
+
+fun create_path_segments(full_name: String): List<String> {
+    if "::" !in full_name {
+        ret [full_name]
+    }
+
+    let parts = full_name.split("::")
+    let result: List<String> = []
+
+    repeat parts.len {
+        let segments = parts.to_sublist(it, parts.len)
+        result[] = segments.join("::")
+    }
+
+    ret result
 }

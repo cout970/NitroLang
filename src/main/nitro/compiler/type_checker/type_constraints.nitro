@@ -106,7 +106,7 @@ fun TypeChecker.remove_obsolete_constraints(): Boolean {
         if constraint is TypeConstraint::Unify {
             let c = constraint as TypeConstraint::Unify
 
-            if types.are_equal(c.left, c.right) {
+            if c.left == c.right {
                 cons.all.remove_at(index)
                 changes = true
                 continue
@@ -154,5 +154,5 @@ fun TypeConstraint.to_string(): String {
         ret "Bounds ${c.id}: ${c.arg}, ${c.required_tags}"
     }
 
-    crash("Unknown constraint")
+    unreachable()
 }

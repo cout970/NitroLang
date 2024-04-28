@@ -31,7 +31,7 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
             ret
         }
 
-        if !types.are_equal(left, right) {
+        if left != right {
             report_type_mismatch(left, right)
         }
         ret
@@ -42,26 +42,29 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
             ret
         }
 
-        if !types.are_equal(left, right) {
+        if left != right {
             report_type_mismatch(left, right)
         }
         ret
     }
 
     if types.is_composite(left) && types.is_composite(right) {
-        let left_type = left.find_type()
-        let right_type = right.find_type()
+        let left_params = left.type_tokens
+        let right_params = right.type_tokens
 
-        repeat min(left_type.params.len, right_type.params.len) {
-            unify(left_type.params[it]!!, right_type.params[it]!!)
+        repeat min(left_params.len, right_params.len) {
+            unify(left_params[it]!!, right_params[it]!!)
         }
 
         let need_same_params = !(types.is_never(left) || types.is_never(left) || types.is_function(left) || types.is_function(left))
 
-        if need_same_params && left_type.params.len != right_type.params.len {
+        if need_same_params && left_params.len != right_params.len {
             report_type_mismatch(left, right)
             ret
         }
+
+        let left_type = left.find_type()
+                let right_type = right.find_type()
 
         if left_type.kind != right_type.kind && types.common_kind_type(left_type.kind, right_type.kind).is_none() {
             report_type_mismatch(left, right)
@@ -70,14 +73,14 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
     }
 
     if (types.is_lambda(left) && types.is_function(right)) || (types.is_lambda(right) && types.is_function(left)) {
-        let left_type = left.find_type()
-        let right_type = right.find_type()
+        let left_params = left.type_tokens
+        let right_params = right.type_tokens
 
-        repeat min(left_type.params.len, right_type.params.len) {
-            unify(left_type.params[it]!!, right_type.params[it]!!)
+        repeat min(left_params.len, right_params.len) {
+            unify(left_params[it]!!, right_params[it]!!)
         }
 
-        if left_type.params.len != right_type.params.len {
+        if left_params.len != right_params.len {
             report_type_mismatch(left, right)
         }
         ret
@@ -88,16 +91,17 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
 
 fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
     // Equal? nothing to do
-    if types.are_equal(key, value) {
+    if key == value {
         ret
     }
 
     // Handle recursive types
     if types.contains_param(value, key) {
+        // TODO optimize remove_unresolved()
         let new_value = types.remove_unresolved(value, key)
 
-        if types.contains_param(new_value, key) {
-            crash("Recursive type: $key -> $value")
+        check_not(types.contains_param(new_value, key)) @{
+            "Recursive type: $key -> $value"
         }
 
         add_substitution(key, new_value)
@@ -115,7 +119,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
     let next = value
 
     // No conflict, actually
-    if types.are_equal(prev, next) {
+    if prev == next {
         ret
     }
 
@@ -148,8 +152,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
 }
 
 fun UnifyCtx.report_type_mismatch(a: TypeToken, b: TypeToken) {
-    reporter.report_error("Type mismatch: $a != $b at #$current_inst\n$code", span)
-    crash("$span")
+    reporter.report_error("Type mismatch: $a != $b", span)
 }
 
 fun UnifyCtx.merge_into(other: UnifyCtx) {
