@@ -111,7 +111,7 @@ fun <#Key: MapKey, #Value: GetOrdering> Multimap<#Key, #Value>.contains_value(va
 fun <#Key: MapKey> Multimap<#Key, #Value>.to_map(): Map<#Key, List<#Value>> = map.to_map()
 
 // Returns the number of keys on the multimap
-fun <#Key: MapKey> Multimap<#Key, #Value>.len(): Int = map.len
+fun <#Key: MapKey> Multimap<#Key, #Value>.get_len(): Int = map.len
 
 // Checks if the multimap is empty
 fun <#Key: MapKey> Multimap<#Key, #Value>.is_empty(): Boolean = map.is_empty()

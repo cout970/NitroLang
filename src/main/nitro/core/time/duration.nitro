@@ -61,6 +61,16 @@ fun Duration.get_ordering(other: Duration): Ordering {
     }
 }
 
-fun Duration.to_string(): String {
+fun Duration.to_debug_string(): String {
     ret "Duration @[seconds: ${this.seconds}, nanoseconds: ${this.nanoseconds}]"
+}
+
+fun Duration.to_string(): String {
+    if seconds == 0L {
+        ret "$nanoseconds ns"
+    }
+    if nanoseconds == 0 {
+        ret "$seconds s"
+    }
+    ret "$seconds s $nanoseconds ns"
 }
