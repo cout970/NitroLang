@@ -3,9 +3,9 @@ struct TypeChecker {
     reporter: Reporter
     program: Program
     types: TypeContainer
-    type_cache: Map<String, TypeToken>
+    type_cache: Map<String, Type>
     type_kind_cache: Map<String, TypeKind>
-    type_generic_cache: Map<NGeneric, TypeToken>
+    type_generic_cache: Map<NGeneric, Type>
     cons: TypeConstraints
     property_cache: PropertyCache
     current_code: Optional<NCode>
@@ -67,7 +67,7 @@ fun TypeChecker.check_all() {
 fun TypeChecker.check_struct(s: NStruct) {
     check_generics(s.generics)
     for field in s.fields {
-        field.type_token = Some(check_type_usage(field.type_usage))
+        field.field_type = Some(check_type_usage(field.type_usage))
     }
 }
 
@@ -80,28 +80,30 @@ fun TypeChecker.check_option(s: NOption) {
 
 fun TypeChecker.check_type_alias(s: NTypeAlias) {
     check_generics(s.generics)
-    s.type_token = Some(check_type_usage(s.type_usage))
+    s.alias_type = Some(check_type_usage(s.type_usage))
 }
 
 fun TypeChecker.check_const_header(s: NConst) {
-    s.type_token = Some(check_type_usage(s.type_usage))
-    s.code.return_type = s.type_token
+    let ty = check_type_usage(s.type_usage)
+    s.const_type = Some(ty)
+    s.code.return_type_token = Some(ty.to_token())
 }
 
 fun TypeChecker.check_function_header(s: NFunction) {
     check_generics(s.generics)
     for param in s.parameters {
-        param.type_token = Some(check_type_usage(param.type_usage))
+        param.param_type = Some(check_type_usage(param.type_usage))
     }
-    s.return_type_token = Some(check_type_usage(s.return_type_usage))
-    s.code.return_type = s.return_type_token
+    let ty = check_type_usage(s.return_type_usage)
+    s.return_type = Some(ty)
+    s.code.return_type_token = Some(ty.to_token())
 }
 
 fun TypeChecker.check_generics(generics: NGenericParams) {
     let index = 0
     for def in generics.definitions {
         if generics.type_tokens.len <= index {
-            generics.type_tokens[] = create_generic_type(def)
+            generics.type_tokens[] = create_generic_type(def).to_token()
         }
         index += 1
 

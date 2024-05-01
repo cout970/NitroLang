@@ -18,8 +18,8 @@ const trace_stack: StackFrame[] = [];
 const root: FlameGraphNode = {name: 'root', value: 0, children: []};
 const flame_graph_stack: FlameGraphNode[] = [root];
 const flame_graph_enable = false;
-const min_samples = 1;
-const trace_type: 'cpu'|'memory' = 'memory';
+const min_samples = 5;
+const trace_type: 'cpu'|'memory' = 'cpu';
 
 export function trace_enter(func_info: string) {
     // func_info has format "len: main/nitro/core/collections/list.nitro(list.nitro:258)"
@@ -120,3 +120,4 @@ export function trace_save_flame_graph(path) {
         console.error("Failed to write flamegraph.json", e);
     }
 }
+

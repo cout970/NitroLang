@@ -8,10 +8,19 @@ struct Type {
     container: TypeContainer
 }
 
-fun Type.get_type_tokens(): List<TypeToken> {
+fun Type.to_token(): TypeToken = container.create_type_token(id)
+
+fun Optional<Type>.to_token(): Optional<TypeToken> {
+    if this.is_some() {
+        ret Some(this!!.to_token())
+    }
+    ret None()
+}
+
+fun Type.get_type_params(): List<Type> {
     let res = []
     for p in params {
-        res[] = container.create_type_token(p)
+        res[] = container.get_type_by_id(p)
     }
     ret res
 }
@@ -20,4 +29,95 @@ fun Type.is_equal(other: Type): Boolean = this.id == other.id
 
 fun Type.get_ordering(other: Type): Ordering = this.id <=> other.id
 
+fun Type.get_hash(): Int = id.get_hash()
+
 fun Type.to_string(): String = container.type_to_string(this)
+
+fun Type.has_unresolved(): Boolean {
+    if kind is TypeKind::Unresolved || kind is TypeKind::UnresolvedFunction {
+        ret true
+    }
+
+    for p in params {
+        if container.get_type_by_id(p).has_unresolved() {
+            ret true
+        }
+    }
+    ret false
+}
+
+fun Type.is_unresolved(): Boolean = kind is TypeKind::Unresolved
+fun Type.is_unresolved_function(): Boolean = kind is TypeKind::UnresolvedFunction
+fun Type.is_generic(): Boolean = kind is TypeKind::Generic
+fun Type.is_union(): Boolean = kind is TypeKind::Union
+fun Type.is_composite(): Boolean = kind is TypeKind::Struct || kind is TypeKind::Option || kind is TypeKind::OptionItem
+fun Type.is_lambda(): Boolean = kind is TypeKind::Lambda
+fun Type.is_invalid(): Boolean = kind is TypeKind::Invalid
+
+fun Type.is_named( name: String): Boolean {
+    if kind is TypeKind::Struct {
+        ret (kind as TypeKind::Struct).instance.full_name == name
+    }
+
+    if kind is TypeKind::Option {
+        ret (kind as TypeKind::Option).instance.full_name == name
+    }
+
+    if kind is TypeKind::OptionItem {
+        ret (kind as TypeKind::OptionItem).instance.full_name == name
+    }
+
+    ret false
+}
+
+fun Type.is_boolean(): Boolean = is_named("Boolean")
+fun Type.is_byte(): Boolean = is_named("Byte")
+fun Type.is_char(): Boolean = is_named("Char")
+fun Type.is_float(): Boolean = is_named("Float")
+fun Type.is_function(): Boolean = is_named("Function")
+fun Type.is_int(): Boolean = is_named("Int")
+fun Type.is_long(): Boolean = is_named("Long")
+fun Type.is_never(): Boolean = is_named("Never")
+fun Type.is_nothing(): Boolean = is_named("Nothing")
+fun Type.is_string(): Boolean = is_named("String")
+
+fun Type.contains_type_param(find: Type): Boolean {
+    for type_id in params {
+        if type_id == find.id {
+            ret true
+        }
+
+        let param_type = container.get_type_by_id(type_id)
+
+        if param_type.contains_type_param(find) {
+            ret true
+        }
+    }
+
+    ret false
+}
+
+// Remove [find] from the list of params of Unions, returning [curr] if no changes were made
+fun Type.remove_unresolved(find: Type): Type {
+    let new_params = []
+
+    if kind is TypeKind::Union {
+        // Union: remove [find] from the list of params
+        for param in params {
+            if param == find.id {
+                continue
+            }
+            let param_type = container.get_type_by_id(param)
+            new_params[] = param_type.remove_unresolved(find).id
+        }
+    } else {
+        // Any other type, update params calling remove_unresolved() recursively
+        for param in params {
+            let param_type = container.get_type_by_id(param)
+            new_params[] = param_type.remove_unresolved(find).id
+        }
+    }
+
+    let type_id = container.create_type_id_by_ids(kind, new_params)
+    ret container.get_type_by_id(type_id)
+}

@@ -92,7 +92,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         name: VARIANT_FIELD_NAME,
         parent_struct: def,
         type_usage: NTypeUsage::simple(span, "Int"),
-        type_token: None(),
+        field_type: None(),
     ]
 
     let module_def = NModule @[
@@ -115,7 +115,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             name: field_name,
             parent_struct: def,
             type_usage,
-            type_token: None(),
+            field_type: None(),
         ]
 
         skip_nl()
@@ -189,7 +189,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             name: field_name,
             parent_struct: def,
             type_usage,
-            type_token: None(),
+            field_type: None(),
         ]
 
         skip_nl()
@@ -213,7 +213,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             path: module_path,
             name: entry.name,
             type_usage: NTypeUsage::simple_with_path(span, path, name),
-            type_token: None(),
+            const_type: None(),
             code: const_code,
             full_name_cache: None(),
         ]

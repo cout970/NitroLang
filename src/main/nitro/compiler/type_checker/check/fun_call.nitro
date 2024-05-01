@@ -6,9 +6,9 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
         let variable = find_variable(code, kind.name, inst.block, inst.id)
         let index = code.index_of(inst.id)!!
 
-        if variable.is_some() && variable!!.type_token.is_some() && types.is_function(variable!!.type_token!!) {
+        if variable.is_some() && variable!!.type_token.is_some() && variable!!.type_token!!.find_type().is_function() {
             code.duplicate_inst(index.current)
-            let dup = code.inst[index.current]!!
+            let dup = code.inst_list[index.current]!!
 
             // Replace it's kind with LoadVar
             dup.kind = NInstKind::LoadVar @[
@@ -22,7 +22,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
 
             // Next instruction will be the function call
             index.current += 1
-            let next = code.inst[index.current]!!
+            let next = code.inst_list[index.current]!!
             let arguments = kind.arguments.to_list()
             arguments.add_first(dup.id)
 
@@ -39,22 +39,22 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
         }
     }
 
-    let return_tt = create_unresolved_type(inst.span)
-    let arg_types = []
+    let return_tt = create_unresolved_type(inst.span).to_token()
+    let arg_types: List<TypeToken> = []
 
     for arg in kind.arguments {
-        arg_types[] = code.find_type(arg)!!
+        arg_types[] = code.find_inst_type_token(arg)!!
     }
 
-    let first_arg = if arg_types.is_not_empty() { arg_types.first()!! } else { type_cache["Nothing"]!! }
+    let first_arg: TypeToken = if arg_types.is_not_empty() { arg_types.first()!! } else { type_cache["Nothing"]!!.to_token() }
 
     // If the first and only argument is a lambda, once_resolved will never be called
     // since lambdas are resolved after the function is determined
-    if types.is_unresolved_function(first_arg) {
-        if code.receiver_type.is_some() {
-            first_arg = code.receiver_type!!
+    if first_arg.find_type().is_unresolved_function() {
+        if code.receiver_type_token.is_some() {
+            first_arg = code.receiver_type_token!!
         } else {
-            first_arg = arg_types[1].get_or_default(type_cache["Nothing"]!!)
+            first_arg = arg_types[1].get_or_default(type_cache["Nothing"]!!.to_token())
         }
     }
 
@@ -71,21 +71,26 @@ struct FunCallSite {
     func: NFunction
     uses_implicit_this: Boolean
     argument_types: List<TypeToken>
-    type_parameters: List<TypeToken>
+    call_site_generics: CallSiteGenerics
 }
 
 fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, code: NCode, return_tt: TypeToken) {
     let full_name = get_full_path(kind.path, kind.name)
-    let args = []
+    let args: List<Type> = []
 
     for arg in kind.arguments {
-        args[] = code.find_type(arg)!!
+        args[] = code.find_inst_type_token(arg)!!.find_type()
     }
 
-    let options: List<NFunction> = find_best_function_match(full_name, args, code.receiver_type)
+    let receiver_type: Optional<Type> = None()
+    if code.receiver_type_token.is_some() {
+        receiver_type = Some(code.receiver_type_token!!.find_type())
+    }
+
+    let options: List<NFunction> = find_best_function_match(full_name, args, receiver_type)
 
     if options.is_empty() {
-        let error = create_error_type("Function '$full_name' not found", inst.span)
+        let error = create_error_type("Function '$full_name' not found", inst.span).to_token()
         cons.add_unify(return_tt, error, inst.span)
         ret
     }
@@ -97,23 +102,23 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
             options_str[] = "  - ${i.full_name}(${i.param_types}) at ${i.span}"
         }
         let str = options_str.join("\n")
-        let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", inst.span)
+        let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", inst.span).to_token()
         cons.add_unify(return_tt, error, inst.span)
         ret
     }
 
     let func = options.first()!!
     let uses_implicit_this = false
-    let arg_types = []
+    let arg_types: List<Type> = []
 
-    if code.receiver_type.is_some() && func.parameters.len == args.len + 1 {
+    if code.receiver_type_token.is_some() && func.parameters.len == args.len + 1 {
         let index = code.index_of(inst.id)!!
         let load_this = add_load_this_var(code, index)
-        inst = code.inst[index.current]!!
+        inst = code.inst_list[index.current]!!
         kind = inst.kind as NInstKind::FunCall
 
         kind.arguments.add_first(load_this)
-        arg_types[] = code.receiver_type!!
+        arg_types[] = code.receiver_type_token!!.find_type()
         uses_implicit_this = true
     }
 
@@ -123,42 +128,38 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         reporter.report_error("Function '$full_name' expects ${func.parameters.len} arguments, but got ${arg_types.len}", inst.span)
     }
 
-    let type_parameters = []
-    let function_params_tt = func.param_types
-    let function_return_tt = func.return_type_token!!
+    let type_parameters: List<TypeToken> = []
+    let function_params: List<Type> = func.param_types
+    let function_return: Type = func.return_type!!
+
+    let call_site_generics = create_call_site_generics(func.generics, inst.span)
 
     // Convert every generic type defined in the function to a unresolved type at the call site
-    for generic_tt in func.generics.type_tokens {
-        let un = create_unresolved_type(inst.span)
-        type_parameters[] = un
-        // TODO type bounds
-
-        function_params_tt = types.replace_list(function_params_tt, generic_tt, un)
-        function_return_tt = types.replace(function_return_tt, generic_tt, un)
-    }
+    function_return = call_site_generics.replace_with_unresolved(function_return)
+    function_params = call_site_generics.replace_all_with_unresolved(function_params)
 
     repeat kind.explicit_type_arguments.len {
         let e = kind.explicit_type_arguments[it]!!
-        let tt = check_type_usage(e)
+        let tt = check_local_type_usage(e, code)
 
-        if it >= type_parameters.len {
+        if it >= call_site_generics.resolved.len {
             reporter.report_error("Too many type arguments for function '$full_name'", e.span)
             continue
         }
 
-        cons.add_unify(tt, type_parameters[it]!!, e.span)
+        cons.add_unify(tt, call_site_generics.resolved[it]!!, e.span)
     }
 
     let call_site = FunCallSite @[
         func,
         uses_implicit_this,
-        argument_types: arg_types,
-        type_parameters,
+        argument_types: arg_types.to_type_tokens(),
+        call_site_generics,
     ]
     kind.call_site = Some(call_site)
 
-    cons.add_unify_list(function_params_tt, arg_types, inst.span)
-    cons.add_unify(return_tt, function_return_tt, inst.span)
+    cons.add_unify_list(function_params, arg_types, inst.span)
+    cons.add_unify(return_tt, function_return.to_token(), inst.span)
 }
 
 // Represents a function and its score for a given call site
@@ -174,7 +175,7 @@ fun FunctionScore.get_ordering(other: FunctionScore): Ordering = this.score <=> 
 let debug_find_best_function_match: Boolean = false
 
 // Finds the best function match for a given name and arguments
-fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, receiver_tt: Optional<TypeToken>): List<NFunction> {
+fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receiver_tt: Optional<Type>): List<NFunction> {
     let options: List<NFunction> = function_lookup[name]
 
     if options.is_empty() {
@@ -238,7 +239,7 @@ fun TypeChecker.find_best_function_match(name: String, args: List<TypeToken>, re
 
 // Computes a score for how different two lists of types are:
 // 0f means they are the same, higher values mean they are more different
-fun TypeChecker.types_diff_score(params: List<TypeToken>, args: List<TypeToken>): Float {
+fun TypeChecker.types_diff_score(params: List<Type>, args: List<Type>): Float {
     let score = 0f
 
     if params.len != args.len {
@@ -254,24 +255,21 @@ fun TypeChecker.types_diff_score(params: List<TypeToken>, args: List<TypeToken>)
 
 // Computes a score for how different two types are:
 // 0f means they are the same, higher values mean they are more different
-fun TypeChecker.type_diff_score(param: TypeToken, arg: TypeToken): Float {
+fun TypeChecker.type_diff_score(param: Type, arg: Type): Float {
     // Same type
     if param == arg {
         ret 0f
     }
 
     // Special case for lambdas
-    if types.is_function(param) && types.is_unresolved_function(arg) {
+    if param.is_function() && arg.is_unresolved_function() {
         ret 0f
     }
 
     // Simple types, just check if they are compatible
-    if types.is_composite(param) && types.is_composite(arg) {
-        let param_ty = param.find_type()
-        let arg_ty = arg.find_type()
-
-        if param_ty.kind != arg_ty.kind {
-            if param_ty.params.is_empty() || arg_ty.params.is_empty() {
+    if param.is_composite() && arg.is_composite() {
+        if param.kind != arg.kind {
+            if param.params.is_empty() || arg.params.is_empty() {
                 ret 100000f
             }
 
@@ -280,37 +278,33 @@ fun TypeChecker.type_diff_score(param: TypeToken, arg: TypeToken): Float {
 
         let score = 0f
 
-        if param_ty.params.len != arg_ty.params.len {
+        if param.params.len != arg.params.len {
             score += 100f
         }
 
-        repeat min(param_ty.params.len, arg_ty.params.len) {
-            score += type_diff_score(
-                types.create_type_token(param_ty.params[it]!!),
-                types.create_type_token(arg_ty.params[it]!!)
-            ) * 0.1f
+        repeat min(param.params.len, arg.params.len) {
+            let p = types.get_type_by_id(param.params[it]!!)
+            let a = types.get_type_by_id(arg.params[it]!!)
+
+            score += type_diff_score(p, a) * 0.1f
         }
 
         ret score
     }
 
     // Both generics need to share the tag bounds
-    if types.is_generic(param) && types.is_generic(arg) {
-        let param_ty = param.find_type()
-        let arg_ty = arg.find_type()
-
-        let generic: NGeneric = (param_ty.kind as TypeKind::Generic).instance
+    if param.is_generic() && arg.is_generic() {
+        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
         let required_bounds = generic.bounds.to_set()
 
-        let arg_generic: NGeneric = (arg_ty.kind as TypeKind::Generic).instance
+        let arg_generic: NGeneric = (arg.kind as TypeKind::Generic).instance
         required_bounds.remove_all(arg_generic.bounds)
         ret required_bounds.len.to_float() * 10f + 1f
     }
 
     // The argument type need to be an implementor of the tag required by the generic
-    if types.is_generic(param) && types.is_composite(arg) {
-        let param_ty = param.find_type()
-        let generic: NGeneric = (param_ty.kind as TypeKind::Generic).instance
+    if param.is_generic() && arg.is_composite() {
+        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
         let missing_tags = 0f
 
         for bounds in generic.bounds {

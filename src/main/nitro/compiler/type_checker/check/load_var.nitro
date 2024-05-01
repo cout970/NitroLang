@@ -17,12 +17,12 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
     }
 
     // Is it a property of `this`?
-    if code.receiver_type.is_some() {
-        let field: Optional<NStructField> = find_field(code.receiver_type!!, var_name)
+    if code.receiver_type_token.is_some() {
+        let field: Optional<NStructField> = find_field(code.receiver_type_token!!.find_type(), var_name)
 
         if field.is_some() {
             let load_this = add_load_this_var(code, index)
-            inst = code.inst[index.current]!!
+            inst = code.inst_list[index.current]!!
 
             // Overwrite with a LoadField
             inst.kind = NInstKind::LoadField @[
@@ -37,11 +37,11 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
         }
 
         // is it a getter?
-        let getter: Optional<NFunction> = find_getter(code.receiver_type!!, var_name)
+        let getter: Optional<NFunction> = find_getter(code.receiver_type_token!!.find_type(), var_name)
 
         if getter.is_some() {
             let load_this = add_load_this_var(code, index)
-            inst = code.inst[index.current]!!
+            inst = code.inst_list[index.current]!!
 
             // Overwrite with a FunCall
             inst.kind = NInstKind::FunCall @[
@@ -62,7 +62,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
 
     // Is a constant?
     if constant.is_some() {
-        inst.type_token = constant!!.type_token
+        inst.type_token = constant!!.const_type.to_token()
         kind.constant = constant
         ret
     }
@@ -70,7 +70,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
     println("Not found: $full_name:\n$code")
 
     // Not found
-    let error = create_error_type("Variable not found '$full_name'", inst.span)
+    let error = create_error_type("Variable not found '$full_name'", inst.span).to_token()
     inst.type_token = Some(error)
     ret
 }
@@ -85,9 +85,9 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         // Is variable?
         if variable.is_some() {
             kind.variable = variable
-            inst.type_token = type_cache["Nothing"]
+            inst.type_token = type_cache["Nothing"].to_token()
 
-            let value_type_token = code.find_type(kind.value)
+            let value_type_token = code.find_inst_type_token(kind.value)
             if value_type_token.is_some() {
                 cons.add_unify(value_type_token!!, variable!!.type_token!!, inst.span)
             }
@@ -96,12 +96,12 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
     }
 
     // Is it a property of `this`?
-    if code.receiver_type.is_some() {
-        let field: Optional<NStructField> = find_field(code.receiver_type!!, var_name)
+    if code.receiver_type_token.is_some() {
+        let field: Optional<NStructField> = find_field(code.receiver_type_token!!.find_type(), var_name)
 
         if field.is_some() {
             let load_this = add_load_this_var(code, index)
-            inst = code.inst[index.current]!!
+            inst = code.inst_list[index.current]!!
 
             // Overwrite with a LoadField
             inst.kind = NInstKind::StoreField @[
@@ -109,6 +109,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 name: var_name,
                 field,
                 field_type_token: None(),
+                call_site_generics: None(),
                 value: kind.value,
             ]
             inst.type_token = None()
@@ -117,11 +118,11 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         }
 
         // is it a setter?
-        let setter: Optional<NFunction> = find_setter(code.receiver_type!!, var_name)
+        let setter: Optional<NFunction> = find_setter(code.receiver_type_token!!.find_type(), var_name)
 
         if setter.is_some() {
             let load_this = add_load_this_var(code, index)
-            inst = code.inst[index.current]!!
+            inst = code.inst_list[index.current]!!
 
             // Overwrite with a FunCall
             inst.kind = NInstKind::FunCall @[
@@ -142,13 +143,13 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
     // Is a constant?
     if constant.is_some() {
-        let error = create_error_type("Constant '$full_name' cannot be changed", inst.span)
+        let error = create_error_type("Constant '$full_name' cannot be changed", inst.span).to_token()
         inst.type_token = Some(error)
         ret
     }
 
     // Not found
-    let error = create_error_type("Variable not found '$full_name'", inst.span)
+    let error = create_error_type("Variable not found '$full_name'", inst.span).to_token()
     inst.type_token = Some(error)
     ret
 }

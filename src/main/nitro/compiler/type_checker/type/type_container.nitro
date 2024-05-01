@@ -58,11 +58,6 @@ fun TypeContainer.create_type_token(type_id: TypeId): TypeToken {
     ret tt
 }
 
-fun TypeContainer.create_type_by_ids(kind: TypeKind, params: List<TypeId>): TypeToken {
-    let type_id = create_type_id_by_ids(kind, params)
-    ret create_type_token(type_id)
-}
-
 fun TypeContainer.create_type_id_by_ids(kind: TypeKind, params: List<TypeId>): TypeId {
     let type_id = get_type_signature(kind, params)
 
@@ -86,12 +81,22 @@ fun TypeContainer.create_type_id_by_ids(kind: TypeKind, params: List<TypeId>): T
     ret type_id
 }
 
+fun TypeContainer.create_type_direct(kind: TypeKind, params: List<Type>): Type {
+    let ids = []
+    for p in params {
+        ids[] = p.id
+    }
+    let type_id = create_type_id_by_ids(kind, ids)
+    ret get_type_by_id(type_id)
+}
+
 fun TypeContainer.create_type(kind: TypeKind, params: List<TypeToken>): TypeToken {
     let ids = []
     for p in params {
         ids[] = p.type_id
     }
-    ret create_type_by_ids(kind, ids)
+    let type_id = create_type_id_by_ids(kind, ids)
+    ret create_type_token(type_id)
 }
 
 fun TypeContainer.get_unresolved_of(ty: Type, result: Set<Int>) {

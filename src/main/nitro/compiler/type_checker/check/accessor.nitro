@@ -21,11 +21,11 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
         ret
     }
 
-    let receiver_type = check_type_usage(func.parameters.first()!!.type_usage)
-    let ret_ty = func.return_type_token!!
+    let receiver_type: Type = func.parameters.first()!!.param_type!!
+    let ret_ty: Type = func.return_type!!
 
     if name.starts_with("get_") && func.parameters.len == 1 {
-        if !types.is_nothing(ret_ty) && !types.is_never(ret_ty) {
+        if !ret_ty.is_nothing() && !ret_ty.is_never() {
             let property_name = name.slice(4, name.len - 4)
             let pattern = types.type_to_pattern(receiver_type)
 
@@ -40,7 +40,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
     }
 
     if name.starts_with("set_") && func.parameters.len == 2 {
-        if types.is_nothing(ret_ty) || ret_ty == receiver_type {
+        if ret_ty.is_nothing() || ret_ty == receiver_type {
             let property_name = name.slice(4, name.len - 4)
             let pattern = types.type_to_pattern(receiver_type)
 
@@ -54,7 +54,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
     }
 }
 
-fun TypeChecker.find_getter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+fun TypeChecker.find_getter(receiver_type: Type, full_name: String): Optional<NFunction> {
     let opt = property_cache.getters[full_name]
 
     // No getters for this property
@@ -72,7 +72,7 @@ fun TypeChecker.find_getter(receiver_type: TypeToken, full_name: String): Option
     ret None()
 }
 
-fun TypeChecker.find_setter(receiver_type: TypeToken, full_name: String): Optional<NFunction> {
+fun TypeChecker.find_setter(receiver_type: Type, full_name: String): Optional<NFunction> {
     let opt = property_cache.setters[full_name]
 
     // No setter for this property

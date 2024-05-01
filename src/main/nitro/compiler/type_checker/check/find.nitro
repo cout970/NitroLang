@@ -12,7 +12,7 @@ fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, inst_id:
     // We are looking for a variable declaration with same name and within the same block or a block that is less deep
     repeat index {
         let i = index - it - 1
-        let curr_inst: NInst = code.inst[i]!!
+        let curr_inst: NInst = code.inst_list[i]!!
 
         // If the instruction is in another block, there are 2 options:
 
@@ -79,12 +79,11 @@ fun TypeChecker.find_constant(code: NCode, full_name: String): Optional<NConst> 
 }
 
 // find_field
-fun TypeChecker.find_field(receiver_type: TypeToken, full_name: String): Optional<NStructField> {
-    let ty = receiver_type.find_type()
+fun TypeChecker.find_field(receiver_type: Type, full_name: String): Optional<NStructField> {
 
     // Field in Struct
-    if ty.kind is TypeKind::Struct {
-        let kind = ty.kind as TypeKind::Struct
+    if receiver_type.kind is TypeKind::Struct {
+        let kind = receiver_type.kind as TypeKind::Struct
         let str: NStruct = kind.instance
 
         for field in str.fields {
@@ -95,8 +94,8 @@ fun TypeChecker.find_field(receiver_type: TypeToken, full_name: String): Optiona
     }
 
     // Field in Option variant
-    if ty.kind is TypeKind::OptionItem {
-        let kind = ty.kind as TypeKind::OptionItem
+    if receiver_type.kind is TypeKind::OptionItem {
+        let kind = receiver_type.kind as TypeKind::OptionItem
         let str: NStruct = kind.instance
 
         for field in str.fields {

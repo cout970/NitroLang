@@ -1,11 +1,11 @@
 
 
 fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, inst: NInst, code: NCode) {
-    let instance_tt = code.find_type(kind.instance)
+    let instance_tt = code.find_inst_type_token(kind.instance)
 
     check(instance_tt.is_some()) @{ "Instance must have a type (#${kind.instance})" }
 
-    let inst_type = create_unresolved_type(inst.span)
+    let inst_type = create_unresolved_type(inst.span).to_token()
     inst.type_token = Some(inst_type)
 
     let checker = this
@@ -15,33 +15,23 @@ fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, inst: NInst, c
 }
 
 fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NInst, code: NCode, inst_type: TypeToken, instance_tt: TypeToken) {
+    let instance_type = instance_tt.find_type()
+
     // Direct struct field
     let field_name = kind.name
-    let field: Optional<NStructField> = find_field(instance_tt, field_name)
+    let field: Optional<NStructField> = find_field(instance_type, field_name)
 
     if field.is_some() {
-        let field_type_token = field!!.type_token!!
-        let generics = field!!.parent_struct.generics
-        let type_parameters = []
+        let call_site = create_call_site_generics(field!!.parent_struct.generics, inst.span)
+        let field_type: Type = call_site.replace_with_unresolved(field!!.field_type!!)
 
-        let instance_ty = instance_tt.find_type()
-
-        // Convert every generic type defined in the struct to a unresolved type at the call site
-        for generic_tt in generics.type_tokens {
-            let un = create_unresolved_type(inst.span)
-            type_parameters[] = un
-            // TODO type bounds
-
-            field_type_token = types.replace(field_type_token, generic_tt, un)
-        }
-
-        cons.add_unify_list(types.create_type_tokens(instance_ty.params), type_parameters, inst.span)
-        cons.add_unify(inst_type, field_type_token, inst.span)
+        cons.add_unify_list(instance_type.type_params, call_site.unresolved, inst.span)
+        cons.add_unify(inst_type, field_type.to_token(), inst.span)
         ret
     }
 
     // Getter function
-    let getter = find_getter(instance_tt, field_name)
+    let getter = find_getter(instance_type, field_name)
 
     if getter.is_some() {
         // Overwrite with a FunCall
@@ -59,17 +49,17 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
         ret
     }
 
-    let instance_type = instance_tt.find_type()
-    let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span)
+
+    let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span).to_token()
     cons.add_unify(inst_type, error, inst.span)
 }
 
 fun TypeChecker.check_inst_store_field(kind: NInstKind::StoreField, inst: NInst, code: NCode) {
-    let instance_tt = code.find_type(kind.instance)
+    let instance_tt = code.find_inst_type_token(kind.instance)
 
     check(instance_tt.is_some()) @{ "Instance must have a type (#${kind.instance})" }
 
-    inst.type_token = type_cache["Nothing"]
+    inst.type_token = type_cache["Nothing"].to_token()
 
     let checker = this
     cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
@@ -78,39 +68,31 @@ fun TypeChecker.check_inst_store_field(kind: NInstKind::StoreField, inst: NInst,
 }
 
 fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: NInst, code: NCode, instance_tt: TypeToken) {
+    let instance_type = instance_tt.find_type()
+
     // Direct struct field
     let field_name = kind.name
-    let field: Optional<NStructField> = find_field(instance_tt, field_name)
+    let field: Optional<NStructField> = find_field(instance_type, field_name)
 
     if field.is_some() {
-        let field_type_token = field!!.type_token!!
-        let generics = field!!.parent_struct.generics
-        let type_parameters = []
+        let call_site = create_call_site_generics(field!!.parent_struct.generics, inst.span)
+        let field_type: Type = call_site.replace_with_unresolved(field!!.field_type!!)
 
-        let instance_ty = instance_tt.find_type()
+        let field_tt: TypeToken = field_type.to_token()
+        kind.field_type_token = Some(field_tt)
+        kind.call_site_generics = Some(call_site)
 
-        // Convert every generic type defined in the struct to a unresolved type at the call site
-        for generic_tt in generics.type_tokens {
-            let un = create_unresolved_type(inst.span)
-            type_parameters[] = un
-            // TODO type bounds
+        cons.add_unify_list(instance_tt.type_params, call_site.resolved.find_types(), inst.span)
 
-            field_type_token = types.replace(field_type_token, generic_tt, un)
-        }
-
-        kind.field_type_token = Some(field_type_token)
-
-        cons.add_unify_list(instance_ty.type_tokens, type_parameters, inst.span)
-
-        let value_tt = code.find_type(kind.value)
+        let value_tt = code.find_inst_type_token(kind.value)
         if value_tt.is_some() {
-            cons.add_unify(value_tt!!, field_type_token, inst.span)
+            cons.add_unify(value_tt!!, field_tt, inst.span)
         }
         ret
     }
 
     // Getter function
-    let setter = find_setter(instance_tt, field_name)
+    let setter = find_setter(instance_type, field_name)
 
     if setter.is_some() {
         // Overwrite with a FunCall
@@ -127,7 +109,6 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
         ret
     }
 
-    let instance_type = instance_tt.find_type()
-    let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span)
+    let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span).to_token()
     inst.type_token = Some(error)
 }

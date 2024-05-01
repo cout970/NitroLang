@@ -8,7 +8,7 @@ fun TypeToken.find_type(): Type {
     ret container.get_type_by_id(type_id)
 }
 
-fun TypeToken.get_type_tokens(): List<TypeToken> = find_type().get_type_tokens()
+fun TypeToken.get_type_params(): List<Type> = find_type().get_type_params()
 
 fun TypeToken.get_type_kind(): TypeKind = find_type().kind
 
@@ -35,4 +35,20 @@ fun List<TypeToken>.to_string(): String {
         str += item.to_string()
     }
     ret str
+}
+
+fun List<TypeToken>.find_types(): List<Type> {
+    let res = []
+    for item in this {
+        res += item.find_type()
+    }
+    ret res
+}
+
+fun List<Type>.to_type_tokens(): List<TypeToken> {
+    let res = []
+    for item in this {
+        res += item.to_token()
+    }
+    ret res
 }

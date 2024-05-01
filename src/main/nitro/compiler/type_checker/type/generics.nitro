@@ -1,0 +1,48 @@
+
+struct CallSiteGenerics {
+    types: TypeContainer
+    generic_params: NGenericParams
+    unresolved: List<Type>
+    resolved: List<TypeToken>
+    // Generic type in definition -> unresolved type at usage
+    mapping: Map<Type, TypeToken>
+}
+
+fun TypeChecker.create_call_site_generics(generic_params: NGenericParams, span: Span): CallSiteGenerics {
+    let call_site = CallSiteGenerics @[
+        types,
+        generic_params,
+        unresolved: [],
+        resolved: [],
+        mapping: #[],
+    ]
+
+    // Convert every generic type defined in the struct to a unresolved type at the call site
+    for generic_ty in generic_params.type_tokens.find_types() {
+        let unresolved_type: Type = create_unresolved_type(span)
+        let unresolved_type_token = unresolved_type.to_token()
+
+        // TODO type bounds
+
+        call_site.unresolved[] = unresolved_type
+        call_site.resolved[] = unresolved_type_token
+        call_site.mapping[generic_ty] = unresolved_type_token
+    }
+
+    ret call_site
+}
+
+fun CallSiteGenerics.replace_with_unresolved(ty: Type): Type {
+    for entry in mapping {
+        ty = types.replace(ty, entry.first, entry.second.find_type())
+    }
+    ret ty
+}
+
+fun CallSiteGenerics.replace_all_with_unresolved(list: List<Type>): List<Type> {
+    let res = []
+    for ty in list {
+        res[] = replace_with_unresolved(ty)
+    }
+    ret res
+}

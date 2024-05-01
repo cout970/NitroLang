@@ -1,17 +1,17 @@
 
 fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NCode) {
-    let inst_type: TypeToken = create_unresolved_function_type(inst.span)
+    let inst_type: TypeToken = create_unresolved_function_type(inst.span).to_token()
     inst.type_token = Some(inst_type)
 
     let lambda = kind.instance
 
     if lambda.return_type_usage.is_some() {
-        lambda.return_type_token = Some(check_type_usage(lambda.return_type_usage!!))
+        lambda.return_type_token = Some(check_local_type_usage(lambda.return_type_usage!!, code))
     } else {
-        lambda.return_type_token = Some(create_unresolved_type(inst.span))
+        lambda.return_type_token = Some(create_unresolved_type(inst.span).to_token())
     }
 
-    lambda.code.return_type = lambda.return_type_token
+    lambda.code.return_type_token = lambda.return_type_token
 
     // Resolve lambda type
     let checker = this
@@ -21,13 +21,14 @@ fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NC
 }
 
 fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, code: NCode, inst_tt: TypeToken) {
-    if !types.is_function(inst_tt) {
-        let error = create_error_type("Lambda type cannot be resolved", inst.span)
+    let inst_ty: Type = inst_tt.find_type()
+
+    if !inst_ty.is_function() {
+        let error = create_error_type("Lambda type cannot be resolved", inst.span).to_token()
         cons.add_unify(inst_tt, error, inst.span)
         ret
     }
 
-    let inst_ty: Type = inst_tt.find_type()
     let type_kind = TypeKind::Lambda @[instance: kind.instance]
 
     // Resolve lambda body
@@ -35,15 +36,15 @@ fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, cod
 
     repeat lambda.parameters.len {
         let param = lambda.parameters[it]!!
-        let tt = check_type_usage(param.type_usage)
-        param.type_token = Some(tt)
+        let tt = check_local_type_usage(param.type_usage, code)
+        param.param_type = Some(tt.find_type())
         cons.add_unify(tt, types.create_type_token(inst_ty.params[it]!!), param.span)
     }
 
     cons.add_unify(lambda.return_type_token!!, types.create_type_token(inst_ty.params.last()!!), inst.span)
 
-    let real_type = types.create_type_by_ids(type_kind, inst_ty.params)
-    lambda.type_token = Some(real_type)
+    let real_type_id = types.create_type_id_by_ids(type_kind, inst_ty.params)
+    lambda.type_token = Some(types.create_type_token(real_type_id))
 
     cons.add_code_to_check(lambda.code)
 }

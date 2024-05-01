@@ -1,76 +1,69 @@
 
-fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeToken> {
+fun TypeContainer.common_type(left: Type, right: Type): Optional<Type> {
     if left == right {
         ret Some(left)
     }
 
     // Invalid
-    if is_invalid(left) {
+    if left.is_invalid() {
         ret Some(right)
     }
-    if is_invalid(right) {
+    if right.is_invalid() {
         ret Some(left)
     }
 
     // Never
-    if is_never(left) {
+    if left.is_never() {
         ret Some(right)
     }
-    if is_never(right) {
+    if right.is_never() {
         ret Some(left)
     }
 
     // Union
-    if is_union(left) && is_union(right) {
-        let left_ty = left.find_type()
-        let right_ty = right.find_type()
+    if left.is_union() && right.is_union() {
         let set = %[]
 
-        set.add_all(left_ty.params)
-        set.add_all(right_ty.params)
+        set.add_all(left.params)
+        set.add_all(right.params)
 
         ret common_type_of_list(set.to_list())
     }
-    if is_union(left) {
-        let left_ty = left.find_type()
+    if left.is_union() {
         let set = %[]
 
-        set.add_all(left_ty.params)
-        set.add(right.type_id)
+        set.add_all(left.params)
+        set.add(right.id)
 
         ret common_type_of_list(set.to_list())
     }
-    if is_union(right) {
-        let right_ty = right.find_type()
+    if right.is_union() {
         let set = %[]
 
-        set.add_all(right_ty.params)
-        set.add(left.type_id)
+        set.add_all(right.params)
+        set.add(left.id)
 
         ret common_type_of_list(set.to_list())
     }
 
     // Composite
-    if is_composite(left) && is_composite(right) {
-        let left_ty = left.find_type()
-        let right_ty = right.find_type()
-
-        if left_ty.params.len != right_ty.params.len {
+    if left.is_composite() && right.is_composite() {
+        if left.params.len != right.params.len {
             ret None()
         }
 
-        let opt = common_kind_type(left_ty.kind, right_ty.kind)
+        let opt = common_kind_type(left.kind, right.kind)
 
         if opt.is_none() {
             ret None()
         }
 
-        let params = []
+        let params: List<Type> = []
 
-        repeat left_ty.params.len {
+        repeat left.params.len {
             let aux = common_type(
-                create_type_token(left_ty.params[it]!!),
-                create_type_token(right_ty.params[it]!!)
+                get_type_by_id(left.params[it]!!),
+                get_type_by_id(right.params[it]!!)
             )
 
             if aux.is_none() {
@@ -79,22 +72,22 @@ fun TypeContainer.common_type(left: TypeToken, right: TypeToken): Optional<TypeT
             params[] = aux!!
         }
 
-        ret Some(create_type(opt!!, params))
+        ret Some(create_type_direct(opt!!, params))
     }
 
     ret None()
 }
 
-fun TypeContainer.common_type_of_list(list: List<TypeId>): Optional<TypeToken> {
+fun TypeContainer.common_type_of_list(list: List<TypeId>): Optional<Type> {
     ret when list.len {
         0 -> None()
-        1 -> Some(create_type_token(list.first()!!))
-        2 -> common_type(create_type_token(list[0]!!), create_type_token(list[1]!!))
+        1 -> Some(get_type_by_id(list.first()!!))
+        2 -> common_type(get_type_by_id(list[0]!!), get_type_by_id(list[1]!!))
         else -> {
-            let curr: TypeToken = create_type_token(list.first()!!)
+            let curr: Type = get_type_by_id(list.first()!!)
 
             for other in list.rest() {
-                let aux = common_type(curr, create_type_token(other))
+                let aux = common_type(curr, get_type_by_id(other))
 
                 if aux.is_none() {
                     ret None()
@@ -170,15 +163,15 @@ fun TypeContainer.common_kind_type(left: TypeKind, right: TypeKind): Optional<Ty
     ret None()
 }
 
-fun TypeContainer.contains_generic(tt: TypeToken): Boolean {
-    let ty = tt.find_type()
-
-    if ty.kind is TypeKind::Generic {
+fun Type.contains_generic(): Boolean {
+    if kind is TypeKind::Generic {
         ret true
     }
 
-    for param in ty.params {
-        if contains_generic(create_type_token(param)) {
+    for param in params {
+        let param_type = container.get_type_by_id(param)
+
+        if param_type.contains_generic() {
             ret true
         }
     }
@@ -186,93 +179,4 @@ fun TypeContainer.contains_generic(tt: TypeToken): Boolean {
     ret false
 }
 
-fun TypeContainer.contains_param(curr: TypeToken, find: TypeToken): Boolean {
-    let ty = curr.find_type()
 
-    for param in ty.params {
-        if param == find.type_id {
-            ret true
-        }
-
-        if contains_param(create_type_token(param), find) {
-            ret true
-        }
-    }
-
-    ret false
-}
-
-fun TypeContainer.has_unresolved(tt: TypeToken): Boolean {
-    let ty = tt.find_type()
-
-    if ty.kind is TypeKind::Unresolved || ty.kind is TypeKind::UnresolvedFunction {
-        ret true
-    }
-
-    for p in ty.params {
-        if has_unresolved(create_type_token(p)) {
-            ret true
-        }
-    }
-    ret false
-}
-
-
-fun TypeContainer.is_unresolved(tt: TypeToken): Boolean {
-    ret tt.find_type().kind is TypeKind::Unresolved
-}
-
-fun TypeContainer.is_unresolved_function(tt: TypeToken): Boolean {
-    ret tt.find_type().kind is TypeKind::UnresolvedFunction
-}
-
-fun TypeContainer.is_generic(tt: TypeToken): Boolean {
-    ret tt.find_type().kind is TypeKind::Generic
-}
-
-fun TypeContainer.is_union(tt: TypeToken): Boolean {
-    ret tt.find_type().kind is TypeKind::Union
-}
-
-fun TypeContainer.is_invalid(tt: TypeToken): Boolean {
-    ret tt.find_type().kind is TypeKind::Invalid
-}
-
-fun TypeContainer.is_composite(tt: TypeToken): Boolean {
-    let kind = tt.find_type().kind
-    ret kind is TypeKind::Struct || kind is TypeKind::Option || kind is TypeKind::OptionItem
-}
-
-fun TypeContainer.is_lambda(tt: TypeToken): Boolean {
-    let kind = tt.find_type().kind
-    ret kind is TypeKind::Lambda
-}
-
-fun TypeContainer.is_named(tt: TypeToken, name: String): Boolean {
-    let ty = tt.find_type()
-
-    if ty.kind is TypeKind::Struct {
-        ret (ty.kind as TypeKind::Struct).instance.full_name == name
-    }
-
-    if ty.kind is TypeKind::Option {
-        ret (ty.kind as TypeKind::Option).instance.full_name == name
-    }
-
-    if ty.kind is TypeKind::OptionItem {
-        ret (ty.kind as TypeKind::OptionItem).instance.full_name == name
-    }
-
-    ret false
-}
-
-fun TypeContainer.is_boolean(tt: TypeToken): Boolean = this.is_named(tt, "Boolean")
-fun TypeContainer.is_byte(tt: TypeToken): Boolean = this.is_named(tt, "Byte")
-fun TypeContainer.is_char(tt: TypeToken): Boolean = this.is_named(tt, "Char")
-fun TypeContainer.is_float(tt: TypeToken): Boolean = this.is_named(tt, "Float")
-fun TypeContainer.is_function(tt: TypeToken): Boolean = this.is_named(tt, "Function")
-fun TypeContainer.is_int(tt: TypeToken): Boolean = this.is_named(tt, "Int")
-fun TypeContainer.is_long(tt: TypeToken): Boolean = this.is_named(tt, "Long")
-fun TypeContainer.is_never(tt: TypeToken): Boolean = this.is_named(tt, "Never")
-fun TypeContainer.is_nothing(tt: TypeToken): Boolean = this.is_named(tt, "Nothing")
-fun TypeContainer.is_string(tt: TypeToken): Boolean = this.is_named(tt, "String")

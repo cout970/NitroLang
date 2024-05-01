@@ -6,28 +6,28 @@ struct UnifyCtx {
     cons: TypeConstraints
     code: NCode
     span: Span
-    unresolved_types: Map<TypeToken, TypeToken>
+    unresolved_types: Map<Type, TypeToken>
 }
 
-fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
-    if types.is_unresolved(left) || types.is_unresolved_function(left) {
+fun UnifyCtx.unify(left: Type, right: Type) {
+    if left.is_unresolved() || left.is_unresolved_function() {
         add_substitution(left, right)
         ret
     }
-    if types.is_unresolved(right) || types.is_unresolved_function(right){
+    if right.is_unresolved() || right.is_unresolved_function() {
         add_substitution(right, left)
         ret
     }
 
-    if types.is_invalid(left) {
+    if left.is_invalid() {
         ret
     }
-    if types.is_invalid(right) {
+    if right.is_invalid() {
         ret
     }
 
-    if types.is_generic(left) {
-        if types.is_never(right) {
+    if left.is_generic() {
+        if right.is_never() {
             ret
         }
 
@@ -37,8 +37,8 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
         ret
     }
 
-    if types.is_generic(right) {
-        if types.is_never(left) {
+    if right.is_generic() {
+        if left.is_never() {
             ret
         }
 
@@ -48,33 +48,30 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
         ret
     }
 
-    if types.is_composite(left) && types.is_composite(right) {
-        let left_params = left.type_tokens
-        let right_params = right.type_tokens
+    if left.is_composite() && right.is_composite() {
+        let left_params = left.type_params
+        let right_params = right.type_params
 
         repeat min(left_params.len, right_params.len) {
             unify(left_params[it]!!, right_params[it]!!)
         }
 
-        let need_same_params = !(types.is_never(left) || types.is_never(left) || types.is_function(left) || types.is_function(left))
+        let need_same_params = !(left.is_never() || left.is_never() || left.is_function() || left.is_function())
 
         if need_same_params && left_params.len != right_params.len {
             report_type_mismatch(left, right)
             ret
         }
 
-        let left_type = left.find_type()
-                let right_type = right.find_type()
-
-        if left_type.kind != right_type.kind && types.common_kind_type(left_type.kind, right_type.kind).is_none() {
+        if left.kind != right.kind && types.common_kind_type(left.kind, right.kind).is_none() {
             report_type_mismatch(left, right)
         }
         ret
     }
 
-    if (types.is_lambda(left) && types.is_function(right)) || (types.is_lambda(right) && types.is_function(left)) {
-        let left_params = left.type_tokens
-        let right_params = right.type_tokens
+    if (left.is_lambda() && right.is_function()) || (right.is_lambda() && left.is_function()) {
+        let left_params = left.type_params
+        let right_params = right.type_params
 
         repeat min(left_params.len, right_params.len) {
             unify(left_params[it]!!, right_params[it]!!)
@@ -89,18 +86,17 @@ fun UnifyCtx.unify(left: TypeToken, right: TypeToken) {
     report_type_mismatch(left, right)
 }
 
-fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
+fun UnifyCtx.add_substitution(key: Type, value: Type) {
     // Equal? nothing to do
     if key == value {
         ret
     }
 
     // Handle recursive types
-    if types.contains_param(value, key) {
-        // TODO optimize remove_unresolved()
-        let new_value = types.remove_unresolved(value, key)
+    if value.contains_type_param(key) {
+        let new_value = value.remove_unresolved(key)
 
-        check_not(types.contains_param(new_value, key)) @{
+        check_not(new_value.contains_type_param(key)) @{
             "Recursive type: $key -> $value"
         }
 
@@ -110,12 +106,12 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
 
     // Add a substitution
     if key !in unresolved_types {
-        unresolved_types[key] = value
+        unresolved_types[key] = value.to_token()
         ret
     }
 
     // In case of conflict
-    let prev = unresolved_types[key]!!
+    let prev = unresolved_types[key]!!.find_type()
     let next = value
 
     // No conflict, actually
@@ -126,12 +122,12 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
     let common = types.common_type(prev, next)
 
     if common.is_some() {
-        unresolved_types[key] = common!!
+        unresolved_types[key] = common!!.to_token()
         ret
     }
 
     // Conflict
-    if !types.has_unresolved(prev) && !types.has_unresolved(next) {
+    if !prev.has_unresolved() && !next.has_unresolved() {
         report_type_mismatch(prev, next)
         ret
     }
@@ -151,7 +147,7 @@ fun UnifyCtx.add_substitution(key: TypeToken, value: TypeToken) {
     sub_ctx.merge_into(this)
 }
 
-fun UnifyCtx.report_type_mismatch(a: TypeToken, b: TypeToken) {
+fun UnifyCtx.report_type_mismatch(a: Type, b: Type) {
     reporter.report_error("Type mismatch: $a != $b", span)
 }
 
@@ -164,8 +160,8 @@ fun UnifyCtx.merge_into(other: UnifyCtx) {
             continue
         }
 
-        let prev = this.unresolved_types[entry.first]!!
+        let prev = this.unresolved_types[entry.first]!!.find_type()
 
-        this.unresolved_types[entry.first] = types.create_union(prev, entry.second)
+        this.unresolved_types[entry.first] = types.create_union(prev, entry.second.find_type()).to_token()
     }
 }

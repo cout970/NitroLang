@@ -11,11 +11,10 @@ option PatternKind {
     Union {}
 }
 
-fun TypeContainer.type_to_pattern(tt: TypeToken): TypePattern {
-    let ty: Type = tt.find_type()
+fun TypeContainer.type_to_pattern(ty: Type): TypePattern {
     let params = []
 
-    for p in ty.type_tokens {
+    for p in ty.type_params {
         params += type_to_pattern(p)
     }
 
@@ -36,10 +35,6 @@ fun TypeContainer.type_kind_to_pattern(tk: TypeKind): PatternKind {
         ret PatternKind::Union @[]
     }
     ret PatternKind::Any @[]
-}
-
-fun TypeContainer.matches_pattern(a: TypeToken, b: TypePattern): Boolean {
-    ret matches_pattern(a.find_type(), b)
 }
 
 fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {

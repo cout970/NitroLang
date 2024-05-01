@@ -131,7 +131,7 @@ fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
         span,
         name,
         type_usage,
-        type_token: None(),
+        param_type: None(),
     ]
 
     ret found(def)

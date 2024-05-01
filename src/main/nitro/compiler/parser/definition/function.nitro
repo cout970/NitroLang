@@ -44,7 +44,7 @@ struct NFunction {
     name: String
     parameters: List<NFunctionParameter>
     return_type_usage: NTypeUsage
-    return_type_token: Optional<TypeToken>
+    return_type: Optional<Type>
     parent_tag: Optional<NTag>
     code: NCode
     full_name_cache: Optional<String>
@@ -54,7 +54,7 @@ struct NFunctionParameter {
     span: Span
     name: String
     type_usage: NTypeUsage
-    type_token: Optional<TypeToken>
+    param_type: Optional<Type>
 }
 
 fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
@@ -121,7 +121,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
             span: receiver_span,
             name: "this",
             type_usage: receiver_tu,
-            type_token: None(),
+            param_type: None(),
         ]
         has_receiver = true
 
@@ -144,7 +144,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         name,
         parameters,
         return_type_usage: NTypeUsage::simple(span, "Nothing"),
-        return_type_token: None(),
+        return_type: None(),
         parent_tag: None(),
         code: NCode::new(span),
         full_name_cache: None(),
@@ -204,7 +204,7 @@ fun Parser.read_function_parameter(): Parsed<NFunctionParameter> {
         span,
         name,
         type_usage,
-        type_token: None(),
+        param_type: None(),
     ]
 
     ret found(def)
@@ -217,13 +217,13 @@ fun Parser.read_var_modifier(): Parsed<Nothing> {
     ret found(nothing)
 }
 
-fun NFunction.get_param_types(): List<TypeToken> {
+fun NFunction.get_param_types(): List<Type> {
     let result = []
     for p in parameters {
-        if p.type_token.is_none() {
+        if p.param_type.is_none() {
             continue
         }
-        result += p.type_token!!
+        result += p.param_type!!
     }
     ret result
 }

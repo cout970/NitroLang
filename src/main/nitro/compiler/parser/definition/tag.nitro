@@ -13,7 +13,7 @@ struct NTag {
     path: String
     name: String
     functions: List<NFunction>
-    implementors: List<TypeToken>
+    implementors: List<Type>
 }
 
 fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> {

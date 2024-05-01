@@ -11,7 +11,7 @@ struct NCode {
     // Generics defined for this block of code
     generics: NGenericParams
     // List of instructions of the function/constant
-    inst: List<NInst>
+    inst_list: List<NInst>
     // Declared variables, names can be duplicated
     vars: List<NVar>
     // Last allocated id for new instructions
@@ -35,9 +35,9 @@ struct NCode {
     // Last executed expression, used to generate implicit return statements
     last_expression: Optional<NInstId>
     // Type of the receiver of the function, used to generate implicit self references
-    receiver_type: Optional<TypeToken>
+    receiver_type_token: Optional<TypeToken>
     // Expected type to be returned by the function
-    return_type: Optional<TypeToken>
+    return_type_token: Optional<TypeToken>
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
@@ -59,7 +59,7 @@ fun NCode::new(span: Span): NCode {
         parent_span: None(),
         span,
         generics: NGenericParams::new(),
-        inst: [],
+        inst_list: [],
         vars: [],
         last_id: -1,
         last_var_id: -1,
@@ -71,8 +71,8 @@ fun NCode::new(span: Span): NCode {
         break_jumps: [],
         continue_jumps: [],
         last_expression: None(),
-        receiver_type: None(),
-        return_type: None(),
+        receiver_type_token: None(),
+        return_type_token: None(),
         const_cache: #[],
     ]
 }
@@ -109,7 +109,7 @@ fun NCode.exit_block() {
 }
 
 fun NCode.find(id: NInstId): Optional<NInst> {
-    for i in this.inst {
+    for i in inst_list {
         if i.id == id {
             ret Some(i)
         }
@@ -118,8 +118,8 @@ fun NCode.find(id: NInstId): Optional<NInst> {
     ret None()
 }
 
-fun NCode.find_type(id: NInstId): Optional<TypeToken> {
-    for i in this.inst {
+fun NCode.find_inst_type_token(id: NInstId): Optional<TypeToken> {
+    for i in inst_list {
         if i.id == id {
             if i.type_token.is_some() {
                 ret Some(i.type_token!!)
@@ -133,7 +133,7 @@ fun NCode.find_type(id: NInstId): Optional<TypeToken> {
 
 fun NCode.index_of(id: NInstId): Optional<Index> {
     let current = 0
-    for i in this.inst {
+    for i in inst_list {
         if i.id == id {
             ret Some(Index @[current])
         }
@@ -191,7 +191,7 @@ fun NCode.restore_jump_points(jumps: NCodeJumps) {
 fun NCode.merge(other: NCode) {
     let mapping: Map<NInstId, NInstId> = #[]
 
-    for i in other.inst {
+    for i in other.inst_list {
         this.add_copy(i, mapping)
     }
 
@@ -201,13 +201,13 @@ fun NCode.merge(other: NCode) {
 }
 
 fun NCode.to_string(): String {
-    if inst.is_empty() {
+    if inst_list.is_empty() {
         ret "{}"
     }
 
     let body_str = "{"
 
-     for i in inst {
+     for i in inst_list {
         let id = i.id.to_string()
         let line = ""
         line += " " * (5 - id.len - 1)
@@ -229,8 +229,8 @@ fun NCode.to_string(): String {
         body_str += line
     }
     body_str += "\n  last_expression: $last_expression"
-    body_str += "\n  receiver_type: $receiver_type"
-    body_str += "\n  return_type: $return_type"
+    body_str += "\n  receiver_type_token: $receiver_type_token"
+    body_str += "\n  return_type_token: $return_type_token"
     body_str += "\n  parent_inst: $parent_inst"
     body_str += "\n}"
 

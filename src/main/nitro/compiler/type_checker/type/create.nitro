@@ -1,65 +1,67 @@
 
-fun TypeChecker.create_error_type(message: String, span: Span): TypeToken {
+fun TypeChecker.create_error_type(message: String, span: Span): Type {
     report_error(message, span)
-    ret types.create_type(TypeKind::Invalid @[message, span], [])
+    ret types.create_type_direct(TypeKind::Invalid @[message, span], [])
 }
 
-fun TypeChecker.create_unresolved_type(span: Span): TypeToken {
+fun TypeChecker.create_unresolved_type(span: Span): Type {
     types.last_unresolved_id += 1
-    ret types.create_type(TypeKind::Unresolved @[span, id: types.last_unresolved_id], [])
+    ret types.create_type_direct(TypeKind::Unresolved @[span, id: types.last_unresolved_id], [])
 }
 
-fun TypeChecker.create_unresolved_function_type(span: Span): TypeToken {
+fun TypeChecker.create_unresolved_function_type(span: Span): Type {
     types.last_unresolved_id += 1
-    ret types.create_type(TypeKind::UnresolvedFunction @[span, id: types.last_unresolved_id], [])
+    ret types.create_type_direct(TypeKind::UnresolvedFunction @[span, id: types.last_unresolved_id], [])
 }
 
-fun TypeChecker.create_generic_type(generic: NGeneric): TypeToken {
+fun TypeChecker.create_generic_type(generic: NGeneric): Type {
     let cache = type_generic_cache[generic]
     if cache.is_some() {
         ret cache!!
     }
 
     let kind = TypeKind::Generic @[instance: generic]
-    let tt = types.create_type(kind, [])
+    let ty = types.create_type_direct(kind, [])
 
-    type_generic_cache[generic] = tt
-    ret tt
+    type_generic_cache[generic] = ty
+    ret ty
 }
 
-fun TypeContainer.create_union(left: TypeToken, right: TypeToken): TypeToken {
+fun TypeContainer.create_union(left: Type, right: Type): Type {
     if left == right {
         ret left
     }
-    let left_ty = left.find_type()
-    let right_ty = right.find_type()
 
-    if left_ty.kind is TypeKind::Union && right_ty.kind is TypeKind::Union {
+    if left.kind is TypeKind::Union && right.kind is TypeKind::Union {
         let set: Set<TypeId> = %[]
 
-        set.add_all(left_ty.params)
-        set.add_all(right_ty.params)
+        set.add_all(left.params)
+        set.add_all(right.params)
 
-        ret create_type_by_ids(left_ty.kind, set.to_list())
+        let type_id = create_type_id_by_ids(left.kind, set.to_list())
+        ret get_type_by_id(type_id)
     }
 
-    if left_ty.kind is TypeKind::Union {
+    if left.kind is TypeKind::Union {
         let set: Set<TypeId> = %[]
 
-        set.add_all(left_ty.params)
-        set.add(right.type_id)
+        set.add_all(left.params)
+        set.add(right.id)
 
-        ret create_type_by_ids(left_ty.kind, set.to_list())
+        let type_id = create_type_id_by_ids(left.kind, set.to_list())
+        ret get_type_by_id(type_id)
     }
 
-    if right_ty.kind is TypeKind::Union {
+    if right.kind is TypeKind::Union {
         let set: Set<TypeId> = %[]
 
-        set.add_all(right_ty.params)
-        set.add(left.type_id)
+        set.add_all(right.params)
+        set.add(left.id)
 
-        ret create_type_by_ids(right_ty.kind, set.to_list())
+        let type_id = create_type_id_by_ids(right.kind, set.to_list())
+        ret get_type_by_id(type_id)
     }
 
-    ret create_type_by_ids(TypeKind::Union @[span: left_ty.kind.span], [left.type_id, right.type_id])
+    let type_id = create_type_id_by_ids(TypeKind::Union @[span: left.kind.span], [left.id, right.id])
+    ret get_type_by_id(type_id)
 }

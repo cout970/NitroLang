@@ -31,10 +31,20 @@ fun TypeConstraints.add_unify(left: TypeToken, right: TypeToken, span: Span) {
     all[] = TypeConstraint::Unify @[ id: last_constraint_id, left, right, span ]
 }
 
+fun TypeConstraints.add_unify(left: Type, right: Type, span: Span) {
+    last_constraint_id += 1
+    all[] = TypeConstraint::Unify @[
+        id: last_constraint_id,
+        left: left.to_token(),
+        right: right.to_token(),
+        span
+    ]
+}
+
 // Same as add_unify but with lists
-fun TypeConstraints.add_unify_list(left: List<TypeToken>, right: List<TypeToken>, span: Span) {
+fun TypeConstraints.add_unify_list(left: List<Type>, right: List<Type>, span: Span) {
     repeat min(left.len, right.len) {
-        add_unify(left[it]!!, right[it]!!, span)
+        add_unify(left[it]!!.to_token(), right[it]!!.to_token(), span)
     }
 }
 
@@ -71,13 +81,13 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
             if constraint is TypeConstraint::Unify {
                 let c = constraint as TypeConstraint::Unify
 
-                ctx.unify(c.left, c.right)
+                ctx.unify(c.left.find_type(), c.right.find_type())
             }
         }
 
         // Apply substitutions
         for pair in ctx.unresolved_types {
-            ctx.types.replace_all(pair.first, pair.second)
+            ctx.types.replace_all(pair.first, pair.second.find_type())
             changes = true
         }
 
@@ -111,7 +121,7 @@ fun TypeChecker.remove_obsolete_constraints(): Boolean {
                 changes = true
                 continue
             }
-            if !types.has_unresolved(c.left) && !types.has_unresolved(c.right) {
+            if !c.left.find_type().has_unresolved() && !c.right.find_type().has_unresolved() {
                 cons.all.remove_at(index)
                 changes = true
                 continue
@@ -130,8 +140,9 @@ fun TypeChecker.execute_deferred_actions(): Boolean {
 
     while index < cons.actions.len {
         let deferred = cons.actions[index]!!
+        let ty = deferred.arg.find_type()
 
-        if !types.is_unresolved(deferred.arg) && !types.is_unresolved_function(deferred.arg) {
+        if !ty.is_unresolved() && !ty.is_unresolved_function() {
             deferred.action.call(deferred.arg)
             cons.actions.remove_at(index)
             changes = true

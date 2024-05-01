@@ -1,11 +1,15 @@
 
+fun TypeChecker.check_local_type_usage(tu: NTypeUsage, code: NCode): TypeToken {
+    ret check_type_usage(tu).to_token()
+}
 
-fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
+// Transforms a NTypeUsage (type written in the source code) into a Type (internal representation linked with the type declaration)
+fun TypeChecker.check_type_usage(tu: NTypeUsage): Type {
     if tu.type_token.is_some() {
-        ret tu.type_token!!
+        ret tu.type_token!!.find_type()
     }
 
-    let params: List<TypeToken> = []
+    let params: List<Type> = []
 
     for tp in tu.params {
         params[] = check_type_usage(tp)
@@ -13,103 +17,16 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
 
     when tu.kind {
         TypeUsageKind::TYPE_SIMPLE -> {
-            let full_name = get_full_path(tu.path, tu.name)
-            let path_segments = create_path_segments(full_name)
-
-            for segment in path_segments {
-                // type_cache only works by name, it doesn't take into account the type arguments
-                // so it's limited on what it can cache
-                if params.is_empty() {
-                    let cache = type_cache[segment]
-                    if cache.is_some() {
-                        let tt = cache!!
-                        tu.type_token = Some(tt)
-                        ret tt
-                    }
-                }
-
-                // Type alias
-                for i in program.type_aliases {
-                    if get_full_path(i.path, i.name) == segment {
-                        let alias_type = check_type_usage(i.type_usage)
-                        let tt = types.replace_generics(alias_type, i.generics.definitions, params)
-
-                        if params.is_empty() {
-                            type_cache[segment] = tt
-                        }
-
-                        tu.type_token = Some(tt)
-                        ret tt
-                    }
-                }
-
-                // Cache for type kinds
-                let kind_cache = type_kind_cache[segment]
-                if kind_cache.is_some() {
-                    let kind = kind_cache!!
-                    let tt = types.create_type(kind, params)
-
-                    if params.is_empty() {
-                        type_cache[segment] = tt
-                    }
-
-                    tu.type_token = Some(tt)
-                    ret tt
-                }
-
-                // Is an Option?
-                for i in program.options {
-                    if i.full_name == segment {
-                        let kind: TypeKind = TypeKind::Option @[instance: i]
-                        type_kind_cache[segment] = kind
-
-                        let tt = types.create_type(kind, params)
-
-                        if params.is_empty() {
-                            type_cache[segment] = tt
-                        }
-
-                        tu.type_token = Some(tt)
-                        ret tt
-                    }
-                }
-
-                // Is a Struct?
-                for i in program.structs {
-                    if i.full_name == segment {
-                        let kind: TypeKind = if i.parent.is_some() {
-                            TypeKind::OptionItem @[instance: i]
-                        } else {
-                            TypeKind::Struct @[instance: i]
-                        }
-
-                        type_kind_cache[segment] = kind
-
-                        let tt = types.create_type(kind, params)
-
-                        if params.is_empty() {
-                            type_cache[segment] = tt
-                        }
-
-                        tu.type_token = Some(tt)
-                        ret tt
-                    }
-                }
-            }
-
-            // Not found
-            let tt = create_error_type("Type '$full_name' not found", tu.span)
-            tu.type_token = Some(tt)
-            ret tt
+            ret check_type_usage_simple(tu, params)
         }
         TypeUsageKind::TYPE_PARAM -> {
             let generic: Optional<NGeneric> = tu.generic_definition
 
             // Usage in definition
             if generic.is_some() {
-                let tt = create_generic_type(generic!!)
-                tu.type_token = Some(tt)
-                ret tt
+                let ty = create_generic_type(generic!!)
+                tu.type_token = Some(ty.to_token())
+                ret ty
             }
 
             // Usage in code
@@ -117,27 +34,121 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): TypeToken {
                 let opt = find_generic_by_name(current_code!!, tu.name)
 
                 if opt.is_some() {
-                    tu.type_token = opt
+                    tu.type_token = opt.to_token()
                     ret opt!!
                 }
             }
 
             // Not found
-            let tt = create_error_type("Generic not found: ${tu.name}", tu.span)
-            tu.type_token = Some(tt)
-            ret tt
+            let ty = create_error_type("Generic not found: ${tu.name}", tu.span)
+            tu.type_token = Some(ty.to_token())
+            ret ty
         }
         TypeUsageKind::TYPE_UNRESOLVED -> {
-            let tt = create_unresolved_type(tu.span)
-            tu.type_token = Some(tt)
-            ret tt
+            let ty = create_unresolved_type(tu.span)
+            tu.type_token = Some(ty.to_token())
+            ret ty
         }
     }
 
     unreachable()
 }
 
-fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<TypeToken> {
+fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Type {
+    let full_name = get_full_path(tu.path, tu.name)
+    let path_segments = create_path_segments(full_name)
+
+    for segment in path_segments {
+        // type_cache only works by name, it doesn't take into account the type arguments
+        // so it's limited on what it can cache
+        if params.is_empty() {
+            let cache = type_cache[segment]
+            if cache.is_some() {
+                let ty = cache!!
+                tu.type_token = Some(ty.to_token())
+                ret ty
+            }
+        }
+
+        // Type alias
+        for i in program.type_aliases {
+            if get_full_path(i.path, i.name) != segment {
+                continue
+            }
+            let alias_type = check_type_usage(i.type_usage)
+            let ty = types.replace_generics(alias_type, i.generics.definitions, params)
+
+            if params.is_empty() {
+                type_cache[segment] = ty
+            }
+
+            tu.type_token = Some(ty.to_token())
+            ret ty
+        }
+
+        // Cache for type kinds
+        let kind_cache = type_kind_cache[segment]
+        if kind_cache.is_some() {
+            let kind = kind_cache!!
+            let ty = types.create_type_direct(kind, params)
+
+            if params.is_empty() {
+                type_cache[segment] = ty
+            }
+
+            tu.type_token = Some(ty.to_token())
+            ret ty
+        }
+
+        // Is an Option?
+        for i in program.options {
+            if i.full_name != segment {
+                continue
+            }
+            let kind: TypeKind = TypeKind::Option @[instance: i]
+            type_kind_cache[segment] = kind
+
+            let ty = types.create_type_direct(kind, params)
+
+            if params.is_empty() {
+                type_cache[segment] = ty
+            }
+
+            tu.type_token = Some(ty.to_token())
+            ret ty
+        }
+
+        // Is a Struct?
+        for i in program.structs {
+            if i.full_name != segment {
+                continue
+            }
+            let kind: TypeKind = if i.parent.is_some() {
+                TypeKind::OptionItem @[instance: i]
+            } else {
+                TypeKind::Struct @[instance: i]
+            }
+
+            type_kind_cache[segment] = kind
+
+            let ty = types.create_type_direct(kind, params)
+
+            if params.is_empty() {
+                type_cache[segment] = ty
+            }
+
+            tu.type_token = Some(ty.to_token())
+            ret ty
+        }
+    }
+
+    // Not found
+    let ty = create_error_type("Type '$full_name' not found", tu.span)
+    tu.type_token = Some(ty.to_token())
+    ret ty
+}
+
+fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<Type> {
     repeat code.generics.definitions.len {
         let def: NGeneric = code.generics.definitions[it]!!
 
@@ -147,7 +158,7 @@ fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<TypeTo
         }
 
         if def.name == name {
-            ret code.generics.type_tokens[it]
+            ret Some(code.generics.type_tokens[it]!!.find_type())
         }
    }
 
