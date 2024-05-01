@@ -4,6 +4,7 @@
 struct String {
     bytes_len: Int
     bytes: Array<Byte>
+    hash_cache: Int
 }
 
 // Tag for types that can be converted to a string
@@ -19,16 +20,15 @@ fun String.get_byte(index: Int): Byte {
 
 // tag Slice<Char>
 
-// Returns the length of the string in chars (unicode codepoints)
-fun String.get_len(): Int {
-    ret codepoint_len()
-}
-
-// Gets a single char (unicode codepoint) from the string
-// This operation is slow as it has to decode the UTF-8 encoding of the string
-fun String.get(index: Int): Char {
-    ret get_codepoint(index).to_char()
-}
+// Removed for now, since the `len` property doesn't return what you expect and has hidden performance problems
+//// Returns the length of the string in chars (unicode codepoints)
+//fun String.get_len(): Int = codepoint_len()
+//
+//// Gets a single char (unicode codepoint) from the string
+//// This operation is slow as it has to decode the UTF-8 encoding of the string
+//fun String.get(index: Int): Char {
+//    ret get_codepoint(index).to_char()
+//}
 
 // Codepoints
 
@@ -43,12 +43,56 @@ fun String.get_codepoint(index: Int): Int {}
 // Utils
 
 // Joins two strings together
-@Extern [lib: "core", name: "string_concat_string"]
-fun String.concat(other: String): String {}
+fun String.concat(other: String): String {
+    let total_len = this.bytes_len + other.bytes_len
+    let buff: Array<Byte> = Array::new(total_len)
+
+    repeat this.bytes_len {
+        buff[it] = this.bytes[it]
+    }
+
+    repeat other.bytes_len {
+        buff[this.bytes_len + it] = other.bytes[it]
+    }
+
+    ret String @[
+        bytes_len: total_len,
+        bytes: buff,
+        hash_cache: -1,
+    ]
+}
 
 // Joins a string and a char together
 @Extern [lib: "core", name: "string_concat_char"]
 fun String.concat(char: Char): String {}
+
+// TODO port this from C to Nitro
+//static size_t code_to_utf8(unsigned char *const buffer, const unsigned int code)
+//{
+//    if (code <= 0x7F) {
+//        buffer[0] = code;
+//        return 1;
+//    }
+//    if (code <= 0x7FF) {
+//        buffer[0] = 0xC0 | (code >> 6);            /* 110xxxxx */
+//        buffer[1] = 0x80 | (code & 0x3F);          /* 10xxxxxx */
+//        return 2;
+//    }
+//    if (code <= 0xFFFF) {
+//        buffer[0] = 0xE0 | (code >> 12);           /* 1110xxxx */
+//        buffer[1] = 0x80 | ((code >> 6) & 0x3F);   /* 10xxxxxx */
+//        buffer[2] = 0x80 | (code & 0x3F);          /* 10xxxxxx */
+//        return 3;
+//    }
+//    if (code <= 0x10FFFF) {
+//        buffer[0] = 0xF0 | (code >> 18);           /* 11110xxx */
+//        buffer[1] = 0x80 | ((code >> 12) & 0x3F);  /* 10xxxxxx */
+//        buffer[2] = 0x80 | ((code >> 6) & 0x3F);   /* 10xxxxxx */
+//        buffer[3] = 0x80 | (code & 0x3F);          /* 10xxxxxx */
+//        return 4;
+//    }
+//    return 0;
+//}
 
 // Joins two strings together
 fun String.plus(other: String): String = this.concat(other)
@@ -57,12 +101,47 @@ fun String.plus(other: String): String = this.concat(other)
 fun String.plus(char: Char): String  = this.concat(char)
 
 // Checks if a string is equal to another string
-@Extern [lib: "core", name: "string_is_equal"]
-fun String.is_equal(other: String): Boolean {}
+fun String.is_equal(other: String): Boolean {
+    if ptr_of(this).address == ptr_of(other).address {
+        ret true
+    }
+
+    if this.bytes_len != other.bytes_len {
+        ret false
+    }
+
+    repeat this.bytes_len {
+        if this.get_byte(it) != other.get_byte(it) {
+            ret false
+        }
+    }
+
+    ret true
+}
+
+// Compares two strings
+fun String.get_ordering(other: String): Ordering {
+    if this.bytes_len != other.bytes_len {
+        ret if this.bytes_len < other.bytes_len { Ordering::Less } else { Ordering::Greater }
+    }
+
+    repeat this.bytes_len {
+        let this_byte = this.get_byte(it)
+        let other_byte = other.get_byte(it)
+
+        if this_byte < other_byte {
+            ret Ordering::Less
+        }
+        if this_byte > other_byte {
+            ret Ordering::Greater
+        }
+    }
+
+    ret Ordering::Equals
+}
 
 // Checks if a string is not equal to another string
-@Extern [lib: "core", name: "string_is_not_equal"]
-fun String.is_not_equal(other: String): Boolean {}
+fun String.is_not_equal(other: String): Boolean = !this.is_equal(other)
 
 // Checks if the string has no characters
 fun String.is_empty(): Boolean = bytes_len == 0
@@ -93,12 +172,21 @@ fun String.is_blank(): Boolean {
 
 // Computes the hash value of a string, to be used in hash tables
 fun String.get_hash(): Int {
+    if hash_cache != -1 {
+        ret hash_cache
+    }
+
     let hash: Int = 0
 
     repeat bytes_len {
         hash = (31 * hash).bitwise_xor(get_byte(it).to_int())
     }
 
+    if hash == -1 {
+        hash = 0
+    }
+
+    hash_cache = hash
     ret hash
 }
 
@@ -121,12 +209,12 @@ fun String.indent(spaces: Int): String {
 fun String.substring(start: Int, end: Int): String {}
 
 // Same as substring but with offset and length
-fun String.slice(offset: Int, len: Int): String {
-    if len < 0 {
-        // `len` is negative, so we add it instead of subtracting it
-        len = bytes_len + len
+fun String.slice(offset: Int, slice_len: Int): String {
+    if slice_len < 0 {
+        // `slice_len` is negative, so we add it instead of subtracting it
+        slice_len = bytes_len + slice_len
     }
-    ret substring(offset, offset + len)
+    ret substring(offset, offset + slice_len)
 }
 
 // Checks if a string contains a substring at a certain index
@@ -199,8 +287,8 @@ fun String.ends_with(suffix: String): Boolean {
 }
 
 // Adds padding to the start of a string until it reaches a certain length
-fun String.pad_start(len: Int, pad_character: Char): String {
-    let padding_len = len - bytes_len
+fun String.pad_start(pad_len: Int, pad_character: Char): String {
+    let padding_len = pad_len - bytes_len
 
     if padding_len <= 0 {
         ret this
@@ -211,8 +299,8 @@ fun String.pad_start(len: Int, pad_character: Char): String {
 }
 
 // Adds padding to the end of a string until it reaches a certain length
-fun String.pad_end(len: Int, pad_character: Char): String {
-    let padding_len = len - bytes_len
+fun String.pad_end(pad_len: Int, pad_character: Char): String {
+    let padding_len = pad_len - bytes_len
 
     if padding_len <= 0 {
         ret this
@@ -320,7 +408,7 @@ fun String.to_string(): String = this
 // TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
-    let total_len = len
+    let total_len = bytes_len
     let cursor = 0
     let sign = 1
 
@@ -328,7 +416,7 @@ fun String.to_int(): Optional<Int> {
         ret None()
     }
 
-    let first = this[cursor].to_int()
+    let first = get_byte(cursor).to_int()
 
     if first == a"-" {
         cursor += 1
@@ -340,7 +428,7 @@ fun String.to_int(): Optional<Int> {
     }
 
     while cursor < total_len {
-        let byte = this[cursor].to_int()
+        let byte = get_byte(cursor).to_int()
 
         // ignore '_'
         if byte == a"_" {
@@ -362,7 +450,7 @@ fun String.to_int(): Optional<Int> {
 // Converts a string to an integer, only [_\-\+0-9a-zA-Z] chars are allowed
 fun String.to_int_in_base(base: Int): Optional<Int> {
     let result = 0
-    let total_len = len
+    let total_len = bytes_len
     let cursor = 0
     let sign = 1
 
@@ -370,7 +458,7 @@ fun String.to_int_in_base(base: Int): Optional<Int> {
         ret None()
     }
 
-    let first = this[cursor].to_int()
+    let first = get_byte(cursor).to_int()
 
     if first == a"-" {
         cursor += 1
@@ -382,7 +470,7 @@ fun String.to_int_in_base(base: Int): Optional<Int> {
     }
 
     while cursor < total_len {
-        let byte = this[cursor].to_int()
+        let byte = get_byte(cursor).to_int()
 
         // ignore '_'
         if byte == a"_" {
@@ -441,7 +529,7 @@ fun String.to_long(): Optional<Long> {
 
 fun String.to_long_in_base(base: Long): Optional<Long> {
     let result = 0L
-    let total_len = len
+    let total_len = bytes_len
     let cursor = 0
     let sign = 1L
 
@@ -449,7 +537,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
         ret None()
     }
 
-    let first = this[cursor].to_int()
+    let first = get_byte(cursor).to_int()
 
     if first == a"-" {
         cursor += 1
@@ -461,7 +549,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
     }
 
     while cursor < total_len {
-        let byte = this[cursor].to_int()
+        let byte = get_byte(cursor).to_int()
 
         // ignore '_'
         if byte == a"_" {
@@ -527,7 +615,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
 // Ignores all appearances of '_' between digits
 fun String.to_float(): Optional<Float> {
     let result = 0f
-    let total_len = len
+    let total_len = bytes_len
     let cursor = 0
     let sign = 1f
     let has_dot = false
@@ -538,7 +626,7 @@ fun String.to_float(): Optional<Float> {
         ret None()
     }
 
-    let aux_byte = this[cursor].to_int()
+    let aux_byte = get_byte(cursor).to_int()
 
     if aux_byte == a"-" {
         cursor += 1
@@ -553,18 +641,18 @@ fun String.to_float(): Optional<Float> {
     }
 
     // Disallow underscore as first char, i.e. `_1.0f` is not valid
-    if this[cursor].to_int() == a"_" {
+    if get_byte(cursor).to_int() == a"_" {
         ret None()
     }
 
     // Integral part
     while cursor < total_len {
-        let byte = this[cursor].to_int()
+        let byte = get_byte(cursor).to_int()
 
         // ignore '_'
         if byte == a"_" {
             cursor += 1
-            aux_byte = this[cursor].to_int()
+            aux_byte = get_byte(cursor).to_int()
 
             // Disallow underscore before the dot, i.e. `1_.0f` is not valid
             if aux_byte == a"." {
@@ -583,7 +671,7 @@ fun String.to_float(): Optional<Float> {
             has_exponent = true
 
             // Disallow underscore before the exponent, i.e. `1_e1f` is not valid
-            if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+            if cursor < total_len - 1 && get_byte(cursor + 1).to_int() == a"_" {
                 ret None()
             }
             break
@@ -593,7 +681,7 @@ fun String.to_float(): Optional<Float> {
             has_tail = true
 
             // Disallow underscore before the tail, i.e. `1_f` is not valid
-            if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+            if cursor < total_len - 1 && get_byte(cursor + 1).to_int() == a"_" {
                 ret None()
             }
             break
@@ -613,12 +701,12 @@ fun String.to_float(): Optional<Float> {
         let fraction = 0.1f
 
         // Disallow underscore as first char after the dot, i.e. `1._0f` is not valid
-        if cursor < total_len && this[cursor].to_int() == a"_" {
+        if cursor < total_len && get_byte(cursor).to_int() == a"_" {
             ret None()
         }
 
         while cursor < total_len {
-            let byte = this[cursor].to_int()
+            let byte = get_byte(cursor).to_int()
 
             // ignore '_'
             if byte == a"_" {
@@ -630,7 +718,7 @@ fun String.to_float(): Optional<Float> {
                 has_exponent = true
 
                 // Disallow underscore before the exponent, i.e. `1.0_e1f` is not valid
-                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                if cursor < total_len - 1 && get_byte(cursor + 1).to_int() == a"_" {
                     ret None()
                 }
                 break
@@ -640,7 +728,7 @@ fun String.to_float(): Optional<Float> {
                 has_tail = true
 
                 // Disallow underscore before the tail, i.e. `1.0_f` is not valid
-                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                if cursor < total_len - 1 && get_byte(cursor + 1).to_int() == a"_" {
                     ret None()
                 }
                 break
@@ -667,7 +755,7 @@ fun String.to_float(): Optional<Float> {
             ret None()
         }
 
-        aux_byte = this[cursor].to_int()
+        aux_byte = get_byte(cursor).to_int()
 
         if aux_byte == a"-" {
             cursor += 1
@@ -682,12 +770,12 @@ fun String.to_float(): Optional<Float> {
         }
 
         // Disallow underscore as first char after the exponent, i.e. `1.0e_1f` is not valid
-        if cursor < total_len && this[cursor].to_int() == a"_" {
+        if cursor < total_len && get_byte(cursor).to_int() == a"_" {
             ret None()
         }
 
         while cursor < total_len {
-            let byte = this[cursor].to_int()
+            let byte = get_byte(cursor).to_int()
 
             // ignore '_'
             if byte == a"_" {
@@ -699,7 +787,7 @@ fun String.to_float(): Optional<Float> {
                 has_tail = true
 
                 // Disallow underscore before the tail, i.e. `1.0e5_f` is not valid
-                if cursor < total_len - 1 && this[cursor + 1].to_int() == a"_" {
+                if cursor < total_len - 1 && get_byte(cursor + 1).to_int() == a"_" {
                     ret None()
                 }
                 break

@@ -56,7 +56,7 @@ fun MonoType.arraySize(): Int {
 }
 
 fun intToWasm(num: Int): ByteArray {
-    val hex = num.toString(16).padStart(8, '0')
+    val hex = num.toUInt().toString(16).padStart(8, '0')
     val a0 = hex.substring(0, 2)
     val a1 = hex.substring(2, 4)
     val a2 = hex.substring(4, 6)

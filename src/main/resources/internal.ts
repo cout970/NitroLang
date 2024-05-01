@@ -146,9 +146,11 @@ export function createString(value: string): number {
   // Heap:
   // - 4 byte: String len in bytes
   // - 4 byte: Pointer to Array<Byte> in heap or data section
-  const ptr = alloc(PTR * 2);
+  // - 4 byte: String hash
+  const ptr = alloc(PTR * 3);
   const len_ptr = ptr;
   const bytes_ptr = ptr + PTR;
+  const hash_ptr = ptr + PTR + PTR;
 
   //console.debug(`createString(${value}) => 0x${ptr.toString(16).padStart(4, '0')}`);
 
@@ -159,6 +161,7 @@ export function createString(value: string): number {
 
   setInt(len_ptr, uint8array.length);
   setInt(bytes_ptr, data_ptr);
+  setInt(hash_ptr, -1);
   return ptr;
 }
 
@@ -167,6 +170,7 @@ export function getString(ptr: number): string {
   // Heap:
   // - 4 byte: String len in bytes
   // - 4 byte: Pointer to Array<Byte> in heap or data section
+  // - 4 byte: String hash
   const len = getInt(ptr);
   const bytes = getInt(ptr + PTR);
 

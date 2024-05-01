@@ -748,11 +748,12 @@ open class WasmBuilder(
 
             val bytes = value.encodeToByteArray()
             val start = module.sectionOffset
-            val contentStart = module.sectionOffset + PTR_SIZE * 2
+            val contentStart = module.sectionOffset + PTR_SIZE * 3
             val size = intToWasm(bytes.size)
             val contentsPtr = intToWasm(contentStart)
+            val hash = intToWasm(-1)
 
-            module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr), "String Instance"))
+            module.addSection(WasmDataSection(start, byteArrayOf(*size, *contentsPtr, *hash), "String Instance"))
             module.addSection(WasmDataSection(contentStart, byteArrayOf(*size, *bytes), "String($size) \"${value}\""))
             stringCache[value] = start
         }

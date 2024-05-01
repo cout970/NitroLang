@@ -165,7 +165,7 @@ fun NLambda.to_string(): String {
     }
 
     let i = code.to_string()
-    let rest = i.slice(1, i.len)
+    let rest = i.slice(1, i.bytes_len)
 
     ret "@{$s$rest"
 }

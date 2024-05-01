@@ -59,9 +59,6 @@ fun <#Value: GetOrdering> min(a: #Value, b: #Value): #Value {
     ret if a > b { b } else { a }
 }
 
-// Compares two strings
-fun String.get_ordering(other: String): Ordering = Internal::get_ordering_internal(this, other).to_ordering()
-
 // Internal function for comparing two strings using the current locale and user preferences
 @Extern [lib: "core", name: "string_get_ordering_internal"]
 fun Internal::get_ordering_internal(a: String, b: String): Int {}

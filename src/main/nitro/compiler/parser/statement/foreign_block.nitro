@@ -33,7 +33,7 @@ fun Parser.read_foreign_block_statement(code: NCode): Parsed<Nothing> {
     let common_indent = -1
 
     for line in lines {
-        let indent = line.len - line.trim_start().len
+        let indent = line.bytes_len - line.trim_start().bytes_len
 
         if indent < common_indent || common_indent == -1 {
             common_indent = indent
@@ -45,7 +45,7 @@ fun Parser.read_foreign_block_statement(code: NCode): Parsed<Nothing> {
         let aux: List<String> = []
 
         for line in lines {
-            aux[] = line.slice(common_indent, line.len)
+            aux[] = line.slice(common_indent, line.bytes_len)
         }
 
         lines = aux

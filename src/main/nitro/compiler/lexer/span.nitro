@@ -57,9 +57,9 @@ fun Span.to_string(): String {
         file
     }
 
-    let m = max(file.len, 27)
-    let sub = if m < file.len {
-        "..." + file.slice(file.len - m, m)
+    let m = max(file.bytes_len, 27)
+    let sub = if m < file.bytes_len {
+        "..." + file.slice(file.bytes_len - m, m)
     } else {
         file
     }

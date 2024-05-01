@@ -10,6 +10,8 @@ struct Byte {}
 @Extern [lib: "core", name: "byte_to_int"]
 fun Byte.to_int(): Int {}
 
+fun Byte.is_equal(other: Byte): Boolean = this.to_int() == other.to_int()
+
 // Compare two bytes
 fun Byte.get_ordering(other: Byte): Ordering {
     let this_int = this.to_int()

@@ -210,11 +210,11 @@ fun NCode.to_string(): String {
      for i in inst_list {
         let id = i.id.to_string()
         let line = ""
-        line += " " * (5 - id.len - 1)
+        line += " " * (5 - id.bytes_len - 1)
         line += "#"
         line += id
         line += " | "
-        let prefix_len = line.len
+        let prefix_len = line.bytes_len
         line += "  " * i.block.depth
         line += i.to_string().indent(prefix_len).trim()
 
