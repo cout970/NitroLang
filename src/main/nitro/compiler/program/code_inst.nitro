@@ -672,7 +672,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
         i.kind is NInstKind::Return -> {
             let kind = i.kind as NInstKind::Return
 
-            add_return(i.span, kind.value)
+            add_return(i.span, mapping[kind.value]!!)
         }
         i.kind is NInstKind::IsType -> {
             let kind = i.kind as NInstKind::IsType

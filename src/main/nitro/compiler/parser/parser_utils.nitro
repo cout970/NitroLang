@@ -50,7 +50,7 @@ fun Parser.read_module_path(): Parsed<String> {
         first = false
 
         let name: String = read_name()?
-        path = path.concat(name)
+        path += name
         skip_token_kind(TokenKind::DOUBLE_COLON)?
     }
 

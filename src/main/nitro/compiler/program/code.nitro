@@ -143,6 +143,18 @@ fun NCode.index_of(id: NInstId): Optional<Index> {
     ret None()
 }
 
+fun NCode.find_receiver_type(): Optional<Type> {
+    if receiver_type_token.is_some() {
+        ret Some(receiver_type_token!!.find_type())
+    }
+
+    if parent_code.is_some() {
+        ret parent_code!!.find_receiver_type()
+    }
+
+    ret None()
+}
+
 fun NCode.execute_deferred_actions(block: NBlock, is_return: Boolean) {
     if block.deferred_code.is_not_empty() {
         for subcode in block.deferred_code.to_reversed() {

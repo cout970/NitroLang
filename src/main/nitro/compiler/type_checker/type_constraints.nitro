@@ -74,14 +74,18 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
             code,
             cons: this,
             unresolved_types: #[],
+            initial_types: None()
         ]
 
         // Find types for unresolved
         for constraint in all {
             if constraint is TypeConstraint::Unify {
                 let c = constraint as TypeConstraint::Unify
+                let left_type = c.left.find_type()
+                let right_type = c.right.find_type()
 
-                ctx.unify(c.left.find_type(), c.right.find_type())
+                ctx.initial_types = Some(Pair::of(left_type, right_type))
+                ctx.unify(left_type, right_type)
             }
         }
 

@@ -51,8 +51,9 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
     // If the first and only argument is a lambda, once_resolved will never be called
     // since lambdas are resolved after the function is determined
     if first_arg.find_type().is_unresolved_function() {
-        if code.receiver_type_token.is_some() {
-            first_arg = code.receiver_type_token!!
+        let receiver_type = code.find_receiver_type()
+        if receiver_type.is_some() {
+            first_arg = receiver_type!!.to_token()
         } else {
             first_arg = arg_types[1].get_or_default(type_cache["Nothing"]!!.to_token())
         }
@@ -82,11 +83,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         args[] = code.find_inst_type_token(arg)!!.find_type()
     }
 
-    let receiver_type: Optional<Type> = None()
-    if code.receiver_type_token.is_some() {
-        receiver_type = Some(code.receiver_type_token!!.find_type())
-    }
-
+    let receiver_type: Optional<Type> = code.find_receiver_type()
     let options: List<NFunction> = find_best_function_match(full_name, args, receiver_type)
 
     if options.is_empty() {
@@ -110,15 +107,16 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     let func = options.first()!!
     let uses_implicit_this = false
     let arg_types: List<Type> = []
+    let receiver_type = code.find_receiver_type()
 
-    if code.receiver_type_token.is_some() && func.parameters.len == args.len + 1 {
+    if receiver_type.is_some() && func.parameters.len == args.len + 1 {
         let index = code.index_of(inst.id)!!
         let load_this = add_load_this_var(code, index)
         inst = code.inst_list[index.current]!!
         kind = inst.kind as NInstKind::FunCall
 
         kind.arguments.add_first(load_this)
-        arg_types[] = code.receiver_type_token!!.find_type()
+        arg_types[] = receiver_type!!
         uses_implicit_this = true
     }
 
