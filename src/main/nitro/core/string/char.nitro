@@ -17,10 +17,22 @@ fun Int.to_char(): Char {
 
 // Creates an string with only this character
 fun Char.to_string(): String {
-    return "".concat(this)
+    let builder = StringBuilder::new()
+    builder[] = this
+    ret builder.to_string()
 }
 
-// Creates an string with only this character
+// Creates an string by joining this and other character
 fun Char.plus(other: Char): String {
-    return "".concat(this).concat(other)
+    let builder = StringBuilder::new()
+    builder[] = this
+    builder[] = other
+    ret builder.to_string()
 }
+
+// Order based on unicode code point
+// This implementation ignores the complex rules of unicode for ordering, to provide simple ordering that performs well
+fun Char.get_ordering(other: Char): Ordering = this.to_int() <=> other.to_int()
+
+// Hash based on unicode code point
+fun Char.get_hash(): Int = to_int()

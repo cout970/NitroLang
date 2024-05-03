@@ -210,8 +210,7 @@ fun Int.to_long(): Long {}
 fun Int.to_byte(): Byte {}
 
 // Converts this integer value to a string
-@Extern [lib: "core", name: "int_to_string"]
-fun Int.to_string(): String {}
+fun Int.to_string(): String = to_string_in_base(10)
 
 // Converts this integer value to a string in the given base,
 // the base must be in the range of 2 to 36
@@ -219,8 +218,76 @@ fun Int.to_string(): String {}
 // e.g. 0x10.to_string_in_base(10) = "16"
 // e.g. 0x10.to_string_in_base(8) = "20"
 // e.g. 0x10.to_string_in_base(2) = "10000"
-@Extern [lib: "core", name: "int_to_string_in_base"]
-fun Int.to_string_in_base(radix: Int): String {}
+fun Int.to_string_in_base(base: Int): String {
+    check(base >= 2 && base <= 36, "Base must be in the range of 2 to 36")
+
+    if this == 0 {
+        ret "0"
+    }
+
+    let buffer = StringBuilder::new()
+    let digits: List<Char> = []
+    let aux = this
+
+    if this > 0 {
+        while aux != 0 {
+            let digit = aux % base
+            let char = digit.to_digit_in_base(base)
+
+            digits[] = char
+            aux /= base
+        }
+
+        repeat digits.len {
+            buffer[] = digits[digits.len - it - 1]!!
+        }
+    } else {
+        while aux != 0 {
+            let digit = -(aux % base)
+            let char = digit.to_digit_in_base(base)
+
+            digits[] = char
+            aux /= base
+        }
+
+        buffer[] = "-"
+        repeat digits.len {
+            buffer[] = digits[digits.len - it - 1]!!
+        }
+    }
+
+    ret buffer.to_string()
+
+    test! "Convert numbers to string" {
+        check(0.to_string_in_base(10) == "0", "0 dec")
+        check(1.to_string_in_base(10) == "1", "1 dec")
+        check(-10.to_string_in_base(10) == "-10", "-10 dec ${-10.to_string_in_base(10)}")
+        check(-10.to_string_in_base(16) == "-a", "-10 hex")
+        check(255.to_string_in_base(16) == "ff", "255 hex")
+        check(255.to_string_in_base(2) == "11111111", "255 bin")
+        check(255.to_string_in_base(8) == "377", "255 oct")
+        check(255.to_string_in_base(10) == "255", "255 dec")
+        check(255.to_string_in_base(36) == "73", "255 base 36")
+        check(2_147_483_647.to_string_in_base(10) == "2147483647", "max int")
+        check(-2_147_483_648.to_string_in_base(10) == "-2147483648", "min int")
+        check(2_147_483_647.to_string_in_base(2) == "1111111111111111111111111111111", "max int bin")
+    }
+}
+
+// Converts an integer value to a character in the given base
+// The value must be in the range of 0 to base - 1
+// The base must be in the range of 2 to 36
+// e.g. 255.to_digit_in_base(16) = 'f'
+fun Int.to_digit_in_base(base: Int): Char {
+    check(base >= 2 && base <= 36, "Base must be in the range of 2 to 36")
+    check(this >= 0 && this < base, "Value must be in the range of 0 to base - 1")
+
+    ret if this < 10 {
+        (a"0" + this).to_char()
+    } else {
+        (a"a" + this - 10).to_char()
+    }
+}
 
 // This function compares two integer values and returns an ordering value
 // that represents the sorting order of the values
@@ -249,3 +316,12 @@ fun min(a: Int, b: Int): Int {
 // This function is used to calculate the hash value of an integer
 // to be used in hash tables and similar data structures
 fun Int.get_hash(): Int = this
+
+// Clamps an Int between a minimum and a maximum value
+fun Int.clamp(min: Int, max: Int): Int {
+    ret when {
+        this < min -> min
+        this > max -> max
+        else -> this
+    }
+}

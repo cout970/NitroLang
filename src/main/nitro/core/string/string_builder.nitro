@@ -1,0 +1,133 @@
+
+// A simple string builder that can be used to efficiently create strings
+struct StringBuilder {
+    bytes: Array<Byte>
+    bytes_len: Int
+}
+
+// Creates a new StringBuilder
+fun StringBuilder::new(): StringBuilder {
+    ret StringBuilder @[
+        bytes: Array::new(16),
+        bytes_len: 0
+    ]
+}
+
+// Ensures that the internal buffer has enough capacity to store the required number of bytes
+fun StringBuilder.ensure_capacity(required_capacity: Int) {
+    if bytes.len >= required_capacity {
+        ret
+    }
+
+    let new_capacity = bytes.len
+    while new_capacity < required_capacity {
+        new_capacity *= 2
+    }
+
+    let new_bytes = Array::new(new_capacity)
+
+    repeat bytes.len {
+        new_bytes[it] = bytes[it]
+    }
+
+    bytes = new_bytes
+}
+
+// Adds a single character to the internal buffer
+// https://stackoverflow.com/a/42013433/13195330
+fun StringBuilder.add(c: Char) {
+    let code = c.to_int()
+    
+    if code <= 0x7F {
+        ensure_capacity(bytes_len + 1)
+        /* 0xxxxxxx */
+        bytes[bytes_len] = code.to_byte()
+        bytes_len += 1
+        ret
+    } 
+    if code <= 0x7FF {
+        ensure_capacity(bytes_len + 2)
+        /* 110xxxxx */
+        bytes[bytes_len]     = (0xC0 | (code >> 6)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 1] = (0x80 | (code & 0x3F)).to_byte()
+        bytes_len += 2
+        ret
+    } 
+    if code <= 0xFFFF {
+        ensure_capacity(bytes_len + 3)
+        /* 1110xxxx */
+        bytes[bytes_len]     = (0xE0 | (code >> 12)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 1] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 2] = (0x80 | (code & 0x3F)).to_byte()
+        bytes_len += 3
+        ret
+    } 
+    if code <= 0x10FFFF {
+        ensure_capacity(bytes_len + 4)
+        /* 11110xxx */
+        bytes[bytes_len]     = (0xF0 | (code >> 18)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 1] = (0x80 | ((code >> 12) & 0x3F)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 2] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
+        /* 10xxxxxx */
+        bytes[bytes_len + 3] = (0x80 | (code & 0x3F)).to_byte()
+        bytes_len += 4
+        ret
+    }
+    unreachable()
+}
+
+// Adds a string to the internal buffer
+fun StringBuilder.add(str: String) {
+    ensure_capacity(bytes_len + str.bytes_len)
+
+    repeat str.bytes_len {
+        bytes[bytes_len + it] = str.bytes[it]
+    }
+
+    bytes_len += str.bytes_len
+}
+
+// Adds a substring of a string to the internal buffer
+fun StringBuilder.add_substring(str: String, offset: Int, substring_len: Int) {
+    offset = offset.clamp(0, str.bytes_len)
+    substring_len = substring_len.clamp(0, str.bytes_len - offset)
+
+    ensure_capacity(bytes_len + substring_len)
+
+    repeat substring_len {
+        bytes[bytes_len + it] = str.bytes[offset + it]
+    }
+
+    bytes_len += substring_len
+}
+
+// Copies the contents of another StringBuilder to the internal buffer
+fun StringBuilder.add(builder: StringBuilder) {
+    ensure_capacity(bytes_len + builder.bytes_len)
+
+    repeat builder.bytes_len {
+        bytes[bytes_len + it] = builder.bytes[it]
+    }
+
+    bytes_len += builder.bytes_len
+}
+
+// Converts the internal buffer to a string
+fun StringBuilder.to_string(): String {
+    let new_bytes = Array::new(bytes_len)
+
+    repeat bytes_len {
+        new_bytes[it] = bytes[it]
+    }
+
+    ret String @[
+        bytes_len,
+        bytes: new_bytes,
+        hash_cache: -1,
+    ]
+}

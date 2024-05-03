@@ -192,3 +192,12 @@ fun Float.get_ordering(other: Float): Ordering {
         }
     }
 }
+
+// Clamps a floating point number between a minimum and a maximum value
+fun Float.clamp(min: Float, max: Float): Float {
+    ret when {
+        this < min -> min
+        this > max -> max
+        else -> this
+    }
+}
