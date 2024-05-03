@@ -88,6 +88,17 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
 fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, inst: NInst, code: NCode) {
     let var_name = kind.name
 
+    // Variable already linked by the parser
+    if kind.variable.is_some() {
+        inst.type_token = type_cache["Nothing"].to_token()
+
+        let value_type_token = code.find_inst_type_token(kind.value)
+        if value_type_token.is_some() {
+            cons.add_unify(value_type_token!!, kind.variable!!.type_token!!, inst.span)
+        }
+        ret
+    }
+
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
     if kind.path.is_empty() {
         let variable: Optional<NVar> = find_variable(code, var_name, inst.block, inst.id)

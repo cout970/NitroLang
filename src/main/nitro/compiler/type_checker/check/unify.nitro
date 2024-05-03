@@ -65,7 +65,12 @@ fun UnifyCtx.unify(left: Type, right: Type) {
         }
 
         if left.kind != right.kind && types.common_kind_type(left.kind, right.kind).is_none() {
-            report_type_mismatch(left, right)
+            let common_type = types.common_kind_type(left.kind, right.kind)
+
+            if common_type.is_none() {
+                println("Common type not found for $left and $right")
+                report_type_mismatch(left, right)
+            }
         }
         ret
     }
@@ -142,7 +147,7 @@ fun UnifyCtx.add_substitution(key: Type, value: Type) {
         span,
         code,
         unresolved_types: #[],
-        initial_types: Some(Pair::of(prev, next)),
+        initial_types,
     ]
 
     sub_ctx.unify(prev, next)
@@ -155,11 +160,14 @@ fun UnifyCtx.report_type_mismatch(a: Type, b: Type) {
     if initial_types.is_some() {
         let first = initial_types!!.first
         let second = initial_types!!.second
-//        reporter.report_error("Type mismatch: $first != $second\n#$current_inst\n$code", span)
-        reporter.report_error("Type mismatch: $first != $second\n#$current_inst", span)
+
+        if a != first or b != second {
+            reporter.report_error("Type mismatch: $first != $second ($a != $b)", span)
+        } else {
+            reporter.report_error("Type mismatch: $first != $second", span)
+        }
     } else {
-//        reporter.report_error("Type mismatch: $a != $b\n#$current_inst\n$code", span)
-        reporter.report_error("Type mismatch: $a != $b\n#$current_inst", span)
+        reporter.report_error("Type mismatch: $a != $b", span)
     }
 }
 

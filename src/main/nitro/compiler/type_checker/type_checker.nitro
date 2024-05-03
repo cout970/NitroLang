@@ -53,12 +53,12 @@ fun TypeChecker.check_all() {
 
     // Step 2: Code inside definitions
     for s in program.consts {
-        Log::debug("Checking code for const ${s.full_name}")
+//        Log::debug("Checking code for const ${s.full_name}")
         cons.add_code_to_check(s.code)
         finalize()
     }
     for s in program.functions {
-        Log::debug("Checking code for function ${s.full_name}")
+//        Log::debug("Checking code for function ${s.full_name}")
         cons.add_code_to_check(s.code)
         finalize()
     }

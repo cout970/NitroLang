@@ -96,7 +96,7 @@ fun Parser.read_when_statement(code: NCode): Parsed<Nothing> {
     }?
 
     code.exit_block()
-    code.add_when_end(span)
+    code.add_when_end(span, [], None())
 
     ret found(nothing)
 }

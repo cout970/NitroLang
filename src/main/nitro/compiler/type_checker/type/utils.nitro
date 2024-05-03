@@ -142,11 +142,12 @@ fun TypeContainer.common_kind_type(left: TypeKind, right: TypeKind): Optional<Ty
 
     // Ordering::Less and Ordering::Equals => Ordering
     if left is TypeKind::OptionItem && right is TypeKind::OptionItem {
-        let left_struct = (left as TypeKind::OptionItem).instance
-        let right_struct = (right as TypeKind::OptionItem).instance
+        let left_option = (left as TypeKind::OptionItem).instance.parent!!
+        let right_option = (right as TypeKind::OptionItem).instance.parent!!
 
-        if left_struct == right_struct {
-            ret Some(left)
+        // Same option in common
+        if left_option == right_option {
+            ret Some(TypeKind::Option @[instance: left_option])
         }
 
         ret None()

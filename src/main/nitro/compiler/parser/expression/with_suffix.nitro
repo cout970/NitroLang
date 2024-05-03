@@ -248,13 +248,14 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             lexer.next_token()
             skip_nl()
 
+            let access = code.add_load_field(span, last, name)
             let right_id = read_expression(code)?
 
             let result = if operator.uses_ordering {
-                let get_ordering = code.add_fun_call(span, "", "get_ordering", [last, right_id], [])
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", [access.id, right_id], [])
                 code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
             } else {
-                code.add_fun_call(span, "", operator.method, [last, right_id], []).id
+                code.add_fun_call(span, "", operator.method, [access.id, right_id], []).id
             }
 
             code.add_store_field(span, last, name, result)

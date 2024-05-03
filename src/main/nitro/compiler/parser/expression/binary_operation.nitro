@@ -181,29 +181,29 @@ fun Parser.read_binary_operator(): Optional<BinaryOperator> {
         TokenKind::RANGE_INCLUSIVE -> BinaryOperator::RANGE_INCLUSIVE
         TokenKind::RANGE_EXCLUSIVE -> BinaryOperator::RANGE_EXCLUSIVE
         TokenKind::LTH -> {
-            if lexer.next_token_kind == TokenKind::LTH {
+            ret if lexer.next_token_kind == TokenKind::LTH {
                 lexer.next_token()
                 lexer.next_token()
-                ret Some(BinaryOperator::SHIFT_LEFT)
+                Some(BinaryOperator::SHIFT_LEFT)
             } else {
                 lexer.next_token()
-                ret Some(BinaryOperator::LESS_THAN)
+                Some(BinaryOperator::LESS_THAN)
             }
         }
         TokenKind::GTH -> {
-            if lexer.next_token_kind == TokenKind::GTH {
+            ret if lexer.next_token_kind == TokenKind::GTH {
                 lexer.next_token()
-                if lexer.next_token_kind == TokenKind::GTH {
+                ret if lexer.next_token_kind == TokenKind::GTH {
                     lexer.next_token()
                     lexer.next_token()
-                    ret Some(BinaryOperator::SHIFT_RIGHT_UNSIGNED)
+                    Some(BinaryOperator::SHIFT_RIGHT_UNSIGNED)
                 } else {
                     lexer.next_token()
-                    ret Some(BinaryOperator::SHIFT_RIGHT)
+                    Some(BinaryOperator::SHIFT_RIGHT)
                 }
             } else {
                 lexer.next_token()
-                ret Some(BinaryOperator::GREATER_THAN)
+                Some(BinaryOperator::GREATER_THAN)
            }
         }
         TokenKind::AND -> BinaryOperator::BIT_AND

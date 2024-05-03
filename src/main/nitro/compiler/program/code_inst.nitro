@@ -33,7 +33,10 @@ option NInstKind {
         block: Optional<NBlock>
     }
     WhenStart {}
-    WhenEnd {}
+    WhenEnd {
+        branches: List<NInstId>
+        variable: Optional<NVar>
+    }
     FunCall {
         path: String
         name: String
@@ -496,13 +499,13 @@ fun NCode.add_when_start(span: Span): NInst {
     ret i
 }
 
-fun NCode.add_when_end(span: Span): NInst {
+fun NCode.add_when_end(span: Span, branches: List<NInstId>, variable: Optional<NVar>): NInst {
     last_id += 1
     let i = NInst @[
         id: last_id,
         span,
         block: current_block,
-        kind: NInstKind::WhenEnd @[],
+        kind: NInstKind::WhenEnd @[branches, variable],
         type_token: None(),
     ]
     inst_list[] = i
@@ -662,7 +665,9 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             add_when_start(i.span)
         }
         i.kind is NInstKind::WhenEnd -> {
-            add_when_end(i.span)
+            let kind = i.kind as NInstKind::WhenEnd
+
+            add_when_end(i.span, kind.branches, kind.variable)
         }
         i.kind is NInstKind::Literal -> {
             let kind = i.kind as NInstKind::Literal

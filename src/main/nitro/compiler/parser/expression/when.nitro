@@ -33,6 +33,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     skip_nl()
 
     code.add_when_start(span)
+    let branches = []
 
     let type_usage = NTypeUsage::unresolved(span)
     let when_var = code.add_let(span, "when-result", Some(type_usage))
@@ -59,9 +60,10 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
             if lexer.current_token_kind == TokenKind::LBRACE {
                 read_statement_block_expr(code)?
             } else {
-                read_expression(code)?
+                code.last_expression = Some(read_expression(code)?)
             }
 
+            branches[] = code.last_expression!!
             code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var))
 
             ret found(nothing)
@@ -91,9 +93,10 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
         if lexer.current_token_kind == TokenKind::LBRACE {
             read_statement_block_expr(code)?
         } else {
-            read_expression(code)?
+            code.last_expression = Some(read_expression(code)?)
         }
 
+        branches[] = code.last_expression!!
         code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var))
 
         code.add_block_jump(span, false, Some(when_block))
@@ -105,7 +108,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     }?
 
     code.exit_block()
-    code.add_when_end(span)
+    code.add_when_end(span, branches, Some(when_var))
 
     if !has_read_else {
         report_error("When expressions must have an 'else' branch", span)

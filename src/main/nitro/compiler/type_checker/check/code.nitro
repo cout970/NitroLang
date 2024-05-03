@@ -93,10 +93,14 @@ fun TypeChecker.finalize_code(code: NCode) {
             check(kind.call_site.is_some()) @{ "FunCall is not linked: #${i.id} $i\n$code" }
         }
 
-        let tt = i.type_token!!
+        let ty = i.type_token!!.find_type()
 
-        if tt.find_type().has_unresolved() {
-            reporter.report_error("Not enough context information to infer type $tt at #${i.id}", i.span)
+        if ty.has_unresolved() {
+            reporter.report_error("Not enough context information to infer type $ty at #${i.id}", i.span)
+        }
+
+        if ty.is_union() {
+            reporter.report_error("Unable to decide on type $ty at #${i.id}", i.span)
         }
     }
 }
@@ -151,13 +155,13 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
             "Previous instructions must have types (cond: $cond_type, if_true: $if_true_type, if_false: $if_false_type)"
         }
 
-        let common = check_local_type_usage(NTypeUsage::unresolved(inst.span), code)
+        let common_type = create_unresolved_type(inst.span).to_token()
 
         cons.add_unify(cond_type!!, type_cache["Boolean"]!!.to_token(), inst.span)
-        cons.add_unify(common, if_true_type!!, inst.span)
-        cons.add_unify(common, if_false_type!!, inst.span)
+        cons.add_unify(common_type, if_true_type!!, inst.span)
+        cons.add_unify(common_type, if_false_type!!, inst.span)
 
-        inst.type_token = Some(common)
+        inst.type_token = Some(common_type)
         ret
     }
 
@@ -182,7 +186,30 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::WhenEnd {
-        inst.type_token = type_cache["Nothing"].to_token()
+        let kind = inst.kind as NInstKind::WhenEnd
+
+        if kind.branches.is_empty() {
+            inst.type_token = type_cache["Nothing"].to_token()
+            ret
+        }
+
+        let common_type = create_unresolved_type(inst.span).to_token()
+
+        if kind.variable.is_some() {
+            cons.add_unify(common_type, kind.variable!!.type_token!!, inst.span)
+        }
+
+        for id in kind.branches {
+            let branch_type = code.find_inst_type_token(id)
+
+            check_not(branch_type.is_none()) @{
+                "Branch must have a type (#$id)"
+            }
+
+            cons.add_unify(common_type, branch_type!!, inst.span)
+        }
+
+        inst.type_token = Some(common_type)
         ret
     }
 
