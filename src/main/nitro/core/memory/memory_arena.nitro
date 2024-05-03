@@ -37,7 +37,6 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
         memory_alloc_error(amount, start, capacity, len, base_start)
     }
 
-    memory_alloc_trace(amount, start)
     ret ptr_from_address(start)
 }
 
