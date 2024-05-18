@@ -3,7 +3,7 @@
 // Strings are immutable and are stored as UTF-8 encoded bytes
 struct String {
     bytes_len: Int
-    bytes: Array<Byte>
+    utf8_data: Array<Byte>
     hash_cache: Int
 }
 
@@ -15,7 +15,7 @@ tag ToString {
 // Reads a single byte from the string
 // This is unrecommended as it does not account for UTF-8 encoding
 fun String.get_byte(index: Int): Byte {
-    ret bytes[index]
+    ret utf8_data[index]
 }
 
 // tag Slice<Char>
@@ -45,24 +45,24 @@ fun String.get_codepoint(index: Int): Optional<Char> {
 
     when {
         curr_len == 1 -> {
-            ret Some(bytes[index].to_int().to_char())
+            ret Some(utf8_data[index].to_int().to_char())
         }
         curr_len == 2 -> {
-            let b0 = bytes[index].to_int()
-            let b1 = bytes[index + 1].to_int()
+            let b0 = utf8_data[index].to_int()
+            let b1 = utf8_data[index + 1].to_int()
             ret Some(((b0 & 0b00011111) << 6 | (b1 & 0b00111111)).to_char())
         }
         curr_len == 3 -> {
-            let b0 = bytes[index].to_int()
-            let b1 = bytes[index + 1].to_int()
-            let b2 = bytes[index + 2].to_int()
+            let b0 = utf8_data[index].to_int()
+            let b1 = utf8_data[index + 1].to_int()
+            let b2 = utf8_data[index + 2].to_int()
             ret Some(((b0 & 0b00001111) << 12 | (b1 & 0b00111111) << 6 | (b2 & 0b00111111)).to_char())
         }
         curr_len == 4 -> {
-            let b0 = bytes[index].to_int()
-            let b1 = bytes[index + 1].to_int()
-            let b2 = bytes[index + 2].to_int()
-            let b3 = bytes[index + 3].to_int()
+            let b0 = utf8_data[index].to_int()
+            let b1 = utf8_data[index + 1].to_int()
+            let b2 = utf8_data[index + 2].to_int()
+            let b3 = utf8_data[index + 3].to_int()
             ret Some(((b0 & 0b00000111) << 18 | (b1 & 0b00111111) << 12 | (b2 & 0b00111111) << 6 | (b3 & 0b00111111)).to_char())
         }
         else -> {
@@ -79,7 +79,7 @@ fun String.codepoint_len_at(index: Int): Int {
         ret 0
     }
 
-    let b0 = bytes[index].to_int()
+    let b0 = utf8_data[index].to_int()
     if b0 & 0b10000000 == 0 {
         // Single-byte character
         ret 1
@@ -123,24 +123,24 @@ fun String.to_list(): List<Char> {
 
         when {
             curr_len == 1 -> {
-                list[] = bytes[cursor].to_int().to_char()
+                list[] = utf8_data[cursor].to_int().to_char()
             }
             curr_len == 2 -> {
-                let b0 = bytes[cursor].to_int()
-                let b1 = bytes[cursor + 1].to_int()
+                let b0 = utf8_data[cursor].to_int()
+                let b1 = utf8_data[cursor + 1].to_int()
                 list[] = ((b0 & 0b00011111) << 6 | (b1 & 0b00111111)).to_char()
             }
             curr_len == 3 -> {
-                let b0 = bytes[cursor].to_int()
-                let b1 = bytes[cursor + 1].to_int()
-                let b2 = bytes[cursor + 2].to_int()
+                let b0 = utf8_data[cursor].to_int()
+                let b1 = utf8_data[cursor + 1].to_int()
+                let b2 = utf8_data[cursor + 2].to_int()
                 list[] = ((b0 & 0b00001111) << 12 | (b1 & 0b00111111) << 6 | (b2 & 0b00111111)).to_char()
             }
             curr_len == 4 -> {
-                let b0 = bytes[cursor].to_int()
-                let b1 = bytes[cursor + 1].to_int()
-                let b2 = bytes[cursor + 2].to_int()
-                let b3 = bytes[cursor + 3].to_int()
+                let b0 = utf8_data[cursor].to_int()
+                let b1 = utf8_data[cursor + 1].to_int()
+                let b2 = utf8_data[cursor + 2].to_int()
+                let b3 = utf8_data[cursor + 3].to_int()
                 list[] = ((b0 & 0b00000111) << 18 | (b1 & 0b00111111) << 12 | (b2 & 0b00111111) << 6 | (b3 & 0b00111111)).to_char()
             }
             else -> {
@@ -523,6 +523,15 @@ fun String.mul(amount: Int): String {
 
 // Implementation of the ToString tag for strings
 fun String.to_string(): String = this
+
+// Generates a list of bytes with the content of this string
+fun String.to_bytes(): List<Byte> {
+    let list = List::new(bytes_len)
+    repeat bytes_len {
+        list[] = get_byte(it)
+    }
+    ret list
+}
 
 // Converts a string to an integer, assumes base 10 and only [_\-\+0-9] chars are allowed
 // TODO handle 0x, 0o and 0b prefixes

@@ -61,6 +61,10 @@ fun Int.neg(): Int = -this
 
 // Bits
 
+// Performs a bitwise NOT operation on the integer value, i.e. flips the bits
+// e.g. 0b1010.bitwise_not() = 0b0101
+fun Int.bitwise_not(): Int = this ^ -1
+
 // Performs a bitwise AND operation on two integer values,
 // e.g. 0b1010.bitwise_and(0b1100) = 0b1000
 @Extern [lib: "core", name: "int_bitwise_and"]
@@ -221,41 +225,13 @@ fun Int.to_string(): String = to_string_in_base(10)
 fun Int.to_string_in_base(base: Int): String {
     check(base >= 2 && base <= 36, "Base must be in the range of 2 to 36")
 
+    // Optimization for zero the most common case and easier to handle in multiple bases
     if this == 0 {
         ret "0"
     }
 
     let buffer = StringBuilder::new()
-    let digits: List<Char> = []
-    let aux = this
-
-    if this > 0 {
-        while aux != 0 {
-            let digit = aux % base
-            let char = digit.to_digit_in_base(base)
-
-            digits[] = char
-            aux /= base
-        }
-
-        repeat digits.len {
-            buffer[] = digits[digits.len - it - 1]!!
-        }
-    } else {
-        while aux != 0 {
-            let digit = -(aux % base)
-            let char = digit.to_digit_in_base(base)
-
-            digits[] = char
-            aux /= base
-        }
-
-        buffer[] = "-"
-        repeat digits.len {
-            buffer[] = digits[digits.len - it - 1]!!
-        }
-    }
-
+    buffer.add_int_in_base(base, this)
     ret buffer.to_string()
 
     test! "Convert numbers to string" {

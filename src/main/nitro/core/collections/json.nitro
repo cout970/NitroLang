@@ -102,7 +102,7 @@ fun Json::Boolean.to_string(): String = this.value.to_string()
 fun Json::Number.to_string(): String = this.value.to_string()
 
 // Converts this value to a string.
-fun Json::String.to_string(): String = "\"".concat(this.value).concat("\"")
+fun Json::String.to_string(): String = "\"$value\""
 
 // Converts this value to a string.
 fun Json::Array.to_string(): String {
@@ -112,21 +112,22 @@ fun Json::Array.to_string(): String {
         ret "[]"
     }
 
-    let str = "["
+    let builder = StringBuilder::new()
+    builder[] = "["
 
-    str = str.concat("\n")
+    builder[] = "\n"
     repeat list.len {
-        str = str.concat("  ")
-        str = str.concat(list[it].to_string().replace("\n", "\n  "))
+        builder[] = "  "
+        builder[] = list[it].to_string().replace("\n", "\n  ")
 
         if it + 1 < limit {
-            str = str.concat(", ")
-            str = str.concat("\n")
+            builder[] = ", "
+            builder[] = "\n"
         }
     }
-    str = str.concat("\n")
-    str = str.concat("]")
-    ret str
+    builder[] = "\n"
+    builder[] = "]"
+    ret builder.to_string()
 }
 
 // Converts this value to a string.
@@ -138,26 +139,27 @@ fun Json::Object.to_string(): String {
     }
 
     let keys: List<String> = map.keys_to_list()
-    let str = "{"
+    let builder = StringBuilder::new()
+    builder[] = "{"
 
-    str = str.concat("\n")
+    builder[] = "\n"
     repeat keys.len {
         let key: String = keys[it]!!
         let value: Optional<Json> = map[key]
 
-        str = str.concat("  \"")
-        str = str.concat(key)
-        str = str.concat("\": ")
-        str = str.concat(value!!.to_string().replace("\n", "\n  "))
+        builder[] = "  \""
+        builder[] = key
+        builder[] = "\": "
+        builder[] = value!!.to_string().replace("\n", "\n  ")
 
         if it + 1 < limit {
-            str = str.concat(", ")
-            str = str.concat("\n")
+            builder[] = ", "
+            builder[] = "\n"
         }
     }
-    str = str.concat("\n")
-    str = str.concat("}")
-    ret str
+    builder[] = "\n"
+    builder[] = "}"
+    ret builder.to_string()
 }
 
 // Converts this json value to a string.

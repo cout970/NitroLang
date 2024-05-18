@@ -1,0 +1,57 @@
+
+// Add a boolean value as a single byte to the list
+fun List<Byte>.add_boolean(value: Boolean) {
+    this[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }
+}
+
+// Add a 16-bit integer to the list in little-endian order
+fun List<Byte>.add_short_le(value: Int) {
+    this[] = value.to_byte()
+    this[] = (value >> 8).to_byte()
+}
+
+// Add a 16-bit integer to the list in big-endian order
+fun List<Byte>.add_short_be(value: Int) {
+    this[] = (value >> 8).to_byte()
+    this[] = value.to_byte()
+}
+
+// Add a 32-bit integer to the list in little-endian order
+fun List<Byte>.add_int_le(value: Int) {
+    this[] = value.to_byte()
+    this[] = (value >> 8).to_byte()
+    this[] = (value >> 16).to_byte()
+    this[] = (value >> 24).to_byte()
+}
+
+// Add a 32-bit integer to the list in big-endian order
+fun List<Byte>.add_int_be(value: Int) {
+    this[] = (value >> 24).to_byte()
+    this[] = (value >> 16).to_byte()
+    this[] = (value >> 8).to_byte()
+    this[] = value.to_byte()
+}
+
+// Add a 64-bit integer to the list in little-endian order
+fun List<Byte>.add_long_le(value: Long) {
+    this[] = value.to_byte()
+    this[] = (value >> 8L).to_byte()
+    this[] = (value >> 16L).to_byte()
+    this[] = (value >> 24L).to_byte()
+    this[] = (value >> 32L).to_byte()
+    this[] = (value >> 40L).to_byte()
+    this[] = (value >> 48L).to_byte()
+    this[] = (value >> 56L).to_byte()
+}
+
+// Add a 64-bit integer to the list of bytes in big-endian order
+fun List<Byte>.add_long_be(value: Long) {
+    this[] = (value >> 56L).to_byte()
+    this[] = (value >> 48L).to_byte()
+    this[] = (value >> 40L).to_byte()
+    this[] = (value >> 32L).to_byte()
+    this[] = (value >> 24L).to_byte()
+    this[] = (value >> 16L).to_byte()
+    this[] = (value >> 8L).to_byte()
+    this[] = value.to_byte()
+}

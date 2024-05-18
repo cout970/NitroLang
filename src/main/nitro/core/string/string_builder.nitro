@@ -13,6 +13,13 @@ fun StringBuilder::new(): StringBuilder {
     ]
 }
 
+// Creates a new StringBuilder, call the lambda to collect the string contents, and return the final string
+fun build_string(func: StringBuilder.() -> Nothing): String {
+    let builder = StringBuilder::new()
+    func(builder)
+    ret builder.to_string()
+}
+
 // Ensures that the internal buffer has enough capacity to store the required number of bytes
 fun StringBuilder.ensure_capacity(required_capacity: Int) {
     if bytes.len >= required_capacity {
@@ -86,7 +93,7 @@ fun StringBuilder.add(str: String) {
     ensure_capacity(bytes_len + str.bytes_len)
 
     repeat str.bytes_len {
-        bytes[bytes_len + it] = str.bytes[it]
+        bytes[bytes_len + it] = str.utf8_data[it]
     }
 
     bytes_len += str.bytes_len
@@ -100,10 +107,15 @@ fun StringBuilder.add_substring(str: String, offset: Int, substring_len: Int) {
     ensure_capacity(bytes_len + substring_len)
 
     repeat substring_len {
-        bytes[bytes_len + it] = str.bytes[offset + it]
+        bytes[bytes_len + it] = str.utf8_data[offset + it]
     }
 
     bytes_len += substring_len
+}
+
+// Any other generic item with to_string()
+fun <#T: ToString> StringBuilder.add(value: #T) {
+    add(value.to_string())
 }
 
 // Copies the contents of another StringBuilder to the internal buffer
@@ -117,6 +129,62 @@ fun StringBuilder.add(builder: StringBuilder) {
     bytes_len += builder.bytes_len
 }
 
+// Adds an integer to the internal buffer, in base 10
+fun StringBuilder.add(value: Int) {
+    add_int_in_base(10, value)
+}
+
+// Adds an integer to the internal buffer, in the given base
+fun StringBuilder.add_int_in_base(base: Int, value: Int) {
+    check(base >= 2 && base <= 36, "Base must be in the range of 2 to 36")
+
+    if value == 0 {
+        this[] = "0"
+        ret
+    }
+
+    // The maximum number of posible digits is 32 (32 bits in base 2), so we can preallocate the array
+    let digits: Array<Char> = Array::new(32)
+    let digits_len = 0
+    let aux = value
+
+    if aux > 0 {
+        while aux != 0 {
+            let digit = aux % base
+            let char = digit.to_digit_in_base(base)
+
+            digits[digits_len] = char
+            digits_len += 1
+            aux /= base
+        }
+
+        repeat digits_len {
+            this[] = digits[digits_len - it - 1]
+        }
+    } else {
+        // Negative numbers get a special case, because the min int value cannot be negated
+        while aux != 0 {
+            let digit = -(aux % base)
+            let char = digit.to_digit_in_base(base)
+
+            digits[digits_len] = char
+            digits_len += 1
+            aux /= base
+        }
+
+        this[] = "-"
+        repeat digits_len {
+            this[] = digits[digits_len - it - 1]
+        }
+    }
+}
+
+// Is the internal buffer empty?
+fun StringBuilder.is_empty(): Boolean = bytes_len == 0
+
+// Is the internal buffer not empty?
+fun StringBuilder.is_not_empty(): Boolean = bytes_len != 0
+
 // Converts the internal buffer to a string
 fun StringBuilder.to_string(): String {
     let new_bytes = Array::new(bytes_len)
@@ -127,7 +195,7 @@ fun StringBuilder.to_string(): String {
 
     ret String @[
         bytes_len,
-        bytes: new_bytes,
+        utf8_data: new_bytes,
         hash_cache: -1,
     ]
 }

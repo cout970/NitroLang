@@ -4,25 +4,28 @@ fun <#Item: GetOrdering> List<#Item>.quicksort_in_place() {
     this.quicksort_rec(0, this.len - 1, false)
 }
 
-
 // Recursive quicksort function, the partition parameter is used to toggle between finding the partition index and
 // sorting the two sublists
 fun <#Item: GetOrdering> List<#Item>.quicksort_rec(low: Int, high: Int, partition: Boolean): Int {
     // Find the partition index
     if partition {
-        let pivot = this[high]!!
+        let pivot = items[high]
         let i = low - 1
         let j = low
 
         while j < high {
-            if this[j]!! <= pivot {
+            if items[j] <= pivot {
                 i += 1
-                swap(i, j)
+                let temp = items[i]
+                items[i] = items[j]
+                items[j] = temp
             }
             j += 1
         }
 
-        swap(i + 1, high)
+        let temp = items[i + 1]
+        items[i + 1] = items[high]
+        items[high] = temp
         ret i + 1
     }
 

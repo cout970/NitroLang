@@ -119,9 +119,15 @@ fun List<#Item>.set(index: Int, item: #Item) {
 
 // Swaps the items at the given indexes
 fun List<#Item>.swap(index1: Int, index2: Int) {
-    let temp = this[index1]!!
-    this[index1] = this[index2]!!
-    this[index2] = temp
+    if index1 < 0 && index1 >= count {
+        crash("Invalid list index 1: $index1, len: $count")
+    }
+    if index2 < 0 && index2 >= count {
+        crash("Invalid list index 2: $index2, len: $count")
+    }
+    let temp = items[index1]
+    items[index1] = items[index2]
+    items[index2] = temp
 }
 
 // Insert a new item at the given index, if the index is out of bounds, the program crashes
