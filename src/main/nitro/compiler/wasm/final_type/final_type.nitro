@@ -1,0 +1,129 @@
+
+type_alias FinalTypeId = String
+
+// Concrete type that has no generics, no unions, no unresolved and no errors
+struct FinalType {
+    id: FinalTypeId
+    kind: FinalTypeKind
+    type_params: List<FinalType>
+    container: FinalTypeContainer
+}
+
+// Concrete type kind, with only the valid options
+option FinalTypeKind {
+    Struct { instance: NStruct }
+    Option { instance: NOption }
+    Lambda { instance: NLambda }
+    // Special case for the type of a function
+    Function { instance: NFunction }
+}
+
+// Concrete instantiation of a struct replacing generics with concrete types
+// Has defined size in bytes and fields with offsets
+struct FinalStruct {
+    instance: NStruct
+    final_type: FinalType
+    fields: List<FinalStructField>
+    size: Int
+    parent_option: Optional<FinalOption>
+}
+
+// Concrete instantiation of a struct field
+struct FinalStructField {
+    name: String
+    final_type: FinalType
+    size: Int
+    offset: Int
+}
+
+// Concrete instantiation of an option replacing the generic with a concrete type
+struct FinalOption {
+    instance: NOption
+    final_type: FinalType
+    items: List<FinalStruct>
+    size: Int
+}
+
+// Concrete instantiation of a lambda replacing the generic with a concrete type
+struct FinalLambda {
+    instance: NLambda
+    final_type: FinalType
+    size: Int
+}
+
+fun FinalTypeKind.to_string(): String {
+    when {
+        this is FinalTypeKind::Struct -> {
+            ret (this as FinalTypeKind::Struct).instance.full_name
+        }
+        this is FinalTypeKind::Option -> {
+            ret (this as FinalTypeKind::Option).instance.full_name
+        }
+        this is FinalTypeKind::Lambda -> {
+            ret "Lambda${(this as FinalTypeKind::Lambda).instance.id_wrapper.id}"
+        }
+        this is FinalTypeKind::Function -> {
+            ret "Function"
+        }
+    }
+}
+
+fun FinalTypeKind.get_id(): String {
+    when {
+        this is FinalTypeKind::Struct -> {
+            ret "S${(this as FinalTypeKind::Struct).instance.id_wrapper.id}"
+        }
+        this is FinalTypeKind::Option -> {
+            ret "O${(this as FinalTypeKind::Option).instance.id_wrapper.id}"
+        }
+        this is FinalTypeKind::Lambda -> {
+            ret "L${(this as FinalTypeKind::Lambda).instance.id_wrapper.id}"
+        }
+        this is FinalTypeKind::Function -> {
+            ret "F${(this as FinalTypeKind::Function).instance.id_wrapper.id}"
+        }
+    }
+    unreachable()
+}
+
+fun FinalType.to_string(): String {
+    if kind is FinalTypeKind::Function {
+        let builder = StringBuilder::new()
+        builder[] = "("
+        repeat type_params.len - 1 {
+            builder[] = type_params[it]!!
+            if it < limit - 1 {
+                builder[] = ", "
+            }
+        }
+        builder[] = ") -> "
+        builder[] = type_params.last()!!
+        ret builder.to_string()
+    }
+
+    if type_params.is_empty() {
+        ret kind.to_string()
+    }
+
+    let str = type_params.join(", ")
+    ret "${kind}<$str>"
+}
+
+fun FinalType.get_hash(): Int = id.get_hash()
+
+fun FinalType.get_ordering(other: FinalType): Ordering = this.id <=> other.id
+
+fun FinalType.is_equal(other: FinalType): Boolean = this.id == other.id
+
+fun FinalType.is_named(name: String): Boolean {
+    if kind is FinalTypeKind::Struct {
+        ret (kind as FinalTypeKind::Struct).instance.full_name == name
+    }
+    ret false
+}
+
+fun FinalType.is_float(): Boolean = is_named("Float")
+fun FinalType.is_int(): Boolean = is_named("Int")
+fun FinalType.is_long(): Boolean = is_named("Long")
+fun FinalType.is_nothing(): Boolean = is_named("Nothing")
+fun FinalType.is_never(): Boolean = is_named("Never")

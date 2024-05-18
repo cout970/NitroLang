@@ -1,0 +1,2007 @@
+
+// https://webassembly.github.io/spec/core/binary/instructions.html#binary-instr
+enum WOpcode {
+    let code: Int
+    let wat: String
+    // Control instructions
+    Unreachable @[code: 0x00, wat: "unreachable"]
+    Nop @[code: 0x01, wat: "nop"]
+    Block @[code: 0x02, wat: "block"]
+    Loop @[code: 0x03, wat: "loop"]
+    If @[code: 0x04, wat: "if"]
+    Else @[code: 0x05, wat: "else"]
+    End @[code: 0x0B, wat: "end"]
+    Br @[code: 0x0C, wat: "br"]
+    BrIf @[code: 0x0D, wat: "br_if"]
+    BrTable @[code: 0x0E, wat: "br_table"]
+    Return @[code: 0x0F, wat: "return"]
+    Call @[code: 0x10, wat: "call"]
+    CallIndirect @[code: 0x11, wat: "call_indirect"]
+    // Reference instructions
+    RefNull @[code: 0xD0, wat: "ref.null"]
+    RefIsNull @[code: 0xD1, wat: "ref.is_null"]
+    RefFunc @[code: 0xD2, wat: "ref.func"]
+    // Parametric instructions
+    Drop @[code: 0x1A, wat: "drop"]
+    Select @[code: 0x1B, wat: "select"]
+    SelectMultiple @[code: 0x1C, wat: "select"]
+    // Variable instructions
+    LocalGet @[code: 0x20, wat: "local.get"]
+    LocalSet @[code: 0x21, wat: "local.set"]
+    LocalTee @[code: 0x22, wat: "local.tee"]
+    GlobalGet @[code: 0x23, wat: "global.get"]
+    GlobalSet @[code: 0x24, wat: "global.set"]
+    // Table instructions
+    TableGet @[code: 0x25, wat: "table.get"]
+    TableSet @[code: 0x26, wat: "table.set"]
+    TableOp @[code: 0xFC, wat: ""]
+    // Second byte of TableOp
+    // - TableInit: 12
+    // - ElemDrop: 13
+    // - TableCopy: 14
+    // - TableGrow: 15
+    // - TableSize: 16
+    // - TableFill: 17
+    // Memory instructions
+    I32Load @[code: 0x28, wat: "i32.load"]
+    I64Load @[code: 0x29, wat: "i64.load"]
+    F32Load @[code: 0x2A, wat: "f32.load"]
+    F64Load @[code: 0x2B, wat: "f64.load"]
+    I32Load8S @[code: 0x2C, wat: "i32.load8_s"]
+    I32Load8U @[code: 0x2D, wat: "i32.load8_u"]
+    I32Load16S @[code: 0x2E, wat: "i32.load16_s"]
+    I32Load16U @[code: 0x2F, wat: "i32.load16_u"]
+    I64Load8S @[code: 0x30, wat: "i64.load8_s"]
+    I64Load8U @[code: 0x31, wat: "i64.load8_u"]
+    I64Load16S @[code: 0x32, wat: "i64.load16_s"]
+    I64Load16U @[code: 0x33, wat: "i64.load16_u"]
+    I64Load32S @[code: 0x34, wat: "i64.load32_s"]
+    I64Load32U @[code: 0x35, wat: "i64.load32_u"]
+    I32Store @[code: 0x36, wat: "i32.store"]
+    I64Store @[code: 0x37, wat: "i64.store"]
+    F32Store @[code: 0x38, wat: "f32.store"]
+    F64Store @[code: 0x39, wat: "f64.store"]
+    I32Store8 @[code: 0x3A, wat: "i32.store8"]
+    I32Store16 @[code: 0x3B, wat: "i32.store16"]
+    I64Store8 @[code: 0x3C, wat: "i64.store8"]
+    I64Store16 @[code: 0x3D, wat: "i64.store16"]
+    I64Store32 @[code: 0x3E, wat: "i64.store32"]
+    MemorySize @[code: 0x3F, wat: "memory.size"]
+    MemoryGrow @[code: 0x40, wat: "memory.grow"]
+    MemoryOp @[code: 0xFC, wat: ""]
+    // Second byte of MemoryOp
+    // - MemoryInit: 8
+    // - DataDrop: 9
+    // - MemoryCopy: 10
+    // - MemoryFill: 11
+    // Numeric instructions
+    I32Const @[code: 0x41, wat: "i32.const"]
+    I64Const @[code: 0x42, wat: "i64.const"]
+    F32Const @[code: 0x43, wat: "f32.const"]
+    F64Const @[code: 0x44, wat: "f64.const"]
+    // Other
+    I32Eqz @[code: 0x45, wat: "i32.eqz"]
+    I32Eq @[code: 0x46, wat: "i32.eq"]
+    I32Ne @[code: 0x47, wat: "i32.ne"]
+    I32LtS @[code: 0x48, wat: "i32.lt_s"]
+    I32LtU @[code: 0x49, wat: "i32.lt_u"]
+    I32GtS @[code: 0x4A, wat: "i32.gt_s"]
+    I32GtU @[code: 0x4B, wat: "i32.gt_u"]
+    I32LeS @[code: 0x4C, wat: "i32.le_s"]
+    I32LeU @[code: 0x4D, wat: "i32.le_u"]
+    I32GeS @[code: 0x4E, wat: "i32.ge_s"]
+    I32GeU @[code: 0x4F, wat: "i32.ge_u"]
+
+    I64Eqz @[code: 0x50, wat: "i64.eqz"]
+    I64Eq @[code: 0x51, wat: "i64.eq"]
+    I64Ne @[code: 0x52, wat: "i64.ne"]
+    I64LtS @[code: 0x53, wat: "i64.lt_s"]
+    I64LtU @[code: 0x54, wat: "i64.lt_u"]
+    I64GtS @[code: 0x55, wat: "i64.gt_s"]
+    I64GtU @[code: 0x56, wat: "i64.gt_u"]
+    I64LeS @[code: 0x57, wat: "i64.le_s"]
+    I64LeU @[code: 0x58, wat: "i64.le_u"]
+    I64GeS @[code: 0x59, wat: "i64.ge_s"]
+    I64GeU @[code: 0x5A, wat: "i64.ge_u"]
+
+    F32Eq @[code: 0x5B, wat: "f32.eq"]
+    F32Ne @[code: 0x5C, wat: "f32.ne"]
+    F32Lt @[code: 0x5D, wat: "f32.lt"]
+    F32Gt @[code: 0x5E, wat: "f32.gt"]
+    F32Le @[code: 0x5F, wat: "f32.le"]
+    F32Ge @[code: 0x60, wat: "f32.ge"]
+
+    F64Eq @[code: 0x61, wat: "f64.eq"]
+    F64Ne @[code: 0x62, wat: "f64.ne"]
+    F64Lt @[code: 0x63, wat: "f64.lt"]
+    F64Gt @[code: 0x64, wat: "f64.gt"]
+    F64Le @[code: 0x65, wat: "f64.le"]
+    F64Ge @[code: 0x66, wat: "f64.ge"]
+
+    I32Clz @[code: 0x67, wat: "i32.clz"]
+    I32Ctz @[code: 0x68, wat: "i32.ctz"]
+    I32Popcnt @[code: 0x69, wat: "i32.popcnt"]
+    I32Add @[code: 0x6A, wat: "i32.add"]
+    I32Sub @[code: 0x6B, wat: "i32.sub"]
+    I32Mul @[code: 0x6C, wat: "i32.mul"]
+    I32DivS @[code: 0x6D, wat: "i32.div_s"]
+    I32DivU @[code: 0x6E, wat: "i32.div_u"]
+    I32RemS @[code: 0x6F, wat: "i32.rem_s"]
+    I32RemU @[code: 0x70, wat: "i32.rem_u"]
+    I32And @[code: 0x71, wat: "i32.and"]
+    I32Or @[code: 0x72, wat: "i32.or"]
+    I32Xor @[code: 0x73, wat: "i32.xor"]
+    I32Shl @[code: 0x74, wat: "i32.shl"]
+    I32ShrS @[code: 0x75, wat: "i32.shr_s"]
+    I32ShrU @[code: 0x76, wat: "i32.shr_u"]
+    I32Rotl @[code: 0x77, wat: "i32.rotl"]
+    I32Rotr @[code: 0x78, wat: "i32.rotr"]
+
+    I64Clz @[code: 0x79, wat: "i64.clz"]
+    I64Ctz @[code: 0x7A, wat: "i64.ctz"]
+    I64Popcnt @[code: 0x7B, wat: "i64.popcnt"]
+    I64Add @[code: 0x7C, wat: "i64.add"]
+    I64Sub @[code: 0x7D, wat: "i64.sub"]
+    I64Mul @[code: 0x7E, wat: "i64.mul"]
+    I64DivS @[code: 0x7F, wat: "i64.div_s"]
+    I64DivU @[code: 0x80, wat: "i64.div_u"]
+    I64RemS @[code: 0x81, wat: "i64.rem_s"]
+    I64RemU @[code: 0x82, wat: "i64.rem_u"]
+    I64And @[code: 0x83, wat: "i64.and"]
+    I64Or @[code: 0x84, wat: "i64.or"]
+    I64Xor @[code: 0x85, wat: "i64.xor"]
+    I64Shl @[code: 0x86, wat: "i64.shl"]
+    I64ShrS @[code: 0x87, wat: "i64.shr_s"]
+    I64ShrU @[code: 0x88, wat: "i64.shr_u"]
+    I64Rotl @[code: 0x89, wat: "i64.rotl"]
+    I64Rotr @[code: 0x8A, wat: "i64.rotr"]
+
+    F32Abs @[code: 0x8B, wat: "f32.abs"]
+    F32Neg @[code: 0x8C, wat: "f32.neg"]
+    F32Ceil @[code: 0x8D, wat: "f32.ceil"]
+    F32Floor @[code: 0x8E, wat: "f32.floor"]
+    F32Trunc @[code: 0x8F, wat: "f32.trunc"]
+    F32Nearest @[code: 0x90, wat: "f32.nearest"]
+    F32Sqrt @[code: 0x91, wat: "f32.sqrt"]
+    F32Add @[code: 0x92, wat: "f32.add"]
+    F32Sub @[code: 0x93, wat: "f32.sub"]
+    F32Mul @[code: 0x94, wat: "f32.mul"]
+    F32Div @[code: 0x95, wat: "f32.div"]
+    F32Min @[code: 0x96, wat: "f32.min"]
+    F32Max @[code: 0x97, wat: "f32.max"]
+    F32Copysign @[code: 0x98, wat: "f32.copysign"]
+
+    F64Abs @[code: 0x99, wat: "f64.abs"]
+    F64Neg @[code: 0x9A, wat: "f64.neg"]
+    F64Ceil @[code: 0x9B, wat: "f64.ceil"]
+    F64Floor @[code: 0x9C, wat: "f64.floor"]
+    F64Trunc @[code: 0x9D, wat: "f64.trunc"]
+    F64Nearest @[code: 0x9E, wat: "f64.nearest"]
+    F64Sqrt @[code: 0x9F, wat: "f64.sqrt"]
+    F64Add @[code: 0xA0, wat: "f64.add"]
+    F64Sub @[code: 0xA1, wat: "f64.sub"]
+    F64Mul @[code: 0xA2, wat: "f64.mul"]
+    F64Div @[code: 0xA3, wat: "f64.div"]
+    F64Min @[code: 0xA4, wat: "f64.min"]
+    F64Max @[code: 0xA5, wat: "f64.max"]
+    F64Copysign @[code: 0xA6, wat: "f64.copysign"]
+
+    I32WrapI64 @[code: 0xA7, wat: "i32.wrap_i64"]
+    I32TruncF32S @[code: 0xA8, wat: "i32.trunc_f32_s"]
+    I32TruncF32U @[code: 0xA9, wat: "i32.trunc_f32_u"]
+    I32TruncF64S @[code: 0xAA, wat: "i32.trunc_f64_s"]
+    I32TruncF64U @[code: 0xAB, wat: "i32.trunc_f64_u"]
+    I64ExtendI32S @[code: 0xAC, wat: "i64.extend_i32_s"]
+    I64ExtendI32U @[code: 0xAD, wat: "i64.extend_i32_u"]
+    I64TruncF32S @[code: 0xAE, wat: "i64.trunc_f32_s"]
+    I64TruncF32U @[code: 0xAF, wat: "i64.trunc_f32_u"]
+    I64TruncF64S @[code: 0xB0, wat: "i64.trunc_f64_s"]
+    I64TruncF64U @[code: 0xB1, wat: "i64.trunc_f64_u"]
+    F32ConvertI32S @[code: 0xB2, wat: "f32.convert_i32_s"]
+    F32ConvertI32U @[code: 0xB3, wat: "f32.convert_i32_u"]
+    F32ConvertI64S @[code: 0xB4, wat: "f32.convert_i64_s"]
+    F32ConvertI64U @[code: 0xB5, wat: "f32.convert_i64_u"]
+    F32DemoteF64 @[code: 0xB6, wat: "f32.demote_f64"]
+    F64ConvertI32S @[code: 0xB7, wat: "f64.convert_i32_s"]
+    F64ConvertI32U @[code: 0xB8, wat: "f64.convert_i32_u"]
+    F64ConvertI64S @[code: 0xB9, wat: "f64.convert_i64_s"]
+    F64ConvertI64U @[code: 0xBA, wat: "f64.convert_i64_u"]
+    F64PromoteF32 @[code: 0xBB, wat: "f64.promote_f32"]
+    I32ReinterpretF32 @[code: 0xBC, wat: "i32.reinterpret_f32"]
+    I64ReinterpretF64 @[code: 0xBD, wat: "i64.reinterpret_f64"]
+    F32ReinterpretI32 @[code: 0xBE, wat: "f32.reinterpret_i32"]
+    F64ReinterpretI64 @[code: 0xBF, wat: "f64.reinterpret_i64"]
+    // Extend
+    I32Extend8S @[code: 0xC0, wat: "i32.extend8_s"]
+    I32Extend16S @[code: 0xC1, wat: "i32.extend16_s"]
+    I64Extend8S @[code: 0xC2, wat: "i64.extend8_s"]
+    I64Extend16S @[code: 0xC3, wat: "i64.extend16_s"]
+    I64Extend32S @[code: 0xC4, wat: "i64.extend32_s"]
+    // Saturating truncation
+    TruncSatOp @[code: 0xFC, wat: ""]
+    // Second byte of TruncSatOp
+    // - I32TruncSatF32S: 0
+    // - I32TruncSatF32U: 1
+    // - I32TruncSatF64S: 2
+    // - I32TruncSatF64U: 3
+    // - I64TruncSatF32S: 4
+    // - I64TruncSatF32U: 5
+    // - I64TruncSatF64S: 6
+    // - I64TruncSatF64U: 7
+    // Vector instructions
+    // - Not need for now
+}
+
+enum TruncSatOp {
+    let code: Int
+    I32TruncSatF32S @[code: 0x00]
+    I32TruncSatF32U @[code: 0x01]
+    I32TruncSatF64S @[code: 0x02]
+    I32TruncSatF64U @[code: 0x03]
+    I64TruncSatF32S @[code: 0x04]
+    I64TruncSatF32U @[code: 0x05]
+    I64TruncSatF64S @[code: 0x06]
+    I64TruncSatF64U @[code: 0x07]
+}
+
+enum MemoryOp {
+    let code: Int
+    MemoryInit @[code: 0x08]
+    DataDrop   @[code: 0x09]
+    MemoryCopy @[code: 0x0A]
+    MemoryFill @[code: 0x0B]
+}
+
+enum TableOp {
+    let code: Int
+    TableInit @[code: 0x0C]
+    ElemDrop  @[code: 0x0D]
+    TableCopy @[code: 0x0E]
+    TableGrow @[code: 0x0F]
+    TableSize @[code: 0x10]
+    TableFill @[code: 0x11]
+}
+
+option WValue {
+    I32 { value: Int }
+    I64 { value: Long }
+    F32 { value: Float }
+    F64 { value: Float }
+}
+
+
+// Emit a single byte with the given opcode
+fun WasmEmitter.emit_opcode(op: WOpcode) {
+    buffer[] = op.code.to_byte()
+}
+
+// Given a string, emit the opcode with the corresponding name,
+// this is used by functions annotated with WasmInline, i.e. `@WasmInline [opcode: "i32.add"]`
+fun WasmEmitter.emit_opcode_by_name(name: String) {
+    for op in WOpcode::values() {
+        if op.wat == name {
+            emit_opcode(op)
+            if debug_print {
+                debug_buffer[] = "$name\n"
+            }
+            ret
+        }
+    }
+    crash("Unable to find opcode: '$name'")
+}
+
+fun WasmEmitter.add_unreachable() {
+    // 0x00 => unreachable
+    emit_opcode(WOpcode::Unreachable)
+    if debug_print {
+        debug_buffer[] = "unreachable\n"
+    }
+}
+
+fun WasmEmitter.add_nop() {
+    // 0x01 => nop
+    emit_opcode(WOpcode::Nop)
+    if debug_print {
+        debug_buffer[] = "nop\n"
+    }
+}
+
+fun WasmEmitter.add_block(block_type: Int) {
+    // 0x02 => block block_type
+    emit_opcode(WOpcode::Block)
+    emit_u32(block_type)
+    if debug_print {
+        debug_buffer[] = "block $block_type\n"
+    }
+}
+
+fun WasmEmitter.add_loop(block_type: Int) {
+    // 0x03 => loop block_type
+    emit_opcode(WOpcode::Loop)
+    emit_u32(block_type)
+    if debug_print {
+        debug_buffer[] = "loop $block_type\n"
+    }
+}
+
+fun WasmEmitter.add_if(block_type: Int) {
+    // 0x04 => if block_type
+    emit_opcode(WOpcode::If)
+    emit_u32(block_type)
+    if debug_print {
+        debug_buffer[] = "if $block_type\n"
+    }
+}
+
+fun WasmEmitter.add_else() {
+    // 0x05 => else
+    emit_opcode(WOpcode::Else)
+    if debug_print {
+        debug_buffer[] = "else\n"
+    }
+}
+
+fun WasmEmitter.add_end() {
+    // 0x0B => end
+    emit_opcode(WOpcode::End)
+    if debug_print {
+        debug_buffer[] = "end\n"
+    }
+}
+
+fun WasmEmitter.add_br(label: Int) {
+    // 0x0C => br label
+    emit_opcode(WOpcode::Br)
+    if debug_print {
+        debug_buffer[] = "br $label\n"
+    }
+}
+
+fun WasmEmitter.add_br_if(label: Int) {
+    // 0x0D => br_if label
+    emit_opcode(WOpcode::BrIf)
+    if debug_print {
+        debug_buffer[] = "br_if $label\n"
+    }
+}
+
+fun WasmEmitter.add_br_table(labels: List<Int>, default_label: Int) {
+    // 0x0E => br_table label*
+    emit_opcode(WOpcode::BrTable)
+    emit_u32(labels.len)
+    for label in labels {
+        emit_u32(label)
+    }
+    emit_u32(default_label)
+    if debug_print {
+        debug_buffer[] = "br_table ${labels.join(", ")} $default_label\n"
+    }
+}
+
+fun WasmEmitter.add_return() {
+    // 0x0F => return
+    emit_opcode(WOpcode::Return)
+    if debug_print {
+        debug_buffer[] = "return\n"
+    }
+}
+
+fun WasmEmitter.add_call(func_idx: Int) {
+    // 0x10 => call function_index
+    emit_opcode(WOpcode::Call)
+    emit_u32(func_idx)
+    if debug_print {
+        debug_buffer[] = "call $func_idx\n"
+    }
+}
+
+fun WasmEmitter.add_call_indirect(type_idx: Int, table_idx: Int) {
+    // 0x11 => call_indirect type_index table_index
+    emit_opcode(WOpcode::CallIndirect)
+    emit_u32(type_idx)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "call_indirect $type_idx $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_ref_null(type_ids: Int) {
+    // 0xD0 => ref.null ref_type
+    emit_opcode(WOpcode::RefNull)
+    emit_u32(type_ids)
+    if debug_print {
+        debug_buffer[] = "ref.null $type_ids\n"
+    }
+}
+
+fun WasmEmitter.add_ref_is_null() {
+    // 0xD1 => ref.is_null
+    emit_opcode(WOpcode::RefIsNull)
+    if debug_print {
+        debug_buffer[] = "ref.is_null\n"
+    }
+}
+
+fun WasmEmitter.add_ref_func(func_idx: Int) {
+    // 0xD2 => ref.func function_index
+    emit_opcode(WOpcode::RefFunc)
+    emit_u32(func_idx)
+    if debug_print {
+        debug_buffer[] = "ref.func $func_idx\n"
+    }
+}
+
+fun WasmEmitter.add_drop() {
+    // 0x1A => drop
+    emit_opcode(WOpcode::Drop)
+    if debug_print {
+        debug_buffer[] = "drop\n"
+    }
+}
+
+fun WasmEmitter.add_select() {
+    // 0x1B => select
+    emit_opcode(WOpcode::Select)
+    if debug_print {
+        debug_buffer[] = "select\n"
+    }
+}
+
+fun WasmEmitter.add_select_multiple(value_types: List<Int>) {
+    // 0x1C => select_multiple
+    emit_opcode(WOpcode::SelectMultiple)
+    emit_u32(value_types.len)
+    for value_type in value_types {
+        emit_u32(value_type)
+    }
+    if debug_print {
+        debug_buffer[] = "select ${value_types.join(", ")}\n"
+    }
+}
+
+fun WasmEmitter.add_local_get(local_idx: Int) {
+    // 0x20 => local.get local_index
+    emit_opcode(WOpcode::LocalGet)
+    emit_u32(local_idx)
+    if debug_print {
+        debug_buffer[] = "local.get $local_idx\n"
+    }
+}
+
+fun WasmEmitter.add_local_set(local_idx: Int) {
+    // 0x21 => local.set local_index
+    emit_opcode(WOpcode::LocalSet)
+    emit_u32(local_idx)
+    if debug_print {
+        debug_buffer[] = "local.set $local_idx\n"
+    }
+}
+
+fun WasmEmitter.add_local_tee(local_idx: Int) {
+    // 0x22 => local.tee local_index
+    emit_opcode(WOpcode::LocalTee)
+    emit_u32(local_idx)
+    if debug_print {
+        debug_buffer[] = "local.tee $local_idx\n"
+    }
+}
+
+fun WasmEmitter.add_global_get(global_idx: Int) {
+    // 0x23 => global.get global_index
+    emit_opcode(WOpcode::GlobalGet)
+    emit_u32(global_idx)
+    if debug_print {
+        debug_buffer[] = "global.get $global_idx\n"
+    }
+}
+
+fun WasmEmitter.add_global_set(global_idx: Int) {
+    // 0x24 => global.set global_index
+    emit_opcode(WOpcode::GlobalSet)
+    emit_u32(global_idx)
+    if debug_print {
+        debug_buffer[] = "global.set $global_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_get(table_idx: Int) {
+    // 0x25 => table.get table_index
+    emit_opcode(WOpcode::TableGet)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.get $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_set(table_idx: Int) {
+    // 0x26 => table.set table_index
+    emit_opcode(WOpcode::TableSet)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.set $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_init(elem_idx: Int, table_idx: Int) {
+    // 0xFC 12 => table.init elem_idx table_idx
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(12)
+    emit_u32(elem_idx)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.init $elem_idx $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_elem_drop(elem_idx: Int) {
+    // 0xFC 13 => elem.drop elem_idx
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(13)
+    emit_u32(elem_idx)
+    if debug_print {
+        debug_buffer[] = "elem.drop $elem_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_copy(src_table_idx: Int, dst_table_idx: Int) {
+    // 0xFC 14 => table.copy src_table_idx dst_table_idx
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(14)
+    emit_u32(src_table_idx)
+    emit_u32(dst_table_idx)
+    if debug_print {
+        debug_buffer[] = "table.copy $src_table_idx $dst_table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_grow(table_idx: Int) {
+    // 0xFC 15 => table.grow table_index
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(15)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.grow $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_size(table_idx: Int) {
+    // 0xFC 16 => table.size table_index
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(16)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.size $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_table_fill(table_idx: Int) {
+    // 0xFC 17 => table.fill table_index
+    emit_opcode(WOpcode::TableOp)
+    emit_u32(17)
+    emit_u32(table_idx)
+    if debug_print {
+        debug_buffer[] = "table.fill $table_idx\n"
+    }
+}
+
+fun WasmEmitter.add_i32_load(offset: Int) {
+    // 0x28 => i32.load memarg
+    emit_opcode(WOpcode::I32Load)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "i32.load $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load(offset: Int) {
+    // 0x29 => i64.load memarg
+    emit_opcode(WOpcode::I64Load)
+    emit_u32(offset)
+    emit_u32(3) // 64 bit => 8 bytes => 2^3
+    if debug_print {
+        debug_buffer[] = "i64.load $offset\n"
+    }
+}
+
+fun WasmEmitter.add_f32_load(offset: Int) {
+    // 0x2A => f32.load memarg
+    emit_opcode(WOpcode::F32Load)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "f32.load $offset\n"
+    }
+}
+
+fun WasmEmitter.add_f64_load(offset: Int) {
+    // 0x2B => f64.load memarg
+    emit_opcode(WOpcode::F64Load)
+    emit_u32(offset)
+    emit_u32(3) // 64 bit => 8 bytes => 2^3
+    if debug_print {
+        debug_buffer[] = "f64.load $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_load8_s(offset: Int) {
+    // 0x2C => i32.load8_s memarg
+    emit_opcode(WOpcode::I32Load8S)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i32.load8_s $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_load8_u(offset: Int) {
+    // 0x2D => i32.load8_u memarg
+    emit_opcode(WOpcode::I32Load8U)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i32.load8_u $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_load16_s(offset: Int) {
+    // 0x2E => i32.load16_s memarg
+    emit_opcode(WOpcode::I32Load16S)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i32.load16_s $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_load16_u(offset: Int) {
+    // 0x2F => i32.load16_u memarg
+    emit_opcode(WOpcode::I32Load16U)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i32.load16_u $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load8_s(offset: Int) {
+    // 0x30 => i64.load8_s memarg
+    emit_opcode(WOpcode::I64Load8S)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i64.load8_s $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load8_u(offset: Int) {
+    // 0x31 => i64.load8_u memarg
+    emit_opcode(WOpcode::I64Load8U)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i64.load8_u $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load16_s(offset: Int) {
+    // 0x32 => i64.load16_s memarg
+    emit_opcode(WOpcode::I64Load16S)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i64.load16_s $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load16_u(offset: Int) {
+    // 0x33 => i64.load16_u memarg
+    emit_opcode(WOpcode::I64Load16U)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i64.load16_u $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load32_s(offset: Int) {
+    // 0x34 => i64.load32_s memarg
+    emit_opcode(WOpcode::I64Load32S)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "i64.load32_s $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_load32_u(offset: Int) {
+    // 0x35 => i64.load32_u memarg
+    emit_opcode(WOpcode::I64Load32U)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "i64.load32_u $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_store(offset: Int) {
+    // 0x36 => i32.store memarg
+    emit_opcode(WOpcode::I32Store)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "i32.store $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_store(offset: Int) {
+    // 0x37 => i64.store memarg
+    emit_opcode(WOpcode::I64Store)
+    emit_u32(offset)
+    emit_u32(3) // 64 bit => 8 bytes => 2^3
+    if debug_print {
+        debug_buffer[] = "i64.store $offset\n"
+    }
+}
+
+fun WasmEmitter.add_f32_store(offset: Int) {
+    // 0x38 => f32.store memarg
+    emit_opcode(WOpcode::F32Store)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "f32.store $offset\n"
+    }
+}
+
+fun WasmEmitter.add_f64_store(offset: Int) {
+    // 0x39 => f64.store memarg
+    emit_opcode(WOpcode::F64Store)
+    emit_u32(offset)
+    emit_u32(3) // 64 bit => 8 bytes => 2^3
+    if debug_print {
+        debug_buffer[] = "f64.store $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_store8(offset: Int) {
+    // 0x3A => i32.store8 memarg
+    emit_opcode(WOpcode::I32Store8)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i32.store8 $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i32_store16(offset: Int) {
+    // 0x3B => i32.store16 memarg
+    emit_opcode(WOpcode::I32Store16)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i32.store16 $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_store8(offset: Int) {
+    // 0x3C => i64.store8 memarg
+    emit_opcode(WOpcode::I64Store8)
+    emit_u32(offset)
+    emit_u32(0) // 8 bit => 1 byte => 2^0
+    if debug_print {
+        debug_buffer[] = "i64.store8 $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_store16(offset: Int) {
+    // 0x3D => i64.store16 memarg
+    emit_opcode(WOpcode::I64Store16)
+    emit_u32(offset)
+    emit_u32(1) // 16 bit => 2 bytes => 2^1
+    if debug_print {
+        debug_buffer[] = "i64.store16 $offset\n"
+    }
+}
+
+fun WasmEmitter.add_i64_store32(offset: Int) {
+    // 0x3E => i64.store32 memarg
+    emit_opcode(WOpcode::I64Store32)
+    emit_u32(offset)
+    emit_u32(2) // 32 bit => 4 bytes => 2^2
+    if debug_print {
+        debug_buffer[] = "i64.store32 $offset\n"
+    }
+}
+
+fun WasmEmitter.add_memory_size() {
+    // 0x3F => memory.size 0x00
+    emit_opcode(WOpcode::MemorySize)
+    emit_u32(0)
+    if debug_print {
+        debug_buffer[] = "memory.size\n"
+    }
+}
+
+fun WasmEmitter.add_memory_grow() {
+    // 0x40 => memory.grow 0x00
+    emit_opcode(WOpcode::MemoryGrow)
+    emit_u32(0)
+    if debug_print {
+        debug_buffer[] = "memory.grow\n"
+    }
+}
+
+fun WasmEmitter.add_memory_init(data_idx: Int) {
+    // 0xFC 8 => memory.init data_idx
+    emit_opcode(WOpcode::MemoryOp)
+    emit_u32(8)
+    emit_u32(data_idx)
+    emit_u32(0x00)
+    if debug_print {
+        debug_buffer[] = "memory.init $data_idx\n"
+    }
+}
+
+fun WasmEmitter.add_data_drop(data_idx: Int) {
+    // 0xFC 9 => data.drop data_idx
+    emit_opcode(WOpcode::MemoryOp)
+    emit_u32(9)
+    emit_u32(data_idx)
+    if debug_print {
+        debug_buffer[] = "data.drop $data_idx\n"
+    }
+}
+
+fun WasmEmitter.add_memory_copy() {
+    // 0xFC 10 => memory.copy 0x00 0x00
+    emit_opcode(WOpcode::MemoryOp)
+    emit_u32(10)
+    emit_u32(0x00)
+    emit_u32(0x00)
+    if debug_print {
+        debug_buffer[] = "memory.copy\n"
+    }
+}
+
+fun WasmEmitter.add_memory_fill() {
+    // 0xFC 11 => memory.fill 0x00
+    emit_opcode(WOpcode::MemoryOp)
+    emit_u32(11)
+    emit_u32(0x00)
+    if debug_print {
+        debug_buffer[] = "memory.fill\n"
+    }
+}
+
+fun WasmEmitter.add_i32_const(value: Int) {
+    // 0x41 => i32.const value
+    emit_opcode(WOpcode::I32Const)
+    emit_i32(value)
+    if debug_print {
+        debug_buffer[] = "i32.const $value\n"
+    }
+}
+
+fun WasmEmitter.add_i64_const(value: Long) {
+    // 0x42 => i64.const value
+    emit_opcode(WOpcode::I64Const)
+    emit_i64(value)
+    if debug_print {
+        debug_buffer[] = "i64.const $value\n"
+    }
+}
+
+fun WasmEmitter.add_f32_const(value: Float) {
+    // 0x43 => f32.const value
+    emit_opcode(WOpcode::F32Const)
+    emit_f32(value)
+    if debug_print {
+        debug_buffer[] = "f32.const $value\n"
+    }
+}
+
+fun WasmEmitter.add_f64_const(value: Float) {
+    // 0x44 => f64.const value
+    emit_opcode(WOpcode::F64Const)
+    emit_f64(value)
+    if debug_print {
+        debug_buffer[] = "f64.const $value\n"
+    }
+}
+
+fun WasmEmitter.add_i32_eqz() {
+    // 0x45 => i32.eqz
+    emit_opcode(WOpcode::I32Eqz)
+    if debug_print {
+        debug_buffer[] = "i32.eqz\n"
+    }
+}
+
+fun WasmEmitter.add_i32_eq() {
+    // 0x46 => i32.eq
+    emit_opcode(WOpcode::I32Eq)
+    if debug_print {
+        debug_buffer[] = "i32.eq\n"
+    }
+}
+
+fun WasmEmitter.add_i32_ne() {
+    // 0x47 => i32.ne
+    emit_opcode(WOpcode::I32Ne)
+    if debug_print {
+        debug_buffer[] = "i32.ne\n"
+    }
+}
+
+fun WasmEmitter.add_i32_lt_s() {
+    // 0x48 => i32.lt_s
+    emit_opcode(WOpcode::I32LtS)
+    if debug_print {
+        debug_buffer[] = "i32.lt_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_lt_u() {
+    // 0x49 => i32.lt_u
+    emit_opcode(WOpcode::I32LtU)
+    if debug_print {
+        debug_buffer[] = "i32.lt_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_gt_s() {
+    // 0x4A => i32.gt_s
+    emit_opcode(WOpcode::I32GtS)
+    if debug_print {
+        debug_buffer[] = "i32.gt_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_gt_u() {
+    // 0x4B => i32.gt_u
+    emit_opcode(WOpcode::I32GtU)
+    if debug_print {
+        debug_buffer[] = "i32.gt_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_le_s() {
+    // 0x4C => i32.le_s
+    emit_opcode(WOpcode::I32LeS)
+    if debug_print {
+        debug_buffer[] = "i32.le_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_le_u() {
+    // 0x4D => i32.le_u
+    emit_opcode(WOpcode::I32LeU)
+    if debug_print {
+        debug_buffer[] = "i32.le_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_ge_s() {
+    // 0x4E => i32.ge_s
+    emit_opcode(WOpcode::I32GeS)
+    if debug_print {
+        debug_buffer[] = "i32.ge_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_ge_u() {
+    // 0x4F => i32.ge_u
+    emit_opcode(WOpcode::I32GeU)
+    if debug_print {
+        debug_buffer[] = "i32.ge_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_eqz() {
+    // 0x50 => i64.eqz
+    emit_opcode(WOpcode::I64Eqz)
+    if debug_print {
+        debug_buffer[] = "i64.eqz\n"
+    }
+}
+
+fun WasmEmitter.add_i64_eq() {
+    // 0x51 => i64.eq
+    emit_opcode(WOpcode::I64Eq)
+    if debug_print {
+        debug_buffer[] = "i64.eq\n"
+    }
+}
+
+fun WasmEmitter.add_i64_ne() {
+    // 0x52 => i64.ne
+    emit_opcode(WOpcode::I64Ne)
+    if debug_print {
+        debug_buffer[] = "i64.ne\n"
+    }
+}
+
+fun WasmEmitter.add_i64_lt_s() {
+    // 0x53 => i64.lt_s
+    emit_opcode(WOpcode::I64LtS)
+    if debug_print {
+        debug_buffer[] = "i64.lt_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_lt_u() {
+    // 0x54 => i64.lt_u
+    emit_opcode(WOpcode::I64LtU)
+    if debug_print {
+        debug_buffer[] = "i64.lt_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_gt_s() {
+    // 0x55 => i64.gt_s
+    emit_opcode(WOpcode::I64GtS)
+    if debug_print {
+        debug_buffer[] = "i64.gt_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_gt_u() {
+    // 0x56 => i64.gt_u
+    emit_opcode(WOpcode::I64GtU)
+    if debug_print {
+        debug_buffer[] = "i64.gt_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_le_s() {
+    // 0x57 => i64.le_s
+    emit_opcode(WOpcode::I64LeS)
+    if debug_print {
+        debug_buffer[] = "i64.le_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_le_u() {
+    // 0x58 => i64.le_u
+    emit_opcode(WOpcode::I64LeU)
+    if debug_print {
+        debug_buffer[] = "i64.le_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_ge_s() {
+    // 0x59 => i64.ge_s
+    emit_opcode(WOpcode::I64GeS)
+    if debug_print {
+        debug_buffer[] = "i64.ge_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_ge_u() {
+    // 0x5A => i64.ge_u
+    emit_opcode(WOpcode::I64GeU)
+    if debug_print {
+        debug_buffer[] = "i64.ge_u\n"
+    }
+}
+
+fun WasmEmitter.add_f32_eq() {
+    // 0x5B => f32.eq
+    emit_opcode(WOpcode::F32Eq)
+    if debug_print {
+        debug_buffer[] = "f32.eq\n"
+    }
+}
+
+fun WasmEmitter.add_f32_ne() {
+    // 0x5C => f32.ne
+    emit_opcode(WOpcode::F32Ne)
+    if debug_print {
+        debug_buffer[] = "f32.ne\n"
+    }
+}
+
+fun WasmEmitter.add_f32_lt() {
+    // 0x5D => f32.lt
+    emit_opcode(WOpcode::F32Lt)
+    if debug_print {
+        debug_buffer[] = "f32.lt\n"
+    }
+}
+
+fun WasmEmitter.add_f32_gt() {
+    // 0x5E => f32.gt
+    emit_opcode(WOpcode::F32Gt)
+    if debug_print {
+        debug_buffer[] = "f32.gt\n"
+    }
+}
+
+fun WasmEmitter.add_f32_le() {
+    // 0x5F => f32.le
+    emit_opcode(WOpcode::F32Le)
+    if debug_print {
+        debug_buffer[] = "f32.le\n"
+    }
+}
+
+fun WasmEmitter.add_f32_ge() {
+    // 0x60 => f32.ge
+    emit_opcode(WOpcode::F32Ge)
+    if debug_print {
+        debug_buffer[] = "f32.ge\n"
+    }
+}
+
+fun WasmEmitter.add_f64_eq() {
+    // 0x61 => f64.eq
+    emit_opcode(WOpcode::F64Eq)
+    if debug_print {
+        debug_buffer[] = "f64.eq\n"
+    }
+}
+
+fun WasmEmitter.add_f64_ne() {
+    // 0x62 => f64.ne
+    emit_opcode(WOpcode::F64Ne)
+    if debug_print {
+        debug_buffer[] = "f64.ne\n"
+    }
+}
+
+fun WasmEmitter.add_f64_lt() {
+    // 0x63 => f64.lt
+    emit_opcode(WOpcode::F64Lt)
+    if debug_print {
+        debug_buffer[] = "f64.lt\n"
+    }
+}
+
+fun WasmEmitter.add_f64_gt() {
+    // 0x64 => f64.gt
+    emit_opcode(WOpcode::F64Gt)
+    if debug_print {
+        debug_buffer[] = "f64.gt\n"
+    }
+}
+
+fun WasmEmitter.add_f64_le() {
+    // 0x65 => f64.le
+    emit_opcode(WOpcode::F64Le)
+    if debug_print {
+        debug_buffer[] = "f64.le\n"
+    }
+}
+
+fun WasmEmitter.add_f64_ge() {
+    // 0x66 => f64.ge
+    emit_opcode(WOpcode::F64Ge)
+    if debug_print {
+        debug_buffer[] = "f64.ge\n"
+    }
+}
+
+fun WasmEmitter.add_i32_clz() {
+    // 0x67 => i32.clz
+    emit_opcode(WOpcode::I32Clz)
+    if debug_print {
+        debug_buffer[] = "i32.clz\n"
+    }
+}
+
+fun WasmEmitter.add_i32_ctz() {
+    // 0x68 => i32.ctz
+    emit_opcode(WOpcode::I32Ctz)
+    if debug_print {
+        debug_buffer[] = "i32.ctz\n"
+    }
+}
+
+fun WasmEmitter.add_i32_popcnt() {
+    // 0x69 => i32.popcnt
+    emit_opcode(WOpcode::I32Popcnt)
+    if debug_print {
+        debug_buffer[] = "i32.popcnt\n"
+    }
+}
+
+fun WasmEmitter.add_i32_add() {
+    // 0x6A => i32.add
+    emit_opcode(WOpcode::I32Add)
+    if debug_print {
+        debug_buffer[] = "i32.add\n"
+    }
+}
+
+fun WasmEmitter.add_i32_sub() {
+    // 0x6B => i32.sub
+    emit_opcode(WOpcode::I32Sub)
+    if debug_print {
+        debug_buffer[] = "i32.sub\n"
+    }
+}
+
+fun WasmEmitter.add_i32_mul() {
+    // 0x6C => i32.mul
+    emit_opcode(WOpcode::I32Mul)
+    if debug_print {
+        debug_buffer[] = "i32.mul\n"
+    }
+}
+
+fun WasmEmitter.add_i32_div_s() {
+    // 0x6D => i32.div_s
+    emit_opcode(WOpcode::I32DivS)
+    if debug_print {
+        debug_buffer[] = "i32.div_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_div_u() {
+    // 0x6E => i32.div_u
+    emit_opcode(WOpcode::I32DivU)
+    if debug_print {
+        debug_buffer[] = "i32.div_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_rem_s() {
+    // 0x6F => i32.rem_s
+    emit_opcode(WOpcode::I32RemS)
+    if debug_print {
+        debug_buffer[] = "i32.rem_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_rem_u() {
+    // 0x70 => i32.rem_u
+    emit_opcode(WOpcode::I32RemU)
+    if debug_print {
+        debug_buffer[] = "i32.rem_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_and() {
+    // 0x71 => i32.and
+    emit_opcode(WOpcode::I32And)
+    if debug_print {
+        debug_buffer[] = "i32.and\n"
+    }
+}
+
+fun WasmEmitter.add_i32_or() {
+    // 0x72 => i32.or
+    emit_opcode(WOpcode::I32Or)
+    if debug_print {
+        debug_buffer[] = "i32.or\n"
+    }
+}
+
+fun WasmEmitter.add_i32_xor() {
+    // 0x73 => i32.xor
+    emit_opcode(WOpcode::I32Xor)
+    if debug_print {
+        debug_buffer[] = "i32.xor\n"
+    }
+}
+
+fun WasmEmitter.add_i32_shl() {
+    // 0x74 => i32.shl
+    emit_opcode(WOpcode::I32Shl)
+    if debug_print {
+        debug_buffer[] = "i32.shl\n"
+    }
+}
+
+fun WasmEmitter.add_i32_shr_s() {
+    // 0x75 => i32.shr_s
+    emit_opcode(WOpcode::I32ShrS)
+    if debug_print {
+        debug_buffer[] = "i32.shr_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_shr_u() {
+    // 0x76 => i32.shr_u
+    emit_opcode(WOpcode::I32ShrU)
+    if debug_print {
+        debug_buffer[] = "i32.shr_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_rotl() {
+    // 0x77 => i32.rotl
+    emit_opcode(WOpcode::I32Rotl)
+    if debug_print {
+        debug_buffer[] = "i32.rotl\n"
+    }
+}
+
+fun WasmEmitter.add_i32_rotr() {
+    // 0x78 => i32.rotr
+    emit_opcode(WOpcode::I32Rotr)
+    if debug_print {
+        debug_buffer[] = "i32.rotr\n"
+    }
+}
+
+fun WasmEmitter.add_i64_clz() {
+    // 0x79 => i64.clz
+    emit_opcode(WOpcode::I64Clz)
+    if debug_print {
+        debug_buffer[] = "i64.clz\n"
+    }
+}
+
+fun WasmEmitter.add_i64_ctz() {
+    // 0x7A => i64.ctz
+    emit_opcode(WOpcode::I64Ctz)
+    if debug_print {
+        debug_buffer[] = "i64.ctz\n"
+    }
+}
+
+fun WasmEmitter.add_i64_popcnt() {
+    // 0x7B => i64.popcnt
+    emit_opcode(WOpcode::I64Popcnt)
+    if debug_print {
+        debug_buffer[] = "i64.popcnt\n"
+    }
+}
+
+fun WasmEmitter.add_i64_add() {
+    // 0x7C => i64.add
+    emit_opcode(WOpcode::I64Add)
+    if debug_print {
+        debug_buffer[] = "i64.add\n"
+    }
+}
+
+fun WasmEmitter.add_i64_sub() {
+    // 0x7D => i64.sub
+    emit_opcode(WOpcode::I64Sub)
+    if debug_print {
+        debug_buffer[] = "i64.sub\n"
+    }
+}
+
+fun WasmEmitter.add_i64_mul() {
+    // 0x7E => i64.mul
+    emit_opcode(WOpcode::I64Mul)
+    if debug_print {
+        debug_buffer[] = "i64.mul\n"
+    }
+}
+
+fun WasmEmitter.add_i64_div_s() {
+    // 0x7F => i64.div_s
+    emit_opcode(WOpcode::I64DivS)
+    if debug_print {
+        debug_buffer[] = "i64.div_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_div_u() {
+    // 0x80 => i64.div_u
+    emit_opcode(WOpcode::I64DivU)
+    if debug_print {
+        debug_buffer[] = "i64.div_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_rem_s() {
+    // 0x81 => i64.rem_s
+    emit_opcode(WOpcode::I64RemS)
+    if debug_print {
+        debug_buffer[] = "i64.rem_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_rem_u() {
+    // 0x82 => i64.rem_u
+    emit_opcode(WOpcode::I64RemU)
+    if debug_print {
+        debug_buffer[] = "i64.rem_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_and() {
+    // 0x83 => i64.and
+    emit_opcode(WOpcode::I64And)
+    if debug_print {
+        debug_buffer[] = "i64.and\n"
+    }
+}
+
+fun WasmEmitter.add_i64_or() {
+    // 0x84 => i64.or
+    emit_opcode(WOpcode::I64Or)
+    if debug_print {
+        debug_buffer[] = "i64.or\n"
+    }
+}
+
+fun WasmEmitter.add_i64_xor() {
+    // 0x85 => i64.xor
+    emit_opcode(WOpcode::I64Xor)
+    if debug_print {
+        debug_buffer[] = "i64.xor\n"
+    }
+}
+
+fun WasmEmitter.add_i64_shl() {
+    // 0x86 => i64.shl
+    emit_opcode(WOpcode::I64Shl)
+    if debug_print {
+        debug_buffer[] = "i64.shl\n"
+    }
+}
+
+fun WasmEmitter.add_i64_shr_s() {
+    // 0x87 => i64.shr_s
+    emit_opcode(WOpcode::I64ShrS)
+    if debug_print {
+        debug_buffer[] = "i64.shr_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_shr_u() {
+    // 0x88 => i64.shr_u
+    emit_opcode(WOpcode::I64ShrU)
+    if debug_print {
+        debug_buffer[] = "i64.shr_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_rotl() {
+    // 0x89 => i64.rotl
+    emit_opcode(WOpcode::I64Rotl)
+    if debug_print {
+        debug_buffer[] = "i64.rotl\n"
+    }
+}
+
+fun WasmEmitter.add_i64_rotr() {
+    // 0x8A => i64.rotr
+    emit_opcode(WOpcode::I64Rotr)
+    if debug_print {
+        debug_buffer[] = "i64.rotr\n"
+    }
+}
+
+fun WasmEmitter.add_f32_abs() {
+    // 0x8B => f32.abs
+    emit_opcode(WOpcode::F32Abs)
+    if debug_print {
+        debug_buffer[] = "f32.abs\n"
+    }
+}
+
+fun WasmEmitter.add_f32_neg() {
+    // 0x8C => f32.neg
+    emit_opcode(WOpcode::F32Neg)
+    if debug_print {
+        debug_buffer[] = "f32.neg\n"
+    }
+}
+
+fun WasmEmitter.add_f32_ceil() {
+    // 0x8D => f32.ceil
+    emit_opcode(WOpcode::F32Ceil)
+    if debug_print {
+        debug_buffer[] = "f32.ceil\n"
+    }
+}
+
+fun WasmEmitter.add_f32_floor() {
+    // 0x8E => f32.floor
+    emit_opcode(WOpcode::F32Floor)
+    if debug_print {
+        debug_buffer[] = "f32.floor\n"
+    }
+}
+
+fun WasmEmitter.add_f32_trunc() {
+    // 0x8F => f32.trunc
+    emit_opcode(WOpcode::F32Trunc)
+    if debug_print {
+        debug_buffer[] = "f32.trunc\n"
+    }
+}
+
+fun WasmEmitter.add_f32_nearest() {
+    // 0x90 => f32.nearest
+    emit_opcode(WOpcode::F32Nearest)
+    if debug_print {
+        debug_buffer[] = "f32.nearest\n"
+    }
+}
+
+fun WasmEmitter.add_f32_sqrt() {
+    // 0x91 => f32.sqrt
+    emit_opcode(WOpcode::F32Sqrt)
+    if debug_print {
+        debug_buffer[] = "f32.sqrt\n"
+    }
+}
+
+fun WasmEmitter.add_f32_add() {
+    // 0x92 => f32.add
+    emit_opcode(WOpcode::F32Add)
+    if debug_print {
+        debug_buffer[] = "f32.add\n"
+    }
+}
+
+fun WasmEmitter.add_f32_sub() {
+    // 0x93 => f32.sub
+    emit_opcode(WOpcode::F32Sub)
+    if debug_print {
+        debug_buffer[] = "f32.sub\n"
+    }
+}
+
+fun WasmEmitter.add_f32_mul() {
+    // 0x94 => f32.mul
+    emit_opcode(WOpcode::F32Mul)
+    if debug_print {
+        debug_buffer[] = "f32.mul\n"
+    }
+}
+
+fun WasmEmitter.add_f32_div() {
+    // 0x95 => f32.div
+    emit_opcode(WOpcode::F32Div)
+    if debug_print {
+        debug_buffer[] = "f32.div\n"
+    }
+}
+
+fun WasmEmitter.add_f32_min() {
+    // 0x96 => f32.min
+    emit_opcode(WOpcode::F32Min)
+    if debug_print {
+        debug_buffer[] = "f32.min\n"
+    }
+}
+
+fun WasmEmitter.add_f32_max() {
+    // 0x97 => f32.max
+    emit_opcode(WOpcode::F32Max)
+    if debug_print {
+        debug_buffer[] = "f32.max\n"
+    }
+}
+
+fun WasmEmitter.add_f32_copysign() {
+    // 0x98 => f32.copysign
+    emit_opcode(WOpcode::F32Copysign)
+    if debug_print {
+        debug_buffer[] = "f32.copysign\n"
+    }
+}
+
+fun WasmEmitter.add_f64_abs() {
+    // 0x99 => f64.abs
+    emit_opcode(WOpcode::F64Abs)
+    if debug_print {
+        debug_buffer[] = "f64.abs\n"
+    }
+}
+
+fun WasmEmitter.add_f64_neg() {
+    // 0x9A => f64.neg
+    emit_opcode(WOpcode::F64Neg)
+    if debug_print {
+        debug_buffer[] = "f64.neg\n"
+    }
+}
+
+fun WasmEmitter.add_f64_ceil() {
+    // 0x9B => f64.ceil
+    emit_opcode(WOpcode::F64Ceil)
+    if debug_print {
+        debug_buffer[] = "f64.ceil\n"
+    }
+}
+
+fun WasmEmitter.add_f64_floor() {
+    // 0x9C => f64.floor
+    emit_opcode(WOpcode::F64Floor)
+    if debug_print {
+        debug_buffer[] = "f64.floor\n"
+    }
+}
+
+fun WasmEmitter.add_f64_trunc() {
+    // 0x9D => f64.trunc
+    emit_opcode(WOpcode::F64Trunc)
+    if debug_print {
+        debug_buffer[] = "f64.trunc\n"
+    }
+}
+
+fun WasmEmitter.add_f64_nearest() {
+    // 0x9E => f64.nearest
+    emit_opcode(WOpcode::F64Nearest)
+    if debug_print {
+        debug_buffer[] = "f64.nearest\n"
+    }
+}
+
+fun WasmEmitter.add_f64_sqrt() {
+    // 0x9F => f64.sqrt
+    emit_opcode(WOpcode::F64Sqrt)
+    if debug_print {
+        debug_buffer[] = "f64.sqrt\n"
+    }
+}
+
+fun WasmEmitter.add_f64_add() {
+    // 0xA0 => f64.add
+    emit_opcode(WOpcode::F64Add)
+    if debug_print {
+        debug_buffer[] = "f64.add\n"
+    }
+}
+
+fun WasmEmitter.add_f64_sub() {
+    // 0xA1 => f64.sub
+    emit_opcode(WOpcode::F64Sub)
+    if debug_print {
+        debug_buffer[] = "f64.sub\n"
+    }
+}
+
+fun WasmEmitter.add_f64_mul() {
+    // 0xA2 => f64.mul
+    emit_opcode(WOpcode::F64Mul)
+    if debug_print {
+        debug_buffer[] = "f64.mul\n"
+    }
+}
+
+fun WasmEmitter.add_f64_div() {
+    // 0xA3 => f64.div
+    emit_opcode(WOpcode::F64Div)
+    if debug_print {
+        debug_buffer[] = "f64.div\n"
+    }
+}
+
+fun WasmEmitter.add_f64_min() {
+    // 0xA4 => f64.min
+    emit_opcode(WOpcode::F64Min)
+    if debug_print {
+        debug_buffer[] = "f64.min\n"
+    }
+}
+
+fun WasmEmitter.add_f64_max() {
+    // 0xA5 => f64.max
+    emit_opcode(WOpcode::F64Max)
+    if debug_print {
+        debug_buffer[] = "f64.max\n"
+    }
+}
+
+fun WasmEmitter.add_f64_copysign() {
+    // 0xA6 => f64.copysign
+    emit_opcode(WOpcode::F64Copysign)
+    if debug_print {
+        debug_buffer[] = "f64.copysign\n"
+    }
+}
+
+fun WasmEmitter.add_i32_wrap_i64() {
+    // 0xA7 => i32.wrap_i64
+    emit_opcode(WOpcode::I32WrapI64)
+    if debug_print {
+        debug_buffer[] = "i32.wrap_i64\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_f32_s() {
+    // 0xA8 => i32.trunc_f32_s
+    emit_opcode(WOpcode::I32TruncF32S)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_f32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_f32_u() {
+    // 0xA9 => i32.trunc_f32_u
+    emit_opcode(WOpcode::I32TruncF32U)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_f32_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_f64_s() {
+    // 0xAA => i32.trunc_f64_s
+    emit_opcode(WOpcode::I32TruncF64S)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_f64_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_f64_u() {
+    // 0xAB => i32.trunc_f64_u
+    emit_opcode(WOpcode::I32TruncF64U)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_f64_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_extend_i32_s() {
+    // 0xAC => i64.extend_i32_s
+    emit_opcode(WOpcode::I64ExtendI32S)
+    if debug_print {
+        debug_buffer[] = "i64.extend_i32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_extend_i32_u() {
+    // 0xAD => i64.extend_i32_u
+    emit_opcode(WOpcode::I64ExtendI32U)
+    if debug_print {
+        debug_buffer[] = "i64.extend_i32_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_f32_s() {
+    // 0xAE => i64.trunc_f32_s
+    emit_opcode(WOpcode::I64TruncF32S)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_f32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_f32_u() {
+    // 0xAF => i64.trunc_f32_u
+    emit_opcode(WOpcode::I64TruncF32U)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_f32_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_f64_s() {
+    // 0xB0 => i64.trunc_f64_s
+    emit_opcode(WOpcode::I64TruncF64S)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_f64_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_f64_u() {
+    // 0xB1 => i64.trunc_f64_u
+    emit_opcode(WOpcode::I64TruncF64U)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_f64_u\n"
+    }
+}
+
+fun WasmEmitter.add_f32_convert_i32_s() {
+    // 0xB2 => f32.convert_i32_s
+    emit_opcode(WOpcode::F32ConvertI32S)
+    if debug_print {
+        debug_buffer[] = "f32.convert_i32_s\n"
+    }
+}
+
+fun WasmEmitter.add_f32_convert_i32_u() {
+    // 0xB3 => f32.convert_i32_u
+    emit_opcode(WOpcode::F32ConvertI32U)
+    if debug_print {
+        debug_buffer[] = "f32.convert_i32_u\n"
+    }
+}
+
+fun WasmEmitter.add_f32_convert_i64_s() {
+    // 0xB4 => f32.convert_i64_s
+    emit_opcode(WOpcode::F32ConvertI64S)
+    if debug_print {
+        debug_buffer[] = "f32.convert_i64_s\n"
+    }
+}
+
+fun WasmEmitter.add_f32_convert_i64_u() {
+    // 0xB5 => f32.convert_i64_u
+    emit_opcode(WOpcode::F32ConvertI64U)
+    if debug_print {
+        debug_buffer[] = "f32.convert_i64_u\n"
+    }
+}
+
+fun WasmEmitter.add_f32_demote_f64() {
+    // 0xB6 => f32.demote_f64
+    emit_opcode(WOpcode::F32DemoteF64)
+    if debug_print {
+        debug_buffer[] = "f32.demote_f64\n"
+    }
+}
+
+fun WasmEmitter.add_f64_convert_i32_s() {
+    // 0xB7 => f64.convert_i32_s
+    emit_opcode(WOpcode::F64ConvertI32S)
+    if debug_print {
+        debug_buffer[] = "f64.convert_i32_s\n"
+    }
+}
+
+fun WasmEmitter.add_f64_convert_i32_u() {
+    // 0xB8 => f64.convert_i32_u
+    emit_opcode(WOpcode::F64ConvertI32U)
+    if debug_print {
+        debug_buffer[] = "f64.convert_i32_u\n"
+    }
+}
+
+fun WasmEmitter.add_f64_convert_i64_s() {
+    // 0xB9 => f64.convert_i64_s
+    emit_opcode(WOpcode::F64ConvertI64S)
+    if debug_print {
+        debug_buffer[] = "f64.convert_i64_s\n"
+    }
+}
+
+fun WasmEmitter.add_f64_convert_i64_u() {
+    // 0xBA => f64.convert_i64_u
+    emit_opcode(WOpcode::F64ConvertI64U)
+    if debug_print {
+        debug_buffer[] = "f64.convert_i64_u\n"
+    }
+}
+
+fun WasmEmitter.add_f64_promote_f32() {
+    // 0xBB => f64.promote_f32
+    emit_opcode(WOpcode::F64PromoteF32)
+    if debug_print {
+        debug_buffer[] = "f64.promote_f32\n"
+    }
+}
+
+fun WasmEmitter.add_i32_reinterpret_f32() {
+    // 0xBC => i32.reinterpret_f32
+    emit_opcode(WOpcode::I32ReinterpretF32)
+    if debug_print {
+        debug_buffer[] = "i32.reinterpret_f32\n"
+    }
+}
+
+fun WasmEmitter.add_i64_reinterpret_f64() {
+    // 0xBD => i64.reinterpret_f64
+    emit_opcode(WOpcode::I64ReinterpretF64)
+    if debug_print {
+        debug_buffer[] = "i64.reinterpret_f64\n"
+    }
+}
+
+fun WasmEmitter.add_f32_reinterpret_i32() {
+    // 0xBE => f32.reinterpret_i32
+    emit_opcode(WOpcode::F32ReinterpretI32)
+    if debug_print {
+        debug_buffer[] = "f32.reinterpret_i32\n"
+    }
+}
+
+fun WasmEmitter.add_f64_reinterpret_i64() {
+    // 0xBF => f64.reinterpret_i64
+    emit_opcode(WOpcode::F64ReinterpretI64)
+    if debug_print {
+        debug_buffer[] = "f64.reinterpret_i64\n"
+    }
+}
+
+fun WasmEmitter.add_i32_extend8_s() {
+    // 0xC0 => i32.extend8_s
+    emit_opcode(WOpcode::I32Extend8S)
+    if debug_print {
+        debug_buffer[] = "i32.extend8_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_extend16_s() {
+    // 0xC1 => i32.extend16_s
+    emit_opcode(WOpcode::I32Extend16S)
+    if debug_print {
+        debug_buffer[] = "i32.extend16_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_extend8_s() {
+    // 0xC2 => i64.extend8_s
+    emit_opcode(WOpcode::I64Extend8S)
+    if debug_print {
+        debug_buffer[] = "i64.extend8_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_extend16_s() {
+    // 0xC3 => i64.extend16_s
+    emit_opcode(WOpcode::I64Extend16S)
+    if debug_print {
+        debug_buffer[] = "i64.extend16_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_extend32_s() {
+    // 0xC4 => i64.extend32_s
+    emit_opcode(WOpcode::I64Extend32S)
+    if debug_print {
+        debug_buffer[] = "i64.extend32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_sat_f32_s() {
+    // 0xFC 0 => i32.trunc_sat_f32_s
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I32TruncSatF32S.code)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_sat_f32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_sat_f32_u() {
+    // 0xFC 1 => i32.trunc_sat_f32_u
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I32TruncSatF32U.code)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_sat_f32_u\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_sat_f64_s() {
+    // 0xFC 2 => i32.trunc_sat_f64_s
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I32TruncSatF64S.code)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_sat_f64_s\n"
+    }
+}
+
+fun WasmEmitter.add_i32_trunc_sat_f64_u() {
+    // 0xFC 3 => i32.trunc_sat_f64_u
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I32TruncSatF64U.code)
+    if debug_print {
+        debug_buffer[] = "i32.trunc_sat_f64_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_sat_f32_s() {
+    // 0xFC 4 => i64.trunc_sat_f32_s
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I64TruncSatF32S.code)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_sat_f32_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_sat_f32_u() {
+    // 0xFC 5 => i64.trunc_sat_f32_u
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I64TruncSatF32U.code)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_sat_f32_u\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_sat_f64_s() {
+    // 0xFC 6 => i64.trunc_sat_f64_s
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I64TruncSatF64S.code)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_sat_f64_s\n"
+    }
+}
+
+fun WasmEmitter.add_i64_trunc_sat_f64_u() {
+    // 0xFC 7 => i64.trunc_sat_f64_u
+    emit_opcode(WOpcode::TruncSatOp)
+    emit_byte(TruncSatOp::I64TruncSatF64U.code)
+    if debug_print {
+        debug_buffer[] = "i64.trunc_sat_f64_u\n"
+    }
+}

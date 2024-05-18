@@ -11,21 +11,36 @@
         box-sizing: border-box;
     }
     body {
-        background-color: #333;
+        background-color: #2b2b2b;
         color: #eee;
         display: flex;
         justify-content: stretch;
         align-items: start;
     }
-    pre {
+
+    #console_pre {
         flex-grow: 1;
         flex-basis: 50%;
         height: 100vh;
-        overflow-y: auto;
+        overflow: auto;
         border: 1px solid #111;
         font-family: monospace;
         padding: 10px;
     }
+
+    .log-line {
+        font-family: monospace;
+        padding: 0 10px;
+        white-space: pre;
+        font-size: 1.2rem;
+        line-height: 2rem;
+        color: #bbbbbb;
+    }
+
+    .log-line.log-error {
+        color: #fe6b65;
+    }
+
     ::-webkit-scrollbar {
       width: 12px;
       height: 12px;
@@ -59,7 +74,7 @@
 </style>
 <body>
 
-<pre id="console_pre"></pre>
+<div id="console_pre"></div>
 <!-- <pre id="code_pre"></pre> -->
 
 <script>
@@ -73,31 +88,73 @@
             });
     }
 
+    const console_pre = document.getElementById("console_pre");
+    let userScrolledUp = false;
+
     const old_log = console.log;
-    console.log = function (message) {
-        document.getElementById("console_pre").textContent += `  [LOG] ${message}\n`;
-        old_log(message);
+    console.log = function (original_message) {
+        let message = String(original_message);
+        message.split('\n').forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line log-info';
+            div.textContent = `[LOG  ]    ${line}\n`;
+            console_pre.appendChild(div);
+        });
+        if (!userScrolledUp) console_pre.scrollTop = console_pre.scrollHeight;
+        old_log(original_message);
     };
     const old_error = console.error;
-    console.error = function (message) {
-        document.getElementById("console_pre").textContent += `[ERROR] ${message}\n`;
-        old_error(message);
+    console.error = function (original_message) {
+        let message = String(original_message);
+        message.split('\n').forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line log-error';
+            div.textContent = `[ERROR]    ${line}\n`;
+            console_pre.appendChild(div);
+        });
+        if (!userScrolledUp) console_pre.scrollTop = console_pre.scrollHeight;
+        old_error(original_message);
     };
     const old_warn = console.warn;
-    console.warn = function (message) {
-        document.getElementById("console_pre").textContent += ` [WARN] ${message}\n`;
-        old_warn(message);
+    console.warn = function (original_message) {
+        let message = String(original_message);
+        message.split('\n').forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line log-warn';
+            div.textContent = `[WARN ]    ${line}\n`;
+            console_pre.appendChild(div);
+        });
+        if (!userScrolledUp) console_pre.scrollTop = console_pre.scrollHeight;
+        old_warn(original_message);
     };
     const old_info = console.info;
-    console.info = function (message) {
-        document.getElementById("console_pre").textContent += ` [INFO] ${message}\n`;
-        old_info(message);
+    console.info = function (original_message) {
+        let message = String(original_message);
+        message.split('\n').forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line log-info';
+            div.textContent = `[INFO ]    ${line}\n`;
+            console_pre.appendChild(div);
+        });
+        if (!userScrolledUp) console_pre.scrollTop = console_pre.scrollHeight;
+        old_info(original_message);
     };
     const old_debug = console.debug;
-    console.debug = function (message) {
-        document.getElementById("console_pre").textContent += `[DEBUG] ${message}\n`;
-        old_debug(message);
+    console.debug = function (original_message) {
+        let message = String(original_message);
+        message.split('\n').forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'log-line log-debug';
+            div.textContent = `[DEBUG]    ${line}\n`;
+            console_pre.appendChild(div);
+        });
+        if (!userScrolledUp) console_pre.scrollTop = console_pre.scrollHeight;
+        old_debug(original_message);
     };
+
+    console_pre.addEventListener('scroll', function () {
+        userScrolledUp = console_pre.scrollTop < console_pre.scrollHeight - console_pre.clientHeight;
+    });
 </script>
 
 <script src="./output/build.js" type="module"></script>

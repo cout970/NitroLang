@@ -1,0 +1,62 @@
+
+struct FinalTypeContainer {
+    all_types: Map<FinalTypeId, FinalType>
+}
+
+fun FinalTypeContainer::new(): FinalTypeContainer {
+    ret FinalTypeContainer @[
+        all_types: #[],
+    ]
+}
+
+fun FinalTypeContainer.create_final_type(kind: FinalTypeKind, type_params: List<FinalType>): FinalType {
+    let type_id = FinalTypeContainer::get_final_type_id(kind, type_params)
+    let opt = all_types[type_id]
+
+    if opt.is_some() {
+        return opt!!
+    }
+
+    let final_type = FinalType @[
+        id: type_id,
+        kind,
+        type_params,
+        container: this
+    ]
+    all_types[type_id] = final_type
+    ret final_type
+}
+
+fun FinalTypeContainer.kind_to_final(kind: TypeKind): Optional<FinalTypeKind> {
+    let final_kind = when {
+        kind is TypeKind::Struct -> {
+            let k = kind as TypeKind::Struct
+            FinalTypeKind::Struct @[instance: k.instance]
+        }
+        kind is TypeKind::Option -> {
+            let k = kind as TypeKind::Option
+            FinalTypeKind::Option @[instance: k.instance]
+        }
+        kind is TypeKind::OptionItem -> {
+            let k = kind as TypeKind::OptionItem
+            FinalTypeKind::Struct @[instance: k.instance]
+        }
+        kind is TypeKind::Lambda -> {
+            let k = kind as TypeKind::Lambda
+            FinalTypeKind::Lambda @[instance: k.instance]
+        }
+        else -> {
+            ret None()
+        }
+    }
+
+    ret Some(final_kind)
+}
+
+fun FinalTypeContainer::get_final_type_id(kind: FinalTypeKind, type_params: List<FinalType>): String {
+    if type_params.is_empty() {
+        ret kind.id
+    }
+    let str = type_params.join_to_string(", ") @{ i -> i.id }
+    ret "${kind.id}<$str>"
+}

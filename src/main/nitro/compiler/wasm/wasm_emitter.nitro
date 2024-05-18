@@ -1,0 +1,399 @@
+
+let STRUCT_HEADER_SIZE: Int = 0
+let INT_SIZE: Int = 4
+let FLOAT_SIZE: Int = 4
+let PTR_SIZE: Int = 4
+
+struct WasmEmitter {
+    buffer: List<Byte>
+    debug_buffer: StringBuilder
+    debug_print: Boolean
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#sections
+enum SectionType {
+    let code: Int
+    Custom      @[code: 0]
+    Type        @[code: 1]
+    Import      @[code: 2]
+    Function    @[code: 3]
+    Table       @[code: 4]
+    Memory      @[code: 5]
+    Global      @[code: 6]
+    Export      @[code: 7]
+    Start       @[code: 8]
+    Element     @[code: 9]
+    Code        @[code: 10]
+    Data        @[code: 11]
+    DataCount   @[code: 12]
+}
+
+fun WasmEmitter::new(): WasmEmitter {
+    ret WasmEmitter @[
+        buffer: [],
+        debug_buffer: StringBuilder::new(),
+        debug_print: true,
+    ]
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#binary-module
+fun WasmEmitter.emit_program(program: WasmProgram) {
+    // Magic number "\0ASM"
+    emit_byte(0x00)
+    emit_byte(0x61)
+    emit_byte(0x73)
+    emit_byte(0x6D)
+    // Version 1
+    emit_byte(0x01)
+    emit_byte(0x00)
+    emit_byte(0x00)
+    emit_byte(0x00)
+
+    // Types section
+    if program.functions.len > 0 {
+        emit_type_section(program.imports, program.functions)
+    }
+
+    // Imports section
+    if program.imports.len > 0 {
+        emit_import_section(program.imports)
+    }
+
+    // Functions section
+    if program.functions.len > 0 {
+        emit_function_section(program.functions)
+    }
+
+    // Memory section
+    emit_memory_section(program.memory)
+
+    // Exports section
+    emit_export_section(program.function_exports, program.memory)
+
+    // Elements section (TODO)
+
+    // Data count section (TODO)
+
+    // Code section
+    if program.functions.len > 0 {
+        emit_code_section(program.functions)
+    }
+
+    // Custom sections
+    for sec in program.custom_sections {
+        let tmp = WasmEmitter::new()
+        tmp.emit_custom_section(sec)
+
+        emit_section_header(SectionType::Custom, tmp.buffer.len)
+        emit(tmp)
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#sections
+fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
+    // N:byte section type id
+    emit_byte(section.code)
+    // size:u32 section size
+    emit_byte(size)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#custom-section
+fun WasmEmitter.emit_custom_section(section: WCustom) {
+    emit_name(section.name)
+    emit_bytes(section.data)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#type-section
+fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunction>) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(imports.len + functions.len)
+    for imp in imports {
+        tmp.emit_functype(imp.header)
+    }
+    for func in functions {
+        tmp.emit_functype(func.header)
+    }
+
+    emit_section_header(SectionType::Type, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#import-section
+fun WasmEmitter.emit_import_section(imports: List<WImport>) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(imports.len)
+    for imp in imports {
+        tmp.emit_name(imp.module_name)
+        tmp.emit_name(imp.name)
+        // Function type index
+        tmp.emit_byte(0x00)
+        tmp.emit_u32(imp.header.index.id)
+    }
+
+    emit_section_header(SectionType::Import, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#function-section
+fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(functions.len)
+    for func in functions {
+        tmp.emit_u32(func.header.index.id)
+    }
+
+    emit_section_header(SectionType::Function, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#memory-section
+fun WasmEmitter.emit_memory_section(memory: WMemory) {
+    let tmp = WasmEmitter::new()
+
+    // Only 1 memory is supported in the standard
+    tmp.emit_u32(1)
+    // Allocate all memory at the beginning with no max defined
+    // number of pages of 64 KiB
+    tmp.emit_limits(memory.size / (64 * 1024), -1)
+
+    emit_section_header(SectionType::Memory, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#export-section
+fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, memory: WMemory) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(function_exports.len + 1)
+
+    // Functions
+    for exp in function_exports {
+        tmp.emit_name(exp.name)
+        tmp.emit_byte(0x00)
+        tmp.emit_u32(exp.header.index.id)
+    }
+
+    // Memory
+    tmp.emit_name("memory")
+    tmp.emit_byte(0x02)
+    tmp.emit_u32(0)
+
+    emit_section_header(SectionType::Export, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#code-section
+fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(functions.len)
+    for func in functions {
+        tmp.emit_code(func)
+    }
+
+    emit_section_header(SectionType::Code, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#code-section
+fun WasmEmitter.emit_code(func: WFunction) {
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_locals(func.locals)
+    tmp.emit_expr(func)
+
+    emit_u32(tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#binary-local
+fun WasmEmitter.emit_locals(locals: List<WVar>) {
+    emit_u32(locals.len)
+    for l in locals {
+        emit_u32(1)
+        emit_byte(l.wasm_type.code)
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/instructions.html#expression
+fun WasmEmitter.emit_expr(func: WFunction) {
+    emit(func.bytecode)
+    // end opcode: WOpcode::End
+    emit_byte(0x0B)
+}
+
+// https://webassembly.github.io/spec/core/binary/values.html#names
+fun WasmEmitter.emit_name(name: String) {
+    // names are just a vec of bytes that must be encoded in UTF-8, Strings are already UTF-8
+    emit_bytes(name.to_bytes())
+}
+
+// https://webassembly.github.io/spec/core/binary/conventions.html#vectors
+fun WasmEmitter.emit_bytes(bytes: List<Byte>) {
+    emit_u32(bytes.len)
+    buffer.ensure_capacity(buffer.len + bytes.len)
+    repeat bytes.len {
+        buffer[] = bytes[it]!!
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/values.html#integers
+fun WasmEmitter.emit_u32(value: Int) {
+    // unsigned LEB128 encoding
+    loop {
+        let byte = value & 0x7F
+        value = value >>> 7
+
+        if value != 0 {
+            emit_byte(byte | 0x80)
+        } else {
+            emit_byte(byte)
+        }
+
+        if value == 0 {
+            break
+        }
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/values.html#integers
+fun WasmEmitter.emit_i32(value: Int) {
+    // signed LEB128 encoding
+    loop {
+        let byte = value & 0x7F
+        value = value >>> 7
+
+        let more = (byte & 0x40) != 0
+        if value != 0 || more {
+            emit_byte(byte | 0x80)
+        } else {
+            emit_byte(byte)
+        }
+
+        if value == 0 && !more {
+            break
+        }
+    }
+}
+
+fun WasmEmitter.emit_u64(value: Long) {
+    // unsigned LEB128 encoding
+    loop {
+        let byte = (value & 0x7FL).to_int()
+        value = value >> 7L
+
+        if value != 0L {
+            emit_byte(byte | 0x80)
+        } else {
+            emit_byte(byte)
+        }
+
+        if value == 0L {
+            break
+        }
+    }
+}
+
+fun WasmEmitter.emit_i64(value: Long) {
+    // signed LEB128 encoding
+    loop {
+        let byte = (value & 0x7FL).to_int()
+        value = value >> 7L
+
+        let more = (byte & 0x40) != 0
+        if value != 0L || more {
+            emit_byte(byte | 0x80)
+        } else {
+            emit_byte(byte)
+        }
+
+        if value == 0L && !more {
+            break
+        }
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/values.html#floating-point
+fun WasmEmitter.emit_f32(value: Float) {
+    let int = value.reinterpret_as_int()
+    buffer.ensure_capacity(buffer.len + 4)
+
+    // Directly  IEEE 754 in little-endian
+    emit_byte(int & 0xFF)
+    int = int >>> 8
+    emit_byte(int & 0xFF)
+    int = int >>> 8
+    emit_byte(int & 0xFF)
+    int = int >>> 8
+    emit_byte(int & 0xFF)
+}
+
+// https://webassembly.github.io/spec/core/binary/values.html#floating-point
+fun WasmEmitter.emit_f64(value: Float) {
+    // We don't support 64bit floating point numbers at the moment
+    // So we will emit a 64 bit double, but use the 32 bit float value, loosing precision if needed
+    let int = value.reinterpret_as_int()
+    let sign = (int >> 31) & 0x1
+    let exponent = (int >> 23) & 0xFF
+    let fraction = int & 0x7FFFFF
+
+    // Adjust the exponent
+    let double_exponent = exponent - 127 + 1023
+
+    // Construct the 64-bit double
+    let double_long: Long = (sign.to_long() << 63L) | (double_exponent.to_long() << 52L) | (fraction.to_long() << 29L)
+
+    buffer.ensure_capacity(buffer.len + 8)
+
+    // Write the 64-bit double to the buffer in little-endian order
+    repeat 8 {
+        let shift = it.to_long() * 8L
+        emit_byte((double_long >> shift).to_int() & 0xFF)
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/types.html#function-types
+fun WasmEmitter.emit_functype(func: WFunctionHeader) {
+    // Byte 0x60, vec of params and vec of results
+    emit_byte(0x60)
+    emit_result_type(func.params)
+    emit_result_type(func.results)
+}
+
+// https://webassembly.github.io/spec/core/binary/types.html#result-types
+fun WasmEmitter.emit_result_type(types: List<WType>) {
+    emit_u32(types.len)
+    for t in types {
+        emit_byte(t.code)
+    }
+}
+
+// https://webassembly.github.io/spec/core/binary/types.html#limits
+// max == -1 means no max
+fun WasmEmitter.emit_limits(min: Int, max: Int) {
+    if max != -1 {
+        emit_byte(0x01)
+        emit_u32(min)
+        emit_u32(max)
+    } else {
+        emit_byte(0x00)
+        emit_u32(min)
+    }
+}
+
+// Copy the content of another emitter into this one
+fun WasmEmitter.emit(other: WasmEmitter) {
+    let aux = other.buffer
+    buffer.ensure_capacity(buffer.len + aux.len)
+
+    repeat aux.len {
+        buffer[] = aux[it]!!
+    }
+}
+
+fun WasmEmitter.emit_byte(value: Int) {
+    buffer[] = value.to_byte()
+}

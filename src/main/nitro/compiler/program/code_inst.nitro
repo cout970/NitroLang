@@ -7,6 +7,7 @@ struct NInst {
     block: NBlock
     kind: NInstKind
     type_token: Optional<TypeToken>
+    back_references: List<NInstId>
 }
 
 option NInstKind {
@@ -105,30 +106,29 @@ option NInstKind {
     Noop {}
 }
 
-fun NCode.add_noop(span: Span): NInst {
+fun NCode.add_inst(
+    span: Span,
+    kind: NInstKind,
+): NInst {
     last_id += 1
     let i = NInst @[
         id: last_id,
         span,
         block: current_block,
-        kind: NInstKind::Noop @[],
+        kind,
         type_token: None(),
+        back_references: [],
     ]
     inst_list[] = i
     ret i
 }
 
+fun NCode.add_noop(span: Span): NInst {
+    ret add_inst(span, NInstKind::Noop @[])
+}
+
 fun NCode.add_comment(span: Span, text: String): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Comment @[text],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::Comment @[text])
 }
 
 fun NCode.add_let(
@@ -136,7 +136,6 @@ fun NCode.add_let(
     name: String,
     type_usage: Optional<NTypeUsage>
 ): NVar {
-    last_id += 1
     last_var_id += 1
 
     let variable = NVar @[
@@ -146,21 +145,14 @@ fun NCode.add_let(
         name,
         type_usage: if type_usage.is_some() { type_usage!! } else { NTypeUsage::unresolved(span) },
         type_token: None(),
-        defined_by: last_id,
+        defined_by: last_id + 1,
         defined_in: this,
         is_parameter: false,
         is_upvalue: false,
     ]
     vars[] = variable
 
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Let @[variable],
-        type_token: None(),
-    ]
-    inst_list[] = i
+    add_inst(span, NInstKind::Let @[variable])
     ret variable
 }
 
@@ -168,48 +160,19 @@ fun NCode.add_if_start(
     span: Span,
     condition: NInstId
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::IfStart @[
-            condition,
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::IfStart @[condition])
 }
 
 fun NCode.add_if_else(
     span: Span
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::IfElse @[],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::IfElse @[])
 }
 
 fun NCode.add_if_end(
     span: Span
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::IfEnd @[],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::IfEnd @[])
 }
 
 fun NCode.add_if_choose(
@@ -218,32 +181,14 @@ fun NCode.add_if_choose(
     if_true: NInstId,
     if_false: NInstId
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::IfChoose @[condition, if_true, if_false],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::IfChoose @[condition, if_true, if_false])
 }
 
 fun NCode.add_lit(
     span: Span
     value: NConstExpr
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Literal @[value],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::Literal @[value])
 }
 
 fun NCode.add_lit_int(span: Span, value: Int): NInst {
@@ -274,16 +219,7 @@ fun NCode.add_return(
     span: Span,
     value: NInstId,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Return @[value],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::Return @[value])
 }
 
 fun NCode.add_is_type(
@@ -291,16 +227,7 @@ fun NCode.add_is_type(
     value: NInstId,
     type_pattern: NTypePattern,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::IsType @[value, type_pattern],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::IsType @[value, type_pattern])
 }
 
 fun NCode.add_as_type(
@@ -308,16 +235,7 @@ fun NCode.add_as_type(
     value: NInstId,
     type_usage: NTypeUsage,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::AsType @[value, type_usage],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::AsType @[value, type_usage])
 }
 
 fun NCode.add_load_var(
@@ -326,21 +244,12 @@ fun NCode.add_load_var(
     name: String,
     variable: Optional<NVar>
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::LoadVar @[
-            path,
-            name,
-            variable,
-            constant: None(),
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::LoadVar @[
+        path,
+        name,
+        variable,
+        constant: None(),
+    ])
 }
 
 fun NCode.add_store_var(
@@ -350,21 +259,12 @@ fun NCode.add_store_var(
     value: NInstId,
     variable: Optional<NVar>
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::StoreVar @[
-            path,
-            name,
-            value,
-            variable,
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::StoreVar @[
+        path,
+        name,
+        value,
+        variable,
+    ])
 }
 
 fun NCode.add_load_field(
@@ -372,21 +272,12 @@ fun NCode.add_load_field(
     instance: NInstId,
     name: String,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::LoadField @[
-            instance,
-            name,
-            field: None(),
-            field_type_token: None(),
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::LoadField @[
+        instance,
+        name,
+        field: None(),
+        field_type_token: None(),
+    ])
 }
 
 fun NCode.add_store_field(
@@ -395,23 +286,14 @@ fun NCode.add_store_field(
     name: String,
     value: NInstId,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::StoreField @[
-            instance,
-            name,
-            field: None(),
-            field_type_token: None(),
-            call_site_generics: None(),
-            value,
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::StoreField @[
+        instance,
+        name,
+        field: None(),
+        field_type_token: None(),
+        call_site_generics: None(),
+        value,
+    ])
 }
 
 fun NCode.add_loop_start(
@@ -419,29 +301,11 @@ fun NCode.add_loop_start(
     break_block: NBlock,
     continue_block: NBlock
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::LoopStart @[break_block, continue_block],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::LoopStart @[break_block, continue_block])
 }
 
 fun NCode.add_loop_end(span: Span): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::LoopEnd @[],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::LoopEnd @[])
 }
 
 fun NCode.add_block_jump(
@@ -449,16 +313,7 @@ fun NCode.add_block_jump(
     backwards: Boolean,
     block: Optional<NBlock>
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::BlockJump @[backwards, block],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::BlockJump @[backwards, block])
 }
 
 fun NCode.add_fun_call(
@@ -468,121 +323,53 @@ fun NCode.add_fun_call(
     arguments: List<NInstId>,
     explicit_type_arguments: List<NTypeUsage>
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::FunCall @[
-            path,
-            name,
-            arguments,
-            explicit_type_arguments,
-            call_site: None(),
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::FunCall @[
+        path,
+        name,
+        arguments,
+        explicit_type_arguments,
+        call_site: None(),
+    ])
 }
 
 fun NCode.add_when_start(span: Span): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::WhenStart @[],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::WhenStart @[])
 }
 
 fun NCode.add_when_end(span: Span, branches: List<NInstId>, variable: Optional<NVar>): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::WhenEnd @[branches, variable],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::WhenEnd @[branches, variable])
 }
 
 fun NCode.add_size_of(
     span: Span,
     type_usage: NTypeUsage,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::SizeOf @[
-            type_usage,
-            type_token: None(),
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::SizeOf @[type_usage, type_token: None()])
 }
 
 fun NCode.add_alloc(
     span: Span,
     type_usage: NTypeUsage,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Alloc @[
-            type_usage,
-            type_token: None(),
-            is_enum: false,
-        ],
+    ret add_inst(span, NInstKind::Alloc @[
+        type_usage,
         type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+        is_enum: false,
+    ])
 }
 
 fun NCode.add_lambda(
     span: Span,
     instance: NLambda,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Lambda @[
-            instance,
-        ],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::Lambda @[instance])
 }
 
 fun NCode.add_link(
     span: Span,
     linked_id: NInstId,
 ): NInst {
-    last_id += 1
-    let i = NInst @[
-        id: last_id,
-        span,
-        block: current_block,
-        kind: NInstKind::Link @[linked_id],
-        type_token: None(),
-    ]
-    inst_list[] = i
-    ret i
+    ret add_inst(span, NInstKind::Link @[linked_id])
 }
 
 fun NCode.duplicate_inst(index: Int) {
@@ -594,6 +381,7 @@ fun NCode.duplicate_inst(index: Int) {
         block: original.block,
         kind: original.kind,
         type_token: original.type_token,
+        back_references: original.back_references,
     ]
 
     // We swap the ids, to preserve references to this instruction
@@ -607,6 +395,7 @@ fun NCode.duplicate_inst(index: Int) {
     // The store_var doesn't need to be updated, because we didn't change the order, and #3 can be safely modified
     last_id += 1
     original.id = last_id
+    original.back_references.clear()
 
     inst_list.insert(index + 1, dup)
 }
@@ -619,7 +408,7 @@ fun NCode.add_copy(i: NInst, mapping: Map<NInstId, NInstId>): NInst {
             let let_var = add_let(i.span, kind.variable.name, Some(kind.variable.type_usage))
             let_var.is_parameter = kind.variable.is_parameter
             let_var.is_upvalue = kind.variable.is_upvalue
-            this.find(let_var.defined_by)!!
+            find_inst(let_var.defined_by)
         }
         i.kind is NInstKind::IfStart -> {
             let kind = i.kind as NInstKind::IfStart
@@ -841,10 +630,10 @@ fun NInst.to_string(): String {
                         args += ", "
                     }
 
-                    args += "#${kind.arguments[it]!!}[${call_site.func.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
+                    args += "[#${kind.arguments[it]!!} ${call_site.func.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
                 }
 
-                ret "fun-call ${call_site.func.full_name}$tp($args) ${call_site.func.span.link}"
+                ret "fun-call fun.${call_site.func.full_name}${call_site.func.span.link_params} $tp $args"
             }
 
             let args = "()"

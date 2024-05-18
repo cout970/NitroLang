@@ -24,12 +24,12 @@ fun TypeContainer.get_type_by_id(id: TypeId): Type {
 }
 
 fun TypeContainer.get_type_signature(kind: TypeKind, params: List<TypeId>): String {
-    let args = ""
+    let args = StringBuilder::new()
     for type_id in params {
         if args.is_not_empty() {
-            args += ", "
+            args[] = ","
         }
-        args += type_id
+        args[] = type_id
     }
 
     if args.is_not_empty() {

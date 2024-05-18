@@ -23,7 +23,8 @@ fun compile_all() {
 
     // Include compiler
     let start_compiler = Instant::now()
-    unit.include_file("../nitro/compiler/main.nitro")
+//    unit.include_file("../nitro/compiler/main.nitro")
+    unit.include_file("../nitro/compiler/example.nitro")
 
     // Parse errors
     if unit.reporter.has_reports() {
@@ -47,19 +48,18 @@ fun compile_all() {
     let time_checking = start_checking.elapsed().to_milliseconds()
     println("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
 
+    // Perform code generation
+    let start_compiling = Instant::now()
+    unit.compile()
 
-//    // Perform code generation
-//    let start_compiling = Instant::now()
-//    unit.compile()
-//
-//    // Final errors
-//    if unit.reporter.has_reports() {
-//        unit.reporter.report_errors()
-//        ret
-//    }
-//
-//    let time_compiling = start_compiling.elapsed().to_milliseconds()
-//    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+    // Final errors
+    if unit.reporter.has_reports() {
+        unit.reporter.report_errors()
+        ret
+    }
+
+    let time_compiling = start_compiling.elapsed().to_milliseconds()
+    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
 
     let total_time = start_core.elapsed().to_milliseconds()
     println("Total time: $total_time ms")

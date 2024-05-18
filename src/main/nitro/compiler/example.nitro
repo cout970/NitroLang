@@ -1,0 +1,5 @@
+// Example to test code generation and execution
+
+fun main() {
+    println(2 + 1)
+}

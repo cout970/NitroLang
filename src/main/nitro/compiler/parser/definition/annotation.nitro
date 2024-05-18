@@ -80,6 +80,16 @@ fun Parser.read_const_string(): Parsed<String> {
     }
 }
 
+fun NAnnotation.get_arg(name: String): Optional<NConstExpr> {
+    for arg in args {
+        if arg.key == name {
+            ret Some(arg.value)
+        }
+    }
+
+    ret None()
+}
+
 fun NAnnotation.to_string(): String {
     let s = "@$name"
 

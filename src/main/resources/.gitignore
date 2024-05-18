@@ -2,3 +2,6 @@
 output/*
 *.map
 *.js
+output.wasm
+output.wasm.hex
+output.wat

@@ -64,7 +64,7 @@ fun TypeChecker.check_code(code: NCode) {
             ret
         }
 
-        let current = code.find(code.last_expression!!)!!
+        let current = code.find_inst(code.last_expression!!)
         cons.add_unify(current.type_token!!, code.return_type_token!!, current.span)
         cons.resolve(this, code, current.id, current.span)
     }

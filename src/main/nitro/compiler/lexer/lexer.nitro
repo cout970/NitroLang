@@ -1170,8 +1170,15 @@ fun Lexer.read_number() {
             }
         }
 
+        let ty = TokenKind::INT_NUMBER
+
+        if current_byte == a"l" || current_byte == a"L" {
+            cur += 1
+            ty = TokenKind::LONG_NUMBER
+        }
+
         let extra = src.substring(start, cur)
-        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(ty, start, extra)
         ret
     }
 
@@ -1189,8 +1196,15 @@ fun Lexer.read_number() {
             }
         }
 
+        let ty = TokenKind::INT_NUMBER
+
+        if current_byte == a"l" || current_byte == a"L" {
+            cur += 1
+            ty = TokenKind::LONG_NUMBER
+        }
+
         let extra = src.substring(start, cur)
-        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(ty, start, extra)
         ret
     }
 
@@ -1208,13 +1222,20 @@ fun Lexer.read_number() {
             }
         }
 
+        let ty = TokenKind::INT_NUMBER
+
+        if current_byte == a"l" || current_byte == a"L" {
+            cur += 1
+            ty = TokenKind::LONG_NUMBER
+        }
+
         let extra = src.substring(start, cur)
-        add_token_with_extra(TokenKind::INT_NUMBER, start, extra)
+        add_token_with_extra(ty, start, extra)
         ret
     }
 
     if current_byte == a"+" {
-       cur += 1
+        cur += 1
     }
 
     if current_byte == a"-" {

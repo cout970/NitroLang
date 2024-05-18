@@ -1,0 +1,68 @@
+
+
+struct TypeMappingCtx {
+    parent: Optional<TypeMappingCtx>
+    cache: Map<Type, FinalType>
+    generic_types: Map<NGeneric, FinalType>
+    final_types: FinalTypeContainer
+}
+
+fun TypeMappingCtx::new(final_types: FinalTypeContainer): TypeMappingCtx {
+    ret TypeMappingCtx @[
+        parent: None(),
+        cache: #[],
+        generic_types: #[],
+        final_types,
+    ]
+}
+
+fun TypeMappingCtx.new_child(): TypeMappingCtx {
+    ret TypeMappingCtx @[
+        parent: Some(this),
+        cache: #[],
+        generic_types: #[],
+        final_types,
+    ]
+}
+
+fun TypeMappingCtx.add_generics(generics: NGenericParams, types: List<FinalType>) {
+    repeat min(generics.type_tokens.len, types.len) {
+        let def = generics.definitions[it]!!
+        let ty = generics.type_tokens[it]!!.find_type()
+
+        cache[ty] = types[it]!!
+        generic_types[def] = types[it]!!
+    }
+}
+
+fun TypeMappingCtx.convert_type(ty: Type): FinalType {
+    let cache_item = cache[ty]
+    if cache_item.is_some() {
+        ret cache_item!!
+    }
+
+    if ty.kind is TypeKind::Generic {
+        let generic = (ty.kind as TypeKind::Generic).instance
+        let opt = generic_types[generic]
+
+        if opt.is_some() {
+            ret opt!!
+        }
+
+        crash("Generic type not found: #${generic.name}")
+    }
+
+    let kind = final_types.kind_to_final(ty.kind)
+    if kind.is_none() {
+        crash("How did you get here?")
+    }
+
+    let params = []
+    for p in ty.type_params {
+        params[] = convert_type(p)
+    }
+
+    let final_type = final_types.create_final_type(kind!!, params)
+    cache[ty] = final_type
+    ret final_type
+}

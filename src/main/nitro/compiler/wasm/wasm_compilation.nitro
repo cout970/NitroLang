@@ -1,0 +1,331 @@
+
+option InstResultAction {
+    // The result of the instruction is not used
+    Drop,
+    // Keep the result on the stack
+    Keep,
+    // Save in a var for multiple uses or a use later
+    Save {
+        variable: WVar
+    }
+}
+
+fun InstResultAction.to_string(): String {
+    ret when {
+        this is InstResultAction::Drop -> "Drop"
+        this is InstResultAction::Keep -> "Keep"
+        this is InstResultAction::Save -> "Save"
+        else -> unreachable()
+    }
+}
+
+// Compile the code for a function
+fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
+    println("Compiling ${func.index.id}: ${func.name}")
+    let code = func.code
+    let map: Map<NInstId, InstResultAction> = #[]
+    func.check_stack_allocation(backend, map)
+
+    for inst in code.inst_list {
+        if debug_print {
+            debug_buffer[] = "--- #${inst.id} | ${inst} ---\n"
+        }
+        if inst.kind is NInstKind::IfStart {
+            let kind = inst.kind as NInstKind::IfStart
+            push(kind.condition, map)
+            add_if(0x40)
+            continue
+        }
+        if inst.kind is NInstKind::IfElse {
+            add_else()
+            continue
+        }
+        if inst.kind is NInstKind::IfEnd {
+            add_end()
+            continue
+        }
+        if inst.kind is NInstKind::IfChoose {
+            let kind = inst.kind as NInstKind::IfChoose
+            push(kind.condition, map)
+            push(kind.if_true, map)
+            push(kind.if_false, map)
+            add_select()
+            pop(inst.id, map)
+            continue
+        }
+        if inst.kind is NInstKind::LoopStart {
+            add_block(0x40)
+            add_loop(0x40)
+            continue
+        }
+        if inst.kind is NInstKind::BlockJump {
+            let kind = inst.kind as NInstKind::BlockJump
+            let curr_block = inst.block
+            let jump_to_block = kind.block!!
+            add_br(curr_block.depth - jump_to_block.depth)
+            continue
+        }
+        if inst.kind is NInstKind::LoopEnd {
+            add_end()
+            add_end()
+            continue
+        }
+        if inst.kind is NInstKind::WhenStart {
+            add_block(0x40)
+            continue
+        }
+        if inst.kind is NInstKind::WhenEnd {
+            add_end()
+            continue
+        }
+        if inst.kind is NInstKind::FunCall {
+            let kind = inst.kind as NInstKind::FunCall
+            let call_site = kind.call_site!!
+
+            for arg in kind.arguments {
+                push(arg, map)
+            }
+
+            let opt = func.function_calls[inst.id]!!
+
+            when {
+                opt is WFuncCall::WFunction -> {
+                    let id_wrapper = (opt as WFuncCall::WFunction).value
+                    add_call(id_wrapper.id)
+                }
+                opt is WFuncCall::WImport -> {
+                    let id_wrapper = (opt as WFuncCall::WImport).value
+                    add_call(id_wrapper.id)
+                }
+                opt is WFuncCall::WOpcode -> {
+                    let opcode = (opt as WFuncCall::WOpcode).value
+                    emit_opcode_by_name(opcode)
+                }
+                else -> unreachable()
+            }
+
+            pop(inst.id, map)
+            continue
+        }
+        if inst.kind is NInstKind::Literal {
+            let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
+
+            if expr is NConstExpr::NConstInt {
+                let const_value = expr as NConstExpr::NConstInt
+                add_i32_const(const_value.value)
+                pop(inst.id, map)
+                continue
+            }
+            if expr is NConstExpr::NConstLong {
+                let const_value = expr as NConstExpr::NConstLong
+                add_i64_const(const_value.value)
+                pop(inst.id, map)
+                continue
+            }
+            if expr is NConstExpr::NConstFloat {
+                let const_value = expr as NConstExpr::NConstFloat
+                add_f32_const(const_value.value)
+                pop(inst.id, map)
+                continue
+            }
+//            if expr is NConstExpr::NConstDouble {
+//                let value = expr as NConstExpr::NConstDouble
+//                add_f64_const(value.value)
+//                continue
+//            }
+            if expr is NConstExpr::NConstString {
+                let const_value = expr as NConstExpr::NConstString
+                let ptr = backend.push_string(const_value.value)
+                add_i32_const(ptr)
+                pop(inst.id, map)
+                continue
+            }
+            if expr is NConstExpr::NConstBoolean {
+                let const_value = expr as NConstExpr::NConstBoolean
+                add_i32_const(if const_value.value {1} else {0})
+                pop(inst.id, map)
+                continue
+            }
+            if expr is NConstExpr::NConstNothing {
+                // Nothing has 0 size
+                continue
+            }
+            println("Unknown literal type: ${expr}")
+            unreachable()
+        }
+
+        if inst.kind is NInstKind::Return {
+            let kind = inst.kind as NInstKind::Return
+            push(kind.value, map)
+            add_return()
+            continue
+        }
+        if inst.kind is NInstKind::IsType {
+            let kind = inst.kind as NInstKind::IsType
+            push(kind.value, map)
+            // TODO
+            add_i32_const(1)
+            pop(inst.id, map)
+            continue
+        }
+        if inst.kind is NInstKind::AsType {
+            let kind = inst.kind as NInstKind::AsType
+            push(kind.value, map)
+            pop(inst.id, map)
+            continue
+        }
+        if inst.kind is NInstKind::LoadVar {
+            let kind = inst.kind as NInstKind::LoadVar
+
+            if kind.constant.is_some() {
+                let id_wrapper = func.constants[inst.id]!!
+                let wconst = backend.find_const(id_wrapper.id)
+
+                add_i32_const(wconst.section.offset)
+                let size = add_load_by_type(wconst.final_type, backend)
+
+                if size > 0 {
+                    pop(inst.id, map)
+                }
+                continue
+            }
+
+            let nvar = kind.variable!!
+            let wvar = func.let_declarations[nvar.id]!!
+
+            add_local_get(wvar.index.id)
+            pop(inst.id, map)
+            continue
+        }
+
+        if inst.kind is NInstKind::StoreVar {
+            let kind = inst.kind as NInstKind::StoreVar
+            let nvar = kind.variable!!
+            let wvar = func.let_declarations[nvar.id]!!
+
+            push(kind.value, map)
+            add_local_set(wvar.index.id)
+            continue
+        }
+    }
+
+    if func.name == "main" {
+        println("$code\n---\n${debug_buffer}")
+    }
+}
+
+// Compute whether an instruction should save its result in a local, keep it on the stack, or drop it
+fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, InstResultAction>) {
+
+    for inst in code.inst_list {
+        let final_type = ctx.convert_type(inst.type_token!!.find_type())
+        let size = backend.get_size_of(final_type)
+
+        // Zero size types don't exist on runtime,
+        // if an expression returns nothing, the stack is already empty, we keep it that way
+        if size == 0 {
+            map[inst.id] = InstResultAction::Keep @[]
+            continue
+        }
+
+        if size == 0 || inst.back_references.is_empty() {
+            map[inst.id] = InstResultAction::Drop @[]
+            continue
+        }
+
+        // No working as intended, left for future improvements
+//        if inst.back_references.len == 1 {
+//            let usage: NInstId = inst.back_references.first()!!
+//            let inst_index = code.index_of(inst.id)!!
+//            let usage_index = code.index_of(usage)!!
+//
+//            // Used in the next instruction, avoid saving and loading from a local
+//            if inst_index.current + 1 == usage_index.current {
+//                map[inst.id] = InstResultAction::Keep @[]
+//                continue
+//            }
+//        }
+
+        let variable = WVar @[
+            index: locals_provider.next()
+            kind: WVarKind::Local,
+            name: "tmp_${inst.id}",
+            wasm_type: backend.encode_to_wasm_type(final_type)
+        ]
+        locals[] = variable
+        map[inst.id] = InstResultAction::Save @[variable]
+    }
+}
+
+// Generate the required code to push the result of an instruction to the stack
+fun WasmEmitter.push(id: NInstId, map: Map<NInstId, InstResultAction>) {
+    let remote_action: InstResultAction = map[id]!!
+
+    // Original instruction did not save its result
+    if remote_action is InstResultAction::Drop {
+        ret
+    }
+
+    // Original instruction left its result on the stack, so it's already there
+    if remote_action is InstResultAction::Keep {
+        ret
+    }
+
+    // Original instruction saved its result in a local, so we need to load it
+    if remote_action is InstResultAction::Save {
+        let variable = (remote_action as InstResultAction::Save).variable
+        add_local_get(variable.index.id)
+        ret
+    }
+    unreachable()
+}
+
+// Generate the required code to save a value from the stack to a local, or keep the value, or discard it
+fun WasmEmitter.pop(id: NInstId, map: Map<NInstId, InstResultAction>) {
+    let local_action: InstResultAction = map[id]!!
+
+    // Discard the result
+    if local_action is InstResultAction::Drop {
+        add_drop()
+        ret
+    }
+    // Keep the result on the stack
+    if local_action is InstResultAction::Keep {
+        ret
+    }
+    // Save the result in a local
+    if local_action is InstResultAction::Save {
+        let variable = (local_action as InstResultAction::Save).variable
+        add_local_set(variable.index.id)
+        ret
+    }
+    unreachable()
+}
+
+// Add a load instruction based on the size of the type
+fun WasmEmitter.add_load_by_type(final_type: FinalType, backend: WasmBackend): Int {
+    let size = backend.get_size_of(final_type)
+
+    when size {
+        // Zero size types are not loaded
+        0 -> {}
+        // Load a single byte
+        1 -> add_i32_load8_u(0)
+        // Load two bytes
+        2 -> add_i32_load16_u(0)
+        // Load a 4 byte value: i32 or f32
+        4 -> {
+            if final_type.is_float() {
+                add_f32_load(0)
+            } else {
+                add_i32_load(0)
+            }
+        }
+        // Load an 8 byte value: i64
+        8 -> add_i64_load(0)
+
+        else -> crash("Unsupported size: $size")
+    }
+
+    ret size
+}

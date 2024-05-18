@@ -1,0 +1,198 @@
+
+struct WasmProgram {
+    memory: WMemory
+    imports: List<WImport>
+    function_exports: List<WFunctionExport>
+    functions: List<WFunction>
+    custom_sections: List<WCustom>
+}
+
+struct WMemory {
+    size: Int
+    offset: Int
+    sections: List<WMemSection>
+}
+
+struct WMemSection {
+    offset: Int,
+    data: List<Byte>
+    comment: String
+}
+
+struct WCustom {
+    name: String
+    data: List<Byte>
+}
+
+struct WImport {
+    module_name: String
+    name: String
+    header: WFunctionHeader
+}
+
+struct WFunctionExport {
+    name: String
+    header: WFunctionHeader
+}
+
+struct WFunctionHeader {
+    index: IdWrapper
+    key: MonomorphizationKey
+    name: String
+    params: List<WType>
+    results: List<WType>
+}
+
+struct WFunction {
+    index: IdWrapper
+    name: String
+    source: WFunctionSource
+    code: NCode
+    header: WFunctionHeader
+    let_declarations: Map<NVarId, WVar>
+    function_calls: Map<NInstId, WFuncCall>
+    constants: Map<NInstId, IdWrapper>
+    ctx: TypeMappingCtx
+    locals_provider: IdProvider
+    locals: List<WVar>
+    bytecode: WasmEmitter
+}
+
+option WFuncCall {
+    WFunction { value: IdWrapper }
+    WImport { value: IdWrapper }
+    WOpcode { value: String }
+}
+
+option WFunctionSource {
+    Function { instance: NFunction }
+    Const { instance: NConst }
+    Lambda { instance: NLambda }
+}
+
+struct WConst {
+    index: IdWrapper,
+    instance: NConst
+    final_type: FinalType
+    section: WMemSection
+    init_function: Optional<WFunction>
+}
+
+struct WVar {
+    index: IdWrapper
+    kind: WVarKind
+    name: String
+    wasm_type: WType
+}
+
+enum WVarKind { Param, Local }
+
+enum WType {
+    let code: Int
+    let name: String
+    I32         @[code: 0x7F, name: "i32"]
+    I64         @[code: 0x7E, name: "i64"]
+    F32         @[code: 0x7D, name: "f32"]
+    F64         @[code: 0x7C, name: "f64"]
+    V128        @[code: 0x7B, name: "v128"]
+    FuncRef     @[code: 0x70, name: "funcref"]
+    ExternRef   @[code: 0x6F, name: "externref"]
+}
+
+fun WasmProgram::new(): WasmProgram {
+    ret WasmProgram @[
+        memory: WMemory @[
+            size: 500 * 16 * (64 * 1024), // 500 pages of 64 KB
+            offset: 0,
+            sections: [],
+        ],
+        imports: [],
+        function_exports: [],
+        functions: [],
+        custom_sections: [],
+    ]
+}
+
+fun WMemory.pad_to(bytes: Int) {
+    let mask = bytes - 1
+    offset = (offset + mask) & (mask.bitwise_not())
+}
+
+fun WMemory.add_section(data: List<Byte>, comment: String): WMemSection {
+    let sec = WMemSection @[
+        offset,
+        data,
+        comment,
+    ]
+    sections[] = sec
+    offset += data.len
+    ret sec
+}
+
+fun WFunctionHeader.to_string(): String {
+    let rest = StringBuilder::new()
+
+    for p in params {
+        if rest.is_not_empty() {
+            rest[] = " "
+        }
+        rest[] = "(param "
+        rest[] = p.name
+        rest[] = ")"
+    }
+
+    for r in results {
+        if rest.is_not_empty() {
+            rest[] = " "
+        }
+        rest[] = "(result "
+        rest[] = r.name
+        rest[] = ")"
+    }
+
+    if rest.is_empty() {
+        ret "(func \$${name})"
+    }
+    ret "(func \$${name} $rest)"
+}
+
+fun WFunctionHeader.is_equal(other: WFunctionHeader): Boolean {
+    if name != other.name {
+        ret false
+    }
+    if params.len != other.params.len {
+        ret false
+    }
+    if results.len != other.results.len {
+        ret false
+    }
+    repeat params.len {
+        if params[it]!! != other.params[it]!! {
+            ret false
+        }
+    }
+    repeat results.len {
+        if results[it]!! != other.results[it]!! {
+            ret false
+        }
+    }
+    ret true
+}
+
+fun WFunctionHeader.get_hash(): Int {
+    let hash = name.get_hash()
+    for p in params {
+        hash = hash * 31 + p.code
+    }
+    for r in results {
+        hash = hash * 31 + r.code
+    }
+    ret hash
+}
+
+fun WFunctionHeader.get_ordering(other: WFunctionHeader): Ordering {
+    if this.is_equal(other) {
+        ret Ordering::Equals
+    }
+    ret Ordering::Less
+}

@@ -41,13 +41,18 @@ internals.fs.basename = (path: string) => {
 window.runWasm = run;
 
 async function main() {
-    if (!window.disableWasmRun) {
-        try {
-            run("./output/compiled.wasm");
-        } catch (e) {
-            console.error(e);
-            window.alert('Crashed');
-        }
+    if (window.disableWasmRun) {
+        return;
+    }
+
+    try {
+        // Run compiler
+        //run("./output/compiled.wasm");
+        // Run compilation result
+        run("./output.wasm");
+    } catch (e) {
+        console.error(e);
+        window.alert('Crashed');
     }
 }
 

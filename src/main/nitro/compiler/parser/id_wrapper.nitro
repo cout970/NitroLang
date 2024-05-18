@@ -11,7 +11,7 @@ struct IdWrapper {
 fun IdProvider::new(): IdProvider {
     ret IdProvider @[
         all_wrappers: [],
-        last_id: 0,
+        last_id: -1,
     ]
 }
 

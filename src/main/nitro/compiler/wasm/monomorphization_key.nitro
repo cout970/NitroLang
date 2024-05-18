@@ -1,0 +1,23 @@
+
+// Key for an unique instantiation of a polymorphic function
+// https://en.wikipedia.org/wiki/Monomorphization
+struct MonomorphizationKey {
+    name: String
+    final_type: FinalType
+}
+
+fun MonomorphizationKey.get_hash(): Int = name.get_hash() * 31 + final_type.get_hash()
+
+fun MonomorphizationKey.get_ordering(other: MonomorphizationKey): Ordering {
+    let name_ordering = this.name <=> other.name
+
+    if name_ordering != Ordering::Equals {
+        ret name_ordering
+    }
+
+    ret this.final_type <=> other.final_type
+}
+
+fun MonomorphizationKey.to_string(): String {
+    ret "$name: $final_type"
+}

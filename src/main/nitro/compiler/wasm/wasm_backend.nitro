@@ -1,0 +1,386 @@
+
+struct WasmBackend {
+    program: Program
+    wasm_program: WasmProgram
+    emitter: WasmEmitter
+    final_types: FinalTypeContainer
+    consts: List<WConst>
+    last_const: Int
+    function_indices: IdProvider
+    import_indices: IdProvider
+    final_struct_cache: Map<FinalType, FinalStruct>
+    final_option_cache: Map<FinalType, FinalOption>
+    memory_instance: Optional<WMemSection>
+    already_visited: Map<MonomorphizationKey, IdWrapper>
+    task_queue: ArrayDeque<CompilationTask>
+    root_ctx: TypeMappingCtx
+}
+
+option CompilationTask {
+    VisitFunction {
+        key: MonomorphizationKey
+        index: IdWrapper
+        instance: NFunction
+        ctx: TypeMappingCtx
+    }
+    VisitConst {
+        key: MonomorphizationKey
+        index: IdWrapper
+        instance: NConst
+    }
+}
+
+fun WasmBackend::new(program: Program): WasmBackend {
+    let final_types = FinalTypeContainer::new()
+    ret WasmBackend @[
+        program,
+        wasm_program: WasmProgram::new(),
+        emitter: WasmEmitter::new(),
+        final_types,
+        consts: [],
+        last_const: -1,
+        function_indices: IdProvider::new(),
+        import_indices: IdProvider::new(),
+        final_struct_cache: #[],
+        final_option_cache: #[],
+        memory_instance: None(),
+        task_queue: ArrayDeque::new(),
+        already_visited: #[],
+        root_ctx: TypeMappingCtx::new(final_types)
+    ]
+}
+
+fun WasmBackend.compile_program() {
+    let main: Optional<NFunction> = None()
+
+    for f in program.functions {
+        if f.full_name == "main" {
+            main = Some(f)
+            break
+        }
+    }
+
+    if main.is_none() {
+        crash("Main function not found!")
+    }
+
+    // Init memory
+    let null_value: List<Byte> = []
+    null_value.add_int_le(0)
+    wasm_program.memory.add_section(null_value, "Null value")
+
+    let memory: List<Byte> = []
+    // capacity: Int, len: Int, data: Ptr<Byte>
+    memory.add_multiple_times(0x00.to_byte(), 12)
+    memory_instance = Some(wasm_program.memory.add_section(memory, "Memory instance"))
+
+    // Do dead code elimination and monomorphization by traversing the program from the main function
+    visit_program(main!!)
+
+    // Rewrite indices so imports come before regular functions
+    // So `call` instructions use the correct index
+    let function_ids_start = import_indices.last_id + 1
+    for wrapper in function_indices.all_wrappers {
+        wrapper.id += function_ids_start
+    }
+
+    // Generate code for functions
+    for func in wasm_program.functions {
+        func.bytecode.compile_function(func, this)
+    }
+
+    // Add main function as export to be called by the runtime
+    let wasm_main = wasm_program.functions.find @{ it -> it.name == "main" }!!
+    wasm_program.function_exports[] = WFunctionExport @[
+        name: "_start_main",
+        header: wasm_main.header,
+    ]
+
+    // Finish the program
+    emitter.emit_program(wasm_program)
+}
+
+fun WasmBackend.get_key_for_function(ctx: TypeMappingCtx, instance: NFunction): MonomorphizationKey {
+    let params_final_types = []
+
+    for param in instance.parameters {
+        params_final_types[] = ctx.convert_type(param.param_type!!)
+    }
+
+    params_final_types[] = ctx.convert_type(instance.return_type!!)
+
+    let final_type = final_types.create_final_type(FinalTypeKind::Function @[instance], params_final_types)
+
+    ret MonomorphizationKey @[
+        name: instance.full_name,
+        final_type,
+    ]
+}
+
+fun WasmBackend.get_key_for_const(instance: NConst): MonomorphizationKey {
+    let final_type = root_ctx.convert_type(instance.const_type!!)
+
+    ret MonomorphizationKey @[
+        name: instance.full_name,
+        final_type,
+    ]
+}
+
+fun WasmBackend.get_function_header(key: MonomorphizationKey, index: IdWrapper): WFunctionHeader {
+    // Function header
+    let header = WFunctionHeader @[
+        index,
+        key,
+        name: key.name,
+        params: [],
+        results: [],
+    ]
+
+    let params = key.final_type.type_params
+
+    // Params
+    repeat params.len - 1 {
+        encode_final_type(params[it]!!, header.params)
+    }
+
+    // Results
+    encode_final_type(params.last()!!, header.results)
+
+    ret header
+}
+
+// Given a final type, i.e. List<Int>, store in [list] the wasm type (i32, f32, etc.) that
+// will store a pointer to the value, for Int/Float/Long, store the type itself
+fun WasmBackend.encode_final_type(final_type: FinalType, list: List<WType>) {
+    let size = get_size_of(final_type)
+
+    // Zero size types
+    if size == 0 {
+        ret
+    }
+
+    // Float
+    if final_type.is_float() {
+        list[] = WType::F32
+        ret
+    }
+
+    // Long
+    if final_type.is_long() {
+        list[] = WType::I64
+        ret
+    }
+
+    // Type for pointers, integers and types with size smaller than 4 bytes
+    list[] = WType::I32
+}
+
+fun WasmBackend.encode_to_wasm_type(final_type: FinalType): WType {
+    let result = []
+    encode_final_type(final_type, result)
+
+    if result.is_empty() {
+        ret WType::I32
+    }
+
+    ret result.first()!!
+}
+
+fun WasmBackend.get_size_of(final_type: FinalType): Int {
+    when {
+        final_type.kind is FinalTypeKind::Struct -> {
+            let instance: NStruct = (final_type.kind as FinalTypeKind::Struct).instance
+
+            ret when instance.full_name {
+                "Never" -> 0
+                "Nothing" -> 0
+                "Byte" -> 1
+                "Boolean" -> 1
+                "Short" -> 2
+                "Char" -> 4
+                "Int" -> 4
+                "Float" -> 4
+                "Ptr" -> 4
+                "RawArray" -> 4
+                "Array" -> 4
+                "Function" -> 4
+                "Long" -> 8
+                else -> get_final_struct(instance, final_type).size
+            }
+        }
+        final_type.kind is FinalTypeKind::Option -> {
+            let instance: NOption = (final_type.kind as FinalTypeKind::Option).instance
+            ret get_final_option(instance, final_type).size
+        }
+        final_type.kind is FinalTypeKind::Lambda -> {
+            let instance: NLambda = (final_type.kind as FinalTypeKind::Lambda).instance
+            ret get_final_lambda(instance, final_type).size
+        }
+    }
+    unreachable()
+}
+
+fun WasmBackend.get_final_struct(instance: NStruct, final_type: FinalType): FinalStruct {
+    let opt = final_struct_cache[final_type]
+    if opt.is_some() {
+        ret opt!!
+    }
+
+    // Header for recursive type usage
+    let final_struct = FinalStruct @[
+        instance,
+        final_type,
+        fields: [],
+        size: 0,
+        parent_option: None()
+    ]
+    final_struct_cache[final_type] = final_struct
+
+    let ctx = TypeMappingCtx::new(final_types)
+    ctx.add_generics(instance.generics, final_type.type_params)
+
+    // Fields
+    let field_offset = 0
+    for field in instance.fields {
+        let ty: Type = field.field_type!!
+        let field_type = ctx.convert_type(ty)
+        let size = get_size_of(field_type)
+
+        let final_field = FinalStructField @[
+            name: field.name,
+            final_type: field_type,
+            size,
+            offset: field_offset
+        ]
+        final_struct.fields[] = final_field
+        field_offset += size
+    }
+
+    // Link to parent option
+    if instance.parent.is_some() {
+        let noption: NOption = instance.parent!!
+        let kind = FinalTypeKind::Option @[instance: noption]
+        let option_type = final_types.create_final_type(kind, final_type.type_params)
+
+        let final_option = get_final_option(noption, option_type)
+        final_struct.parent_option = Some(final_option)
+    }
+
+    // Size computation
+    final_struct.size = 0
+    for field in final_struct.fields {
+        if field.size >= 4 {
+            final_struct.size = WasmBackend::pad(final_struct.size)
+        }
+        final_struct.size += field.size
+    }
+
+    // Pad to 32 bit alignment
+    if final_struct.size > 4 {
+        final_struct.size = WasmBackend::pad(final_struct.size)
+    }
+
+    ret final_struct
+}
+
+fun WasmBackend.get_final_option(instance: NOption, final_type: FinalType): FinalOption {
+    let opt = final_option_cache[final_type]
+    if opt.is_some() {
+        ret opt!!
+    }
+
+    // Header for recursive type usage
+    let final_option = FinalOption @[
+        instance,
+        final_type,
+        items: [],
+        size: 0,
+    ]
+    final_option_cache[final_type] = final_option
+
+    // Items
+    for item in instance.items {
+        let struct_def = item.def
+        let option_item_type = final_types.create_final_type(
+            FinalTypeKind::Struct @[instance: struct_def],
+            final_type.type_params
+        )
+        final_option.items[] = get_final_struct(struct_def, option_item_type)
+    }
+
+    // Size computation
+    final_option.size = 0
+    for item in final_option.items {
+        if item.size >= 4 {
+            final_option.size = WasmBackend::pad(final_option.size)
+        }
+        final_option.size += item.size
+    }
+
+    // Pad to 32 bit alignment
+    if final_option.size > 4 {
+        final_option.size = WasmBackend::pad(final_option.size)
+    }
+
+    ret final_option
+}
+
+fun WasmBackend.get_final_lambda(instance: NLambda, final_type: FinalType): FinalLambda {
+    let final_lambda = FinalLambda @[
+        instance,
+        final_type,
+        size: 0,
+    ]
+
+    // Size computation
+    // TODO upvalues
+    final_lambda.size = 4
+
+    ret final_lambda
+}
+
+// Store a string in the wasm memory and return the pointer to the string
+fun WasmBackend.push_string(value: String): Int {
+    // Make sure the string instance is aligned to 4 bytes
+    wasm_program.memory.pad_to(4)
+
+    // struct String {
+    //     bytes_len: Int
+    //     utf8_data: Array<Byte>
+    //     hash_cache: Int
+    // }
+    let struct_size = STRUCT_HEADER_SIZE + INT_SIZE + PTR_SIZE + INT_SIZE
+    let instance = List::new<Byte>(struct_size)
+    instance.add_multiple_times(0x00.to_byte(), STRUCT_HEADER_SIZE)
+    instance.add_int_le(value.bytes_len)
+    instance.add_int_le(wasm_program.memory.offset + struct_size)
+    instance.add_int_le(-1)
+
+    let instance_sec = wasm_program.memory.add_section(instance, "String instance")
+
+    // String contents
+    let contents = List::new<Byte>(value.bytes_len)
+    repeat value.bytes_len {
+        contents[] = value.get_byte(it)
+    }
+
+    wasm_program.memory.add_section(contents, "String contents")
+
+    // Return the pointer to the string
+    ret instance_sec.offset
+}
+
+fun WasmBackend.find_const(id: Int): WConst {
+    for c in consts {
+        if c.index.id == id {
+            ret c
+        }
+    }
+
+    crash("Const with id '$id' not found!")
+}
+
+fun WasmBackend::pad(size: Int): Int {
+    // Using bit manipulation
+    ret (size + 3) & (3.bitwise_not())
+}

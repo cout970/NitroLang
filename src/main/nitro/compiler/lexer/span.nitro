@@ -77,6 +77,16 @@ fun Span.get_link(): String {
     ret " go.to($filename:$line)"
 }
 
+fun Span.get_link_params(): String {
+    let filename = if "/" in file {
+        file.split("/").last()!!
+    } else {
+        file
+    }
+
+    ret "($filename:$line)"
+}
+
 fun Span.is_equal(other: Span): Boolean {
     ret this.start == other.start && this.file == other.file
 }

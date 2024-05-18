@@ -1,0 +1,301 @@
+
+fun WasmBackend.visit_program(main: NFunction) {
+    // Start visiting the main function
+    add_task_visit_function(root_ctx.new_child(), main)
+
+    // Run the task queue
+    while task_queue.is_not_empty() {
+        let task = task_queue.remove_first()!!
+        when {
+            task is CompilationTask::VisitFunction -> {
+                let t = task as CompilationTask::VisitFunction
+                visit_function(t.ctx, t.key, t.instance, t.index)
+            }
+            task is CompilationTask::VisitConst -> {
+                let t = task as CompilationTask::VisitConst
+                visit_const(t.key, t.instance, t.index)
+            }
+        }
+    }
+}
+
+fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction): IdWrapper {
+    let key = get_key_for_function(ctx, instance)
+    let log = already_visited[key]
+
+    // Already queued or done
+    if log.is_some() {
+        ret log!!
+    }
+
+    let index = function_indices.next()
+
+    task_queue[] = CompilationTask::VisitFunction @[
+        key,
+        index,
+        instance,
+        ctx,
+    ]
+
+    // Prevent duplicates
+    already_visited[key] = index
+    ret index
+}
+
+fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
+    let key = get_key_for_const(instance)
+    let log = already_visited[key]
+
+    // Already queued or done
+    if log.is_some() {
+        ret log!!
+    }
+
+    last_const += 1
+    let index = IdWrapper @[id: last_const]
+    task_queue[] = CompilationTask::VisitConst @[
+        key,
+        index,
+        instance,
+    ]
+
+    already_visited[key] = index
+    ret index
+}
+
+fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NFunction, index: IdWrapper) {
+//    println("Visiting function $key")
+    let header = get_function_header(key, index)
+
+    // Wasm Function
+    let wasm_func = WFunction @[
+        index,
+        name: instance.full_name,
+        source: WFunctionSource::Function @[instance],
+        code: instance.code,
+        header,
+        let_declarations: #[],
+        function_calls: #[],
+        constants: #[],
+        ctx,
+        locals_provider: IdProvider::new(),
+        locals: [],
+        bytecode: WasmEmitter::new(),
+    ]
+    wasm_program.functions[] = wasm_func
+
+    visit_code(ctx, wasm_func, instance.code)
+}
+
+fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: IdWrapper) {
+//    println("Visiting const $key")
+    let const_type = key.final_type
+    let const_size = get_size_of(const_type)
+    let const_init = false
+    let data: List<Byte> = List::new(const_size)
+
+    // Constant values that don't need to be initialized
+    if instance.code.inst_list.len == 1 {
+        let inst = instance.code.inst_list.first()!!
+
+        if inst.kind is NInstKind::Literal {
+            let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
+
+            when {
+                expr is NConstExpr::NConstInt -> {
+                    let value: Int = (expr as NConstExpr::NConstInt).value
+                    // Little endian
+                    data[] = (value >> 24).to_byte()
+                    data[] = (value >> 16).to_byte()
+                    data[] = (value >> 8).to_byte()
+                    data[] = value.to_byte()
+                }
+                expr is NConstExpr::NConstLong -> {
+                    let value: Long = (expr as NConstExpr::NConstLong).value
+                    // Little endian
+                    data[] = (value >> 56L).to_byte()
+                    data[] = (value >> 48L).to_byte()
+                    data[] = (value >> 40L).to_byte()
+                    data[] = (value >> 32L).to_byte()
+                    data[] = (value >> 24L).to_byte()
+                    data[] = (value >> 16L).to_byte()
+                    data[] = (value >> 8L).to_byte()
+                    data[] = value.to_byte()
+                }
+                expr is NConstExpr::NConstFloat -> {
+                    let float_value: Float = (expr as NConstExpr::NConstFloat).value
+                    let value: Int = float_value.reinterpret_as_int()
+                    // Little endian
+                    data[] = (value >> 24).to_byte()
+                    data[] = (value >> 16).to_byte()
+                    data[] = (value >> 8).to_byte()
+                    data[] = value.to_byte()
+                }
+                expr is NConstExpr::NConstString -> {
+                    let string_value: String = (expr as NConstExpr::NConstString).value
+                    let address: Int = push_string(string_value)
+                    // Little endian
+                    data[] = (address >> 24).to_byte()
+                    data[] = (address >> 16).to_byte()
+                    data[] = (address >> 8).to_byte()
+                    data[] = address.to_byte()
+                }
+                expr is NConstExpr::NConstBoolean -> {
+                    let value: Boolean = (expr as NConstExpr::NConstBoolean).value
+                    data[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }
+                }
+                expr is NConstExpr::NConstNothing -> {
+                    // Nothing has 0 size
+                }
+            }
+            const_init = true
+        }
+    }
+
+    // Initialize data with 0x00
+    if !const_init {
+        data.add_multiple_times(0x00.to_byte(), const_size)
+    }
+
+    // Allocate a memory section
+    let section = wasm_program.memory.add_section(data, "const ${instance.full_name}")
+
+    // Store the header for later use
+    let wasm_const = WConst @[
+        index,
+        instance,
+        final_type: const_type,
+        section,
+        init_function: None(),
+    ]
+    consts[] = wasm_const
+
+    if const_init {
+        ret
+    }
+
+    // Initialize the constant in the init function
+    let func_index = function_indices.next()
+
+    let header = WFunctionHeader @[
+        index: func_index,
+        key,
+        name: "init_const_${instance.full_name}",
+        params: [],
+        results: [],
+    ]
+
+    // Wasm Function
+    let wasm_func = WFunction @[
+        index: func_index,
+        name: header.name,
+        source: WFunctionSource::Const @[instance],
+        code: instance.code,
+        header,
+        let_declarations: #[],
+        function_calls: #[],
+        constants: #[],
+        ctx: root_ctx,
+        locals_provider: IdProvider::new(),
+        locals: [],
+        bytecode: WasmEmitter::new(),
+    ]
+    wasm_program.functions[] = wasm_func
+
+    visit_code(root_ctx, wasm_func, instance.code)
+}
+
+fun WasmBackend.visit_import(ctx: TypeMappingCtx, instance: NFunction, lib: String, name: String): IdWrapper {
+    let key = get_key_for_function(ctx, instance)
+    let log = already_visited[key]
+
+    // Already visited
+    if log.is_some() {
+        ret log!!
+    }
+
+    let index = import_indices.next()
+    let header = get_function_header(key, index)
+
+    wasm_program.imports[] = WImport @[
+        module_name: lib,
+        name: name,
+        header,
+    ]
+
+    already_visited[key] = index
+    ret index
+}
+
+fun WasmBackend.visit_code(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCode) {
+    code.calculate_back_references()
+
+    for inst in code.inst_list {
+        visit_instruction(ctx, wasm_func, code, inst)
+    }
+}
+
+fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCode, inst: NInst) {
+    when {
+        inst.kind is NInstKind::Let -> {
+            let nvar: NVar = (inst.kind as NInstKind::Let).variable
+            let nvar_type = nvar.type_token!!.find_type()
+            let final_type = ctx.convert_type(nvar_type)
+
+            let wvar = WVar @[
+                index: wasm_func.locals_provider.next()
+                kind: WVarKind::Local,
+                name: nvar.name,
+                wasm_type: encode_to_wasm_type(final_type)
+            ]
+
+            wasm_func.let_declarations[nvar.id] = wvar
+            wasm_func.locals[] = wvar
+        }
+        inst.kind is NInstKind::FunCall -> {
+            let call_site = (inst.kind as NInstKind::FunCall).call_site!!
+            let func: NFunction = call_site.func
+
+            // Use a inline wasm instruction
+            let inline_annotation = call_site.func.get_annotation("WasmInline")
+            if inline_annotation.is_some() {
+                let opcode = inline_annotation!!.get_arg("opcode")!!.get_string()!!
+
+                wasm_func.function_calls[inst.id] = WFuncCall::WOpcode @[value: opcode]
+                ret
+            }
+
+            // External declaration
+            let extern_annotation = func.get_annotation("Extern")
+            if extern_annotation.is_some() {
+                let lib = extern_annotation!!.get_arg("lib")!!.get_string()!!
+                let name = extern_annotation!!.get_arg("name")!!.get_string()!!
+
+                let index = visit_import(ctx, func, lib, name)
+                wasm_func.function_calls[inst.id] = WFuncCall::WImport @[value: index]
+                ret
+            }
+
+            // Replace the generic types
+            let sub_ctx = ctx.new_child()
+
+            let generics = call_site.call_site_generics
+            let generic_replacements = generics.resolved.find_types()
+            let final_types = generic_replacements.map @{ i -> ctx.convert_type(i) }
+
+            sub_ctx.add_generics(generics.generic_params, final_types)
+
+            // Schedule the function for compilation
+            let index = add_task_visit_function(sub_ctx, func)
+            wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: index]
+        }
+        inst.kind is NInstKind::LoadVar -> {
+            let constant = (inst.kind as NInstKind::LoadVar).constant
+            if constant.is_none() {
+                ret
+            }
+
+            wasm_func.constants[inst.id] = add_task_visit_const(constant!!)
+        }
+    }
+}

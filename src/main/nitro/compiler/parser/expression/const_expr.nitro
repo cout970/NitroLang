@@ -136,6 +136,13 @@ fun Parser.read_float(): Parsed<Float> {
     ret found(parse_result!!)
 }
 
+fun NConstExpr.get_string(): Optional<String> {
+    if this is NConstExpr::NConstString {
+        ret Some((this as NConstExpr::NConstString).value)
+    }
+    ret None()
+}
+
 fun NConstExpr.to_string(): String {
     ret when {
         this is NConstExpr::NConstInt -> (this as NConstExpr::NConstInt).value.to_string()
