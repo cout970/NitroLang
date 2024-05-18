@@ -790,26 +790,12 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
             item.STRING_ESCAPE() != null -> buff.append(item.STRING_ESCAPE().text)
             item.STRING_VAR() != null -> {
                 endChunk()
-                val variable = code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
-
-                allParts += code.call(
-                    span = ctx.span(),
-                    path = "",
-                    name = "to_string",
-                    arguments = listOf(variable)
-                )
+                allParts += code.loadVar(ctx.span(), "", item.STRING_VAR().text.substring(1))
             }
 
             item.STRING_INTERP_START() != null -> {
                 endChunk()
-                val ref = processExpression(item.expression())
-
-                allParts += code.call(
-                    span = ctx.span(),
-                    path = "",
-                    name = "to_string",
-                    arguments = listOf(ref)
-                )
+                allParts += processExpression(item.expression())
             }
         }
     }
@@ -820,22 +806,28 @@ fun ParserCtx.processString(ctx: MainParser.StringContext): Ref {
         allParts += ref
     }
 
-    if (allParts.size == 1) {
-        return allParts.first()
+    val builder = code.call(
+        span = ctx.span(),
+        path = "StringBuilder",
+        name = "new",
+        arguments = emptyList(),
+    )
+
+    allParts.forEach { part ->
+        code.call(
+            span = ctx.span(),
+            path = "",
+            name = "add",
+            arguments = listOf(builder, part)
+        )
     }
 
-    return allParts.reduce { acc, ref ->
-        val node = LstFunCall(
-            ref = code.nextRef(),
-            span = ctx.span(),
-            block = code.currentBlock,
-            name = "concat",
-            path = "",
-            arguments = listOf(acc, ref),
-        )
-        code.nodes += node
-        node.ref
-    }
+    return code.call(
+        span = ctx.span(),
+        path = "",
+        name = "to_string",
+        arguments = listOf(builder)
+    )
 }
 
 fun ParserCtx.createStructInstance(
