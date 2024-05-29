@@ -192,7 +192,7 @@ fun String.plus(char: Char): String  = this.concat(char)
 
 // Checks if a string is equal to another string
 fun String.is_equal(other: String): Boolean {
-    if ptr_of(this).address == ptr_of(other).address {
+    if ptr_of(this).get_address() == ptr_of(other).get_address() {
         ret true
     }
 

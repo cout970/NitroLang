@@ -615,3 +615,12 @@ fun <#Item: GetOrdering> List<#Item>.get_ordering(other: List<#Item>): Ordering 
 
     ret Ordering::Equals
 }
+
+// Get the hash code of the list contents
+fun <#Item: MapKey> List<#Item>.get_hash(): Int {
+    let hash = 0
+    repeat count {
+        hash = hash * 31 + this[it]!!.get_hash()
+    }
+    ret hash
+}

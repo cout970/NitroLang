@@ -6,9 +6,7 @@ struct DebugMode {
 let debug_mode: DebugMode = DebugMode @[enable: false]
 
 // No arguments
-fun println() {
-    println("")
-}
+fun println() = println("")
 
 // String argument
 @Extern [lib: "core", name: "println_string"]
@@ -29,6 +27,9 @@ fun println(i: Float) {}
 // Boolean argument
 @Extern [lib: "core", name: "println_boolean"]
 fun println(i: Boolean) {}
+
+// Nothing
+fun println(i: Nothing) = println("nothing")
 
 // Generic version of println() for any type that has a to_string() function
 fun <#Value: ToString> println(value: #Value) {

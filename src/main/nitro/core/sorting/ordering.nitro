@@ -49,6 +49,9 @@ fun Ordering.reverse(): Ordering {
     }
 }
 
+// Combines two orderings, returning the ordering that is the most strict
+fun Ordering.with(other: Ordering): Ordering = if this.is_equals() { other } else { this }
+
 // Using the get_ordering function, finds which of the two values is the maximum
 fun <#Value2: GetOrdering> max(a: #Value2, b: #Value2): #Value2 {
     ret if a > b { a } else { b }

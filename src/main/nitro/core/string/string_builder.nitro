@@ -40,6 +40,11 @@ fun StringBuilder.ensure_capacity(required_capacity: Int) {
     bytes = new_bytes
 }
 
+// Removes the last `amount` characters from the internal buffer
+fun StringBuilder.remove_last(amount: Int) {
+    bytes_len = max(0, bytes_len - amount)
+}
+
 // Adds a single character to the internal buffer
 // https://stackoverflow.com/a/42013433/13195330
 fun StringBuilder.add(c: Char) {
