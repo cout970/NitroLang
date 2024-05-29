@@ -86,6 +86,17 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
     ]
     wasm_program.functions[] = wasm_func
 
+    for param in instance.parameters {
+        let ptype = ctx.convert_type(param.param_type!!)
+
+        wasm_func.locals[] = WVar @[
+            index: wasm_func.locals_provider.next(),
+            kind: WVarKind::Param,
+            name: param.name,
+            wasm_type: encode_to_wasm_type(ptype),
+        ]
+    }
+
     visit_code(ctx, wasm_func, instance.code)
 }
 

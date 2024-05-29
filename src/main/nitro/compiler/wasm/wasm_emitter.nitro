@@ -117,7 +117,7 @@ fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
     // N:byte section type id
     emit_byte(section.code)
     // size:u32 section size
-    emit_byte(size)
+    emit_u32(size)
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#custom-section
@@ -288,8 +288,10 @@ fun WasmEmitter.emit_locals(locals: List<WVar>) {
     if debug_print {
         debug_print_line("Emit locals: ${locals.len} locals")
     }
-    emit_u32(locals.len)
-    for l in locals {
+    let non_params = locals.filter @{ it -> it.kind != WVarKind::Param }
+
+    emit_u32(non_params.len)
+    for l in non_params {
         emit_u32(1)
         emit_byte(l.wasm_type.code)
     }
@@ -357,6 +359,26 @@ fun WasmEmitter.emit_u32(value: Int) {
 
         if value == 0 {
             break
+        }
+    }
+
+    test! "LEB128 encoding" {
+        let tests = [
+            Pair::of(0, [0x00.to_byte()]),
+            Pair::of(0x7F, [0x7F.to_byte()]),
+            Pair::of(0x80, [0x80.to_byte(), 0x01.to_byte()]),
+            Pair::of(0x85, [0x85.to_byte(), 0x01.to_byte()]),
+            Pair::of(0x2000, [0x80.to_byte(), 0x40.to_byte()]),
+            Pair::of(0x3FFF, [0xFF.to_byte(), 0x7F.to_byte()]),
+            Pair::of(0x4000, [0x80.to_byte(), 0x80.to_byte(), 0x01.to_byte()]),
+            Pair::of(0x98765, [0xE5.to_byte(), 0x8E.to_byte(), 0x26.to_byte()]),
+            Pair::of(0x1F0000, [0x80.to_byte(), 0x80.to_byte(), 0x7C.to_byte()]),
+            Pair::of(0x1FFFFFFF, [0xFF.to_byte(), 0xFF.to_byte(), 0xFF.to_byte(), 0xFF.to_byte(), 0x01.to_byte()]),
+        ]
+        repeat tests.len {
+            let e = WasmEmitter::new()
+            e.emit_u32(tests[it]!!.first)
+            check(e.buffer == tests[it]!!.second) @{ "Failed to encode ${tests[it]!!.first} as LEB128" }
         }
     }
 }

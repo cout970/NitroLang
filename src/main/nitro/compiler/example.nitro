@@ -72,11 +72,28 @@ fun main() {
 //    println(size_of<Int>())
 //    println(size_of<Long>())
 //
-    let ab = AB::A @[]
+//    let ab = AB::A @[]
+//
+//    println(ab is AB::A)
+//    println(ab is AB::B)
+//    println(ab is AB)
+//
+//    println(is_int(42))
+//    println(is_int(42f))
+//    println(is_int("42"))
+//    println(two_args(42, 69L))
 
-    println(ab is AB::A)
-    println(ab is AB::B)
-    println(ab is AB)
+    // TODO this should fail
+    let a = "42" as Int
+    println(a)
+}
+
+fun two_args(a: Int, b: Long): Float {
+    ret 1f
+}
+
+fun <#T> is_int(a: #T): Boolean {
+    ret a is Int
 }
 
 fun second_function(arg: Int): Int {

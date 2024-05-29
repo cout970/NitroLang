@@ -55,6 +55,10 @@ fun TypeMappingCtx.convert_type(ty: Type): FinalType {
             ret opt!!
         }
 
+        if parent.is_some() {
+            ret parent!!.convert_type(ty)
+        }
+
         crash("Generic type not found: #${generic.name} // $span")
     }
 

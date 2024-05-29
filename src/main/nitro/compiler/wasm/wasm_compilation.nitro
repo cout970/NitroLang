@@ -21,7 +21,6 @@ fun InstResultAction.to_string(): String {
 
 // Compile the code for a function
 fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
-    Log::debug("Compiling ${func.index.id}: ${func.name}")
     let code = func.code
     let map: Map<NInstId, InstResultAction> = #[]
     func.check_stack_allocation(backend, map)
@@ -32,6 +31,11 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::Let {
+            if debug_print {
+                let nvar = (inst.kind as NInstKind::Let).variable
+                let wvar = func.let_declarations[nvar]!!
+                debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+            }
             continue
         }
         if inst.kind is NInstKind::IfStart {
@@ -306,6 +310,10 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
                     let index = option_instance.get_index_of_item(instance)!!
                     let wvar = func.add_local("tmp_${inst.id}", WType::I32)
 
+                    if debug_print {
+                        debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+                    }
+
                     // Fill variant field
                     add_local_tee(wvar.index.id)
                     add_i32_const(index)
@@ -336,7 +344,22 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         crash("Found unknown instruction: $inst")
     }
 
-    println("------------------------------------------------------------------------------\nCompiled ${func.index.id}: ${func.name}\n$code\n${debug_buffer}\n------------------------------------------------------------------------------")
+    if debug_print && func.source is WFunctionSource::Function {
+        let instance = (func.source as WFunctionSource::Function).instance
+        let rtype = func.ctx.convert_type(instance.return_type!!)
+        let ptypes = []
+
+        for param in instance.parameters {
+            ptypes[] = func.ctx.convert_type(param.param_type!!)
+        }
+        let ptypes_str = ptypes.join(", ")
+        let header = "${instance.full_name}($ptypes_str) -> $rtype"
+        println("------------------------------------------------------------------------------")
+        println("Compiled ${func.index.id}: ${header}")
+        println(debug_buffer)
+        println(code)
+        println("------------------------------------------------------------------------------")
+    }
 }
 
 fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
@@ -419,13 +442,7 @@ fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, Ins
 //            }
 //        }
 
-        let variable = WVar @[
-            index: locals_provider.next()
-            kind: WVarKind::Local,
-            name: "tmp_${inst.id}",
-            wasm_type: backend.encode_to_wasm_type(final_type)
-        ]
-        locals[] = variable
+        let variable = add_local("tmp_${inst.id}", backend.encode_to_wasm_type(final_type))
         map[inst.id] = InstResultAction::Save @[variable]
     }
 }
@@ -469,6 +486,11 @@ fun WasmEmitter.pop(id: NInstId, map: Map<NInstId, InstResultAction>) {
     // Save the result in a local
     if local_action is InstResultAction::Save {
         let variable = (local_action as InstResultAction::Save).variable
+
+        if debug_print {
+            debug_print_line("local ${variable.index.id} ${variable.name}: ${variable.wasm_type}")
+        }
+
         add_local_set(variable.index.id)
         ret
     }
