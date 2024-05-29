@@ -27,10 +27,12 @@
 //
 
 struct NTypePattern {
+    span: Span
     kind: TypePatternKind
     name: String
     path: String
     params: List<NTypePattern>
+    resolved: Optional<ResolvedTypePattern>
 }
 
 enum TypePatternKind {
@@ -40,14 +42,18 @@ enum TypePatternKind {
 }
 
 fun Parser.read_type_pattern(): Parsed<NTypePattern> {
+    let span = lexer.current_token_span
+
     // Any
     if lexer.current_token_kind == TokenKind::MUL {
         lexer.next_token()
         ret found(NTypePattern @[
+            span,
             kind: TypePatternKind::TYPE_ANY,
             name: "*",
             path: "",
             params: [],
+            resolved: None(),
         ])
     }
 
@@ -57,16 +63,18 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
         let name: String = read_name()?
 
         ret found(NTypePattern @[
+            span,
             kind: TypePatternKind::TYPE_PARAM,
             name,
             path: "",
             params: [],
+            resolved: None(),
         ])
     }
 
     // (Int, Boolean) -> Float
     if lexer.current_token_kind == TokenKind::LPAREN {
-        ret read_function_type_pattern(None())
+        ret read_function_type_pattern(None(), span)
     }
 
     // <T>
@@ -92,10 +100,12 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
     }
 
     let ty = NTypePattern @[
+        span,
         kind: TypePatternKind::TYPE_SIMPLE,
         name,
         path,
         params,
+        resolved: None(),
     ]
 
     if lexer.current_token_kind != TokenKind::DOT {
@@ -106,7 +116,7 @@ fun Parser.read_type_pattern(): Parsed<NTypePattern> {
     lexer.next_token()
 
     // Int.() -> Nothing
-    ret read_function_type_pattern(Some(ty))
+    ret read_function_type_pattern(Some(ty), span)
 }
 
 // <A, B, C>
@@ -124,7 +134,7 @@ fun Parser.read_type_pattern_param_args(): Parsed<List<NTypePattern>> {
 }
 
 // (Int, Boolean)->Float
-fun Parser.read_function_type_pattern(arg1: Optional<NTypePattern>): Parsed<NTypePattern> {
+fun Parser.read_function_type_pattern(arg1: Optional<NTypePattern>, span: Span): Parsed<NTypePattern> {
     // // (Int) -> Int
     // functionTypePattern
     //       : LPAREN RPAREN ARROW typePattern
@@ -150,10 +160,12 @@ fun Parser.read_function_type_pattern(arg1: Optional<NTypePattern>): Parsed<NTyp
     params[] = read_type_pattern()?
 
     ret found(NTypePattern @[
+        span,
         kind: TypePatternKind::TYPE_SIMPLE,
         name: "Function",
         path: "",
         params,
+        resolved: None(),
     ])
 }
 
@@ -172,6 +184,19 @@ fun Parser.read_function_type_pattern_param(): Parsed<NTypePattern> {
 
     ret read_type_pattern()
 }
+
+fun NTypePattern.get_ordering(other: NTypePattern): Ordering {
+    ret (kind <=> other.kind).with(name <=> other.name).with(path <=> other.path)
+}
+
+fun NTypePattern.get_hash(): Int {
+    let hash = kind.variant
+    hash = (hash * 31) + name.get_hash()
+    hash = (hash * 31) + path.get_hash()
+    ret hash
+}
+
+fun TypePatternKind.is_equal(other: TypePatternKind): Boolean = this.variant == other.variant
 
 fun NTypePattern.to_string(): String {
     let s = ""

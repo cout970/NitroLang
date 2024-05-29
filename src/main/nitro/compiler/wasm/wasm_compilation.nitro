@@ -20,8 +20,8 @@ fun InstResultAction.to_string(): String {
 }
 
 // Compile the code for a function
-fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
-    println("Compiling ${func.index.id}: ${func.name}")
+fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
+    Log::debug("Compiling ${func.index.id}: ${func.name}")
     let code = func.code
     let map: Map<NInstId, InstResultAction> = #[]
     func.check_stack_allocation(backend, map)
@@ -29,6 +29,10 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
     for inst in code.inst_list {
         if debug_print {
             debug_buffer[] = "--- #${inst.id} | ${inst} ---\n"
+        }
+
+        if inst.kind is NInstKind::Let {
+            continue
         }
         if inst.kind is NInstKind::IfStart {
             let kind = inst.kind as NInstKind::IfStart
@@ -60,8 +64,11 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
         }
         if inst.kind is NInstKind::BlockJump {
             let kind = inst.kind as NInstKind::BlockJump
-            let curr_block = inst.block
-            let jump_to_block = kind.block!!
+            check(kind.block.is_some()) @{ "BlockJump without a block! #${inst.id} $inst\n$code" }
+
+            let jump_to_block = code.find_block(kind.block!!)
+            let curr_block = code.find_block(inst.block)
+
             add_br(curr_block.depth - jump_to_block.depth)
             continue
         }
@@ -78,9 +85,9 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
             add_end()
             continue
         }
+
         if inst.kind is NInstKind::FunCall {
             let kind = inst.kind as NInstKind::FunCall
-            let call_site = kind.call_site!!
 
             for arg in kind.arguments {
                 push(arg, map)
@@ -107,6 +114,7 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
             pop(inst.id, map)
             continue
         }
+
         if inst.kind is NInstKind::Literal {
             let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
 
@@ -150,8 +158,7 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
                 // Nothing has 0 size
                 continue
             }
-            println("Unknown literal type: ${expr}")
-            unreachable()
+            crash("Unknown literal type: ${expr}")
         }
 
         if inst.kind is NInstKind::Return {
@@ -160,14 +167,12 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
             add_return()
             continue
         }
+
         if inst.kind is NInstKind::IsType {
-            let kind = inst.kind as NInstKind::IsType
-            push(kind.value, map)
-            // TODO
-            add_i32_const(1)
-            pop(inst.id, map)
+            compile_inst_is_type(inst, func, backend, map, code)
             continue
         }
+        // TODO
         if inst.kind is NInstKind::AsType {
             let kind = inst.kind as NInstKind::AsType
             push(kind.value, map)
@@ -190,8 +195,7 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
                 continue
             }
 
-            let nvar = kind.variable!!
-            let wvar = func.let_declarations[nvar.id]!!
+            let wvar = func.let_declarations[kind.variable!!]!!
 
             add_local_get(wvar.index.id)
             pop(inst.id, map)
@@ -200,18 +204,187 @@ fun WasmEmitter.compile_function(func: WFunction, backend: WasmBackend) {
 
         if inst.kind is NInstKind::StoreVar {
             let kind = inst.kind as NInstKind::StoreVar
-            let nvar = kind.variable!!
-            let wvar = func.let_declarations[nvar.id]!!
+            let wvar = func.let_declarations[kind.variable!!]!!
 
             push(kind.value, map)
             add_local_set(wvar.index.id)
             continue
         }
+
+        if inst.kind is NInstKind::LoadField {
+            let kind = inst.kind as NInstKind::LoadField
+            check(kind.field.is_some()) @{ "LoadField without field! #${inst.id} $inst\n$code" }
+            check(kind.field_type_token.is_some()) @{ "LoadField without field_type_token! #${inst.id} $inst\n$code" }
+
+            let field = kind.field!!
+            let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
+
+            // Zero size type, no need to load
+            if backend.get_size_of(field_type) == 0 {
+                continue
+            }
+
+            let instance_type = func.ctx.convert_type(code.find_inst_type_token(kind.instance)!!.find_type())
+            let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
+
+            // Offset in the struct
+            let offset = 0
+            for field in final_struct.fields {
+                if field.name == kind.name {
+                    break
+                }
+                offset += field.size
+            }
+
+            push(kind.instance, map)
+            add_i32_const(offset)
+            add_i32_add()
+            add_load_by_type(field_type, backend)
+            pop(inst.id, map)
+            continue
+        }
+
+        if inst.kind is NInstKind::StoreField {
+            let kind = inst.kind as NInstKind::StoreField
+            check(kind.field.is_some()) @{ "StoreField without field! #${inst.id} $inst\n$code" }
+            check(kind.field_type_token.is_some()) @{ "StoreField without field_type_token! #${inst.id} $inst\n$code" }
+
+            let field = kind.field!!
+            let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
+
+            // Zero size type, no need to store
+            if backend.get_size_of(field_type) == 0 {
+                continue
+            }
+
+            let instance_type_token = code.find_inst_type_token(kind.instance)
+            check(instance_type_token.is_some()) @{ "StoreField instance has not type! #${kind.instance}\n$code" }
+
+            let instance_type = func.ctx.convert_type(instance_type_token!!.find_type())
+            let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
+
+            // Offset in the struct
+            let offset = 0
+            for field in final_struct.fields {
+                if field.name == kind.name {
+                    break
+                }
+                offset += field.size
+            }
+
+            push(kind.instance, map)
+            add_i32_const(offset)
+            add_i32_add()
+            push(kind.value, map)
+            add_store_by_type(field_type, backend)
+            continue
+        }
+
+        if inst.kind is NInstKind::SizeOf {
+            let kind = inst.kind as NInstKind::SizeOf
+            let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
+            let size = backend.get_size_of(final_type)
+            add_i32_const(size)
+            pop(inst.id, map)
+            continue
+        }
+
+        if inst.kind is NInstKind::Alloc {
+            let kind = inst.kind as NInstKind::Alloc
+            let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
+            let size = backend.get_size_of(final_type)
+            let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
+
+            add_i32_const(size)
+            add_call(call.value.id)
+
+            if final_type.kind is FinalTypeKind::Struct {
+                let instance = (final_type.kind as FinalTypeKind::Struct).instance
+
+                if instance.parent.is_some() {
+                    let option_instance: NOption = instance.parent!!
+                    let index = option_instance.get_index_of_item(instance)!!
+                    let wvar = func.add_local("tmp_${inst.id}", WType::I32)
+
+                    // Fill variant field
+                    add_local_tee(wvar.index.id)
+                    add_i32_const(index)
+                    add_i32_store(0) // ptr: i32, value: i32 -> void
+                    add_local_get(wvar.index.id)
+                }
+            }
+
+            pop(inst.id, map)
+            continue
+        }
+
+        if inst.kind is NInstKind::Lambda {
+            // TODO
+        }
+
+        if inst.kind is NInstKind::Link {
+            let kind = inst.kind as NInstKind::Link
+            push(kind.linked_id, map)
+            pop(inst.id, map)
+            continue
+        }
+
+        if inst.kind is NInstKind::Comment || inst.kind is NInstKind::Noop {
+            continue
+        }
+
+        crash("Found unknown instruction: $inst")
     }
 
-    if func.name == "main" {
-        println("$code\n---\n${debug_buffer}")
+    println("------------------------------------------------------------------------------\nCompiled ${func.index.id}: ${func.name}\n$code\n${debug_buffer}\n------------------------------------------------------------------------------")
+}
+
+fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::IsType
+    let final_type = func.ctx.convert_type(code.find_inst_type_token(kind.value)!!.find_type())
+    let final_pattern = func.ctx.convert_pattern(kind.type_pattern.resolved!!)
+
+    // Always true
+    if final_pattern.kind is FinalTypePatternKind::Any {
+        push(kind.value, map)
+        add_drop()
+        add_i32_const(1)
+        pop(inst.id, map)
+        ret
     }
+
+    // Pattern info
+    let final_type_kind: FinalTypeKind = (final_pattern.kind as FinalTypePatternKind::FinalType).final_type_kind
+    let pattern_is_option_item = final_type_kind is FinalTypeKind::Struct && (final_type_kind as FinalTypeKind::Struct).instance.parent.is_some()
+
+    // Type info
+    let type_is_option = final_type.kind is FinalTypeKind::Option
+    let type_is_option_item = final_type.kind is FinalTypeKind::Struct && (final_type.kind as FinalTypeKind::Struct).instance.parent.is_some()
+
+    // If the type pattern is an option-item and the expression type is an option or item
+    // The check is performed at runtime
+    if pattern_is_option_item && (type_is_option || type_is_option_item) {
+        let item_instance: NStruct = (final_type_kind as FinalTypeKind::Struct).instance
+        let option_instance = item_instance.parent!!
+        let index: Int = option_instance.get_index_of_item(item_instance)!!
+
+        // Variant field
+        push(kind.value, map)
+        add_i32_load(STRUCT_HEADER_SIZE)
+        // Expected value
+        add_i32_const(index)
+        // equal?
+        add_i32_eq()
+        pop(inst.id, map)
+        ret
+    }
+
+    // If the type pattern is not an option item, or the expression type is not an option or item
+    // The check is performed at compile time
+    push(kind.value, map)
+    add_drop()
+    add_i32_const(if final_pattern.matches_type(final_type) { 1 } else { 0 })
+    pop(inst.id, map)
 }
 
 // Compute whether an instruction should save its result in a local, keep it on the stack, or drop it
@@ -323,6 +496,34 @@ fun WasmEmitter.add_load_by_type(final_type: FinalType, backend: WasmBackend): I
         }
         // Load an 8 byte value: i64
         8 -> add_i64_load(0)
+
+        else -> crash("Unsupported size: $size")
+    }
+
+    ret size
+}
+
+// Add a store instruction based on the size of the type
+fun WasmEmitter.add_store_by_type(final_type: FinalType, backend: WasmBackend): Int {
+    let size = backend.get_size_of(final_type)
+
+    when size {
+        // Zero size types are not loaded
+        0 -> {}
+        // Load a single byte
+        1 -> add_i32_store8(0)
+        // Load two bytes
+        2 -> add_i32_store16(0)
+        // Load a 4 byte value: i32 or f32
+        4 -> {
+            if final_type.is_float() {
+                add_f32_store(0)
+            } else {
+                add_i32_store(0)
+            }
+        }
+        // Load an 8 byte value: i64
+        8 -> add_i64_store(0)
 
         else -> crash("Unsupported size: $size")
     }

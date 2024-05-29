@@ -2,24 +2,30 @@
 
 struct TypeMappingCtx {
     parent: Optional<TypeMappingCtx>
-    cache: Map<Type, FinalType>
+    span: Span
+    type_cache: Map<Type, FinalType>
+    pattern_cache: Map<ResolvedTypePattern, FinalTypePattern>
     generic_types: Map<NGeneric, FinalType>
     final_types: FinalTypeContainer
 }
 
-fun TypeMappingCtx::new(final_types: FinalTypeContainer): TypeMappingCtx {
+fun TypeMappingCtx::new(final_types: FinalTypeContainer, span: Span): TypeMappingCtx {
     ret TypeMappingCtx @[
         parent: None(),
-        cache: #[],
+        span,
+        type_cache: #[],
+        pattern_cache: #[],
         generic_types: #[],
         final_types,
     ]
 }
 
-fun TypeMappingCtx.new_child(): TypeMappingCtx {
+fun TypeMappingCtx.new_child(span: Span): TypeMappingCtx {
     ret TypeMappingCtx @[
         parent: Some(this),
-        cache: #[],
+        span,
+        type_cache: #[],
+        pattern_cache: #[],
         generic_types: #[],
         final_types,
     ]
@@ -30,13 +36,13 @@ fun TypeMappingCtx.add_generics(generics: NGenericParams, types: List<FinalType>
         let def = generics.definitions[it]!!
         let ty = generics.type_tokens[it]!!.find_type()
 
-        cache[ty] = types[it]!!
+        type_cache[ty] = types[it]!!
         generic_types[def] = types[it]!!
     }
 }
 
 fun TypeMappingCtx.convert_type(ty: Type): FinalType {
-    let cache_item = cache[ty]
+    let cache_item = type_cache[ty]
     if cache_item.is_some() {
         ret cache_item!!
     }
@@ -49,7 +55,7 @@ fun TypeMappingCtx.convert_type(ty: Type): FinalType {
             ret opt!!
         }
 
-        crash("Generic type not found: #${generic.name}")
+        crash("Generic type not found: #${generic.name} // $span")
     }
 
     let kind = final_types.kind_to_final(ty.kind)
@@ -63,6 +69,53 @@ fun TypeMappingCtx.convert_type(ty: Type): FinalType {
     }
 
     let final_type = final_types.create_final_type(kind!!, params)
-    cache[ty] = final_type
+    type_cache[ty] = final_type
     ret final_type
+}
+
+fun TypeMappingCtx.convert_pattern(p: ResolvedTypePattern): FinalTypePattern {
+    let cache_item = pattern_cache[p]
+    if cache_item.is_some() {
+        ret cache_item!!
+    }
+
+    let params = []
+
+    for p in p.params {
+        params[] = convert_pattern(p)
+    }
+
+    let kind = when {
+        p.kind is ResolvedTypePatternKind::Any -> {
+            FinalTypePatternKind::Any @[]
+        }
+        p.kind is ResolvedTypePatternKind::Struct -> {
+            let instance = (p.kind as ResolvedTypePatternKind::Struct).instance
+            let final_type_kind = FinalTypeKind::Struct @[instance]
+
+            FinalTypePatternKind::FinalType @[final_type_kind]
+        }
+        p.kind is ResolvedTypePatternKind::Option -> {
+            let instance = (p.kind as ResolvedTypePatternKind::Option).instance
+            let final_type_kind = FinalTypeKind::Option @[instance]
+
+            FinalTypePatternKind::FinalType @[final_type_kind]
+        }
+        p.kind is ResolvedTypePatternKind::Generic -> {
+            let generic = (p.kind as ResolvedTypePatternKind::Generic).instance
+            let opt = generic_types[generic]
+
+            if opt.is_none() {
+                crash("Generic type not found: #${generic.name} // ${p.span}")
+            }
+            let final_type_kind = opt!!.kind
+
+            FinalTypePatternKind::FinalType @[final_type_kind]
+        }
+        else -> unreachable()
+    }
+
+    let final_pattern: FinalTypePattern = FinalTypePattern @[kind, params]
+    pattern_cache[p] = final_pattern
+    ret final_pattern
 }

@@ -86,6 +86,24 @@ fun FinalTypeKind.get_id(): String {
     unreachable()
 }
 
+fun FinalTypeKind.is_equal(other: FinalTypeKind): Boolean {
+    ret when {
+        this is FinalTypeKind::Struct && other is FinalTypeKind::Struct -> {
+            (this as FinalTypeKind::Struct).instance.id_wrapper.id == (other as FinalTypeKind::Struct).instance.id_wrapper.id
+        }
+        this is FinalTypeKind::Option && other is FinalTypeKind::Option -> {
+            (this as FinalTypeKind::Option).instance.id_wrapper.id == (other as FinalTypeKind::Option).instance.id_wrapper.id
+        }
+        this is FinalTypeKind::Lambda && other is FinalTypeKind::Lambda -> {
+            (this as FinalTypeKind::Lambda).instance.id_wrapper.id == (other as FinalTypeKind::Lambda).instance.id_wrapper.id
+        }
+        this is FinalTypeKind::Function && other is FinalTypeKind::Function -> {
+            (this as FinalTypeKind::Function).instance.id_wrapper.id == (other as FinalTypeKind::Function).instance.id_wrapper.id
+        }
+        else -> false
+    }
+}
+
 fun FinalType.to_string(): String {
     if kind is FinalTypeKind::Function {
         let builder = StringBuilder::new()

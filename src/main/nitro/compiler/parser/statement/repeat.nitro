@@ -28,12 +28,12 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
 
     // let limit = <count>
     let var_limit = code.add_let(span, "limit", Some(NTypeUsage::simple(span, "Int")))
-    code.add_store_var(span, "", "limit", count, Some(var_limit))
+    code.add_store_var(span, "", "limit", count, Some(var_limit.id))
 
     // let it = 0
     let var_it = code.add_let(span, "it", Some(NTypeUsage::simple(span, "Int")))
     let zero = code.add_lit_int(span, 0)
-    code.add_store_var(span, "", "it", zero.id, Some(var_it))
+    code.add_store_var(span, "", "it", zero.id, Some(var_it.id))
 
     // loop {
     let jumps = code.save_jump_points()
@@ -47,8 +47,8 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     start.block = prev_block
 
     //     if (it < limit) {
-    let load_it = code.add_load_var(span, "", "it", Some(var_it))
-    let load_limit = code.add_load_var(span, "", "limit", Some(var_limit))
+    let load_it = code.add_load_var(span, "", "it", Some(var_it.id))
+    let load_limit = code.add_load_var(span, "", "limit", Some(var_limit.id))
     let condition = code.add_fun_call(span, "", "less_than_signed", [load_it.id, load_limit.id], [])
 
     code.add_if_start(span, condition.id)
@@ -58,13 +58,13 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     let subcode = code.new_child(span)
     subcode.add_comment(span, "defer-start")
 
-    let load_it = subcode.add_load_var(span, "", "it", Some(var_it))
+    let load_it = subcode.add_load_var(span, "", "it", Some(var_it.id))
     let one = subcode.add_lit_int(span, 1)
     let add = subcode.add_fun_call(span, "", "plus", [load_it.id, one.id], [])
-    subcode.add_store_var(span, "", "it", add.id, Some(var_it))
+    subcode.add_store_var(span, "", "it", add.id, Some(var_it.id))
 
     subcode.add_comment(span, "defer-end")
-    code.current_block.deferred_code[] = subcode
+    code.find_block(code.current_block).deferred_code[] = subcode
 
     //       Code in loop...
     read_statement_block(code)?

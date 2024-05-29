@@ -28,7 +28,7 @@ fun Parser.read_defer_statement(code: NCode): Parsed<Nothing> {
     allow_defer = true
     subcode.add_comment(span, "defer-end")
 
-    code.current_block.deferred_code[] = subcode
+    code.find_block(code.current_block).deferred_code[] = subcode
 
     ret found(nothing)
 }

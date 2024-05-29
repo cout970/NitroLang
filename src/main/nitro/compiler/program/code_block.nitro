@@ -3,16 +3,24 @@ type_alias NBlockId = Int
 
 struct NBlock {
     id: NBlockId
-    parent: Optional<NBlock>
+    parent_id: Optional<NBlockId>
     is_jump_target: Boolean
     deferred_code: List<NCode>
-    variable_stack: List<NVar>
+    code: NCode
 }
 
 fun NBlock.get_depth(): Int {
+    let parent = get_parent()
     ret if parent.is_none() { 0 } else { 1 + parent!!.get_depth() }
 }
 
+fun NBlock.get_parent(): Optional<NBlock> {
+    if parent_id.is_none() {
+        ret None()
+    }
+    ret Some(code.find_block(parent_id!!))
+}
+
 fun NBlock.to_string(): String {
-    ret "NBlock @[id: $id, is_jump_target: $is_jump_target, depth: ${get_depth()}]"
+    ret "NBlock @[id: $id, parent_id: $parent_id, is_jump_target: $is_jump_target, depth: $depth]"
 }

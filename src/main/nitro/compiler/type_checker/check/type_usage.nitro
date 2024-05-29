@@ -56,6 +56,12 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): Type {
 
 fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Type {
     let full_name = get_full_path(tu.path, tu.name)
+    let ty = find_type_by_name(full_name, params, tu.span)
+    tu.type_token = Some(ty.to_token())
+    ret ty
+}
+
+fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: Span): Type {
     let path_segments = create_path_segments(full_name)
 
     for segment in path_segments {
@@ -64,9 +70,7 @@ fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Typ
         if params.is_empty() {
             let cache = type_cache[segment]
             if cache.is_some() {
-                let ty = cache!!
-                tu.type_token = Some(ty.to_token())
-                ret ty
+                ret cache!!
             }
         }
 
@@ -82,7 +86,6 @@ fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Typ
                 type_cache[segment] = ty
             }
 
-            tu.type_token = Some(ty.to_token())
             ret ty
         }
 
@@ -96,7 +99,6 @@ fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Typ
                 type_cache[segment] = ty
             }
 
-            tu.type_token = Some(ty.to_token())
             ret ty
         }
 
@@ -114,7 +116,6 @@ fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Typ
                 type_cache[segment] = ty
             }
 
-            tu.type_token = Some(ty.to_token())
             ret ty
         }
 
@@ -137,15 +138,12 @@ fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Typ
                 type_cache[segment] = ty
             }
 
-            tu.type_token = Some(ty.to_token())
             ret ty
         }
     }
 
     // Not found
-    let ty = create_error_type("Type '$full_name' not found", tu.span)
-    tu.type_token = Some(ty.to_token())
-    ret ty
+    ret create_error_type("Type '$full_name' not found", span)
 }
 
 fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<Type> {

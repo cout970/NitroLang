@@ -40,7 +40,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         return_type_usage: NTypeUsage::simple(span, "Nothing"),
         return_type: None(),
         parent_tag: None(),
-        code: NCode::new(span),
+        code: NCode::new(span, name),
         full_name_cache: None(),
     ]
     program.functions[] = def

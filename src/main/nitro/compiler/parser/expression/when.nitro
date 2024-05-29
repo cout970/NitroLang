@@ -64,7 +64,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
             }
 
             branches[] = code.last_expression!!
-            code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var))
+            code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var.id))
 
             ret found(nothing)
         }
@@ -97,7 +97,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
         }
 
         branches[] = code.last_expression!!
-        code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var))
+        code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var.id))
 
         code.add_block_jump(span, false, Some(when_block))
         code.exit_block()
@@ -108,13 +108,13 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     }?
 
     code.exit_block()
-    code.add_when_end(span, branches, Some(when_var))
+    code.add_when_end(span, branches, Some(when_var.id))
 
     if !has_read_else {
         report_error("When expressions must have an 'else' branch", span)
     }
 
-    let inst = code.add_load_var(span, "", "when-result", Some(when_var))
+    let inst = code.add_load_var(span, "", "when-result", Some(when_var.id))
 
     ret found(inst.id)
 }

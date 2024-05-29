@@ -1,7 +1,7 @@
 
-fun WasmBackend.visit_program(main: NFunction) {
+fun WasmBackend.visit_program(main: NFunction): IdWrapper {
     // Start visiting the main function
-    add_task_visit_function(root_ctx.new_child(), main)
+    let index = add_task_visit_function(root_ctx.new_child(main.span), main)
 
     // Run the task queue
     while task_queue.is_not_empty() {
@@ -17,6 +17,8 @@ fun WasmBackend.visit_program(main: NFunction) {
             }
         }
     }
+
+    ret index
 }
 
 fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction): IdWrapper {
@@ -64,7 +66,7 @@ fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
 }
 
 fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NFunction, index: IdWrapper) {
-//    println("Visiting function $key")
+//    Log::debug("Visiting function $key")
     let header = get_function_header(key, index)
 
     // Wasm Function
@@ -88,7 +90,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
 }
 
 fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: IdWrapper) {
-//    println("Visiting const $key")
+//    Log::debug("Visiting const $key")
     let const_type = key.final_type
     let const_size = get_size_of(const_type)
     let const_init = false
@@ -238,19 +240,13 @@ fun WasmBackend.visit_code(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCod
 fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCode, inst: NInst) {
     when {
         inst.kind is NInstKind::Let -> {
-            let nvar: NVar = (inst.kind as NInstKind::Let).variable
+            let nvar: NVar = code.find_var((inst.kind as NInstKind::Let).variable)
             let nvar_type = nvar.type_token!!.find_type()
             let final_type = ctx.convert_type(nvar_type)
 
-            let wvar = WVar @[
-                index: wasm_func.locals_provider.next()
-                kind: WVarKind::Local,
-                name: nvar.name,
-                wasm_type: encode_to_wasm_type(final_type)
-            ]
+            let wvar = wasm_func.add_local(nvar.name, encode_to_wasm_type(final_type))
 
             wasm_func.let_declarations[nvar.id] = wvar
-            wasm_func.locals[] = wvar
         }
         inst.kind is NInstKind::FunCall -> {
             let call_site = (inst.kind as NInstKind::FunCall).call_site!!
@@ -277,7 +273,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             }
 
             // Replace the generic types
-            let sub_ctx = ctx.new_child()
+            let sub_ctx = ctx.new_child(inst.span)
 
             let generics = call_site.call_site_generics
             let generic_replacements = generics.resolved.find_types()
@@ -297,5 +293,24 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
             wasm_func.constants[inst.id] = add_task_visit_const(constant!!)
         }
+        inst.kind is NInstKind::Alloc -> {
+//            let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
+            // DEBUG allows to test the alloc instruction without including all the memory management code
+            let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
+            let index = add_task_visit_function(ctx, func)
+            wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: index]
+        }
     }
+}
+
+fun WFunction.add_local(name: String, wasm_type: WType): WVar {
+    let index = locals_provider.next()
+    let wvar = WVar @[
+        index,
+        kind: WVarKind::Local,
+        name,
+        wasm_type,
+    ]
+    locals[] = wvar
+    ret wvar
 }

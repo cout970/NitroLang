@@ -1,6 +1,6 @@
 
 struct PropertyAccessor {
-    pattern: TypePattern
+    pattern: ResolvedTypePattern
     property_name: String
     func: NFunction
 }
@@ -27,7 +27,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
     if name.starts_with("get_") && func.parameters.len == 1 {
         if !ret_ty.is_nothing() && !ret_ty.is_never() {
             let property_name = name.slice(4, name.bytes_len - 4)
-            let pattern = types.type_to_pattern(receiver_type)
+            let pattern = types.type_to_pattern_ignore_generics(receiver_type)
 
             if property_name !in property_cache.getters {
                 property_cache.getters[property_name] = []
@@ -42,7 +42,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
     if name.starts_with("set_") && func.parameters.len == 2 {
         if ret_ty.is_nothing() || ret_ty == receiver_type {
             let property_name = name.slice(4, name.bytes_len - 4)
-            let pattern = types.type_to_pattern(receiver_type)
+            let pattern = types.type_to_pattern_ignore_generics(receiver_type)
 
             if property_name !in property_cache.setters {
                 property_cache.setters[property_name] = []

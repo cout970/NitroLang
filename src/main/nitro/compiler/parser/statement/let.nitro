@@ -22,7 +22,7 @@ fun Parser.read_let_statement(code: NCode): Parsed<Nothing> {
         skip_token_kind(TokenKind::ASSIGN)?
         let expr = read_expression(code)?
 
-        let inst = code.add_store_var(span, "", name, expr, Some(variable))
+        let inst = code.add_store_var(span, "", name, expr, Some(variable.id))
 
         Some(expr)
     } else {

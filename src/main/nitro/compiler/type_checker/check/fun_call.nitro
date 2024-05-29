@@ -14,7 +14,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
             dup.kind = NInstKind::LoadVar @[
                 path: "",
                 name: kind.name,
-                variable,
+                variable: Some(variable!!.id),
                 constant: None(),
             ]
             dup.type_token = None()

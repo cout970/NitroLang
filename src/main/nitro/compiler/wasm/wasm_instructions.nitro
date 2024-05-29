@@ -282,7 +282,7 @@ fun WasmEmitter.emit_opcode_by_name(name: String) {
         if op.wat == name {
             emit_opcode(op)
             if debug_print {
-                debug_buffer[] = "$name\n"
+                debug_print_line("$name")
             }
             ret
         }
@@ -294,7 +294,7 @@ fun WasmEmitter.add_unreachable() {
     // 0x00 => unreachable
     emit_opcode(WOpcode::Unreachable)
     if debug_print {
-        debug_buffer[] = "unreachable\n"
+        debug_print_line("unreachable")
     }
 }
 
@@ -302,7 +302,7 @@ fun WasmEmitter.add_nop() {
     // 0x01 => nop
     emit_opcode(WOpcode::Nop)
     if debug_print {
-        debug_buffer[] = "nop\n"
+        debug_print_line("nop")
     }
 }
 
@@ -311,7 +311,7 @@ fun WasmEmitter.add_block(block_type: Int) {
     emit_opcode(WOpcode::Block)
     emit_u32(block_type)
     if debug_print {
-        debug_buffer[] = "block $block_type\n"
+        debug_print_line("block $block_type")
     }
 }
 
@@ -320,7 +320,7 @@ fun WasmEmitter.add_loop(block_type: Int) {
     emit_opcode(WOpcode::Loop)
     emit_u32(block_type)
     if debug_print {
-        debug_buffer[] = "loop $block_type\n"
+        debug_print_line("loop $block_type")
     }
 }
 
@@ -329,7 +329,7 @@ fun WasmEmitter.add_if(block_type: Int) {
     emit_opcode(WOpcode::If)
     emit_u32(block_type)
     if debug_print {
-        debug_buffer[] = "if $block_type\n"
+        debug_print_line("if $block_type")
     }
 }
 
@@ -337,7 +337,7 @@ fun WasmEmitter.add_else() {
     // 0x05 => else
     emit_opcode(WOpcode::Else)
     if debug_print {
-        debug_buffer[] = "else\n"
+        debug_print_line("else")
     }
 }
 
@@ -345,23 +345,25 @@ fun WasmEmitter.add_end() {
     // 0x0B => end
     emit_opcode(WOpcode::End)
     if debug_print {
-        debug_buffer[] = "end\n"
+        debug_print_line("end")
     }
 }
 
 fun WasmEmitter.add_br(label: Int) {
     // 0x0C => br label
     emit_opcode(WOpcode::Br)
+    emit_u32(label)
     if debug_print {
-        debug_buffer[] = "br $label\n"
+        debug_print_line("br $label")
     }
 }
 
 fun WasmEmitter.add_br_if(label: Int) {
     // 0x0D => br_if label
     emit_opcode(WOpcode::BrIf)
+    emit_u32(label)
     if debug_print {
-        debug_buffer[] = "br_if $label\n"
+        debug_print_line("br_if $label")
     }
 }
 
@@ -374,7 +376,7 @@ fun WasmEmitter.add_br_table(labels: List<Int>, default_label: Int) {
     }
     emit_u32(default_label)
     if debug_print {
-        debug_buffer[] = "br_table ${labels.join(", ")} $default_label\n"
+        debug_print_line("br_table ${labels.join(", ")} $default_label")
     }
 }
 
@@ -382,7 +384,7 @@ fun WasmEmitter.add_return() {
     // 0x0F => return
     emit_opcode(WOpcode::Return)
     if debug_print {
-        debug_buffer[] = "return\n"
+        debug_print_line("return")
     }
 }
 
@@ -391,7 +393,7 @@ fun WasmEmitter.add_call(func_idx: Int) {
     emit_opcode(WOpcode::Call)
     emit_u32(func_idx)
     if debug_print {
-        debug_buffer[] = "call $func_idx\n"
+        debug_print_line("call $func_idx")
     }
 }
 
@@ -401,7 +403,7 @@ fun WasmEmitter.add_call_indirect(type_idx: Int, table_idx: Int) {
     emit_u32(type_idx)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "call_indirect $type_idx $table_idx\n"
+        debug_print_line("call_indirect $type_idx $table_idx")
     }
 }
 
@@ -410,7 +412,7 @@ fun WasmEmitter.add_ref_null(type_ids: Int) {
     emit_opcode(WOpcode::RefNull)
     emit_u32(type_ids)
     if debug_print {
-        debug_buffer[] = "ref.null $type_ids\n"
+        debug_print_line("ref.null $type_ids")
     }
 }
 
@@ -418,7 +420,7 @@ fun WasmEmitter.add_ref_is_null() {
     // 0xD1 => ref.is_null
     emit_opcode(WOpcode::RefIsNull)
     if debug_print {
-        debug_buffer[] = "ref.is_null\n"
+        debug_print_line("ref.is_null")
     }
 }
 
@@ -427,7 +429,7 @@ fun WasmEmitter.add_ref_func(func_idx: Int) {
     emit_opcode(WOpcode::RefFunc)
     emit_u32(func_idx)
     if debug_print {
-        debug_buffer[] = "ref.func $func_idx\n"
+        debug_print_line("ref.func $func_idx")
     }
 }
 
@@ -435,7 +437,7 @@ fun WasmEmitter.add_drop() {
     // 0x1A => drop
     emit_opcode(WOpcode::Drop)
     if debug_print {
-        debug_buffer[] = "drop\n"
+        debug_print_line("drop")
     }
 }
 
@@ -443,7 +445,7 @@ fun WasmEmitter.add_select() {
     // 0x1B => select
     emit_opcode(WOpcode::Select)
     if debug_print {
-        debug_buffer[] = "select\n"
+        debug_print_line("select")
     }
 }
 
@@ -455,7 +457,7 @@ fun WasmEmitter.add_select_multiple(value_types: List<Int>) {
         emit_u32(value_type)
     }
     if debug_print {
-        debug_buffer[] = "select ${value_types.join(", ")}\n"
+        debug_print_line("select ${value_types.join(", ")}")
     }
 }
 
@@ -464,7 +466,7 @@ fun WasmEmitter.add_local_get(local_idx: Int) {
     emit_opcode(WOpcode::LocalGet)
     emit_u32(local_idx)
     if debug_print {
-        debug_buffer[] = "local.get $local_idx\n"
+        debug_print_line("local.get $local_idx")
     }
 }
 
@@ -473,7 +475,7 @@ fun WasmEmitter.add_local_set(local_idx: Int) {
     emit_opcode(WOpcode::LocalSet)
     emit_u32(local_idx)
     if debug_print {
-        debug_buffer[] = "local.set $local_idx\n"
+        debug_print_line("local.set $local_idx")
     }
 }
 
@@ -482,7 +484,7 @@ fun WasmEmitter.add_local_tee(local_idx: Int) {
     emit_opcode(WOpcode::LocalTee)
     emit_u32(local_idx)
     if debug_print {
-        debug_buffer[] = "local.tee $local_idx\n"
+        debug_print_line("local.tee $local_idx")
     }
 }
 
@@ -491,7 +493,7 @@ fun WasmEmitter.add_global_get(global_idx: Int) {
     emit_opcode(WOpcode::GlobalGet)
     emit_u32(global_idx)
     if debug_print {
-        debug_buffer[] = "global.get $global_idx\n"
+        debug_print_line("global.get $global_idx")
     }
 }
 
@@ -500,7 +502,7 @@ fun WasmEmitter.add_global_set(global_idx: Int) {
     emit_opcode(WOpcode::GlobalSet)
     emit_u32(global_idx)
     if debug_print {
-        debug_buffer[] = "global.set $global_idx\n"
+        debug_print_line("global.set $global_idx")
     }
 }
 
@@ -509,7 +511,7 @@ fun WasmEmitter.add_table_get(table_idx: Int) {
     emit_opcode(WOpcode::TableGet)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.get $table_idx\n"
+        debug_print_line("table.get $table_idx")
     }
 }
 
@@ -518,7 +520,7 @@ fun WasmEmitter.add_table_set(table_idx: Int) {
     emit_opcode(WOpcode::TableSet)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.set $table_idx\n"
+        debug_print_line("table.set $table_idx")
     }
 }
 
@@ -529,7 +531,7 @@ fun WasmEmitter.add_table_init(elem_idx: Int, table_idx: Int) {
     emit_u32(elem_idx)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.init $elem_idx $table_idx\n"
+        debug_print_line("table.init $elem_idx $table_idx")
     }
 }
 
@@ -539,7 +541,7 @@ fun WasmEmitter.add_elem_drop(elem_idx: Int) {
     emit_u32(13)
     emit_u32(elem_idx)
     if debug_print {
-        debug_buffer[] = "elem.drop $elem_idx\n"
+        debug_print_line("elem.drop $elem_idx")
     }
 }
 
@@ -550,7 +552,7 @@ fun WasmEmitter.add_table_copy(src_table_idx: Int, dst_table_idx: Int) {
     emit_u32(src_table_idx)
     emit_u32(dst_table_idx)
     if debug_print {
-        debug_buffer[] = "table.copy $src_table_idx $dst_table_idx\n"
+        debug_print_line("table.copy $src_table_idx $dst_table_idx")
     }
 }
 
@@ -560,7 +562,7 @@ fun WasmEmitter.add_table_grow(table_idx: Int) {
     emit_u32(15)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.grow $table_idx\n"
+        debug_print_line("table.grow $table_idx")
     }
 }
 
@@ -570,7 +572,7 @@ fun WasmEmitter.add_table_size(table_idx: Int) {
     emit_u32(16)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.size $table_idx\n"
+        debug_print_line("table.size $table_idx")
     }
 }
 
@@ -580,7 +582,7 @@ fun WasmEmitter.add_table_fill(table_idx: Int) {
     emit_u32(17)
     emit_u32(table_idx)
     if debug_print {
-        debug_buffer[] = "table.fill $table_idx\n"
+        debug_print_line("table.fill $table_idx")
     }
 }
 
@@ -590,7 +592,7 @@ fun WasmEmitter.add_i32_load(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "i32.load $offset\n"
+        debug_print_line("i32.load $offset")
     }
 }
 
@@ -600,7 +602,7 @@ fun WasmEmitter.add_i64_load(offset: Int) {
     emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
     if debug_print {
-        debug_buffer[] = "i64.load $offset\n"
+        debug_print_line("i64.load $offset")
     }
 }
 
@@ -610,7 +612,7 @@ fun WasmEmitter.add_f32_load(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "f32.load $offset\n"
+        debug_print_line("f32.load $offset")
     }
 }
 
@@ -620,7 +622,7 @@ fun WasmEmitter.add_f64_load(offset: Int) {
     emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
     if debug_print {
-        debug_buffer[] = "f64.load $offset\n"
+        debug_print_line("f64.load $offset")
     }
 }
 
@@ -630,7 +632,7 @@ fun WasmEmitter.add_i32_load8_s(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i32.load8_s $offset\n"
+        debug_print_line("i32.load8_s $offset")
     }
 }
 
@@ -640,7 +642,7 @@ fun WasmEmitter.add_i32_load8_u(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i32.load8_u $offset\n"
+        debug_print_line("i32.load8_u $offset")
     }
 }
 
@@ -650,7 +652,7 @@ fun WasmEmitter.add_i32_load16_s(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i32.load16_s $offset\n"
+        debug_print_line("i32.load16_s $offset")
     }
 }
 
@@ -660,7 +662,7 @@ fun WasmEmitter.add_i32_load16_u(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i32.load16_u $offset\n"
+        debug_print_line("i32.load16_u $offset")
     }
 }
 
@@ -670,7 +672,7 @@ fun WasmEmitter.add_i64_load8_s(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i64.load8_s $offset\n"
+        debug_print_line("i64.load8_s $offset")
     }
 }
 
@@ -680,7 +682,7 @@ fun WasmEmitter.add_i64_load8_u(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i64.load8_u $offset\n"
+        debug_print_line("i64.load8_u $offset")
     }
 }
 
@@ -690,7 +692,7 @@ fun WasmEmitter.add_i64_load16_s(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i64.load16_s $offset\n"
+        debug_print_line("i64.load16_s $offset")
     }
 }
 
@@ -700,7 +702,7 @@ fun WasmEmitter.add_i64_load16_u(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i64.load16_u $offset\n"
+        debug_print_line("i64.load16_u $offset")
     }
 }
 
@@ -710,7 +712,7 @@ fun WasmEmitter.add_i64_load32_s(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "i64.load32_s $offset\n"
+        debug_print_line("i64.load32_s $offset")
     }
 }
 
@@ -720,17 +722,19 @@ fun WasmEmitter.add_i64_load32_u(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "i64.load32_u $offset\n"
+        debug_print_line("i64.load32_u $offset")
     }
 }
 
+
+// Store a i32 value in the given memory location, the order of the operands in the stack is: ptr value -- void
 fun WasmEmitter.add_i32_store(offset: Int) {
     // 0x36 => i32.store memarg
     emit_opcode(WOpcode::I32Store)
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "i32.store $offset\n"
+        debug_print_line("i32.store $offset")
     }
 }
 
@@ -740,7 +744,7 @@ fun WasmEmitter.add_i64_store(offset: Int) {
     emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
     if debug_print {
-        debug_buffer[] = "i64.store $offset\n"
+        debug_print_line("i64.store $offset")
     }
 }
 
@@ -750,7 +754,7 @@ fun WasmEmitter.add_f32_store(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "f32.store $offset\n"
+        debug_print_line("f32.store $offset")
     }
 }
 
@@ -760,7 +764,7 @@ fun WasmEmitter.add_f64_store(offset: Int) {
     emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
     if debug_print {
-        debug_buffer[] = "f64.store $offset\n"
+        debug_print_line("f64.store $offset")
     }
 }
 
@@ -770,7 +774,7 @@ fun WasmEmitter.add_i32_store8(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i32.store8 $offset\n"
+        debug_print_line("i32.store8 $offset")
     }
 }
 
@@ -780,7 +784,7 @@ fun WasmEmitter.add_i32_store16(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i32.store16 $offset\n"
+        debug_print_line("i32.store16 $offset")
     }
 }
 
@@ -790,7 +794,7 @@ fun WasmEmitter.add_i64_store8(offset: Int) {
     emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
     if debug_print {
-        debug_buffer[] = "i64.store8 $offset\n"
+        debug_print_line("i64.store8 $offset")
     }
 }
 
@@ -800,7 +804,7 @@ fun WasmEmitter.add_i64_store16(offset: Int) {
     emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
     if debug_print {
-        debug_buffer[] = "i64.store16 $offset\n"
+        debug_print_line("i64.store16 $offset")
     }
 }
 
@@ -810,7 +814,7 @@ fun WasmEmitter.add_i64_store32(offset: Int) {
     emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
     if debug_print {
-        debug_buffer[] = "i64.store32 $offset\n"
+        debug_print_line("i64.store32 $offset")
     }
 }
 
@@ -819,7 +823,7 @@ fun WasmEmitter.add_memory_size() {
     emit_opcode(WOpcode::MemorySize)
     emit_u32(0)
     if debug_print {
-        debug_buffer[] = "memory.size\n"
+        debug_print_line("memory.size")
     }
 }
 
@@ -828,7 +832,7 @@ fun WasmEmitter.add_memory_grow() {
     emit_opcode(WOpcode::MemoryGrow)
     emit_u32(0)
     if debug_print {
-        debug_buffer[] = "memory.grow\n"
+        debug_print_line("memory.grow")
     }
 }
 
@@ -839,7 +843,7 @@ fun WasmEmitter.add_memory_init(data_idx: Int) {
     emit_u32(data_idx)
     emit_u32(0x00)
     if debug_print {
-        debug_buffer[] = "memory.init $data_idx\n"
+        debug_print_line("memory.init $data_idx")
     }
 }
 
@@ -849,7 +853,7 @@ fun WasmEmitter.add_data_drop(data_idx: Int) {
     emit_u32(9)
     emit_u32(data_idx)
     if debug_print {
-        debug_buffer[] = "data.drop $data_idx\n"
+        debug_print_line("data.drop $data_idx")
     }
 }
 
@@ -860,7 +864,7 @@ fun WasmEmitter.add_memory_copy() {
     emit_u32(0x00)
     emit_u32(0x00)
     if debug_print {
-        debug_buffer[] = "memory.copy\n"
+        debug_print_line("memory.copy")
     }
 }
 
@@ -870,7 +874,7 @@ fun WasmEmitter.add_memory_fill() {
     emit_u32(11)
     emit_u32(0x00)
     if debug_print {
-        debug_buffer[] = "memory.fill\n"
+        debug_print_line("memory.fill")
     }
 }
 
@@ -879,7 +883,7 @@ fun WasmEmitter.add_i32_const(value: Int) {
     emit_opcode(WOpcode::I32Const)
     emit_i32(value)
     if debug_print {
-        debug_buffer[] = "i32.const $value\n"
+        debug_print_line("i32.const $value")
     }
 }
 
@@ -888,7 +892,7 @@ fun WasmEmitter.add_i64_const(value: Long) {
     emit_opcode(WOpcode::I64Const)
     emit_i64(value)
     if debug_print {
-        debug_buffer[] = "i64.const $value\n"
+        debug_print_line("i64.const $value")
     }
 }
 
@@ -897,7 +901,7 @@ fun WasmEmitter.add_f32_const(value: Float) {
     emit_opcode(WOpcode::F32Const)
     emit_f32(value)
     if debug_print {
-        debug_buffer[] = "f32.const $value\n"
+        debug_print_line("f32.const $value")
     }
 }
 
@@ -906,7 +910,7 @@ fun WasmEmitter.add_f64_const(value: Float) {
     emit_opcode(WOpcode::F64Const)
     emit_f64(value)
     if debug_print {
-        debug_buffer[] = "f64.const $value\n"
+        debug_print_line("f64.const $value")
     }
 }
 
@@ -914,7 +918,7 @@ fun WasmEmitter.add_i32_eqz() {
     // 0x45 => i32.eqz
     emit_opcode(WOpcode::I32Eqz)
     if debug_print {
-        debug_buffer[] = "i32.eqz\n"
+        debug_print_line("i32.eqz")
     }
 }
 
@@ -922,7 +926,7 @@ fun WasmEmitter.add_i32_eq() {
     // 0x46 => i32.eq
     emit_opcode(WOpcode::I32Eq)
     if debug_print {
-        debug_buffer[] = "i32.eq\n"
+        debug_print_line("i32.eq")
     }
 }
 
@@ -930,7 +934,7 @@ fun WasmEmitter.add_i32_ne() {
     // 0x47 => i32.ne
     emit_opcode(WOpcode::I32Ne)
     if debug_print {
-        debug_buffer[] = "i32.ne\n"
+        debug_print_line("i32.ne")
     }
 }
 
@@ -938,7 +942,7 @@ fun WasmEmitter.add_i32_lt_s() {
     // 0x48 => i32.lt_s
     emit_opcode(WOpcode::I32LtS)
     if debug_print {
-        debug_buffer[] = "i32.lt_s\n"
+        debug_print_line("i32.lt_s")
     }
 }
 
@@ -946,7 +950,7 @@ fun WasmEmitter.add_i32_lt_u() {
     // 0x49 => i32.lt_u
     emit_opcode(WOpcode::I32LtU)
     if debug_print {
-        debug_buffer[] = "i32.lt_u\n"
+        debug_print_line("i32.lt_u")
     }
 }
 
@@ -954,7 +958,7 @@ fun WasmEmitter.add_i32_gt_s() {
     // 0x4A => i32.gt_s
     emit_opcode(WOpcode::I32GtS)
     if debug_print {
-        debug_buffer[] = "i32.gt_s\n"
+        debug_print_line("i32.gt_s")
     }
 }
 
@@ -962,7 +966,7 @@ fun WasmEmitter.add_i32_gt_u() {
     // 0x4B => i32.gt_u
     emit_opcode(WOpcode::I32GtU)
     if debug_print {
-        debug_buffer[] = "i32.gt_u\n"
+        debug_print_line("i32.gt_u")
     }
 }
 
@@ -970,7 +974,7 @@ fun WasmEmitter.add_i32_le_s() {
     // 0x4C => i32.le_s
     emit_opcode(WOpcode::I32LeS)
     if debug_print {
-        debug_buffer[] = "i32.le_s\n"
+        debug_print_line("i32.le_s")
     }
 }
 
@@ -978,7 +982,7 @@ fun WasmEmitter.add_i32_le_u() {
     // 0x4D => i32.le_u
     emit_opcode(WOpcode::I32LeU)
     if debug_print {
-        debug_buffer[] = "i32.le_u\n"
+        debug_print_line("i32.le_u")
     }
 }
 
@@ -986,7 +990,7 @@ fun WasmEmitter.add_i32_ge_s() {
     // 0x4E => i32.ge_s
     emit_opcode(WOpcode::I32GeS)
     if debug_print {
-        debug_buffer[] = "i32.ge_s\n"
+        debug_print_line("i32.ge_s")
     }
 }
 
@@ -994,7 +998,7 @@ fun WasmEmitter.add_i32_ge_u() {
     // 0x4F => i32.ge_u
     emit_opcode(WOpcode::I32GeU)
     if debug_print {
-        debug_buffer[] = "i32.ge_u\n"
+        debug_print_line("i32.ge_u")
     }
 }
 
@@ -1002,7 +1006,7 @@ fun WasmEmitter.add_i64_eqz() {
     // 0x50 => i64.eqz
     emit_opcode(WOpcode::I64Eqz)
     if debug_print {
-        debug_buffer[] = "i64.eqz\n"
+        debug_print_line("i64.eqz")
     }
 }
 
@@ -1010,7 +1014,7 @@ fun WasmEmitter.add_i64_eq() {
     // 0x51 => i64.eq
     emit_opcode(WOpcode::I64Eq)
     if debug_print {
-        debug_buffer[] = "i64.eq\n"
+        debug_print_line("i64.eq")
     }
 }
 
@@ -1018,7 +1022,7 @@ fun WasmEmitter.add_i64_ne() {
     // 0x52 => i64.ne
     emit_opcode(WOpcode::I64Ne)
     if debug_print {
-        debug_buffer[] = "i64.ne\n"
+        debug_print_line("i64.ne")
     }
 }
 
@@ -1026,7 +1030,7 @@ fun WasmEmitter.add_i64_lt_s() {
     // 0x53 => i64.lt_s
     emit_opcode(WOpcode::I64LtS)
     if debug_print {
-        debug_buffer[] = "i64.lt_s\n"
+        debug_print_line("i64.lt_s")
     }
 }
 
@@ -1034,7 +1038,7 @@ fun WasmEmitter.add_i64_lt_u() {
     // 0x54 => i64.lt_u
     emit_opcode(WOpcode::I64LtU)
     if debug_print {
-        debug_buffer[] = "i64.lt_u\n"
+        debug_print_line("i64.lt_u")
     }
 }
 
@@ -1042,7 +1046,7 @@ fun WasmEmitter.add_i64_gt_s() {
     // 0x55 => i64.gt_s
     emit_opcode(WOpcode::I64GtS)
     if debug_print {
-        debug_buffer[] = "i64.gt_s\n"
+        debug_print_line("i64.gt_s")
     }
 }
 
@@ -1050,7 +1054,7 @@ fun WasmEmitter.add_i64_gt_u() {
     // 0x56 => i64.gt_u
     emit_opcode(WOpcode::I64GtU)
     if debug_print {
-        debug_buffer[] = "i64.gt_u\n"
+        debug_print_line("i64.gt_u")
     }
 }
 
@@ -1058,7 +1062,7 @@ fun WasmEmitter.add_i64_le_s() {
     // 0x57 => i64.le_s
     emit_opcode(WOpcode::I64LeS)
     if debug_print {
-        debug_buffer[] = "i64.le_s\n"
+        debug_print_line("i64.le_s")
     }
 }
 
@@ -1066,7 +1070,7 @@ fun WasmEmitter.add_i64_le_u() {
     // 0x58 => i64.le_u
     emit_opcode(WOpcode::I64LeU)
     if debug_print {
-        debug_buffer[] = "i64.le_u\n"
+        debug_print_line("i64.le_u")
     }
 }
 
@@ -1074,7 +1078,7 @@ fun WasmEmitter.add_i64_ge_s() {
     // 0x59 => i64.ge_s
     emit_opcode(WOpcode::I64GeS)
     if debug_print {
-        debug_buffer[] = "i64.ge_s\n"
+        debug_print_line("i64.ge_s")
     }
 }
 
@@ -1082,7 +1086,7 @@ fun WasmEmitter.add_i64_ge_u() {
     // 0x5A => i64.ge_u
     emit_opcode(WOpcode::I64GeU)
     if debug_print {
-        debug_buffer[] = "i64.ge_u\n"
+        debug_print_line("i64.ge_u")
     }
 }
 
@@ -1090,7 +1094,7 @@ fun WasmEmitter.add_f32_eq() {
     // 0x5B => f32.eq
     emit_opcode(WOpcode::F32Eq)
     if debug_print {
-        debug_buffer[] = "f32.eq\n"
+        debug_print_line("f32.eq")
     }
 }
 
@@ -1098,7 +1102,7 @@ fun WasmEmitter.add_f32_ne() {
     // 0x5C => f32.ne
     emit_opcode(WOpcode::F32Ne)
     if debug_print {
-        debug_buffer[] = "f32.ne\n"
+        debug_print_line("f32.ne")
     }
 }
 
@@ -1106,7 +1110,7 @@ fun WasmEmitter.add_f32_lt() {
     // 0x5D => f32.lt
     emit_opcode(WOpcode::F32Lt)
     if debug_print {
-        debug_buffer[] = "f32.lt\n"
+        debug_print_line("f32.lt")
     }
 }
 
@@ -1114,7 +1118,7 @@ fun WasmEmitter.add_f32_gt() {
     // 0x5E => f32.gt
     emit_opcode(WOpcode::F32Gt)
     if debug_print {
-        debug_buffer[] = "f32.gt\n"
+        debug_print_line("f32.gt")
     }
 }
 
@@ -1122,7 +1126,7 @@ fun WasmEmitter.add_f32_le() {
     // 0x5F => f32.le
     emit_opcode(WOpcode::F32Le)
     if debug_print {
-        debug_buffer[] = "f32.le\n"
+        debug_print_line("f32.le")
     }
 }
 
@@ -1130,7 +1134,7 @@ fun WasmEmitter.add_f32_ge() {
     // 0x60 => f32.ge
     emit_opcode(WOpcode::F32Ge)
     if debug_print {
-        debug_buffer[] = "f32.ge\n"
+        debug_print_line("f32.ge")
     }
 }
 
@@ -1138,7 +1142,7 @@ fun WasmEmitter.add_f64_eq() {
     // 0x61 => f64.eq
     emit_opcode(WOpcode::F64Eq)
     if debug_print {
-        debug_buffer[] = "f64.eq\n"
+        debug_print_line("f64.eq")
     }
 }
 
@@ -1146,7 +1150,7 @@ fun WasmEmitter.add_f64_ne() {
     // 0x62 => f64.ne
     emit_opcode(WOpcode::F64Ne)
     if debug_print {
-        debug_buffer[] = "f64.ne\n"
+        debug_print_line("f64.ne")
     }
 }
 
@@ -1154,7 +1158,7 @@ fun WasmEmitter.add_f64_lt() {
     // 0x63 => f64.lt
     emit_opcode(WOpcode::F64Lt)
     if debug_print {
-        debug_buffer[] = "f64.lt\n"
+        debug_print_line("f64.lt")
     }
 }
 
@@ -1162,7 +1166,7 @@ fun WasmEmitter.add_f64_gt() {
     // 0x64 => f64.gt
     emit_opcode(WOpcode::F64Gt)
     if debug_print {
-        debug_buffer[] = "f64.gt\n"
+        debug_print_line("f64.gt")
     }
 }
 
@@ -1170,7 +1174,7 @@ fun WasmEmitter.add_f64_le() {
     // 0x65 => f64.le
     emit_opcode(WOpcode::F64Le)
     if debug_print {
-        debug_buffer[] = "f64.le\n"
+        debug_print_line("f64.le")
     }
 }
 
@@ -1178,7 +1182,7 @@ fun WasmEmitter.add_f64_ge() {
     // 0x66 => f64.ge
     emit_opcode(WOpcode::F64Ge)
     if debug_print {
-        debug_buffer[] = "f64.ge\n"
+        debug_print_line("f64.ge")
     }
 }
 
@@ -1186,7 +1190,7 @@ fun WasmEmitter.add_i32_clz() {
     // 0x67 => i32.clz
     emit_opcode(WOpcode::I32Clz)
     if debug_print {
-        debug_buffer[] = "i32.clz\n"
+        debug_print_line("i32.clz")
     }
 }
 
@@ -1194,7 +1198,7 @@ fun WasmEmitter.add_i32_ctz() {
     // 0x68 => i32.ctz
     emit_opcode(WOpcode::I32Ctz)
     if debug_print {
-        debug_buffer[] = "i32.ctz\n"
+        debug_print_line("i32.ctz")
     }
 }
 
@@ -1202,7 +1206,7 @@ fun WasmEmitter.add_i32_popcnt() {
     // 0x69 => i32.popcnt
     emit_opcode(WOpcode::I32Popcnt)
     if debug_print {
-        debug_buffer[] = "i32.popcnt\n"
+        debug_print_line("i32.popcnt")
     }
 }
 
@@ -1210,7 +1214,7 @@ fun WasmEmitter.add_i32_add() {
     // 0x6A => i32.add
     emit_opcode(WOpcode::I32Add)
     if debug_print {
-        debug_buffer[] = "i32.add\n"
+        debug_print_line("i32.add")
     }
 }
 
@@ -1218,7 +1222,7 @@ fun WasmEmitter.add_i32_sub() {
     // 0x6B => i32.sub
     emit_opcode(WOpcode::I32Sub)
     if debug_print {
-        debug_buffer[] = "i32.sub\n"
+        debug_print_line("i32.sub")
     }
 }
 
@@ -1226,7 +1230,7 @@ fun WasmEmitter.add_i32_mul() {
     // 0x6C => i32.mul
     emit_opcode(WOpcode::I32Mul)
     if debug_print {
-        debug_buffer[] = "i32.mul\n"
+        debug_print_line("i32.mul")
     }
 }
 
@@ -1234,7 +1238,7 @@ fun WasmEmitter.add_i32_div_s() {
     // 0x6D => i32.div_s
     emit_opcode(WOpcode::I32DivS)
     if debug_print {
-        debug_buffer[] = "i32.div_s\n"
+        debug_print_line("i32.div_s")
     }
 }
 
@@ -1242,7 +1246,7 @@ fun WasmEmitter.add_i32_div_u() {
     // 0x6E => i32.div_u
     emit_opcode(WOpcode::I32DivU)
     if debug_print {
-        debug_buffer[] = "i32.div_u\n"
+        debug_print_line("i32.div_u")
     }
 }
 
@@ -1250,7 +1254,7 @@ fun WasmEmitter.add_i32_rem_s() {
     // 0x6F => i32.rem_s
     emit_opcode(WOpcode::I32RemS)
     if debug_print {
-        debug_buffer[] = "i32.rem_s\n"
+        debug_print_line("i32.rem_s")
     }
 }
 
@@ -1258,7 +1262,7 @@ fun WasmEmitter.add_i32_rem_u() {
     // 0x70 => i32.rem_u
     emit_opcode(WOpcode::I32RemU)
     if debug_print {
-        debug_buffer[] = "i32.rem_u\n"
+        debug_print_line("i32.rem_u")
     }
 }
 
@@ -1266,7 +1270,7 @@ fun WasmEmitter.add_i32_and() {
     // 0x71 => i32.and
     emit_opcode(WOpcode::I32And)
     if debug_print {
-        debug_buffer[] = "i32.and\n"
+        debug_print_line("i32.and")
     }
 }
 
@@ -1274,7 +1278,7 @@ fun WasmEmitter.add_i32_or() {
     // 0x72 => i32.or
     emit_opcode(WOpcode::I32Or)
     if debug_print {
-        debug_buffer[] = "i32.or\n"
+        debug_print_line("i32.or")
     }
 }
 
@@ -1282,7 +1286,7 @@ fun WasmEmitter.add_i32_xor() {
     // 0x73 => i32.xor
     emit_opcode(WOpcode::I32Xor)
     if debug_print {
-        debug_buffer[] = "i32.xor\n"
+        debug_print_line("i32.xor")
     }
 }
 
@@ -1290,7 +1294,7 @@ fun WasmEmitter.add_i32_shl() {
     // 0x74 => i32.shl
     emit_opcode(WOpcode::I32Shl)
     if debug_print {
-        debug_buffer[] = "i32.shl\n"
+        debug_print_line("i32.shl")
     }
 }
 
@@ -1298,7 +1302,7 @@ fun WasmEmitter.add_i32_shr_s() {
     // 0x75 => i32.shr_s
     emit_opcode(WOpcode::I32ShrS)
     if debug_print {
-        debug_buffer[] = "i32.shr_s\n"
+        debug_print_line("i32.shr_s")
     }
 }
 
@@ -1306,7 +1310,7 @@ fun WasmEmitter.add_i32_shr_u() {
     // 0x76 => i32.shr_u
     emit_opcode(WOpcode::I32ShrU)
     if debug_print {
-        debug_buffer[] = "i32.shr_u\n"
+        debug_print_line("i32.shr_u")
     }
 }
 
@@ -1314,7 +1318,7 @@ fun WasmEmitter.add_i32_rotl() {
     // 0x77 => i32.rotl
     emit_opcode(WOpcode::I32Rotl)
     if debug_print {
-        debug_buffer[] = "i32.rotl\n"
+        debug_print_line("i32.rotl")
     }
 }
 
@@ -1322,7 +1326,7 @@ fun WasmEmitter.add_i32_rotr() {
     // 0x78 => i32.rotr
     emit_opcode(WOpcode::I32Rotr)
     if debug_print {
-        debug_buffer[] = "i32.rotr\n"
+        debug_print_line("i32.rotr")
     }
 }
 
@@ -1330,7 +1334,7 @@ fun WasmEmitter.add_i64_clz() {
     // 0x79 => i64.clz
     emit_opcode(WOpcode::I64Clz)
     if debug_print {
-        debug_buffer[] = "i64.clz\n"
+        debug_print_line("i64.clz")
     }
 }
 
@@ -1338,7 +1342,7 @@ fun WasmEmitter.add_i64_ctz() {
     // 0x7A => i64.ctz
     emit_opcode(WOpcode::I64Ctz)
     if debug_print {
-        debug_buffer[] = "i64.ctz\n"
+        debug_print_line("i64.ctz")
     }
 }
 
@@ -1346,7 +1350,7 @@ fun WasmEmitter.add_i64_popcnt() {
     // 0x7B => i64.popcnt
     emit_opcode(WOpcode::I64Popcnt)
     if debug_print {
-        debug_buffer[] = "i64.popcnt\n"
+        debug_print_line("i64.popcnt")
     }
 }
 
@@ -1354,7 +1358,7 @@ fun WasmEmitter.add_i64_add() {
     // 0x7C => i64.add
     emit_opcode(WOpcode::I64Add)
     if debug_print {
-        debug_buffer[] = "i64.add\n"
+        debug_print_line("i64.add")
     }
 }
 
@@ -1362,7 +1366,7 @@ fun WasmEmitter.add_i64_sub() {
     // 0x7D => i64.sub
     emit_opcode(WOpcode::I64Sub)
     if debug_print {
-        debug_buffer[] = "i64.sub\n"
+        debug_print_line("i64.sub")
     }
 }
 
@@ -1370,7 +1374,7 @@ fun WasmEmitter.add_i64_mul() {
     // 0x7E => i64.mul
     emit_opcode(WOpcode::I64Mul)
     if debug_print {
-        debug_buffer[] = "i64.mul\n"
+        debug_print_line("i64.mul")
     }
 }
 
@@ -1378,7 +1382,7 @@ fun WasmEmitter.add_i64_div_s() {
     // 0x7F => i64.div_s
     emit_opcode(WOpcode::I64DivS)
     if debug_print {
-        debug_buffer[] = "i64.div_s\n"
+        debug_print_line("i64.div_s")
     }
 }
 
@@ -1386,7 +1390,7 @@ fun WasmEmitter.add_i64_div_u() {
     // 0x80 => i64.div_u
     emit_opcode(WOpcode::I64DivU)
     if debug_print {
-        debug_buffer[] = "i64.div_u\n"
+        debug_print_line("i64.div_u")
     }
 }
 
@@ -1394,7 +1398,7 @@ fun WasmEmitter.add_i64_rem_s() {
     // 0x81 => i64.rem_s
     emit_opcode(WOpcode::I64RemS)
     if debug_print {
-        debug_buffer[] = "i64.rem_s\n"
+        debug_print_line("i64.rem_s")
     }
 }
 
@@ -1402,7 +1406,7 @@ fun WasmEmitter.add_i64_rem_u() {
     // 0x82 => i64.rem_u
     emit_opcode(WOpcode::I64RemU)
     if debug_print {
-        debug_buffer[] = "i64.rem_u\n"
+        debug_print_line("i64.rem_u")
     }
 }
 
@@ -1410,7 +1414,7 @@ fun WasmEmitter.add_i64_and() {
     // 0x83 => i64.and
     emit_opcode(WOpcode::I64And)
     if debug_print {
-        debug_buffer[] = "i64.and\n"
+        debug_print_line("i64.and")
     }
 }
 
@@ -1418,7 +1422,7 @@ fun WasmEmitter.add_i64_or() {
     // 0x84 => i64.or
     emit_opcode(WOpcode::I64Or)
     if debug_print {
-        debug_buffer[] = "i64.or\n"
+        debug_print_line("i64.or")
     }
 }
 
@@ -1426,7 +1430,7 @@ fun WasmEmitter.add_i64_xor() {
     // 0x85 => i64.xor
     emit_opcode(WOpcode::I64Xor)
     if debug_print {
-        debug_buffer[] = "i64.xor\n"
+        debug_print_line("i64.xor")
     }
 }
 
@@ -1434,7 +1438,7 @@ fun WasmEmitter.add_i64_shl() {
     // 0x86 => i64.shl
     emit_opcode(WOpcode::I64Shl)
     if debug_print {
-        debug_buffer[] = "i64.shl\n"
+        debug_print_line("i64.shl")
     }
 }
 
@@ -1442,7 +1446,7 @@ fun WasmEmitter.add_i64_shr_s() {
     // 0x87 => i64.shr_s
     emit_opcode(WOpcode::I64ShrS)
     if debug_print {
-        debug_buffer[] = "i64.shr_s\n"
+        debug_print_line("i64.shr_s")
     }
 }
 
@@ -1450,7 +1454,7 @@ fun WasmEmitter.add_i64_shr_u() {
     // 0x88 => i64.shr_u
     emit_opcode(WOpcode::I64ShrU)
     if debug_print {
-        debug_buffer[] = "i64.shr_u\n"
+        debug_print_line("i64.shr_u")
     }
 }
 
@@ -1458,7 +1462,7 @@ fun WasmEmitter.add_i64_rotl() {
     // 0x89 => i64.rotl
     emit_opcode(WOpcode::I64Rotl)
     if debug_print {
-        debug_buffer[] = "i64.rotl\n"
+        debug_print_line("i64.rotl")
     }
 }
 
@@ -1466,7 +1470,7 @@ fun WasmEmitter.add_i64_rotr() {
     // 0x8A => i64.rotr
     emit_opcode(WOpcode::I64Rotr)
     if debug_print {
-        debug_buffer[] = "i64.rotr\n"
+        debug_print_line("i64.rotr")
     }
 }
 
@@ -1474,7 +1478,7 @@ fun WasmEmitter.add_f32_abs() {
     // 0x8B => f32.abs
     emit_opcode(WOpcode::F32Abs)
     if debug_print {
-        debug_buffer[] = "f32.abs\n"
+        debug_print_line("f32.abs")
     }
 }
 
@@ -1482,7 +1486,7 @@ fun WasmEmitter.add_f32_neg() {
     // 0x8C => f32.neg
     emit_opcode(WOpcode::F32Neg)
     if debug_print {
-        debug_buffer[] = "f32.neg\n"
+        debug_print_line("f32.neg")
     }
 }
 
@@ -1490,7 +1494,7 @@ fun WasmEmitter.add_f32_ceil() {
     // 0x8D => f32.ceil
     emit_opcode(WOpcode::F32Ceil)
     if debug_print {
-        debug_buffer[] = "f32.ceil\n"
+        debug_print_line("f32.ceil")
     }
 }
 
@@ -1498,7 +1502,7 @@ fun WasmEmitter.add_f32_floor() {
     // 0x8E => f32.floor
     emit_opcode(WOpcode::F32Floor)
     if debug_print {
-        debug_buffer[] = "f32.floor\n"
+        debug_print_line("f32.floor")
     }
 }
 
@@ -1506,7 +1510,7 @@ fun WasmEmitter.add_f32_trunc() {
     // 0x8F => f32.trunc
     emit_opcode(WOpcode::F32Trunc)
     if debug_print {
-        debug_buffer[] = "f32.trunc\n"
+        debug_print_line("f32.trunc")
     }
 }
 
@@ -1514,7 +1518,7 @@ fun WasmEmitter.add_f32_nearest() {
     // 0x90 => f32.nearest
     emit_opcode(WOpcode::F32Nearest)
     if debug_print {
-        debug_buffer[] = "f32.nearest\n"
+        debug_print_line("f32.nearest")
     }
 }
 
@@ -1522,7 +1526,7 @@ fun WasmEmitter.add_f32_sqrt() {
     // 0x91 => f32.sqrt
     emit_opcode(WOpcode::F32Sqrt)
     if debug_print {
-        debug_buffer[] = "f32.sqrt\n"
+        debug_print_line("f32.sqrt")
     }
 }
 
@@ -1530,7 +1534,7 @@ fun WasmEmitter.add_f32_add() {
     // 0x92 => f32.add
     emit_opcode(WOpcode::F32Add)
     if debug_print {
-        debug_buffer[] = "f32.add\n"
+        debug_print_line("f32.add")
     }
 }
 
@@ -1538,7 +1542,7 @@ fun WasmEmitter.add_f32_sub() {
     // 0x93 => f32.sub
     emit_opcode(WOpcode::F32Sub)
     if debug_print {
-        debug_buffer[] = "f32.sub\n"
+        debug_print_line("f32.sub")
     }
 }
 
@@ -1546,7 +1550,7 @@ fun WasmEmitter.add_f32_mul() {
     // 0x94 => f32.mul
     emit_opcode(WOpcode::F32Mul)
     if debug_print {
-        debug_buffer[] = "f32.mul\n"
+        debug_print_line("f32.mul")
     }
 }
 
@@ -1554,7 +1558,7 @@ fun WasmEmitter.add_f32_div() {
     // 0x95 => f32.div
     emit_opcode(WOpcode::F32Div)
     if debug_print {
-        debug_buffer[] = "f32.div\n"
+        debug_print_line("f32.div")
     }
 }
 
@@ -1562,7 +1566,7 @@ fun WasmEmitter.add_f32_min() {
     // 0x96 => f32.min
     emit_opcode(WOpcode::F32Min)
     if debug_print {
-        debug_buffer[] = "f32.min\n"
+        debug_print_line("f32.min")
     }
 }
 
@@ -1570,7 +1574,7 @@ fun WasmEmitter.add_f32_max() {
     // 0x97 => f32.max
     emit_opcode(WOpcode::F32Max)
     if debug_print {
-        debug_buffer[] = "f32.max\n"
+        debug_print_line("f32.max")
     }
 }
 
@@ -1578,7 +1582,7 @@ fun WasmEmitter.add_f32_copysign() {
     // 0x98 => f32.copysign
     emit_opcode(WOpcode::F32Copysign)
     if debug_print {
-        debug_buffer[] = "f32.copysign\n"
+        debug_print_line("f32.copysign")
     }
 }
 
@@ -1586,7 +1590,7 @@ fun WasmEmitter.add_f64_abs() {
     // 0x99 => f64.abs
     emit_opcode(WOpcode::F64Abs)
     if debug_print {
-        debug_buffer[] = "f64.abs\n"
+        debug_print_line("f64.abs")
     }
 }
 
@@ -1594,7 +1598,7 @@ fun WasmEmitter.add_f64_neg() {
     // 0x9A => f64.neg
     emit_opcode(WOpcode::F64Neg)
     if debug_print {
-        debug_buffer[] = "f64.neg\n"
+        debug_print_line("f64.neg")
     }
 }
 
@@ -1602,7 +1606,7 @@ fun WasmEmitter.add_f64_ceil() {
     // 0x9B => f64.ceil
     emit_opcode(WOpcode::F64Ceil)
     if debug_print {
-        debug_buffer[] = "f64.ceil\n"
+        debug_print_line("f64.ceil")
     }
 }
 
@@ -1610,7 +1614,7 @@ fun WasmEmitter.add_f64_floor() {
     // 0x9C => f64.floor
     emit_opcode(WOpcode::F64Floor)
     if debug_print {
-        debug_buffer[] = "f64.floor\n"
+        debug_print_line("f64.floor")
     }
 }
 
@@ -1618,7 +1622,7 @@ fun WasmEmitter.add_f64_trunc() {
     // 0x9D => f64.trunc
     emit_opcode(WOpcode::F64Trunc)
     if debug_print {
-        debug_buffer[] = "f64.trunc\n"
+        debug_print_line("f64.trunc")
     }
 }
 
@@ -1626,7 +1630,7 @@ fun WasmEmitter.add_f64_nearest() {
     // 0x9E => f64.nearest
     emit_opcode(WOpcode::F64Nearest)
     if debug_print {
-        debug_buffer[] = "f64.nearest\n"
+        debug_print_line("f64.nearest")
     }
 }
 
@@ -1634,7 +1638,7 @@ fun WasmEmitter.add_f64_sqrt() {
     // 0x9F => f64.sqrt
     emit_opcode(WOpcode::F64Sqrt)
     if debug_print {
-        debug_buffer[] = "f64.sqrt\n"
+        debug_print_line("f64.sqrt")
     }
 }
 
@@ -1642,7 +1646,7 @@ fun WasmEmitter.add_f64_add() {
     // 0xA0 => f64.add
     emit_opcode(WOpcode::F64Add)
     if debug_print {
-        debug_buffer[] = "f64.add\n"
+        debug_print_line("f64.add")
     }
 }
 
@@ -1650,7 +1654,7 @@ fun WasmEmitter.add_f64_sub() {
     // 0xA1 => f64.sub
     emit_opcode(WOpcode::F64Sub)
     if debug_print {
-        debug_buffer[] = "f64.sub\n"
+        debug_print_line("f64.sub")
     }
 }
 
@@ -1658,7 +1662,7 @@ fun WasmEmitter.add_f64_mul() {
     // 0xA2 => f64.mul
     emit_opcode(WOpcode::F64Mul)
     if debug_print {
-        debug_buffer[] = "f64.mul\n"
+        debug_print_line("f64.mul")
     }
 }
 
@@ -1666,7 +1670,7 @@ fun WasmEmitter.add_f64_div() {
     // 0xA3 => f64.div
     emit_opcode(WOpcode::F64Div)
     if debug_print {
-        debug_buffer[] = "f64.div\n"
+        debug_print_line("f64.div")
     }
 }
 
@@ -1674,7 +1678,7 @@ fun WasmEmitter.add_f64_min() {
     // 0xA4 => f64.min
     emit_opcode(WOpcode::F64Min)
     if debug_print {
-        debug_buffer[] = "f64.min\n"
+        debug_print_line("f64.min")
     }
 }
 
@@ -1682,7 +1686,7 @@ fun WasmEmitter.add_f64_max() {
     // 0xA5 => f64.max
     emit_opcode(WOpcode::F64Max)
     if debug_print {
-        debug_buffer[] = "f64.max\n"
+        debug_print_line("f64.max")
     }
 }
 
@@ -1690,7 +1694,7 @@ fun WasmEmitter.add_f64_copysign() {
     // 0xA6 => f64.copysign
     emit_opcode(WOpcode::F64Copysign)
     if debug_print {
-        debug_buffer[] = "f64.copysign\n"
+        debug_print_line("f64.copysign")
     }
 }
 
@@ -1698,7 +1702,7 @@ fun WasmEmitter.add_i32_wrap_i64() {
     // 0xA7 => i32.wrap_i64
     emit_opcode(WOpcode::I32WrapI64)
     if debug_print {
-        debug_buffer[] = "i32.wrap_i64\n"
+        debug_print_line("i32.wrap_i64")
     }
 }
 
@@ -1706,7 +1710,7 @@ fun WasmEmitter.add_i32_trunc_f32_s() {
     // 0xA8 => i32.trunc_f32_s
     emit_opcode(WOpcode::I32TruncF32S)
     if debug_print {
-        debug_buffer[] = "i32.trunc_f32_s\n"
+        debug_print_line("i32.trunc_f32_s")
     }
 }
 
@@ -1714,7 +1718,7 @@ fun WasmEmitter.add_i32_trunc_f32_u() {
     // 0xA9 => i32.trunc_f32_u
     emit_opcode(WOpcode::I32TruncF32U)
     if debug_print {
-        debug_buffer[] = "i32.trunc_f32_u\n"
+        debug_print_line("i32.trunc_f32_u")
     }
 }
 
@@ -1722,7 +1726,7 @@ fun WasmEmitter.add_i32_trunc_f64_s() {
     // 0xAA => i32.trunc_f64_s
     emit_opcode(WOpcode::I32TruncF64S)
     if debug_print {
-        debug_buffer[] = "i32.trunc_f64_s\n"
+        debug_print_line("i32.trunc_f64_s")
     }
 }
 
@@ -1730,7 +1734,7 @@ fun WasmEmitter.add_i32_trunc_f64_u() {
     // 0xAB => i32.trunc_f64_u
     emit_opcode(WOpcode::I32TruncF64U)
     if debug_print {
-        debug_buffer[] = "i32.trunc_f64_u\n"
+        debug_print_line("i32.trunc_f64_u")
     }
 }
 
@@ -1738,7 +1742,7 @@ fun WasmEmitter.add_i64_extend_i32_s() {
     // 0xAC => i64.extend_i32_s
     emit_opcode(WOpcode::I64ExtendI32S)
     if debug_print {
-        debug_buffer[] = "i64.extend_i32_s\n"
+        debug_print_line("i64.extend_i32_s")
     }
 }
 
@@ -1746,7 +1750,7 @@ fun WasmEmitter.add_i64_extend_i32_u() {
     // 0xAD => i64.extend_i32_u
     emit_opcode(WOpcode::I64ExtendI32U)
     if debug_print {
-        debug_buffer[] = "i64.extend_i32_u\n"
+        debug_print_line("i64.extend_i32_u")
     }
 }
 
@@ -1754,7 +1758,7 @@ fun WasmEmitter.add_i64_trunc_f32_s() {
     // 0xAE => i64.trunc_f32_s
     emit_opcode(WOpcode::I64TruncF32S)
     if debug_print {
-        debug_buffer[] = "i64.trunc_f32_s\n"
+        debug_print_line("i64.trunc_f32_s")
     }
 }
 
@@ -1762,7 +1766,7 @@ fun WasmEmitter.add_i64_trunc_f32_u() {
     // 0xAF => i64.trunc_f32_u
     emit_opcode(WOpcode::I64TruncF32U)
     if debug_print {
-        debug_buffer[] = "i64.trunc_f32_u\n"
+        debug_print_line("i64.trunc_f32_u")
     }
 }
 
@@ -1770,7 +1774,7 @@ fun WasmEmitter.add_i64_trunc_f64_s() {
     // 0xB0 => i64.trunc_f64_s
     emit_opcode(WOpcode::I64TruncF64S)
     if debug_print {
-        debug_buffer[] = "i64.trunc_f64_s\n"
+        debug_print_line("i64.trunc_f64_s")
     }
 }
 
@@ -1778,7 +1782,7 @@ fun WasmEmitter.add_i64_trunc_f64_u() {
     // 0xB1 => i64.trunc_f64_u
     emit_opcode(WOpcode::I64TruncF64U)
     if debug_print {
-        debug_buffer[] = "i64.trunc_f64_u\n"
+        debug_print_line("i64.trunc_f64_u")
     }
 }
 
@@ -1786,7 +1790,7 @@ fun WasmEmitter.add_f32_convert_i32_s() {
     // 0xB2 => f32.convert_i32_s
     emit_opcode(WOpcode::F32ConvertI32S)
     if debug_print {
-        debug_buffer[] = "f32.convert_i32_s\n"
+        debug_print_line("f32.convert_i32_s")
     }
 }
 
@@ -1794,7 +1798,7 @@ fun WasmEmitter.add_f32_convert_i32_u() {
     // 0xB3 => f32.convert_i32_u
     emit_opcode(WOpcode::F32ConvertI32U)
     if debug_print {
-        debug_buffer[] = "f32.convert_i32_u\n"
+        debug_print_line("f32.convert_i32_u")
     }
 }
 
@@ -1802,7 +1806,7 @@ fun WasmEmitter.add_f32_convert_i64_s() {
     // 0xB4 => f32.convert_i64_s
     emit_opcode(WOpcode::F32ConvertI64S)
     if debug_print {
-        debug_buffer[] = "f32.convert_i64_s\n"
+        debug_print_line("f32.convert_i64_s")
     }
 }
 
@@ -1810,7 +1814,7 @@ fun WasmEmitter.add_f32_convert_i64_u() {
     // 0xB5 => f32.convert_i64_u
     emit_opcode(WOpcode::F32ConvertI64U)
     if debug_print {
-        debug_buffer[] = "f32.convert_i64_u\n"
+        debug_print_line("f32.convert_i64_u")
     }
 }
 
@@ -1818,7 +1822,7 @@ fun WasmEmitter.add_f32_demote_f64() {
     // 0xB6 => f32.demote_f64
     emit_opcode(WOpcode::F32DemoteF64)
     if debug_print {
-        debug_buffer[] = "f32.demote_f64\n"
+        debug_print_line("f32.demote_f64")
     }
 }
 
@@ -1826,7 +1830,7 @@ fun WasmEmitter.add_f64_convert_i32_s() {
     // 0xB7 => f64.convert_i32_s
     emit_opcode(WOpcode::F64ConvertI32S)
     if debug_print {
-        debug_buffer[] = "f64.convert_i32_s\n"
+        debug_print_line("f64.convert_i32_s")
     }
 }
 
@@ -1834,7 +1838,7 @@ fun WasmEmitter.add_f64_convert_i32_u() {
     // 0xB8 => f64.convert_i32_u
     emit_opcode(WOpcode::F64ConvertI32U)
     if debug_print {
-        debug_buffer[] = "f64.convert_i32_u\n"
+        debug_print_line("f64.convert_i32_u")
     }
 }
 
@@ -1842,7 +1846,7 @@ fun WasmEmitter.add_f64_convert_i64_s() {
     // 0xB9 => f64.convert_i64_s
     emit_opcode(WOpcode::F64ConvertI64S)
     if debug_print {
-        debug_buffer[] = "f64.convert_i64_s\n"
+        debug_print_line("f64.convert_i64_s")
     }
 }
 
@@ -1850,7 +1854,7 @@ fun WasmEmitter.add_f64_convert_i64_u() {
     // 0xBA => f64.convert_i64_u
     emit_opcode(WOpcode::F64ConvertI64U)
     if debug_print {
-        debug_buffer[] = "f64.convert_i64_u\n"
+        debug_print_line("f64.convert_i64_u")
     }
 }
 
@@ -1858,7 +1862,7 @@ fun WasmEmitter.add_f64_promote_f32() {
     // 0xBB => f64.promote_f32
     emit_opcode(WOpcode::F64PromoteF32)
     if debug_print {
-        debug_buffer[] = "f64.promote_f32\n"
+        debug_print_line("f64.promote_f32")
     }
 }
 
@@ -1866,7 +1870,7 @@ fun WasmEmitter.add_i32_reinterpret_f32() {
     // 0xBC => i32.reinterpret_f32
     emit_opcode(WOpcode::I32ReinterpretF32)
     if debug_print {
-        debug_buffer[] = "i32.reinterpret_f32\n"
+        debug_print_line("i32.reinterpret_f32")
     }
 }
 
@@ -1874,7 +1878,7 @@ fun WasmEmitter.add_i64_reinterpret_f64() {
     // 0xBD => i64.reinterpret_f64
     emit_opcode(WOpcode::I64ReinterpretF64)
     if debug_print {
-        debug_buffer[] = "i64.reinterpret_f64\n"
+        debug_print_line("i64.reinterpret_f64")
     }
 }
 
@@ -1882,7 +1886,7 @@ fun WasmEmitter.add_f32_reinterpret_i32() {
     // 0xBE => f32.reinterpret_i32
     emit_opcode(WOpcode::F32ReinterpretI32)
     if debug_print {
-        debug_buffer[] = "f32.reinterpret_i32\n"
+        debug_print_line("f32.reinterpret_i32")
     }
 }
 
@@ -1890,7 +1894,7 @@ fun WasmEmitter.add_f64_reinterpret_i64() {
     // 0xBF => f64.reinterpret_i64
     emit_opcode(WOpcode::F64ReinterpretI64)
     if debug_print {
-        debug_buffer[] = "f64.reinterpret_i64\n"
+        debug_print_line("f64.reinterpret_i64")
     }
 }
 
@@ -1898,7 +1902,7 @@ fun WasmEmitter.add_i32_extend8_s() {
     // 0xC0 => i32.extend8_s
     emit_opcode(WOpcode::I32Extend8S)
     if debug_print {
-        debug_buffer[] = "i32.extend8_s\n"
+        debug_print_line("i32.extend8_s")
     }
 }
 
@@ -1906,7 +1910,7 @@ fun WasmEmitter.add_i32_extend16_s() {
     // 0xC1 => i32.extend16_s
     emit_opcode(WOpcode::I32Extend16S)
     if debug_print {
-        debug_buffer[] = "i32.extend16_s\n"
+        debug_print_line("i32.extend16_s")
     }
 }
 
@@ -1914,7 +1918,7 @@ fun WasmEmitter.add_i64_extend8_s() {
     // 0xC2 => i64.extend8_s
     emit_opcode(WOpcode::I64Extend8S)
     if debug_print {
-        debug_buffer[] = "i64.extend8_s\n"
+        debug_print_line("i64.extend8_s")
     }
 }
 
@@ -1922,7 +1926,7 @@ fun WasmEmitter.add_i64_extend16_s() {
     // 0xC3 => i64.extend16_s
     emit_opcode(WOpcode::I64Extend16S)
     if debug_print {
-        debug_buffer[] = "i64.extend16_s\n"
+        debug_print_line("i64.extend16_s")
     }
 }
 
@@ -1930,7 +1934,7 @@ fun WasmEmitter.add_i64_extend32_s() {
     // 0xC4 => i64.extend32_s
     emit_opcode(WOpcode::I64Extend32S)
     if debug_print {
-        debug_buffer[] = "i64.extend32_s\n"
+        debug_print_line("i64.extend32_s")
     }
 }
 
@@ -1939,7 +1943,7 @@ fun WasmEmitter.add_i32_trunc_sat_f32_s() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I32TruncSatF32S.code)
     if debug_print {
-        debug_buffer[] = "i32.trunc_sat_f32_s\n"
+        debug_print_line("i32.trunc_sat_f32_s")
     }
 }
 
@@ -1948,7 +1952,7 @@ fun WasmEmitter.add_i32_trunc_sat_f32_u() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I32TruncSatF32U.code)
     if debug_print {
-        debug_buffer[] = "i32.trunc_sat_f32_u\n"
+        debug_print_line("i32.trunc_sat_f32_u")
     }
 }
 
@@ -1957,7 +1961,7 @@ fun WasmEmitter.add_i32_trunc_sat_f64_s() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I32TruncSatF64S.code)
     if debug_print {
-        debug_buffer[] = "i32.trunc_sat_f64_s\n"
+        debug_print_line("i32.trunc_sat_f64_s")
     }
 }
 
@@ -1966,7 +1970,7 @@ fun WasmEmitter.add_i32_trunc_sat_f64_u() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I32TruncSatF64U.code)
     if debug_print {
-        debug_buffer[] = "i32.trunc_sat_f64_u\n"
+        debug_print_line("i32.trunc_sat_f64_u")
     }
 }
 
@@ -1975,7 +1979,7 @@ fun WasmEmitter.add_i64_trunc_sat_f32_s() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I64TruncSatF32S.code)
     if debug_print {
-        debug_buffer[] = "i64.trunc_sat_f32_s\n"
+        debug_print_line("i64.trunc_sat_f32_s")
     }
 }
 
@@ -1984,7 +1988,7 @@ fun WasmEmitter.add_i64_trunc_sat_f32_u() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I64TruncSatF32U.code)
     if debug_print {
-        debug_buffer[] = "i64.trunc_sat_f32_u\n"
+        debug_print_line("i64.trunc_sat_f32_u")
     }
 }
 
@@ -1993,7 +1997,7 @@ fun WasmEmitter.add_i64_trunc_sat_f64_s() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I64TruncSatF64S.code)
     if debug_print {
-        debug_buffer[] = "i64.trunc_sat_f64_s\n"
+        debug_print_line("i64.trunc_sat_f64_s")
     }
 }
 
@@ -2002,6 +2006,6 @@ fun WasmEmitter.add_i64_trunc_sat_f64_u() {
     emit_opcode(WOpcode::TruncSatOp)
     emit_byte(TruncSatOp::I64TruncSatF64U.code)
     if debug_print {
-        debug_buffer[] = "i64.trunc_sat_f64_u\n"
+        debug_print_line("i64.trunc_sat_f64_u")
     }
 }

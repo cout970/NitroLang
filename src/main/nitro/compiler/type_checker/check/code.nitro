@@ -38,7 +38,7 @@ fun TypeChecker.check_code(code: NCode) {
     current_code = Some(code)
     defer { current_code = previous_code }
 
-    for v in code.vars {
+    for v in code.vars_map.values_to_list() {
         check_var(v, code)
     }
 
@@ -124,7 +124,7 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
 
     if inst.kind is NInstKind::Let {
         let kind = inst.kind as NInstKind::Let
-        check_var(kind.variable, code)
+        check_var(code.find_var(kind.variable), code)
 
         inst.type_token = type_cache["Nothing"].to_token()
         ret
@@ -196,7 +196,7 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let common_type = create_unresolved_type(inst.span).to_token()
 
         if kind.variable.is_some() {
-            cons.add_unify(common_type, kind.variable!!.type_token!!, inst.span)
+            cons.add_unify(common_type, code.find_var(kind.variable!!).type_token!!, inst.span)
         }
 
         for id in kind.branches {
@@ -236,6 +236,8 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::IsType {
+        let kind = inst.kind as NInstKind::IsType
+        check_type_pattern(kind.type_pattern, code)
         inst.type_token = type_cache["Boolean"].to_token()
         ret
     }
@@ -327,7 +329,7 @@ fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
     dup.kind = NInstKind::LoadVar @[
         path: "",
         name: "this",
-        variable,
+        variable: Some(variable!!.id),
         constant: None(),
     ]
 

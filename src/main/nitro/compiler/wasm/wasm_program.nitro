@@ -4,6 +4,7 @@ struct WasmProgram {
     imports: List<WImport>
     function_exports: List<WFunctionExport>
     functions: List<WFunction>
+    start: Optional<IdWrapper>
     custom_sections: List<WCustom>
 }
 
@@ -109,6 +110,7 @@ fun WasmProgram::new(): WasmProgram {
         imports: [],
         function_exports: [],
         functions: [],
+        start: None(),
         custom_sections: [],
     ]
 }

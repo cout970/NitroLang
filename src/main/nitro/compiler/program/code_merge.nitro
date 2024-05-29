@@ -1,0 +1,300 @@
+
+struct NCodeMapping {
+    inst_mapping: Map<NInstId, NInstId>
+    block_mapping: Map<NBlockId, NBlockId>
+    var_mapping: Map<NVarId, NVarId>
+}
+
+fun NCode.merge(other: NCode) {
+    let map = NCodeMapping @[
+        inst_mapping: #[],
+        block_mapping: #[],
+        var_mapping: #[],
+    ]
+
+    map.copy_blocks(other, this)
+    map.copy_vars(other, this)
+    map.copy_inst(other, this)
+}
+
+// Copy blocks from src to dst
+fun NCodeMapping.copy_blocks(src: NCode, dst: NCode) {
+
+    for src_block in src.block_map.values_to_list() {
+        if src_block.parent_id.is_none() {
+            block_mapping[src_block.id] = dst.current_block
+            continue
+        }
+
+        let parent_id: NBlockId = block_mapping[src_block.parent_id!!]!!
+
+        let deferred_code = []
+
+        for c in src_block.deferred_code {
+            let child = src.new_child(c.span)
+            child.merge(c)
+            deferred_code[] = child
+        }
+
+        dst.last_block_id += 1
+        let new_block = NBlock @[
+            id: dst.last_block_id,
+            parent_id: Some(parent_id),
+            is_jump_target: src_block.is_jump_target,
+            deferred_code,
+            code: dst,
+        ]
+        dst.block_map[new_block.id] = new_block
+        block_mapping[src_block.id] = new_block.id
+   }
+}
+
+// Copy variables from src to dst
+fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
+
+    for src_var in src.vars_map.values_to_list() {
+        dst.last_var_id += 1
+        let new_var = NVar @[
+            id: dst.last_var_id,
+            span: src_var.span,
+            block: block_mapping[src_var.block]!!,
+            name: src_var.name,
+            type_usage: src_var.type_usage,
+            type_token: src_var.type_token,
+            defined_in: dst,
+            is_parameter: src_var.is_parameter,
+            is_upvalue: src_var.is_upvalue,
+        ]
+        dst.vars_map[new_var.id] = new_var
+        var_mapping[src_var.id] = new_var.id
+    }
+}
+
+// Copy instructions
+fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
+
+    for inst in src.inst_list {
+        let new_kind = map_inst_kind(inst.kind)
+        let new_inst = dst.add_inst_in_block(inst.span, block_mapping[inst.block]!!, new_kind)
+
+        inst_mapping[inst.id] = new_inst.id
+
+        // Relocate lambda to be able to find variables outside the scope of the lambda
+        if new_kind is NInstKind::Lambda {
+            let lambda = (new_kind as NInstKind::Lambda).instance
+            lambda.code.parent_code = Some(dst)
+            lambda.code.parent_inst = Some(new_inst.id)
+            lambda.code.parent_block = Some(new_inst.block)
+            lambda.code.parent_span = Some(new_inst.span)
+        }
+    }
+
+    // Copy links to jump instructions
+    for i in src.break_jumps {
+        dst.break_jumps[] = inst_mapping[i]!!
+    }
+    for i in src.continue_jumps {
+        dst.continue_jumps[] = inst_mapping[i]!!
+    }
+
+    // Copy last expression (implicit return)
+    if src.last_expression.is_some() {
+        dst.last_expression = Some(inst_mapping[src.last_expression!!]!!)
+    }
+}
+
+fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
+    when {
+        orig is NInstKind::Let -> {
+            let kind = orig as NInstKind::Let
+
+            ret NInstKind::Let @[variable: var_mapping[kind.variable].get_or_default(kind.variable)]
+        }
+        orig is NInstKind::IfStart -> {
+            let kind = orig as NInstKind::IfStart
+
+            ret NInstKind::IfStart @[condition: inst_mapping[kind.condition]!!]
+        }
+        orig is NInstKind::IfElse -> {
+            ret NInstKind::IfElse @[]
+        }
+        orig is NInstKind::IfEnd -> {
+            ret NInstKind::IfEnd @[]
+        }
+        orig is NInstKind::IfChoose -> {
+            let kind = orig as NInstKind::IfChoose
+
+            ret NInstKind::IfChoose @[
+                condition: inst_mapping[kind.condition]!!,
+                if_true: inst_mapping[kind.if_true]!!,
+                if_false: inst_mapping[kind.if_false]!!,
+            ]
+        }
+        orig is NInstKind::LoopStart -> {
+            let kind = orig as NInstKind::LoopStart
+
+            ret NInstKind::LoopStart @[
+                break_block: block_mapping[kind.break_block]!!,
+                continue_block: block_mapping[kind.continue_block]!!,
+            ]
+        }
+        orig is NInstKind::LoopEnd -> {
+            ret NInstKind::LoopEnd @[]
+        }
+        orig is NInstKind::BlockJump -> {
+            let kind = orig as NInstKind::BlockJump
+
+            ret NInstKind::BlockJump @[
+                backwards: kind.backwards,
+                block: if kind.block.is_some() { Some(block_mapping[kind.block!!]!!) } else { None() },
+            ]
+        }
+        orig is NInstKind::FunCall -> {
+            let kind = orig as NInstKind::FunCall
+            let args = []
+
+            for arg in kind.arguments {
+                args[] = inst_mapping[arg]!!
+            }
+
+            ret NInstKind::FunCall @[
+                path: kind.path,
+                name: kind.name,
+                arguments: args,
+                explicit_type_arguments: kind.explicit_type_arguments,
+                call_site: kind.call_site,
+            ]
+        }
+        orig is NInstKind::WhenStart -> {
+            ret NInstKind::WhenStart @[]
+        }
+        orig is NInstKind::WhenEnd -> {
+            let kind = orig as NInstKind::WhenEnd
+
+            ret NInstKind::WhenEnd @[
+                branches: kind.branches,
+                variable: if kind.variable.is_some() {
+                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                } else {
+                    None()
+                },
+            ]
+        }
+        orig is NInstKind::Literal -> {
+            let kind = orig as NInstKind::Literal
+
+            ret NInstKind::Literal @[value: kind.value]
+        }
+        orig is NInstKind::Return -> {
+            let kind = orig as NInstKind::Return
+
+            ret NInstKind::Return @[value: inst_mapping[kind.value]!!]
+        }
+        orig is NInstKind::IsType -> {
+            let kind = orig as NInstKind::IsType
+
+            ret NInstKind::IsType @[
+                value: inst_mapping[kind.value]!!,
+                type_pattern: kind.type_pattern,
+            ]
+        }
+        orig is NInstKind::AsType -> {
+            let kind = orig as NInstKind::AsType
+
+            ret NInstKind::AsType @[
+                value: inst_mapping[kind.value]!!,
+                type_usage: kind.type_usage,
+            ]
+        }
+        orig is NInstKind::LoadVar -> {
+            let kind = orig as NInstKind::LoadVar
+
+            ret NInstKind::LoadVar @[
+                path: kind.path,
+                name: kind.name,
+                variable: if kind.variable.is_some() {
+                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                } else {
+                    None()
+                }
+                constant: kind.constant,
+            ]
+        }
+        orig is NInstKind::StoreVar -> {
+            let kind = orig as NInstKind::StoreVar
+
+            ret NInstKind::StoreVar @[
+                path: kind.path,
+                name: kind.name,
+                variable: if kind.variable.is_some() {
+                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                } else {
+                    None()
+                }
+                value: inst_mapping[kind.value]!!,
+            ]
+        }
+        orig is NInstKind::LoadField -> {
+            let kind = orig as NInstKind::LoadField
+
+            ret NInstKind::LoadField @[
+                instance: inst_mapping[kind.instance]!!,
+                name: kind.name,
+                field: kind.field,
+                field_type_token: kind.field_type_token,
+                call_site_generics: kind.call_site_generics,
+            ]
+        }
+        orig is NInstKind::StoreField -> {
+            let kind = orig as NInstKind::StoreField
+
+            ret NInstKind::StoreField @[
+                instance: inst_mapping[kind.instance]!!,
+                name: kind.name,
+                field: kind.field,
+                field_type_token: kind.field_type_token,
+                call_site_generics: kind.call_site_generics,
+                value: inst_mapping[kind.value]!!,
+            ]
+        }
+        orig is NInstKind::SizeOf -> {
+            let kind = orig as NInstKind::SizeOf
+
+            ret NInstKind::SizeOf @[
+                type_usage: kind.type_usage,
+                type_token: kind.type_token,
+            ]
+        }
+        orig is NInstKind::Alloc -> {
+            let kind = orig as NInstKind::Alloc
+
+            ret NInstKind::Alloc @[
+                type_usage: kind.type_usage,
+                type_token: kind.type_token,
+                is_enum: kind.is_enum,
+            ]
+        }
+        orig is NInstKind::Lambda -> {
+            let kind = orig as NInstKind::Lambda
+
+            ret NInstKind::Lambda @[instance: kind.instance]
+        }
+        orig is NInstKind::Link -> {
+            let kind = orig as NInstKind::Link
+
+            ret NInstKind::Link @[
+                linked_id: inst_mapping[kind.linked_id]!!
+            ]
+        }
+        orig is NInstKind::Noop -> {
+            ret NInstKind::Noop @[]
+        }
+        orig is NInstKind::Comment -> {
+            let kind = orig as NInstKind::Comment
+
+            ret NInstKind::Comment @[text: kind.text]
+        }
+    }
+
+    crash("Unknown NInstKind variant")
+}

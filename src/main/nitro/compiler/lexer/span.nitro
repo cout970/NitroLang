@@ -17,6 +17,17 @@ fun Span::new(start: Int, len: Int, source: String, file: String): Span {
     ]
 }
 
+fun Span::none(): Span {
+    ret Span @[
+        start: 0,
+        len: 0,
+        source: "<internal>",
+        file: "<internal>",
+        lazy_line: Some(0),
+        lazy_column: Some(0),
+    ]
+}
+
 fun Span.calculate_line_number() {
     let line = 1
     let column = 1

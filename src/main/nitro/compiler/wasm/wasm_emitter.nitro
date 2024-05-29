@@ -32,12 +32,23 @@ fun WasmEmitter::new(): WasmEmitter {
     ret WasmEmitter @[
         buffer: [],
         debug_buffer: StringBuilder::new(),
+        // DEBUG
         debug_print: true,
     ]
 }
 
+// Emit a single byte with the given opcode
+fun WasmEmitter.debug_print_line(line: String) {
+    debug_buffer[] = "    "
+    debug_buffer[] = line
+    debug_buffer[] = "\n"
+}
+
 // https://webassembly.github.io/spec/core/binary/modules.html#binary-module
 fun WasmEmitter.emit_program(program: WasmProgram) {
+    if debug_print {
+        debug_print_line("Emitting program")
+    }
     // Magic number "\0ASM"
     emit_byte(0x00)
     emit_byte(0x61)
@@ -70,14 +81,22 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
     // Exports section
     emit_export_section(program.function_exports, program.memory)
 
+    // Start section
+//    emit_start_section(program.start!!)
+
+    // TODO
     // Elements section (TODO)
 
-    // Data count section (TODO)
+    // Data count section
+    emit_data_count_section(program.memory)
 
     // Code section
     if program.functions.len > 0 {
         emit_code_section(program.functions)
     }
+
+    // Data section
+    emit_data_section(program.memory)
 
     // Custom sections
     for sec in program.custom_sections {
@@ -91,6 +110,10 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
 fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
+    if debug_print {
+        debug_print_line("Emit section header: type = $section, size = $size, offset = ${buffer.len}")
+    }
+
     // N:byte section type id
     emit_byte(section.code)
     // size:u32 section size
@@ -99,12 +122,18 @@ fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#custom-section
 fun WasmEmitter.emit_custom_section(section: WCustom) {
+    if debug_print {
+        debug_print_line("Emit custom section")
+    }
     emit_name(section.name)
     emit_bytes(section.data)
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#type-section
 fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunction>) {
+    if debug_print {
+        debug_print_line("Emit type section: ${imports.len} imports, ${functions.len} functions")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_u32(imports.len + functions.len)
@@ -121,6 +150,9 @@ fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunct
 
 // https://webassembly.github.io/spec/core/binary/modules.html#import-section
 fun WasmEmitter.emit_import_section(imports: List<WImport>) {
+    if debug_print {
+        debug_print_line("Emit import section, ${imports.len} imports")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_u32(imports.len)
@@ -138,6 +170,9 @@ fun WasmEmitter.emit_import_section(imports: List<WImport>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#function-section
 fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
+    if debug_print {
+        debug_print_line("Emit function section: ${functions.len} functions")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_u32(functions.len)
@@ -151,6 +186,9 @@ fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
 fun WasmEmitter.emit_memory_section(memory: WMemory) {
+    if debug_print {
+        debug_print_line("Emit memory section: 1 memory section, ${memory.size} Bytes")
+    }
     let tmp = WasmEmitter::new()
 
     // Only 1 memory is supported in the standard
@@ -165,6 +203,9 @@ fun WasmEmitter.emit_memory_section(memory: WMemory) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#export-section
 fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, memory: WMemory) {
+    if debug_print {
+        debug_print_line("Emit export section: ${function_exports.len} function exports, 1 memory export")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_u32(function_exports.len + 1)
@@ -185,8 +226,38 @@ fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, mem
     emit(tmp)
 }
 
+// https://webassembly.github.io/spec/core/binary/modules.html#start-section
+fun WasmEmitter.emit_start_section(start: IdWrapper) {
+    if debug_print {
+        debug_print_line("Emit start section: ${start.id}")
+    }
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(start.id)
+
+    emit_section_header(SectionType::Start, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
+fun WasmEmitter.emit_data_count_section(memory: WMemory) {
+    if debug_print {
+        debug_print_line("Emit data count section: ${memory.sections.len} data sections")
+    }
+    let tmp = WasmEmitter::new()
+
+    // Numbers of data sections
+    tmp.emit_u32(memory.sections.len)
+
+    emit_section_header(SectionType::DataCount, tmp.buffer.len)
+    emit(tmp)
+}
+
 // https://webassembly.github.io/spec/core/binary/modules.html#code-section
 fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
+    if debug_print {
+        debug_print_line("Emit code section: ${functions.len} functions")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_u32(functions.len)
@@ -200,6 +271,9 @@ fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#code-section
 fun WasmEmitter.emit_code(func: WFunction) {
+    if debug_print {
+        debug_print_line("Emit code for function ${func.header.index.id}: ${func.locals.len} locals, offset = ${buffer.len}")
+    }
     let tmp = WasmEmitter::new()
 
     tmp.emit_locals(func.locals)
@@ -211,6 +285,9 @@ fun WasmEmitter.emit_code(func: WFunction) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#binary-local
 fun WasmEmitter.emit_locals(locals: List<WVar>) {
+    if debug_print {
+        debug_print_line("Emit locals: ${locals.len} locals")
+    }
     emit_u32(locals.len)
     for l in locals {
         emit_u32(1)
@@ -220,9 +297,34 @@ fun WasmEmitter.emit_locals(locals: List<WVar>) {
 
 // https://webassembly.github.io/spec/core/binary/instructions.html#expression
 fun WasmEmitter.emit_expr(func: WFunction) {
+    if debug_print {
+        debug_print_line("Emit expression")
+    }
     emit(func.bytecode)
     // end opcode: WOpcode::End
     emit_byte(0x0B)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#data-section
+fun WasmEmitter.emit_data_section(memory: WMemory) {
+    if debug_print {
+        debug_print_line("Emit data section: ${memory.sections.len} data sections")
+    }
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_u32(memory.sections.len)
+    for sec in memory.sections {
+        // Active data section
+        tmp.emit_u32(0)
+        // Offset, must be an expression like (i32.const 0)
+        tmp.add_i32_const(sec.offset)
+        tmp.emit_byte(0x0B)
+        // Data
+        tmp.emit_bytes(sec.data)
+    }
+
+    emit_section_header(SectionType::Data, tmp.buffer.len)
+    emit(tmp)
 }
 
 // https://webassembly.github.io/spec/core/binary/values.html#names

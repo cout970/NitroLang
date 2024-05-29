@@ -86,12 +86,15 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
     }
 
     // Sanity checks
-    check(code.block_stack.is_empty(), "Block stack is not empty")
+    check(code.current_block == 0, "Block stack is not empty")
 
     // Execute deferred actions
     if !code.jumped_out_of_block {
         code.execute_deferred_actions(code.current_block, true)
     }
+
+    // Check there are no break/continue jumps unlinked
+    code.check_jump_points()
 
     ret found(nothing)
 }
@@ -146,7 +149,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
         return_type_usage: NTypeUsage::simple(span, "Nothing"),
         return_type: None(),
         parent_tag: None(),
-        code: NCode::new(span),
+        code: NCode::new(span, get_full_path(path, name)),
         full_name_cache: None(),
     ]
     program.functions[] = def

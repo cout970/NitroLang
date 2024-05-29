@@ -1,50 +1,130 @@
 
-struct TypePattern {
-    kind: PatternKind
-    params: List<TypePattern>
+struct ResolvedTypePattern {
+    span: Span
+    kind: ResolvedTypePatternKind
+    params: List<ResolvedTypePattern>
 }
 
-option PatternKind {
+option ResolvedTypePatternKind {
     Any {}
     Struct { instance: NStruct }
     Option { instance: NOption }
-    Union {}
+    Generic { instance: NGeneric }
 }
 
-fun TypeContainer.type_to_pattern(ty: Type): TypePattern {
+fun TypeChecker.check_type_pattern(p: NTypePattern, code: NCode) {
+    resolve_type_pattern(p, code)
+}
+
+fun TypeChecker.resolve_type_pattern(tp: NTypePattern, code: NCode): ResolvedTypePattern {
+    if tp.resolved.is_some() {
+        ret tp.resolved!!
+    }
+
+    let params = []
+
+    for p in tp.params {
+        params += resolve_type_pattern(p, code)
+    }
+
+    let kind = when tp.kind {
+        TypePatternKind::TYPE_SIMPLE -> {
+            let full_name = get_full_path(tp.path, tp.name)
+            let ty = find_type_by_name(full_name, [], tp.span)
+
+            types.type_kind_to_pattern(ty.kind, false)
+        }
+        TypePatternKind::TYPE_PARAM -> {
+            let full_name = get_full_path(tp.path, tp.name)
+            let opt = find_generic_by_name(code, full_name)
+
+            let ty = if opt.is_some() {
+                opt!!
+            } else {
+                // Not found
+                create_error_type("Generic not found: $full_name", tp.span)
+            }
+
+            types.type_kind_to_pattern(ty.kind, false)
+        }
+        TypePatternKind::TYPE_ANY -> ResolvedTypePatternKind::Any @[]
+        else -> unreachable()
+    }
+
+    let r = ResolvedTypePattern @[span: tp.span, kind, params]
+    tp.resolved = Some(r)
+    ret r
+}
+
+fun TypeContainer.type_to_pattern(ty: Type): ResolvedTypePattern {
     let params = []
 
     for p in ty.type_params {
         params += type_to_pattern(p)
     }
 
-    return TypePattern @[
-        kind: type_kind_to_pattern(ty.kind)
+    ret ResolvedTypePattern @[
+        span: ty.kind.span,
+        kind: type_kind_to_pattern(ty.kind, false)
         params,
     ]
 }
 
-fun TypeContainer.type_kind_to_pattern(tk: TypeKind): PatternKind {
-    if tk is TypeKind::Struct {
-        ret PatternKind::Struct @[instance: (tk as TypeKind::Struct).instance]
+fun TypeContainer.type_to_pattern_ignore_generics(ty: Type): ResolvedTypePattern {
+    let params = []
+
+    for p in ty.type_params {
+        params += type_to_pattern_ignore_generics(p)
     }
-    if tk is TypeKind::Option {
-        ret PatternKind::Option @[instance: (tk as TypeKind::Option).instance]
-    }
-    if tk is TypeKind::Union {
-        ret PatternKind::Union @[]
-    }
-    ret PatternKind::Any @[]
+
+    ret ResolvedTypePattern @[
+        span: ty.kind.span,
+        kind: type_kind_to_pattern(ty.kind, true)
+        params,
+    ]
 }
 
-fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
+fun TypeContainer.type_kind_to_pattern(tk: TypeKind, ignore_generics: Boolean): ResolvedTypePatternKind {
+    if tk is TypeKind::Struct {
+        ret ResolvedTypePatternKind::Struct @[instance: (tk as TypeKind::Struct).instance]
+    }
+    if tk is TypeKind::Option {
+        ret ResolvedTypePatternKind::Option @[instance: (tk as TypeKind::Option).instance]
+    }
+    if tk is TypeKind::OptionItem {
+        ret ResolvedTypePatternKind::Struct @[instance: (tk as TypeKind::OptionItem).instance]
+    }
+    if tk is TypeKind::Generic {
+        if ignore_generics {
+            ret ResolvedTypePatternKind::Any @[]
+        }
+        ret ResolvedTypePatternKind::Generic @[instance: (tk as TypeKind::Generic).instance]
+    }
+    if tk is TypeKind::Union {
+        crash("Cannot convert a type union to pattern")
+    }
+
+    crash("Unknown type to pattern conversion: $tk")
+//    ret ResolvedTypePatternKind::Any @[]
+}
+
+fun TypeContainer.matches_pattern(a: Type, b: ResolvedTypePattern): Boolean {
     let pattern_kind = b.kind
 
-    if pattern_kind is PatternKind::Any {
+    if pattern_kind is ResolvedTypePatternKind::Any {
         ret true
     }
 
-    if pattern_kind is PatternKind::Struct {
+    if pattern_kind is ResolvedTypePatternKind::Generic {
+        if a.kind !is TypeKind::Generic {
+            ret false
+        }
+        let left = (a.kind as TypeKind::Generic).instance
+        let right = (pattern_kind as ResolvedTypePatternKind::Generic).instance
+        ret left.id_wrapper.id == right.id_wrapper.id
+    }
+
+    if pattern_kind is ResolvedTypePatternKind::Struct {
         if a.params.len != b.params.len {
             ret false
         }
@@ -56,14 +136,14 @@ fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
 
         if a.kind is TypeKind::Struct {
             let a_id: NStruct = (a.kind as TypeKind::Struct).instance
-            let b_id: NStruct = (pattern_kind as PatternKind::Struct).instance
+            let b_id: NStruct = (pattern_kind as ResolvedTypePatternKind::Struct).instance
 
             ret a_id == b_id
         }
         ret false
     }
 
-    if pattern_kind is PatternKind::Option {
+    if pattern_kind is ResolvedTypePatternKind::Option {
         if a.params.len != b.params.len {
             ret false
         }
@@ -75,14 +155,14 @@ fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
 
         if a.kind is TypeKind::Option {
             let a_id: NOption = (a.kind as TypeKind::Option).instance
-            let b_id: NOption = (pattern_kind as PatternKind::Option).instance
+            let b_id: NOption = (pattern_kind as ResolvedTypePatternKind::Option).instance
 
             ret a_id == b_id
         }
 
         if a.kind is TypeKind::Struct {
             let a_struct: NStruct = (a.kind as TypeKind::Struct).instance
-            let opt: NOption = (pattern_kind as PatternKind::Option).instance
+            let opt: NOption = (pattern_kind as ResolvedTypePatternKind::Option).instance
 
             for item in opt.items {
                 if item.def == a_struct {
@@ -93,14 +173,59 @@ fun TypeContainer.matches_pattern(a: Type, b: TypePattern): Boolean {
         ret false
     }
 
-    if pattern_kind is PatternKind::Union {
-        repeat b.params.len {
-            if matches_pattern(a, b.params[it]!!) {
-                ret true
-            }
+    unreachable()
+}
+
+fun ResolvedTypePattern.get_ordering(other: ResolvedTypePattern): Ordering {
+    ret (this.kind <=> other.kind).with(this.params <=> other.params)
+}
+
+fun ResolvedTypePattern.get_hash(): Int {
+    ret (kind.get_hash() * 31) + params.get_hash()
+}
+
+fun ResolvedTypePatternKind.get_ordering(other: ResolvedTypePatternKind): Ordering {
+    ret when {
+        this is ResolvedTypePatternKind::Any && other is ResolvedTypePatternKind::Any -> Ordering::Equals,
+        this is ResolvedTypePatternKind::Struct && other is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Struct).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Option && other is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Option).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Generic && other is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Generic).instance.id_wrapper.id,
+        else -> Ordering::Less
+    }
+}
+
+fun ResolvedTypePatternKind.get_hash(): Int {
+    ret when {
+        this is ResolvedTypePatternKind::Any -> 0,
+        this is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id_wrapper.id,
+        else -> unreachable()
+    }
+}
+
+fun ResolvedTypePattern.to_string(): String {
+    let buff = StringBuilder::new()
+    buff[] = kind.to_string()
+    if params.is_not_empty() {
+        buff[] = "<"
+        for p in params {
+            buff[] = p.to_string()
+            buff[] = ", "
         }
-        ret false
+        buff.remove_last(2)
+        buff[] = ">"
     }
 
-    unreachable()
+    ret buff.to_string()
+}
+
+fun ResolvedTypePatternKind.to_string(): String {
+    ret when {
+        this is ResolvedTypePatternKind::Any -> "*"
+        this is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.full_name
+        this is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.full_name
+        this is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.name
+        else -> unreachable()
+    }
 }

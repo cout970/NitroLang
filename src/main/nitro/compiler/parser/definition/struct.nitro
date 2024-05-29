@@ -27,6 +27,7 @@ struct NStructField {
     span: Span
     name: String
     parent_struct: NStruct
+    offset: Int
     type_usage: NTypeUsage
     field_type: Optional<Type>
 }
@@ -80,6 +81,7 @@ fun Parser.read_struct_field(def: NStruct): Parsed<NStructField> {
         span,
         name,
         parent_struct: def,
+        offset: def.fields.len,
         type_usage,
         field_type: None(),
     ])

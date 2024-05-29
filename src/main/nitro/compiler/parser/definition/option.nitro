@@ -82,6 +82,15 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     program.structs[] = def
     declare_name(get_full_path(def.path, def.name), def.span)
 
+    def.fields[] = NStructField @[
+       span,
+       name: VARIANT_FIELD_NAME,
+       parent_struct: def,
+       offset: 0,
+       type_usage: NTypeUsage::simple(span, "Int"),
+       field_type: None(),
+   ]
+
     if lexer.current_token_kind == TokenKind::LBRACE {
         skip_token_kind(TokenKind::LBRACE)?
         skip_nl()
@@ -108,6 +117,15 @@ fun NOption.get_full_name(): String {
     let full_name = get_full_path(path, name)
     full_name_cache = Some(full_name)
     ret full_name
+}
+
+fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
+    for item in items {
+        if item.def.id_wrapper.id == str.id_wrapper.id {
+            ret Some(item.index)
+        }
+    }
+    ret None()
 }
 
 fun NOption.get_ordering(other: NOption): Ordering = this.id_wrapper.id <=> other.id_wrapper.id

@@ -1,5 +1,6 @@
 
 struct WasmBackend {
+    reporter: Reporter
     program: Program
     wasm_program: WasmProgram
     emitter: WasmEmitter
@@ -10,7 +11,6 @@ struct WasmBackend {
     import_indices: IdProvider
     final_struct_cache: Map<FinalType, FinalStruct>
     final_option_cache: Map<FinalType, FinalOption>
-    memory_instance: Optional<WMemSection>
     already_visited: Map<MonomorphizationKey, IdWrapper>
     task_queue: ArrayDeque<CompilationTask>
     root_ctx: TypeMappingCtx
@@ -30,9 +30,10 @@ option CompilationTask {
     }
 }
 
-fun WasmBackend::new(program: Program): WasmBackend {
+fun WasmBackend::new(reporter: Reporter, program: Program): WasmBackend {
     let final_types = FinalTypeContainer::new()
     ret WasmBackend @[
+        reporter,
         program,
         wasm_program: WasmProgram::new(),
         emitter: WasmEmitter::new(),
@@ -43,10 +44,9 @@ fun WasmBackend::new(program: Program): WasmBackend {
         import_indices: IdProvider::new(),
         final_struct_cache: #[],
         final_option_cache: #[],
-        memory_instance: None(),
         task_queue: ArrayDeque::new(),
         already_visited: #[],
-        root_ctx: TypeMappingCtx::new(final_types)
+        root_ctx: TypeMappingCtx::new(final_types, Span::none())
     ]
 }
 
@@ -69,13 +69,14 @@ fun WasmBackend.compile_program() {
     null_value.add_int_le(0)
     wasm_program.memory.add_section(null_value, "Null value")
 
-    let memory: List<Byte> = []
+    // Allocate space for the memory management struct
     // capacity: Int, len: Int, data: Ptr<Byte>
+    let memory: List<Byte> = []
     memory.add_multiple_times(0x00.to_byte(), 12)
-    memory_instance = Some(wasm_program.memory.add_section(memory, "Memory instance"))
+    let memory_management_section = wasm_program.memory.add_section(memory, "Memory instance")
 
     // Do dead code elimination and monomorphization by traversing the program from the main function
-    visit_program(main!!)
+    wasm_program.start = Some(visit_program(main!!))
 
     // Rewrite indices so imports come before regular functions
     // So `call` instructions use the correct index
@@ -86,7 +87,7 @@ fun WasmBackend.compile_program() {
 
     // Generate code for functions
     for func in wasm_program.functions {
-        func.bytecode.compile_function(func, this)
+        func.bytecode.compile_code(func, this)
     }
 
     // Add main function as export to be called by the runtime
@@ -96,18 +97,30 @@ fun WasmBackend.compile_program() {
         header: wasm_main.header,
     ]
 
+    // Init the memory management struct
+    // capacity: total size - allocated size
+    // len: 0
+    // data: start of not-yet-allocated memory
+    let heap_start = WasmBackend::pad(wasm_program.memory.size - wasm_program.memory.offset)
+    memory.clear()
+    memory.add_int_le(wasm_program.memory.size - heap_start)
+    memory.add_int_le(0)
+    memory.add_int_le(heap_start)
+
     // Finish the program
     emitter.emit_program(wasm_program)
 }
 
 fun WasmBackend.get_key_for_function(ctx: TypeMappingCtx, instance: NFunction): MonomorphizationKey {
     let params_final_types = []
+    // This is here just to add 'span' as context for the error message, is a generic type cannot be resolved
+    let sub_ctx = ctx.new_child(instance.span)
 
     for param in instance.parameters {
-        params_final_types[] = ctx.convert_type(param.param_type!!)
+        params_final_types[] = sub_ctx.convert_type(param.param_type!!)
     }
 
-    params_final_types[] = ctx.convert_type(instance.return_type!!)
+    params_final_types[] = sub_ctx.convert_type(instance.return_type!!)
 
     let final_type = final_types.create_final_type(FinalTypeKind::Function @[instance], params_final_types)
 
@@ -236,7 +249,7 @@ fun WasmBackend.get_final_struct(instance: NStruct, final_type: FinalType): Fina
     ]
     final_struct_cache[final_type] = final_struct
 
-    let ctx = TypeMappingCtx::new(final_types)
+    let ctx = TypeMappingCtx::new(final_types, instance.span)
     ctx.add_generics(instance.generics, final_type.type_params)
 
     // Fields
@@ -358,8 +371,10 @@ fun WasmBackend.push_string(value: String): Int {
 
     let instance_sec = wasm_program.memory.add_section(instance, "String instance")
 
-    // String contents
     let contents = List::new<Byte>(value.bytes_len)
+    // Array length
+    contents.add_int_le(value.bytes_len)
+    // Array contents
     repeat value.bytes_len {
         contents[] = value.get_byte(it)
     }

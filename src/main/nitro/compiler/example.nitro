@@ -1,5 +1,84 @@
 // Example to test code generation and execution
 
+struct Example {
+    a: Int,
+    b: Int,
+}
+
+option AB {
+    A {}
+    B {}
+}
+
+fun memory_alloc_internal2(size: Int): Int {
+    ret 0xFF00
+}
+
 fun main() {
-    println(2 + 1)
+//    if false {
+//        println(1)
+//    } else {
+//        println(0)
+//    }
+//
+//    if true {
+//        println(2)
+//    }
+//
+//    println(if true { 1 } else { 0 })
+//
+//    let a = 5
+//    loop {
+//        if 0.is_equal(a) {
+//            break
+//        }
+//
+//        println(a)
+//        a -= 1
+//    }
+//
+//    when true {
+//        true -> println(1)
+//        false -> println(0)
+//    }
+//    when {
+//        true -> println(1)
+//        else -> println(0)
+//    }
+//
+//    println(when {
+//        false -> 1
+//        else -> 0
+//    })
+//
+//    let example = Example @[a: 1, b: 2]
+//    println(example.a)
+//    println(example.b)
+//
+//    println("Hello world!")
+//
+//    println(second_function(3))
+//
+//    println("---")
+//    println(1)
+//    println(1L)
+//    println(true)
+//    println(false)
+//    println(3.14f)
+//    println(nothing)
+//
+//    println(size_of<Nothing>())
+//    println(size_of<Boolean>())
+//    println(size_of<Int>())
+//    println(size_of<Long>())
+//
+    let ab = AB::A @[]
+
+    println(ab is AB::A)
+    println(ab is AB::B)
+    println(ab is AB)
+}
+
+fun second_function(arg: Int): Int {
+    ret arg + 17
 }

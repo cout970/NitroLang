@@ -201,6 +201,9 @@ export function dumpMemory(ptr: number, len: number): string {
   ptr -= pad
   len += pad + PTR
 
+  // Do not exceed the memory size
+  len = Math.min(len, mem.u8.length - ptr);
+
   for (let i = ptr; i < ptr + len; i += 4) {
     str += `${i.toString().padStart(8, '0')} `;
     str += `0x${i.toString(16).padStart(8, '0')} `;

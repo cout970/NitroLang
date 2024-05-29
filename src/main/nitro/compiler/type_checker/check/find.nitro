@@ -1,5 +1,6 @@
 
-fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, inst_id: NInstId): Optional<NVar> {
+fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, inst_id: NInstId): Optional<NVar> {
+    let block = code.find_block(block_id)
     let depth = block.depth
     let index_opt = code.index_of(inst_id)
     let index = 0
@@ -13,25 +14,27 @@ fun TypeChecker.find_variable(code: NCode, name: String, block: NBlock, inst_id:
     repeat index {
         let i = index - it - 1
         let curr_inst: NInst = code.inst_list[i]!!
+        let inst_block = code.find_block(curr_inst.block)
 
         // If the instruction is in another block, there are 2 options:
 
         // 1. The instruction is in a block that is deeper than the block we are looking for, we skip everything in this block
-        if curr_inst.block.depth > depth {
+        if inst_block.depth > depth {
             continue
         }
 
         // 2. The instruction is in a block that is less deep than the block we are looking for,
         // we update the depth to apply case 1. to the following blocks
-        if curr_inst.block.depth < depth {
-            depth = curr_inst.block.depth
+        if inst_block.depth < depth {
+            depth = inst_block.depth
         }
 
         if curr_inst.kind is NInstKind::Let {
             let kind = curr_inst.kind as NInstKind::Let
+            let nvar = code.find_var(kind.variable)
 
-            if kind.variable.name == name {
-                ret Some(kind.variable)
+            if nvar.name == name {
+                ret Some(nvar)
             }
         }
     }

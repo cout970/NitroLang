@@ -1,0 +1,93 @@
+
+// Final type pattern, same as NTypePattern but for final types
+struct FinalTypePattern {
+    kind: FinalTypePatternKind
+    params: List<FinalTypePattern>
+}
+
+option FinalTypePatternKind {
+    Any {}
+    FinalType {
+        final_type_kind: FinalTypeKind
+    }
+}
+
+fun FinalTypePattern::from_final_type(ty: FinalType): FinalTypePattern {
+    let params = []
+    for p in ty.type_params {
+        params[] = FinalTypePattern::from_final_type(p)
+    }
+
+    let kind = FinalTypePatternKind::FinalType @[final_type_kind: ty.kind]
+    ret FinalTypePattern @[kind, params]
+}
+
+fun FinalTypePattern.matches_type(final_type: FinalType): Boolean {
+    if kind is FinalTypePatternKind::Any {
+        ret true
+    }
+
+    if params.len != final_type.type_params.len {
+        ret false
+    }
+
+    repeat params.len {
+        if !params[it]!!.matches_type(final_type.type_params[it]!!) {
+            ret false
+        }
+    }
+
+    let pattern_kind = (kind as FinalTypePatternKind::FinalType).final_type_kind
+
+    if pattern_kind is FinalTypeKind::Option {
+        let instance = (pattern_kind as FinalTypeKind::Option).instance
+
+        when {
+            final_type.kind is FinalTypeKind::Option -> {
+                let final_instance = (final_type.kind as FinalTypeKind::Option).instance
+
+                if instance.id_wrapper.id != final_instance.id_wrapper.id {
+                    ret false
+                }
+            }
+            final_type.kind is FinalTypeKind::Struct -> {
+                let final_instance = (final_type.kind as FinalTypeKind::Struct).instance
+
+                if final_instance.parent.is_none() {
+                    ret false
+                }
+
+                if instance.id_wrapper.id != final_instance.parent!!.id_wrapper.id {
+                    ret false
+                }
+            }
+            else -> ret false
+        }
+
+        ret true
+    }
+
+    ret final_type.kind.is_equal(pattern_kind)
+}
+
+fun FinalTypePattern.to_string(): String {
+    if kind is FinalTypePatternKind::Any {
+        ret "*"
+    }
+
+    let ty = (kind as FinalTypePatternKind::FinalType).final_type_kind
+    let s = ty.to_string()
+
+    if params.len > 0 {
+        s = s + "<"
+        repeat params.len {
+            s += params[it]!!.to_string()
+            if it < limit - 1 {
+                s += ", "
+            }
+        }
+        s = s + ">"
+    }
+
+    ret s
+}

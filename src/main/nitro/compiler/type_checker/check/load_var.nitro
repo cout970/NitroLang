@@ -9,7 +9,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
         // Is variable?
         if variable.is_some() {
             inst.type_token = variable!!.type_token
-            kind.variable = variable
+            kind.variable = Some(variable!!.id)
             ret
         }
 
@@ -56,6 +56,7 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
             name: var_name,
             field,
             field_type_token: None(),
+            call_site_generics: None(),
         ]
         inst.type_token = None()
         check_inst(index, inst, code)
@@ -94,7 +95,8 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
         let value_type_token = code.find_inst_type_token(kind.value)
         if value_type_token.is_some() {
-            cons.add_unify(value_type_token!!, kind.variable!!.type_token!!, inst.span)
+            let variable = code.find_var(kind.variable!!)
+            cons.add_unify(value_type_token!!, variable.type_token!!, inst.span)
         }
         ret
     }
@@ -105,7 +107,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
         // Is variable?
         if variable.is_some() {
-            kind.variable = variable
+            kind.variable = Some(variable!!.id)
             inst.type_token = type_cache["Nothing"].to_token()
 
             let value_type_token = code.find_inst_type_token(kind.value)

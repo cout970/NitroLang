@@ -59,8 +59,10 @@ fun CompilationUnit.check_types() {
 }
 
 fun CompilationUnit.compile() {
-    let backend = WasmBackend::new(program)
+    let backend = WasmBackend::new(reporter, program)
     backend.compile_program()
+
+    println(backend.emitter.debug_buffer.to_string())
 
     // Temporary for debugging
     let buffer = backend.emitter.buffer
@@ -83,6 +85,4 @@ fun CompilationUnit.compile() {
 
     // Use `cat output.wasm.hex | xxd -r -p > output.wasm ; wasm2wat -o output.wat output.wasm` to get the wat file
     FilePath::new("output.wasm.hex").write_text(sb.to_string())!!
-
-    println(sb.to_string())
 }
