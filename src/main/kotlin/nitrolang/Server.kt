@@ -102,7 +102,7 @@ class MyHandler(val opts: CompilerOptions) : HttpHandler {
             when (format) {
                 "application/wat" -> sendOk(t, format, watFile.readBytes())
                 "application/wasm" -> {
-                    if (!compileToWasm(watFile.toFile(), wasmFile.toFile())) {
+                    if (!compileToWasm(copy, watFile.toFile(), wasmFile.toFile())) {
                         sendError(t, 500, "Internal compilation error. This is a bug on the compiler, please report.")
                         return
                     }
@@ -110,7 +110,7 @@ class MyHandler(val opts: CompilerOptions) : HttpHandler {
                 }
 
                 "application/json" -> {
-                    if (!compileToWasm(watFile.toFile(), wasmFile.toFile())) {
+                    if (!compileToWasm(copy, watFile.toFile(), wasmFile.toFile())) {
                         sendError(t, 500, "Internal compilation error. This is a bug on the compiler, please report.")
                         return
                     }

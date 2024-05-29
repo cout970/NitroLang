@@ -14,6 +14,7 @@ import java.io.File
 import java.nio.file.*
 import java.time.Instant
 import kotlin.io.path.absolute
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
@@ -33,34 +34,55 @@ fun main(args: Array<String>) {
 
     try {
         if (compileToWat(opts).collector.isEmpty() && opts.execute) {
-            execute(File(opts.output))
+            execute(opts, File(opts.output))
         }
     } catch (e: Throwable) {
         e.printStackTrace()
     }
 
     // Listen to changes
-    if (opts.listenChanges.isNotEmpty()) {
+    val allPaths = opts.listenChangesToCompile + opts.listenChangesToExecute
+    if (allPaths.isNotEmpty()) {
         val paths: MutableList<Path> = mutableListOf(
             File(opts.source).absoluteFile.parentFile.toPath()
         )
-        opts.listenChanges.forEach {
+        allPaths.forEach {
             paths.add(File(it).toPath())
         }
 
-        watchFolderForChanges(paths) {
-            val fileName = it.fileName.toString()
+        watchFolderForChanges(paths) { path ->
+            val fileName = path.fileName.toString()
+            val exec = opts.listenChangesToExecute.any { path.absolutePathString().endsWith(it) }
+
+            if (exec && opts.execute && File(opts.output).exists()) {
+                println("Executing $fileName")
+                Prof.endAll()
+                Prof.start("root")
+                try {
+                    execute(opts, File(opts.output))
+                } catch (e: Throwable) {
+                    e.printStackTrace()
+                } finally {
+                    Prof.endAll()
+                }
+                return@watchFolderForChanges
+            }
 
             if (!fileName.endsWith(".nitro") && !fileName.endsWith(".ts") && !fileName.endsWith(".js")) {
                 return@watchFolderForChanges
             }
 
+            Prof.endAll()
+            Prof.start("root")
             try {
+                println("Recompiling $fileName")
                 if (compileToWat(opts).collector.isEmpty() && opts.execute) {
-                    execute(File(opts.output))
+                    execute(opts, File(opts.output))
                 }
             } catch (e: Throwable) {
                 e.printStackTrace()
+            } finally {
+                Prof.endAll()
             }
         }
     }
@@ -230,10 +252,9 @@ fun dumpIr(program: LstProgram) {
     }
 }
 
-fun compileToWasm(watFile: File, wasmFile: File): Boolean {
-    val optimize = true
+fun compileToWasm(opt: CompilerOptions, watFile: File, wasmFile: File): Boolean {
 
-    if (optimize) {
+    if (opt.optimize) {
         val tmp = File(watFile.parentFile, "unoptimized.wasm")
 
         val status = ProcessBuilder("wat2wasm", "--debug-names", "--enable-code-metadata", watFile.path, "-o", tmp.path)
@@ -263,16 +284,31 @@ fun compileToWasm(watFile: File, wasmFile: File): Boolean {
     }
 }
 
-fun execute(watFile: File) = Prof.run("execute") {
+fun execute(opt: CompilerOptions, watFile: File) = Prof.run("execute") {
     val wasmFile = File(watFile.parentFile, "compiled.wasm")
 
     Prof.start("wat2wasm")
-    compileToWasm(watFile, wasmFile)
+    compileToWasm(opt, watFile, wasmFile)
     Prof.end()
 
     Prof.start("deno")
     println("--- Running output.wasm")
     ProcessBuilder("./src/main/resources/deno_wrapper.ts")
+        .inheritIO()
+        .start()
+        .waitFor()
+    println("---")
+    Prof.end()
+
+    Prof.start("postExecScript")
+    opt.postExecScript?.let { execScript(it) }
+    Prof.end()
+}
+
+fun execScript(path: String) {
+    Prof.start("post-exec")
+    println("--- Running $path")
+    ProcessBuilder(path)
         .inheritIO()
         .start()
         .waitFor()

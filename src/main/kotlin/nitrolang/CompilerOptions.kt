@@ -14,8 +14,11 @@ data class CompilerOptions(
     var dumpExtern: Boolean = false,
     var dumpWasm: Boolean = false,
     var runTests: Boolean = false,
+    var optimize: Boolean = false,
     var traceFunctions: Boolean = false,
-    var listenChanges: MutableList<String> = mutableListOf(),
+    var postExecScript: String? = null,
+    var listenChangesToCompile: MutableList<String> = mutableListOf(),
+    var listenChangesToExecute: MutableList<String> = mutableListOf(),
 ) {
     companion object {
         fun fromArgs(args: Array<String>): CompilerOptions? {
@@ -56,6 +59,11 @@ data class CompilerOptions(
                         if (include !in opt.includes) {
                             opt.includes.add(include)
                         }
+                    }
+
+                    "-O", "--optimize" -> {
+                        i++
+                        opt.optimize = true
                     }
 
                     "-n", "--namespace" -> {
@@ -113,11 +121,38 @@ data class CompilerOptions(
 
                         args[i].split(',').map { it.trim() }.forEach { path ->
                             if (File(path).exists()) {
-                                opt.listenChanges.add(path)
+                                opt.listenChangesToCompile.add(path)
                             } else {
                                 println("Watch path does not exist: $path")
                             }
                         }
+                        i++
+                    }
+                    "-x", "--exec-watch" -> {
+                        i++
+                        if (args.size <= i) {
+                            println("Missing watch path")
+                            return null
+                        }
+
+                        args[i].split(',').map { it.trim() }.forEach { path ->
+                            if (File(path).exists()) {
+                                opt.listenChangesToExecute.add(path)
+                            } else {
+                                println("Watch path does not exist: $path")
+                            }
+                        }
+                        i++
+                    }
+
+                    "-p", "--post-exec" -> {
+                        i++
+                        if (args.size <= i) {
+                            println("Missing post-exec path")
+                            return null
+                        }
+
+                        opt.postExecScript = args[i]
                         i++
                     }
 
