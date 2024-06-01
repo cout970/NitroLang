@@ -59,8 +59,8 @@ fun assertExecutionSuccess(relPath: String): LstProgram {
     }
 
     assertEquals("", program.collector.toString(), "Compilation errors")
-
-    compileToWasm(watFile, wasmFile)
+    val opt = CompilerOptions(source = path)
+    compileToWasm(opt, watFile, wasmFile)
 
     val outputFile = Files.createTempFile(null, ".txt").toFile()
     ProcessBuilder("./src/main/resources/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
