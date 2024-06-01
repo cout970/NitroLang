@@ -280,7 +280,19 @@ fun WasmEmitter.emit_opcode(op: WOpcode) {
 fun WasmEmitter.emit_opcode_by_name(name: String) {
     for op in WOpcode::values() {
         if op.wat == name {
-            emit_opcode(op)
+
+            when op.variant {
+                WOpcode::I32Load.variant -> {
+                    add_i32_load(0)
+                }
+                WOpcode::I32Store.variant -> {
+                    add_i32_store(0)
+                }
+                else -> {
+                    emit_opcode(op)
+                }
+            }
+
             if debug_print {
                 debug_print_line("$name")
             }

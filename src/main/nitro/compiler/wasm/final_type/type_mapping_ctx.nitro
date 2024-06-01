@@ -64,7 +64,7 @@ fun TypeMappingCtx.convert_type(ty: Type): FinalType {
 
     let kind = final_types.kind_to_final(ty.kind)
     if kind.is_none() {
-        crash("How did you get here?")
+        crash("How did you get here? ${ty} => ${ty.kind} // $span")
     }
 
     let params = []

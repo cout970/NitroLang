@@ -48,7 +48,12 @@ fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, ins
         let opt = find_variable(parent_code, name, parent_block, parent_inst)
 
         if opt.is_some() {
-            opt!!.is_upvalue = true
+            let variable = opt!!
+            variable.is_upvalue = true
+
+            if variable.id !in code.upvalues {
+                code.upvalues[] = variable.id
+            }
         }
 
         ret opt

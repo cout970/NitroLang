@@ -53,6 +53,25 @@ fun Optional<#Value>.get_or_crash(): #Value {
     crash("Call to get_or_crash() '!!' on None variant")
 }
 
+// Same as get_or_crash(), but with a custom error message
+fun Optional<#Value>.or_fail_with(msg: String): #Value {
+    if this.is_some() {
+        ret (this as Optional::Some<#Value>).value
+    }
+
+    crash(msg)
+}
+
+// Same as or_fail_with(String),
+// but with a lambda to lazily generate the error message only when the error occurs
+fun Optional<#Value>.or_fail_with(msg: () -> String): #Value {
+    if this.is_some() {
+        ret (this as Optional::Some<#Value>).value
+    }
+
+    crash(msg())
+}
+
 // Allows the use of `?` to perform an early return if value is None
 fun Optional<#Value>.is_returnable_error(): Boolean = this.is_none()
 

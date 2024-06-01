@@ -23,6 +23,13 @@ option CompilationTask {
         instance: NFunction
         ctx: TypeMappingCtx
     }
+    VisitLambda {
+        key: MonomorphizationKey
+        index: IdWrapper
+        lambda_index: IdWrapper
+        instance: NLambda
+        ctx: TypeMappingCtx
+    }
     VisitConst {
         key: MonomorphizationKey
         index: IdWrapper
@@ -81,8 +88,17 @@ fun WasmBackend.compile_program() {
     // Rewrite indices so imports come before regular functions
     // So `call` instructions use the correct index
     let function_ids_start = import_indices.last_id + 1
+    let last_function_id = function_ids_start
     for wrapper in function_indices.all_wrappers {
         wrapper.id += function_ids_start
+        last_function_id = max(last_function_id, wrapper.id)
+    }
+
+    // Place lambda types at the end
+    let next_type_id = last_function_id + 1
+    for header in wasm_program.indirect_function_types {
+        header.index.id = next_type_id
+        next_type_id += 1
     }
 
     // Generate code for functions
@@ -158,6 +174,17 @@ fun WasmBackend.get_function_header(key: MonomorphizationKey, index: IdWrapper):
 
     // Results
     encode_final_type(params.last()!!, header.results)
+
+    ret header
+}
+
+fun WasmBackend.get_indirect_function_header(final_type: FinalType): WFunctionHeader{
+    let key = MonomorphizationKey @[name: "Function", final_type]
+    let header = get_function_header(key, IdWrapper @[id: -1])
+
+    // Implicit `self` argument, used to store the indirect function pointer and upvalues
+    header.params.add_first(WType::I32)
+    wasm_program.indirect_function_types[] = header
 
     ret header
 }
@@ -346,8 +373,20 @@ fun WasmBackend.get_final_lambda(instance: NLambda, final_type: FinalType): Fina
     ]
 
     // Size computation
-    // TODO upvalues
-    final_lambda.size = 4
+    // header + function ptr + upvalues
+    final_lambda.size = STRUCT_HEADER_SIZE + 4
+
+    let code = instance.code
+
+    for upvalue_id in code.upvalues {
+        let nvar = code.find_var(upvalue_id)
+        let final_type = root_ctx.convert_type(nvar.type_token!!.find_type())
+        let size = get_size_of(final_type)
+
+        if size > 0 {
+            final_lambda.size += 4
+        }
+    }
 
     ret final_lambda
 }

@@ -11,6 +11,10 @@ fun WasmBackend.visit_program(main: NFunction): IdWrapper {
                 let t = task as CompilationTask::VisitFunction
                 visit_function(t.ctx, t.key, t.instance, t.index)
             }
+            task is CompilationTask::VisitLambda -> {
+                let t = task as CompilationTask::VisitLambda
+                visit_lambda(t.ctx, t.key, t.instance, t.index, t.lambda_index)
+            }
             task is CompilationTask::VisitConst -> {
                 let t = task as CompilationTask::VisitConst
                 visit_const(t.key, t.instance, t.index)
@@ -42,6 +46,18 @@ fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction
     // Prevent duplicates
     already_visited[key] = index
     ret index
+}
+
+fun WasmBackend.add_task_visit_lambda(ctx: TypeMappingCtx, instance: NLambda, lambda_type: FinalType): IdWrapper {
+    let index = function_indices.next()
+    let lambda_index = IdWrapper @[id: -1]
+    let key = MonomorphizationKey @[
+        name: "lambda_${instance.id_wrapper.id}",
+        final_type: lambda_type,
+    ]
+
+    task_queue[] = CompilationTask::VisitLambda @[key, index, lambda_index, instance, ctx,]
+    ret lambda_index
 }
 
 fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
@@ -78,6 +94,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
         header,
         let_declarations: #[],
         function_calls: #[],
+        lambda_instances: #[],
         constants: #[],
         ctx,
         locals_provider: IdProvider::new(),
@@ -86,22 +103,45 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
     ]
     wasm_program.functions[] = wasm_func
 
-    for param in instance.parameters {
-        let ptype = ctx.convert_type(param.param_type!!)
+    visit_code(ctx, wasm_func, instance.code)
+}
 
-        wasm_func.locals[] = WVar @[
-            index: wasm_func.locals_provider.next(),
-            kind: WVarKind::Param,
-            name: param.name,
-            wasm_type: encode_to_wasm_type(ptype),
-        ]
-    }
+
+fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NLambda, index: IdWrapper, lambda_index: IdWrapper) {
+//    Log::debug("Visiting function $key")
+    let header = get_function_header(key, index)
+    // First argument is the lambda itself, this is implicit
+    header.params.add_first(WType::I32)
+
+    // Wasm Function
+    let wasm_func = WFunction @[
+        index,
+        name: header.name
+        source: WFunctionSource::Lambda @[instance],
+        code: instance.code,
+        header,
+        let_declarations: #[],
+        function_calls: #[],
+        lambda_instances: #[],
+        constants: #[],
+        ctx,
+        locals_provider: IdProvider::new(),
+        locals: [],
+        bytecode: WasmEmitter::new(),
+    ]
+    wasm_program.functions[] = wasm_func
+
+    // Lambda index inside the table
+    lambda_index.id = wasm_program.lambda_table.len
+    wasm_program.lambda_table[] = index
+
+    wasm_func.add_param("lambda_instance", WType::I32)
 
     visit_code(ctx, wasm_func, instance.code)
 }
 
 fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: IdWrapper) {
-//    Log::debug("Visiting const $key")
+    // Log::debug("Visiting const $key")
     let const_type = key.final_type
     let const_size = get_size_of(const_type)
     let const_init = false
@@ -207,6 +247,7 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         header,
         let_declarations: #[],
         function_calls: #[],
+        lambda_instances: #[],
         constants: #[],
         ctx: root_ctx,
         locals_provider: IdProvider::new(),
@@ -254,8 +295,22 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             let nvar: NVar = code.find_var((inst.kind as NInstKind::Let).variable)
             let nvar_type = nvar.type_token!!.find_type()
             let final_type = ctx.convert_type(nvar_type)
+            let wasm_type = encode_to_wasm_type(final_type)
 
-            let wvar = wasm_func.add_local(nvar.name, encode_to_wasm_type(final_type))
+            // Upvalues are presented with Ptr<#T>
+            if nvar.is_upvalue {
+                wasm_type = WType::I32
+
+                // Call to alloc function
+                let alloc_index = get_alloc_function(ctx)
+                wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index]
+            }
+
+            let wvar = if nvar.is_parameter {
+                wasm_func.add_param(nvar.name, wasm_type)
+            } else {
+                wasm_func.add_local(nvar.name, wasm_type)
+            }
 
             wasm_func.let_declarations[nvar.id] = wvar
         }
@@ -292,6 +347,15 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
             sub_ctx.add_generics(generics.generic_params, final_types)
 
+            let intrinsic_annotation = func.get_annotation("Intrinsic")
+            if intrinsic_annotation.is_some() && func.full_name == "call" {
+                let final_lambda_type = sub_ctx.convert_type(func.parameters.first()!!.param_type!!)
+                let header = get_indirect_function_header(final_lambda_type)
+
+                wasm_func.function_calls[inst.id] = WFuncCall::WLambda @[type_id: header.index, table_id: 0]
+                ret
+            }
+
             // Schedule the function for compilation
             let index = add_task_visit_function(sub_ctx, func)
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: index]
@@ -305,13 +369,32 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             wasm_func.constants[inst.id] = add_task_visit_const(constant!!)
         }
         inst.kind is NInstKind::Alloc -> {
-//            let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
-            // DEBUG allows to test the alloc instruction without including all the memory management code
-            let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
-            let index = add_task_visit_function(ctx, func)
-            wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: index]
+            let alloc_index = get_alloc_function(ctx)
+
+            wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index]
+        }
+        inst.kind is NInstKind::Lambda -> {
+            let lambda = (inst.kind as NInstKind::Lambda).instance
+            let sub_ctx = ctx.new_child(inst.span)
+            let lambda_type = sub_ctx.convert_type(inst.type_token!!.find_type())
+
+            // Instantiation of the lambda as wasm function
+            let index = add_task_visit_lambda(sub_ctx, lambda, lambda_type)
+            wasm_func.lambda_instances[inst.id] = index
+
+            // Call to alloc function
+            let alloc_index = get_alloc_function(ctx)
+
+            wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index]
         }
     }
+}
+
+fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): IdWrapper {
+    // let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
+    // DEBUG allows to test the alloc instruction without including all the memory management code
+    let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
+    ret add_task_visit_function(ctx, alloc_func)
 }
 
 fun WFunction.add_local(name: String, wasm_type: WType): WVar {
@@ -319,6 +402,18 @@ fun WFunction.add_local(name: String, wasm_type: WType): WVar {
     let wvar = WVar @[
         index,
         kind: WVarKind::Local,
+        name,
+        wasm_type,
+    ]
+    locals[] = wvar
+    ret wvar
+}
+
+fun WFunction.add_param(name: String, wasm_type: WType): WVar {
+    let index = locals_provider.next()
+    let wvar = WVar @[
+        index,
+        kind: WVarKind::Param,
         name,
         wasm_type,
     ]

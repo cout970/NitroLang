@@ -4,6 +4,8 @@ struct WasmProgram {
     imports: List<WImport>
     function_exports: List<WFunctionExport>
     functions: List<WFunction>
+    lambda_table: List<IdWrapper>
+    indirect_function_types: List<WFunctionHeader>
     start: Optional<IdWrapper>
     custom_sections: List<WCustom>
 }
@@ -52,6 +54,7 @@ struct WFunction {
     header: WFunctionHeader
     let_declarations: Map<NVarId, WVar>
     function_calls: Map<NInstId, WFuncCall>
+    lambda_instances: Map<NInstId, IdWrapper>
     constants: Map<NInstId, IdWrapper>
     ctx: TypeMappingCtx
     locals_provider: IdProvider
@@ -61,14 +64,15 @@ struct WFunction {
 
 option WFuncCall {
     WFunction { value: IdWrapper }
+    WLambda { type_id: IdWrapper, table_id: Int }
     WImport { value: IdWrapper }
     WOpcode { value: String }
 }
 
 option WFunctionSource {
     Function { instance: NFunction }
-    Const { instance: NConst }
     Lambda { instance: NLambda }
+    Const { instance: NConst }
 }
 
 struct WConst {
@@ -110,6 +114,8 @@ fun WasmProgram::new(): WasmProgram {
         imports: [],
         function_exports: [],
         functions: [],
+        lambda_table: [],
+        indirect_function_types: [],
         start: None(),
         custom_sections: [],
     ]

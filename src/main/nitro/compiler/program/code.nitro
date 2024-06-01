@@ -42,6 +42,8 @@ struct NCode {
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
+    // List of upvalues used by this code, to be used by the parent code
+    upvalues: List<NVarId>
 }
 
 fun NCode::new(span: Span, name: String): NCode {
@@ -70,6 +72,7 @@ fun NCode::new(span: Span, name: String): NCode {
         receiver_type_token: None(),
         return_type_token: None(),
         const_cache: #[],
+        upvalues: [],
     ]
 
     let root_block = NBlock @[

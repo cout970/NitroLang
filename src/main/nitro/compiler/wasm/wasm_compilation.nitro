@@ -27,15 +27,33 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
     for inst in code.inst_list {
         if debug_print {
-            debug_buffer[] = "--- #${inst.id} | ${inst} ---\n"
+            debug_buffer[] = "#${inst.id} ------------------------------ $inst\n"
         }
 
         if inst.kind is NInstKind::Let {
-            if debug_print {
-                let nvar = (inst.kind as NInstKind::Let).variable
-                let wvar = func.let_declarations[nvar]!!
-                debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+            let nvar_id = (inst.kind as NInstKind::Let).variable
+            let nvar = code.find_var(nvar_id)
+            let wvar = func.let_declarations[nvar_id]!!
+
+            if nvar.is_upvalue {
+                let call = (func.function_calls[inst.id]!! as WFuncCall::WFunction).value
+                let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+                let size = backend.get_size_of(final_type)
+
+                // Alloc the upvalue
+                add_i32_const(size)
+                add_call(call.id)
+                add_local_set(wvar.index.id)
+
+                if debug_print {
+                    debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type} (upvalue)")
+                }
+            } else {
+                if debug_print {
+                    debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+                }
             }
+
             continue
         }
         if inst.kind is NInstKind::IfStart {
@@ -91,78 +109,13 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::FunCall {
-            let kind = inst.kind as NInstKind::FunCall
-
-            for arg in kind.arguments {
-                push(arg, map)
-            }
-
-            let opt = func.function_calls[inst.id]!!
-
-            when {
-                opt is WFuncCall::WFunction -> {
-                    let id_wrapper = (opt as WFuncCall::WFunction).value
-                    add_call(id_wrapper.id)
-                }
-                opt is WFuncCall::WImport -> {
-                    let id_wrapper = (opt as WFuncCall::WImport).value
-                    add_call(id_wrapper.id)
-                }
-                opt is WFuncCall::WOpcode -> {
-                    let opcode = (opt as WFuncCall::WOpcode).value
-                    emit_opcode_by_name(opcode)
-                }
-                else -> unreachable()
-            }
-
-            pop(inst.id, map)
+            compile_inst_fun_call(inst, func, backend, map, code)
             continue
         }
 
         if inst.kind is NInstKind::Literal {
-            let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
-
-            if expr is NConstExpr::NConstInt {
-                let const_value = expr as NConstExpr::NConstInt
-                add_i32_const(const_value.value)
-                pop(inst.id, map)
-                continue
-            }
-            if expr is NConstExpr::NConstLong {
-                let const_value = expr as NConstExpr::NConstLong
-                add_i64_const(const_value.value)
-                pop(inst.id, map)
-                continue
-            }
-            if expr is NConstExpr::NConstFloat {
-                let const_value = expr as NConstExpr::NConstFloat
-                add_f32_const(const_value.value)
-                pop(inst.id, map)
-                continue
-            }
-//            if expr is NConstExpr::NConstDouble {
-//                let value = expr as NConstExpr::NConstDouble
-//                add_f64_const(value.value)
-//                continue
-//            }
-            if expr is NConstExpr::NConstString {
-                let const_value = expr as NConstExpr::NConstString
-                let ptr = backend.push_string(const_value.value)
-                add_i32_const(ptr)
-                pop(inst.id, map)
-                continue
-            }
-            if expr is NConstExpr::NConstBoolean {
-                let const_value = expr as NConstExpr::NConstBoolean
-                add_i32_const(if const_value.value {1} else {0})
-                pop(inst.id, map)
-                continue
-            }
-            if expr is NConstExpr::NConstNothing {
-                // Nothing has 0 size
-                continue
-            }
-            crash("Unknown literal type: ${expr}")
+            compile_inst_literal(inst, func, backend, map, code)
+            continue
         }
 
         if inst.kind is NInstKind::Return {
@@ -176,111 +129,27 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             compile_inst_is_type(inst, func, backend, map, code)
             continue
         }
-        // TODO
         if inst.kind is NInstKind::AsType {
-            let kind = inst.kind as NInstKind::AsType
-            push(kind.value, map)
-            pop(inst.id, map)
+            compile_inst_as_type(inst, func, backend, map, code)
             continue
         }
         if inst.kind is NInstKind::LoadVar {
-            let kind = inst.kind as NInstKind::LoadVar
-
-            if kind.constant.is_some() {
-                let id_wrapper = func.constants[inst.id]!!
-                let wconst = backend.find_const(id_wrapper.id)
-
-                add_i32_const(wconst.section.offset)
-                let size = add_load_by_type(wconst.final_type, backend)
-
-                if size > 0 {
-                    pop(inst.id, map)
-                }
-                continue
-            }
-
-            let wvar = func.let_declarations[kind.variable!!]!!
-
-            add_local_get(wvar.index.id)
-            pop(inst.id, map)
+            compile_inst_load_var(inst, func, backend, map, code)
             continue
         }
 
         if inst.kind is NInstKind::StoreVar {
-            let kind = inst.kind as NInstKind::StoreVar
-            let wvar = func.let_declarations[kind.variable!!]!!
-
-            push(kind.value, map)
-            add_local_set(wvar.index.id)
+            compile_inst_store_var(inst, func, backend, map, code)
             continue
         }
 
         if inst.kind is NInstKind::LoadField {
-            let kind = inst.kind as NInstKind::LoadField
-            check(kind.field.is_some()) @{ "LoadField without field! #${inst.id} $inst\n$code" }
-            check(kind.field_type_token.is_some()) @{ "LoadField without field_type_token! #${inst.id} $inst\n$code" }
-
-            let field = kind.field!!
-            let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
-
-            // Zero size type, no need to load
-            if backend.get_size_of(field_type) == 0 {
-                continue
-            }
-
-            let instance_type = func.ctx.convert_type(code.find_inst_type_token(kind.instance)!!.find_type())
-            let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
-
-            // Offset in the struct
-            let offset = 0
-            for field in final_struct.fields {
-                if field.name == kind.name {
-                    break
-                }
-                offset += field.size
-            }
-
-            push(kind.instance, map)
-            add_i32_const(offset)
-            add_i32_add()
-            add_load_by_type(field_type, backend)
-            pop(inst.id, map)
+            compile_inst_load_field(inst, func, backend, map, code)
             continue
         }
 
         if inst.kind is NInstKind::StoreField {
-            let kind = inst.kind as NInstKind::StoreField
-            check(kind.field.is_some()) @{ "StoreField without field! #${inst.id} $inst\n$code" }
-            check(kind.field_type_token.is_some()) @{ "StoreField without field_type_token! #${inst.id} $inst\n$code" }
-
-            let field = kind.field!!
-            let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
-
-            // Zero size type, no need to store
-            if backend.get_size_of(field_type) == 0 {
-                continue
-            }
-
-            let instance_type_token = code.find_inst_type_token(kind.instance)
-            check(instance_type_token.is_some()) @{ "StoreField instance has not type! #${kind.instance}\n$code" }
-
-            let instance_type = func.ctx.convert_type(instance_type_token!!.find_type())
-            let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
-
-            // Offset in the struct
-            let offset = 0
-            for field in final_struct.fields {
-                if field.name == kind.name {
-                    break
-                }
-                offset += field.size
-            }
-
-            push(kind.instance, map)
-            add_i32_const(offset)
-            add_i32_add()
-            push(kind.value, map)
-            add_store_by_type(field_type, backend)
+            compile_inst_store_field(inst, func, backend, map, code)
             continue
         }
 
@@ -294,40 +163,13 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::Alloc {
-            let kind = inst.kind as NInstKind::Alloc
-            let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
-            let size = backend.get_size_of(final_type)
-            let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
-
-            add_i32_const(size)
-            add_call(call.value.id)
-
-            if final_type.kind is FinalTypeKind::Struct {
-                let instance = (final_type.kind as FinalTypeKind::Struct).instance
-
-                if instance.parent.is_some() {
-                    let option_instance: NOption = instance.parent!!
-                    let index = option_instance.get_index_of_item(instance)!!
-                    let wvar = func.add_local("tmp_${inst.id}", WType::I32)
-
-                    if debug_print {
-                        debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
-                    }
-
-                    // Fill variant field
-                    add_local_tee(wvar.index.id)
-                    add_i32_const(index)
-                    add_i32_store(0) // ptr: i32, value: i32 -> void
-                    add_local_get(wvar.index.id)
-                }
-            }
-
-            pop(inst.id, map)
+            compile_inst_alloc(inst, func, backend, map, code)
             continue
         }
 
         if inst.kind is NInstKind::Lambda {
-            // TODO
+            compile_inst_lambda(inst, func, backend, map, code)
+            continue
         }
 
         if inst.kind is NInstKind::Link {
@@ -355,11 +197,351 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         let ptypes_str = ptypes.join(", ")
         let header = "${instance.full_name}($ptypes_str) -> $rtype"
         println("------------------------------------------------------------------------------")
-        println("Compiled ${func.index.id}: ${header}")
+        println("Compiled function ${func.index.id}: ${header}")
         println(debug_buffer)
         println(code)
         println("------------------------------------------------------------------------------")
     }
+
+    if debug_print && func.source is WFunctionSource::Lambda {
+        let instance = (func.source as WFunctionSource::Lambda).instance
+        let rtype = func.ctx.convert_type(instance.return_type_token!!.find_type())
+        let ptypes = []
+
+        for param in instance.parameters {
+            ptypes[] = func.ctx.convert_type(param.param_type!!)
+        }
+        let ptypes_str = ptypes.join(", ")
+        let header = "lambda_${instance.id_wrapper.id}($ptypes_str) -> $rtype"
+        println("------------------------------------------------------------------------------")
+        println("Compiled lambda ${func.index.id}: ${header}")
+        println(debug_buffer)
+        println(code)
+        println("------------------------------------------------------------------------------")
+    }
+}
+
+fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let instance = (inst.kind as NInstKind::Lambda).instance
+
+    // Function type ie. (i32, i32) -> i32
+    let final_type = func.ctx.convert_type(inst.type_token!!.find_type())
+    // Lambda1(i32, i32) -> i32
+    let real_final_type = backend.final_types.create_final_type(
+        FinalTypeKind::Lambda @[instance],
+        final_type.type_params
+    )
+
+    let size = backend.get_size_of(real_final_type)
+    let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
+
+    add_i32_const(size)
+    add_call(call.value.id)
+
+    let wvar = func.add_local("tmp_${inst.id}", WType::I32)
+    let lambda_index = func.lambda_instances[inst.id]!!
+
+    // Copy lambda index to slot 1
+    add_local_tee(wvar.index.id)
+    add_i32_const(lambda_index.id)
+    add_i32_store(0) // ptr: i32, value: i32 -> void
+
+    // Copy upvalues to the rest of the slots
+    let i = 0
+    for upvalue_id in instance.code.upvalues {
+        let upvalue_wvar = func.let_declarations[upvalue_id]!!
+
+        add_local_get(wvar.index.id)
+        add_i32_const(4 + i * 4)
+        add_i32_add()
+        add_local_get(upvalue_wvar.index.id)
+        add_i32_store(0) // ptr: i32, value: i32 -> void
+        i += 1
+    }
+
+    add_local_get(wvar.index.id)
+    pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::Alloc
+
+    let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
+    let size = backend.get_size_of(final_type)
+    let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
+
+    add_i32_const(size)
+    add_call(call.value.id)
+
+    if final_type.kind is FinalTypeKind::Struct {
+        let instance = (final_type.kind as FinalTypeKind::Struct).instance
+
+        if instance.parent.is_some() {
+            let option_instance: NOption = instance.parent!!
+            let index = option_instance.get_index_of_item(instance)!!
+            let wvar = func.add_local("tmp_${inst.id}", WType::I32)
+
+            if debug_print {
+                debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+            }
+
+            // Fill variant field
+            add_local_tee(wvar.index.id)
+            add_i32_const(index)
+            add_i32_store(0) // ptr: i32, value: i32 -> void
+            add_local_get(wvar.index.id)
+        }
+    }
+
+    pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_store_field(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::StoreField
+
+    check(kind.field.is_some()) @{ "StoreField without field! #${inst.id} $inst\n$code" }
+    check(kind.field_type_token.is_some()) @{ "StoreField without field_type_token! #${inst.id} $inst\n$code" }
+
+    let field = kind.field!!
+    let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
+
+    // Zero size type, no need to store
+    if backend.get_size_of(field_type) == 0 {
+        ret
+    }
+
+    let instance_type_token = code.find_inst_type_token(kind.instance)
+    check(instance_type_token.is_some()) @{ "StoreField instance has not type! #${kind.instance}\n$code" }
+
+    let instance_type = func.ctx.convert_type(instance_type_token!!.find_type())
+    let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
+
+    // Offset in the struct
+    let offset = 0
+    for field in final_struct.fields {
+        if field.name == kind.name {
+            break
+        }
+        offset += field.size
+    }
+
+    push(kind.instance, map)
+    add_i32_const(offset)
+    add_i32_add()
+    push(kind.value, map)
+    add_store_by_type(field_type, backend)
+}
+fun WasmEmitter.compile_inst_load_field(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::LoadField
+
+    check(kind.field.is_some()) @{ "LoadField without field! #${inst.id} $inst\n$code" }
+    check(kind.field_type_token.is_some()) @{ "LoadField without field_type_token! #${inst.id} $inst\n$code" }
+
+    let field = kind.field!!
+    let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
+
+    // Zero size type, no need to load
+    if backend.get_size_of(field_type) == 0 {
+        ret
+    }
+
+    let instance_type = func.ctx.convert_type(code.find_inst_type_token(kind.instance)!!.find_type())
+    let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
+
+    // Offset in the struct
+    let offset = 0
+    for field in final_struct.fields {
+        if field.name == kind.name {
+            break
+        }
+        offset += field.size
+    }
+
+    push(kind.instance, map)
+    add_i32_const(offset)
+    add_i32_add()
+    add_load_by_type(field_type, backend)
+    pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::LoadVar
+
+    if kind.constant.is_some() {
+        let id_wrapper = func.constants[inst.id]!!
+        let wconst = backend.find_const(id_wrapper.id)
+
+        add_i32_const(wconst.section.offset)
+        let size = add_load_by_type(wconst.final_type, backend)
+
+        if size > 0 {
+            pop(inst.id, map)
+        }
+        ret
+    }
+
+    let nvar_id: NVarId = kind.variable!!
+    let nvar = code.find_var(nvar_id)
+    let wvar = func.let_declarations[nvar_id]
+
+    // Using upvalue outside the code block
+    // TODO this is not correct when there are upvalues and normal parameters at the same time
+    if wvar.is_none() {
+        let index = code.upvalues.index_of(nvar_id)
+
+        // Implicit lambda instance
+        add_local_get(0)
+
+        // Load upvalue ptr
+        add_i32_const((1 + index!!) * 4)
+        add_i32_add()
+        add_i32_load(0)
+
+        // Load the value
+        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+        add_load_by_type(final_type, backend)
+
+        pop(inst.id, map)
+        ret
+    }
+
+    let local_id = wvar!!.index.id
+
+    if nvar.is_upvalue {
+        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+
+        // Upvalues are pointers in the stack, the value is in the heap
+        add_local_get(local_id)
+        add_load_by_type(final_type, backend)
+    } else {
+        add_local_get(local_id)
+    }
+
+    pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::StoreVar
+    let nvar_id = kind.variable!!
+    let nvar = code.find_var(nvar_id)
+    let wvar = func.let_declarations[nvar_id]
+
+    // Using upvalue outside the code block
+    if wvar.is_none() {
+        let index = code.upvalues.index_of(nvar_id)
+
+        // Implicit lambda instance
+        add_local_get(0)
+
+        // Load upvalue ptr
+        add_i32_const((1 + index!!) * 4)
+        add_i32_add()
+        add_i32_load(0)
+
+        // Store the value
+        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+        push(kind.value, map)
+        add_store_by_type(final_type, backend) // ptr: i32, value: i32 -> void
+        ret
+    }
+
+    let local_id = wvar!!.index.id
+
+    if nvar.is_upvalue {
+        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+
+        // Upvalues are pointers in the stack, the value is in the heap
+        add_local_get(local_id)
+        push(kind.value, map)
+        add_store_by_type(final_type, backend)
+    } else {
+        push(kind.value, map)
+        add_local_set(local_id)
+    }
+}
+
+fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::FunCall
+    let opt = func.function_calls[inst.id]!!
+
+    for arg in kind.arguments {
+        push(arg, map)
+    }
+
+    when {
+        opt is WFuncCall::WFunction -> {
+            let id_wrapper = (opt as WFuncCall::WFunction).value
+            add_call(id_wrapper.id)
+        }
+        opt is WFuncCall::WLambda -> {
+            let call = (opt as WFuncCall::WLambda)
+
+            // Get the index of the lambda function
+            push(kind.arguments[0]!!, map)
+            add_i32_load(0)
+
+            // Call the function in the lambdas funcref table
+            add_call_indirect(call.type_id.id, call.table_id)
+        }
+        opt is WFuncCall::WImport -> {
+            let id_wrapper = (opt as WFuncCall::WImport).value
+            add_call(id_wrapper.id)
+        }
+        opt is WFuncCall::WOpcode -> {
+            let opcode = (opt as WFuncCall::WOpcode).value
+            emit_opcode_by_name(opcode)
+        }
+        else -> unreachable()
+    }
+
+    pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_literal(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
+
+    if expr is NConstExpr::NConstInt {
+        let const_value = expr as NConstExpr::NConstInt
+        add_i32_const(const_value.value)
+        pop(inst.id, map)
+        ret
+    }
+    if expr is NConstExpr::NConstLong {
+        let const_value = expr as NConstExpr::NConstLong
+        add_i64_const(const_value.value)
+        pop(inst.id, map)
+        ret
+    }
+    if expr is NConstExpr::NConstFloat {
+        let const_value = expr as NConstExpr::NConstFloat
+        add_f32_const(const_value.value)
+        pop(inst.id, map)
+        ret
+    }
+// No new features until the new compiler is functional
+//  if expr is NConstExpr::NConstDouble {
+//      let value = expr as NConstExpr::NConstDouble
+//      add_f64_const(value.value)
+//      ret
+//  }
+    if expr is NConstExpr::NConstString {
+        let const_value = expr as NConstExpr::NConstString
+        let ptr = backend.push_string(const_value.value)
+        add_i32_const(ptr)
+        pop(inst.id, map)
+        ret
+    }
+    if expr is NConstExpr::NConstBoolean {
+        let const_value = expr as NConstExpr::NConstBoolean
+        add_i32_const(if const_value.value {1} else {0})
+        pop(inst.id, map)
+        ret
+    }
+    if expr is NConstExpr::NConstNothing {
+        // Nothing has 0 size
+        ret
+    }
+    crash("Unknown literal type: ${expr}")
 }
 
 fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
@@ -393,7 +575,7 @@ fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: Wasm
 
         // Variant field
         push(kind.value, map)
-        add_i32_load(STRUCT_HEADER_SIZE)
+        add_i32_load(0)
         // Expected value
         add_i32_const(index)
         // equal?
@@ -408,6 +590,57 @@ fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: Wasm
     add_drop()
     add_i32_const(if final_pattern.matches_type(final_type) { 1 } else { 0 })
     pop(inst.id, map)
+}
+
+fun WasmEmitter.compile_inst_as_type(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::AsType
+    let final_type = func.ctx.convert_type(code.find_inst_type_token(kind.value)!!.find_type())
+    let final_pattern = func.ctx.convert_type(kind.type_usage.type_token!!.find_type())
+
+    let pattern_is_option_item = final_pattern.kind is FinalTypeKind::Struct && (final_pattern.kind as FinalTypeKind::Struct).instance.parent.is_some()
+    let pattern_is_option = final_pattern.kind is FinalTypeKind::Option
+
+    let type_is_option_item = final_type.kind is FinalTypeKind::Struct && (final_type.kind as FinalTypeKind::Struct).instance.parent.is_some()
+    let type_is_option = final_type.kind is FinalTypeKind::Option
+
+    // Valid cases
+    // 1. Option -> Option::Item, ie. Optional -> Optional::Some
+    // 2. Option::Item -> Option, ie. Optional::Some -> Optional
+    // 3. Anything else is invalid
+
+    // 1. Option::Item as Option
+    if pattern_is_option_item && type_is_option {
+        let item_instance: NStruct = (final_pattern.kind as FinalTypeKind::Struct).instance
+        let item_option_instance = item_instance.parent!!
+        let value_option_instance = (final_type.kind as FinalTypeKind::Option).instance
+
+        if item_option_instance != value_option_instance {
+            backend.reporter.report_error("Invalid cast from ${value_option_instance.full_name} to ${item_option_instance.full_name}", inst.span)
+            ret
+        }
+
+        push(kind.value, map)
+        pop(inst.id, map)
+        ret
+    }
+
+    // 2. Option as Option::Item
+    if pattern_is_option && type_is_option_item {
+        let pattern_option_instance = (final_pattern.kind as FinalTypeKind::Option).instance
+        let item_instance = (final_type.kind as FinalTypeKind::Struct).instance
+        let item_option_instance = item_instance.parent!!
+
+        if pattern_option_instance != item_option_instance {
+            backend.reporter.report_error("Invalid cast from ${item_option_instance.full_name} to ${pattern_option_instance.full_name}", inst.span)
+            ret
+        }
+
+        push(kind.value, map)
+        pop(inst.id, map)
+        ret
+    }
+
+    backend.reporter.report_error("Invalid cast from $final_type to $final_pattern", inst.span)
 }
 
 // Compute whether an instruction should save its result in a local, keep it on the stack, or drop it

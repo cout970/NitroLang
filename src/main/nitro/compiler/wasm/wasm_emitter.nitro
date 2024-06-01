@@ -61,9 +61,7 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
     emit_byte(0x00)
 
     // Types section
-    if program.functions.len > 0 {
-        emit_type_section(program.imports, program.functions)
-    }
+    emit_type_section(program.imports, program.functions, program.indirect_function_types)
 
     // Imports section
     if program.imports.len > 0 {
@@ -75,6 +73,9 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
         emit_function_section(program.functions)
     }
 
+    // Table section
+    emit_table_section(program)
+
     // Memory section
     emit_memory_section(program.memory)
 
@@ -84,8 +85,8 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
     // Start section
 //    emit_start_section(program.start!!)
 
-    // TODO
-    // Elements section (TODO)
+    // Elements section
+    emit_elements_section(program)
 
     // Data count section
     emit_data_count_section(program.memory)
@@ -130,18 +131,21 @@ fun WasmEmitter.emit_custom_section(section: WCustom) {
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#type-section
-fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunction>) {
+fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunction>, lambdas: List<WFunctionHeader>) {
     if debug_print {
         debug_print_line("Emit type section: ${imports.len} imports, ${functions.len} functions")
     }
     let tmp = WasmEmitter::new()
 
-    tmp.emit_u32(imports.len + functions.len)
+    tmp.emit_u32(imports.len + functions.len + lambdas.len)
     for imp in imports {
         tmp.emit_functype(imp.header)
     }
     for func in functions {
         tmp.emit_functype(func.header)
+    }
+    for header in lambdas {
+        tmp.emit_functype(header)
     }
 
     emit_section_header(SectionType::Type, tmp.buffer.len)
@@ -181,6 +185,23 @@ fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
     }
 
     emit_section_header(SectionType::Function, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#table-section
+fun WasmEmitter.emit_table_section(program: WasmProgram) {
+    if debug_print {
+        debug_print_line("Emit table section")
+    }
+    let tmp = WasmEmitter::new()
+
+    // vec(table_type)
+    tmp.emit_u32(1)
+    // table_type -> ref_type limits
+    tmp.emit_u32(WType::FuncRef.code)
+    tmp.emit_limits(program.lambda_table.len, -1)
+
+    emit_section_header(SectionType::Table, tmp.buffer.len)
     emit(tmp)
 }
 
@@ -236,6 +257,32 @@ fun WasmEmitter.emit_start_section(start: IdWrapper) {
     tmp.emit_u32(start.id)
 
     emit_section_header(SectionType::Start, tmp.buffer.len)
+    emit(tmp)
+}
+
+// https://webassembly.github.io/spec/core/binary/modules.html#element-section
+fun WasmEmitter.emit_elements_section(program: WasmProgram) {
+    if debug_print {
+        debug_print_line("Emit elements section: ${program.lambda_table.len} elements")
+    }
+    let tmp = WasmEmitter::new()
+
+    // vec(element_segment)
+    tmp.emit_u32(1)
+
+    // elem -> 0 expr vec(func_idx)
+    tmp.emit_u32(0)
+    // expr
+    tmp.add_i32_const(0)
+    tmp.emit_byte(0x0B)
+
+    // vec(func_idx)
+    tmp.emit_u32(program.lambda_table.len)
+    for func_index in program.lambda_table {
+        tmp.emit_u32(func_index.id)
+    }
+
+    emit_section_header(SectionType::Element, tmp.buffer.len)
     emit(tmp)
 }
 
@@ -378,6 +425,7 @@ fun WasmEmitter.emit_u32(value: Int) {
         repeat tests.len {
             let e = WasmEmitter::new()
             e.emit_u32(tests[it]!!.first)
+
             check(e.buffer == tests[it]!!.second) @{ "Failed to encode ${tests[it]!!.first} as LEB128" }
         }
     }
@@ -388,17 +436,31 @@ fun WasmEmitter.emit_i32(value: Int) {
     // signed LEB128 encoding
     loop {
         let byte = value & 0x7F
-        value = value >>> 7
+        value = value >> 7
 
-        let more = (byte & 0x40) != 0
-        if value != 0 || more {
-            emit_byte(byte | 0x80)
-        } else {
-            emit_byte(byte)
-        }
+        let end = (value == 0 && (byte & 0x40) == 0) || (value == -1 && (byte & 0x40) != 0)
 
-        if value == 0 && !more {
+        emit_byte(if end { byte } else { byte | 0x80 })
+
+        if end {
             break
+        }
+    }
+
+    test! "signed LEB128 encoding" {
+        let tests = [
+            Pair::of(0, [0x00.to_byte()]),
+            Pair::of(1, [0x01.to_byte()]),
+            Pair::of(-1, [0x7F.to_byte()]),
+            Pair::of(-4, [0x7C.to_byte()]),
+            Pair::of(-999999, [0xC1.to_byte(), 0xFB.to_byte(), 0x42.to_byte()]),
+        ]
+
+        repeat tests.len {
+            let e = WasmEmitter::new()
+            e.emit_i32(tests[it]!!.first)
+
+            check(e.buffer == tests[it]!!.second) @{ "Failed to encode ${tests[it]!!.first} as LEB128" }
         }
     }
 }

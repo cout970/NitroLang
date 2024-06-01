@@ -10,8 +10,28 @@ option AB {
     B {}
 }
 
+@Extern [lib: "core", name: "i32_store"]
+@WasmInline [opcode: "i32.store"]
+fun i32_store(ptr: Int, value: Int) {}
+
+@Extern [lib: "core", name: "i32_load"]
+@WasmInline [opcode: "i32.load"]
+fun i32_load(ptr: Int): Int {}
+
+// Temporary extremely simple memory allocator
 fun memory_alloc_internal2(size: Int): Int {
-    ret 0xFF00
+    let curr = i32_load(79996)
+
+    if curr.is_equal(0) {
+        curr = 80000
+    }
+
+    // align to 4 bytes boundary
+    let alloc = (curr + 3) & -4
+    curr = curr + size
+
+    i32_store(79996, curr)
+    ret alloc
 }
 
 fun main() {
@@ -82,20 +102,50 @@ fun main() {
 //    println(is_int(42f))
 //    println(is_int("42"))
 //    println(two_args(42, 69L))
+//
+//    let res = give_me_lambda @{ it: Int ->
+//        println("Hello from lambda!")
+//        println(it)
+//        ret it + 27
+//    }
+//
+//    println(res)
 
-    // TODO this should fail
-    let a = "42" as Int
-    println(a)
+    let a = 10
+    let b = 11
+
+
+    repeat 3 {
+        update_upvalue @{ it: Int ->
+            println(a)
+            println(b)
+            a += it
+            b += it
+            println(a)
+            println(b)
+        }
+
+        println(a)
+        println(b)
+    }
 }
 
-fun two_args(a: Int, b: Long): Float {
-    ret 1f
+fun update_upvalue(l: (Int) -> Nothing) {
+    l.call(100)
 }
 
-fun <#T> is_int(a: #T): Boolean {
-    ret a is Int
-}
-
-fun second_function(arg: Int): Int {
-    ret arg + 17
-}
+//fun give_me_lambda(l: (Int) -> Int): Int {
+//    ret l.call(42)
+//}
+//
+//fun two_args(a: Int, b: Long): Float {
+//    ret 1f
+//}
+//
+//fun <#T> is_int(a: #T): Boolean {
+//    ret a is Int
+//}
+//
+//fun second_function(arg: Float): Int {
+//    ret arg.to_int()
+//}

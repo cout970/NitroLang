@@ -11,6 +11,8 @@ sleep 1
 cat output.wasm.hex | xxd -r -p > output.wasm
 
 # Create wat version for debugging
+wasm2wat --no-check -o output.wat output.wasm
+# Run a second time to get check errors and use the first output to debug
 wasm2wat -o output.wat output.wasm
 
 # Print the wat version
