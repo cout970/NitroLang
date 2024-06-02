@@ -385,7 +385,6 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
     let wvar = func.let_declarations[nvar_id]
 
     // Using upvalue outside the code block
-    // TODO this is not correct when there are upvalues and normal parameters at the same time
     if wvar.is_none() {
         let index = code.upvalues.index_of(nvar_id)
 

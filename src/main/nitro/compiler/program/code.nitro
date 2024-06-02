@@ -93,6 +93,7 @@ fun NCode.new_child(span: Span): NCode {
     subcode.parent_inst = Some(last_id)
     subcode.parent_block = Some(current_block)
     subcode.parent_span = Some(span)
+    subcode.last_var_id = last_var_id
     children[] = subcode
     ret subcode
 }

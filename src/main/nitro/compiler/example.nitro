@@ -114,13 +114,12 @@ fun main() {
     let a = 10
     let b = 11
 
-
     repeat 3 {
-        update_upvalue @{ it: Int ->
+        update_upvalue @{ it: Float ->
             println(a)
             println(b)
-            a += it
-            b += it
+            a += it.to_int()
+            b += it.to_int()
             println(a)
             println(b)
         }
@@ -130,8 +129,8 @@ fun main() {
     }
 }
 
-fun update_upvalue(l: (Int) -> Nothing) {
-    l.call(100)
+fun update_upvalue(l: (Float) -> Nothing) {
+    l.call(100f)
 }
 
 //fun give_me_lambda(l: (Int) -> Int): Int {

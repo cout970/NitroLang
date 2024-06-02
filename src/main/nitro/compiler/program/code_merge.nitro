@@ -82,10 +82,9 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
         // Relocate lambda to be able to find variables outside the scope of the lambda
         if new_kind is NInstKind::Lambda {
             let lambda = (new_kind as NInstKind::Lambda).instance
-            lambda.code.parent_code = Some(dst)
-            lambda.code.parent_inst = Some(new_inst.id)
-            lambda.code.parent_block = Some(new_inst.block)
-            lambda.code.parent_span = Some(new_inst.span)
+            let child = dst.new_child(new_inst.span)
+            child.merge(lambda.code)
+            lambda.code = child
         }
     }
 
@@ -297,4 +296,8 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
     }
 
     crash("Unknown NInstKind variant")
+}
+
+fun NCodeMapping.to_string(): String {
+    ret "NCodeMapping @[\n  inst_mapping: $inst_mapping,\n  block_mapping: $block_mapping,\n  var_mapping: $var_mapping\n]"
 }
