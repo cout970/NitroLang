@@ -1,5 +1,5 @@
 
-type_alias NVarId = Int
+type_alias NVarId = Id
 
 struct NVar {
     id: NVarId

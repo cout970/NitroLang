@@ -60,7 +60,7 @@ fun FinalTypeKind.to_string(): String {
             ret (this as FinalTypeKind::Option).instance.full_name
         }
         this is FinalTypeKind::Lambda -> {
-            ret "Lambda${(this as FinalTypeKind::Lambda).instance.id_wrapper.id}"
+            ret "Lambda${(this as FinalTypeKind::Lambda).instance.id}"
         }
         this is FinalTypeKind::Function -> {
             ret "Function"
@@ -71,16 +71,16 @@ fun FinalTypeKind.to_string(): String {
 fun FinalTypeKind.get_id(): String {
     when {
         this is FinalTypeKind::Struct -> {
-            ret "S${(this as FinalTypeKind::Struct).instance.id_wrapper.id}"
+            ret "S${(this as FinalTypeKind::Struct).instance.id}"
         }
         this is FinalTypeKind::Option -> {
-            ret "O${(this as FinalTypeKind::Option).instance.id_wrapper.id}"
+            ret "O${(this as FinalTypeKind::Option).instance.id}"
         }
         this is FinalTypeKind::Lambda -> {
-            ret "L${(this as FinalTypeKind::Lambda).instance.id_wrapper.id}"
+            ret "L${(this as FinalTypeKind::Lambda).instance.id}"
         }
         this is FinalTypeKind::Function -> {
-            ret "F${(this as FinalTypeKind::Function).instance.id_wrapper.id}"
+            ret "F${(this as FinalTypeKind::Function).instance.id}"
         }
     }
     unreachable()
@@ -89,16 +89,16 @@ fun FinalTypeKind.get_id(): String {
 fun FinalTypeKind.is_equal(other: FinalTypeKind): Boolean {
     ret when {
         this is FinalTypeKind::Struct && other is FinalTypeKind::Struct -> {
-            (this as FinalTypeKind::Struct).instance.id_wrapper.id == (other as FinalTypeKind::Struct).instance.id_wrapper.id
+            (this as FinalTypeKind::Struct).instance.id == (other as FinalTypeKind::Struct).instance.id
         }
         this is FinalTypeKind::Option && other is FinalTypeKind::Option -> {
-            (this as FinalTypeKind::Option).instance.id_wrapper.id == (other as FinalTypeKind::Option).instance.id_wrapper.id
+            (this as FinalTypeKind::Option).instance.id == (other as FinalTypeKind::Option).instance.id
         }
         this is FinalTypeKind::Lambda && other is FinalTypeKind::Lambda -> {
-            (this as FinalTypeKind::Lambda).instance.id_wrapper.id == (other as FinalTypeKind::Lambda).instance.id_wrapper.id
+            (this as FinalTypeKind::Lambda).instance.id == (other as FinalTypeKind::Lambda).instance.id
         }
         this is FinalTypeKind::Function && other is FinalTypeKind::Function -> {
-            (this as FinalTypeKind::Function).instance.id_wrapper.id == (other as FinalTypeKind::Function).instance.id_wrapper.id
+            (this as FinalTypeKind::Function).instance.id == (other as FinalTypeKind::Function).instance.id
         }
         else -> false
     }

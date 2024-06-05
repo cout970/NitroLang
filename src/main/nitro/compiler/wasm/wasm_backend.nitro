@@ -6,12 +6,12 @@ struct WasmBackend {
     emitter: WasmEmitter
     final_types: FinalTypeContainer
     consts: List<WConst>
-    last_const: Int
+    const_id_provider: IdProvider
     function_indices: IdProvider
     import_indices: IdProvider
     final_struct_cache: Map<FinalType, FinalStruct>
     final_option_cache: Map<FinalType, FinalOption>
-    already_visited: Map<MonomorphizationKey, IdWrapper>
+    already_visited: Map<MonomorphizationKey, Id>
     task_queue: ArrayDeque<CompilationTask>
     root_ctx: TypeMappingCtx
 }
@@ -19,20 +19,20 @@ struct WasmBackend {
 option CompilationTask {
     VisitFunction {
         key: MonomorphizationKey
-        index: IdWrapper
+        index: Id
         instance: NFunction
         ctx: TypeMappingCtx
     }
     VisitLambda {
         key: MonomorphizationKey
-        index: IdWrapper
-        lambda_index: IdWrapper
+        index: Id
+        lambda_index: Id
         instance: NLambda
         ctx: TypeMappingCtx
     }
     VisitConst {
         key: MonomorphizationKey
-        index: IdWrapper
+        index: Id
         instance: NConst
     }
 }
@@ -46,7 +46,7 @@ fun WasmBackend::new(reporter: Reporter, program: Program): WasmBackend {
         emitter: WasmEmitter::new(),
         final_types,
         consts: [],
-        last_const: -1,
+        const_id_provider: IdProvider::new(),
         function_indices: IdProvider::new(),
         import_indices: IdProvider::new(),
         final_struct_cache: #[],
@@ -88,16 +88,13 @@ fun WasmBackend.compile_program() {
     // Rewrite indices so imports come before regular functions
     // So `call` instructions use the correct index
     let function_ids_start = import_indices.last_id + 1
-    let last_function_id = function_ids_start
-    for wrapper in function_indices.all_wrappers {
-        wrapper.id += function_ids_start
-        last_function_id = max(last_function_id, wrapper.id)
-    }
+    function_indices.increment_all_existing_ids(function_ids_start)
+    let last_function_id = function_indices.get_max_id()
 
     // Place lambda types at the end
     let next_type_id = last_function_id + 1
     for header in wasm_program.indirect_function_types {
-        header.index.id = next_type_id
+        header.index.update(next_type_id)
         next_type_id += 1
     }
 
@@ -155,7 +152,7 @@ fun WasmBackend.get_key_for_const(instance: NConst): MonomorphizationKey {
     ]
 }
 
-fun WasmBackend.get_function_header(key: MonomorphizationKey, index: IdWrapper): WFunctionHeader {
+fun WasmBackend.get_function_header(key: MonomorphizationKey, index: Id): WFunctionHeader {
     // Function header
     let header = WFunctionHeader @[
         index,
@@ -180,7 +177,7 @@ fun WasmBackend.get_function_header(key: MonomorphizationKey, index: IdWrapper):
 
 fun WasmBackend.get_indirect_function_header(final_type: FinalType): WFunctionHeader{
     let key = MonomorphizationKey @[name: "Function", final_type]
-    let header = get_function_header(key, IdWrapper @[id: -1])
+    let header = get_function_header(key, Id::uninitialized())
 
     // Implicit `self` argument, used to store the indirect function pointer and upvalues
     header.params.add_first(WType::I32)
@@ -424,9 +421,9 @@ fun WasmBackend.push_string(value: String): Int {
     ret instance_sec.offset
 }
 
-fun WasmBackend.find_const(id: Int): WConst {
+fun WasmBackend.find_const(id: Id): WConst {
     for c in consts {
-        if c.index.id == id {
+        if c.index == id {
             ret c
         }
     }

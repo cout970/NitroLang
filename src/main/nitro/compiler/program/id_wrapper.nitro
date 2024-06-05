@@ -1,0 +1,80 @@
+
+struct IdProvider {
+    all_wrappers: List<Id>
+    last_id: Int
+}
+
+struct Id {
+    current_value: Int
+}
+
+fun IdProvider::new(): IdProvider {
+    ret IdProvider @[
+        all_wrappers: [],
+        last_id: -1,
+    ]
+}
+
+fun IdProvider.previous(): Id {
+    ret Id @[current_value: last_id]
+}
+
+fun IdProvider.next(): Id {
+    last_id += 1
+    let wrapper = Id @[current_value: last_id]
+    all_wrappers[] = wrapper
+    ret wrapper
+}
+
+fun IdProvider.seek_to(other: IdProvider) {
+    last_id = other.last_id
+}
+
+fun IdProvider.increment_all_existing_ids(amount: Int) {
+    for wrapper in all_wrappers {
+        wrapper.current_value += amount
+    }
+}
+
+fun IdProvider.get_max_id(): Int {
+    let max_id = -1
+    for wrapper in all_wrappers {
+        max_id = max(max_id, wrapper.current_value)
+    }
+    ret max_id
+}
+
+fun IdProvider::merge_into(from: IdProvider, to: IdProvider) {
+    if from.all_wrappers.is_empty() {
+        ret
+    }
+
+    let offset = to.last_id + 1
+    let last = to.last_id
+
+    for wrapper in from.all_wrappers {
+        wrapper.current_value += offset
+        last = max(last, wrapper.current_value)
+    }
+
+    to.all_wrappers += from.all_wrappers
+    to.last_id = last
+}
+
+fun Id::uninitialized(): Id = Id @[current_value: -1]
+
+fun Id.is_uninitialized(): Boolean = current_value == -1
+
+fun Id.to_int(): Int = current_value
+
+fun Id.update(new_value: Int) {
+    this.current_value = new_value
+}
+
+fun Id.is_equal(other: Id): Boolean = this.current_value == other.current_value
+
+fun Id.get_ordering(other: Id): Ordering = this.current_value <=> other.current_value
+
+fun Id.get_hash(): Int = current_value
+
+fun Id.to_string(): String = current_value.to_string()

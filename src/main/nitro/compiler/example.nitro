@@ -1,14 +1,14 @@
 // Example to test code generation and execution
 
-struct Example {
-    a: Int,
-    b: Int,
-}
-
-option AB {
-    A {}
-    B {}
-}
+//struct Example {
+//    a: Int,
+//    b: Int,
+//}
+//
+//option AB {
+//    A {}
+//    B {}
+//}
 
 @Extern [lib: "core", name: "i32_store"]
 @WasmInline [opcode: "i32.store"]
@@ -20,18 +20,19 @@ fun i32_load(ptr: Int): Int {}
 
 // Temporary extremely simple memory allocator
 fun memory_alloc_internal2(size: Int): Int {
-    let curr = i32_load(79996)
-
-    if curr.is_equal(0) {
-        curr = 80000
-    }
-
-    // align to 4 bytes boundary
-    let alloc = (curr + 3) & -4
-    curr = curr + size
-
-    i32_store(79996, curr)
-    ret alloc
+//    let curr = i32_load(79996)
+//
+//    if curr.is_equal(0) {
+//        curr = 80000
+//    }
+//
+//    // align to 4 bytes boundary
+//    let alloc = (curr + 3) & -4
+//    curr = curr + size
+//
+//    i32_store(79996, curr)
+//    ret alloc
+    ret 80000
 }
 
 fun main() {
@@ -110,28 +111,30 @@ fun main() {
 //    }
 //
 //    println(res)
+//
+//    let a = 0
+//    let b = 1
+//
+//    repeat 3 {
+//        update_upvalue @{ c: Float, d: Long ->
+//            println(a)
+//            println(b)
+//            a += c.to_int()
+//            b += d.to_int()
+//            println(a)
+//            println(b)
+//        }
+//
+//        println(a)
+//        println(b)
+//    }
 
-    let a = 10
-    let b = 11
-
-    repeat 3 {
-        update_upvalue @{ it: Float ->
-            println(a)
-            println(b)
-            a += it.to_int()
-            b += it.to_int()
-            println(a)
-            println(b)
-        }
-
-        println(a)
-        println(b)
-    }
+    println("Hello")
 }
 
-fun update_upvalue(l: (Float) -> Nothing) {
-    l.call(100f)
-}
+//fun update_upvalue(l: (Float, Long) -> Nothing) {
+//    l.call(100f, 1000L)
+//}
 
 //fun give_me_lambda(l: (Int) -> Int): Int {
 //    ret l.call(42)

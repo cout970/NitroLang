@@ -13,16 +13,16 @@ struct NCode {
     span: Span
     // Generics defined for this block of code
     generics: NGenericParams
-    // Last allocated id for new instructions
-    last_id: NInstId
+    // Id provider for new instructions
+    inst_id_provider: IdProvider
     // List of instructions of the function/constant
     inst_list: List<NInst>
-    // Last allocated id for new variables
-    last_var_id: NVarId
+    // Id provider for new variables
+    variable_id_provider: IdProvider
     // Declared variables, names can be duplicated
     vars_map: Map<NVarId, NVar>
-    // Last allocated id for new blocks
-    last_block_id: NBlockId
+    //  Id provider for new block
+    block_id_provider: IdProvider
     // All the blocks defined in this code
     block_map: Map<NBlockId, NBlock>
     // Current block, assigned to new instructions
@@ -47,7 +47,7 @@ struct NCode {
 }
 
 fun NCode::new(span: Span, name: String): NCode {
-    let root_block_id = 0
+    let block_id_provider = IdProvider::new()
 
     let code = NCode @[
         name,
@@ -60,10 +60,10 @@ fun NCode::new(span: Span, name: String): NCode {
         generics: NGenericParams::new(),
         inst_list: [],
         vars_map: #[],
-        last_id: -1,
-        last_var_id: -1,
-        current_block: root_block_id,
-        last_block_id: root_block_id,
+        inst_id_provider: IdProvider::new(),
+        variable_id_provider: IdProvider::new(),
+        current_block: block_id_provider.next(),
+        block_id_provider: block_id_provider,
         block_map: #[],
         jumped_out_of_block: false,
         break_jumps: [],
@@ -76,32 +76,31 @@ fun NCode::new(span: Span, name: String): NCode {
     ]
 
     let root_block = NBlock @[
-        id: root_block_id,
+        id: code.current_block,
         parent_id: None(),
         is_jump_target: false,
         deferred_code: [],
         code,
     ]
 
-    code.block_map[root_block_id] = root_block
+    code.block_map[root_block.id] = root_block
     ret code
 }
 
 fun NCode.new_child(span: Span): NCode {
     let subcode = NCode::new(span, "$name::child")
     subcode.parent_code = Some(this)
-    subcode.parent_inst = Some(last_id)
+    subcode.parent_inst = Some(inst_id_provider.previous())
     subcode.parent_block = Some(current_block)
     subcode.parent_span = Some(span)
-    subcode.last_var_id = last_var_id
+    subcode.variable_id_provider.seek_to(variable_id_provider)
     children[] = subcode
     ret subcode
 }
 
 fun NCode.enter_block(is_jump_target: Boolean) {
-    last_block_id += 1
     let new_block = NBlock @[
-        id: last_block_id,
+        id: block_id_provider.next(),
         parent_id: Some(current_block),
         is_jump_target,
         deferred_code: [],

@@ -121,7 +121,7 @@ fun TypeContainer.matches_pattern(a: Type, b: ResolvedTypePattern): Boolean {
         }
         let left = (a.kind as TypeKind::Generic).instance
         let right = (pattern_kind as ResolvedTypePatternKind::Generic).instance
-        ret left.id_wrapper.id == right.id_wrapper.id
+        ret left.id == right.id
     }
 
     if pattern_kind is ResolvedTypePatternKind::Struct {
@@ -187,9 +187,9 @@ fun ResolvedTypePattern.get_hash(): Int {
 fun ResolvedTypePatternKind.get_ordering(other: ResolvedTypePatternKind): Ordering {
     ret when {
         this is ResolvedTypePatternKind::Any && other is ResolvedTypePatternKind::Any -> Ordering::Equals,
-        this is ResolvedTypePatternKind::Struct && other is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Struct).instance.id_wrapper.id,
-        this is ResolvedTypePatternKind::Option && other is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Option).instance.id_wrapper.id,
-        this is ResolvedTypePatternKind::Generic && other is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id_wrapper.id <=> (other as ResolvedTypePatternKind::Generic).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Struct && other is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id <=> (other as ResolvedTypePatternKind::Struct).instance.id,
+        this is ResolvedTypePatternKind::Option && other is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id <=> (other as ResolvedTypePatternKind::Option).instance.id,
+        this is ResolvedTypePatternKind::Generic && other is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id <=> (other as ResolvedTypePatternKind::Generic).instance.id,
         else -> Ordering::Less
     }
 }
@@ -197,9 +197,9 @@ fun ResolvedTypePatternKind.get_ordering(other: ResolvedTypePatternKind): Orderi
 fun ResolvedTypePatternKind.get_hash(): Int {
     ret when {
         this is ResolvedTypePatternKind::Any -> 0,
-        this is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id_wrapper.id,
-        this is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id_wrapper.id,
-        this is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id_wrapper.id,
+        this is ResolvedTypePatternKind::Struct -> (this as ResolvedTypePatternKind::Struct).instance.id.get_hash(),
+        this is ResolvedTypePatternKind::Option -> (this as ResolvedTypePatternKind::Option).instance.id.get_hash(),
+        this is ResolvedTypePatternKind::Generic -> (this as ResolvedTypePatternKind::Generic).instance.id.get_hash(),
         else -> unreachable()
     }
 }

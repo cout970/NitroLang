@@ -102,7 +102,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         // tag Foo { fun <#Foo: Tag> #Foo.test() }
 
         let instance = NGeneric @[
-            id_wrapper: id_provider.next(),
+            id: id_provider.next(),
             span,
             name: "This",
             source: NGenericSource::Function,
@@ -134,7 +134,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
 
         if def.is_none() && allow_generics_collection {
             let instance = NGeneric @[
-               id_wrapper: id_provider.next(),
+               id: id_provider.next(),
                span,
                name,
                source: current_generics.source,

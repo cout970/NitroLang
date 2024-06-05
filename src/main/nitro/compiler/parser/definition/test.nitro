@@ -25,11 +25,11 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         ]
     ]
 
-    let wrapper = id_provider.next()
-    let name = "test_${wrapper.id}"
+    let id = id_provider.next()
+    let name = "test_${id}"
 
     let def = NFunction @[
-        id_wrapper: id_provider.next(),
+        id,
         span,
         annotations,
         generics: NGenericParams::new(),

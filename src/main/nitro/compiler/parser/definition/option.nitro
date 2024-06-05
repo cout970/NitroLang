@@ -10,7 +10,7 @@
 //     : anyName structBody?;
 
 struct NOption {
-    id_wrapper: IdWrapper
+    id: Id
     span: Span
     annotations: List<NAnnotation>
     path: String
@@ -34,7 +34,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
     let name = read_name()?
 
     let def = NOption @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         annotations,
         path,
@@ -68,7 +68,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     let name = read_name()?
 
     let def = NStruct @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         annotations: [],
         path: get_full_path(parent.path, parent.name),
@@ -121,14 +121,14 @@ fun NOption.get_full_name(): String {
 
 fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
     for item in items {
-        if item.def.id_wrapper.id == str.id_wrapper.id {
+        if item.def.id == str.id {
             ret Some(item.index)
         }
     }
     ret None()
 }
 
-fun NOption.get_ordering(other: NOption): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+fun NOption.get_ordering(other: NOption): Ordering = this.id <=> other.id
 
 fun NOption.to_string(): String {
     let prefix = ""

@@ -7,6 +7,8 @@ let PTR_SIZE: Int = 4
 struct WasmEmitter {
     buffer: List<Byte>
     debug_buffer: StringBuilder
+    debug_suffix: String
+    debug_indent: Int
     debug_print: Boolean
 }
 
@@ -32,6 +34,8 @@ fun WasmEmitter::new(): WasmEmitter {
     ret WasmEmitter @[
         buffer: [],
         debug_buffer: StringBuilder::new(),
+        debug_suffix: "",
+        debug_indent: 1,
         // DEBUG
         debug_print: true,
     ]
@@ -39,8 +43,15 @@ fun WasmEmitter::new(): WasmEmitter {
 
 // Emit a single byte with the given opcode
 fun WasmEmitter.debug_print_line(line: String) {
-    debug_buffer[] = "    "
+    debug_buffer[] = "  " * debug_indent
     debug_buffer[] = line
+
+    if debug_suffix.is_not_empty() {
+        debug_buffer[] = " " * (30 - line.bytes_len - debug_indent * 2)
+        debug_buffer[] = debug_suffix
+        debug_suffix = ""
+    }
+
     debug_buffer[] = "\n"
 }
 
@@ -165,7 +176,7 @@ fun WasmEmitter.emit_import_section(imports: List<WImport>) {
         tmp.emit_name(imp.name)
         // Function type index
         tmp.emit_byte(0x00)
-        tmp.emit_u32(imp.header.index.id)
+        tmp.emit_u32(imp.header.index.to_int())
     }
 
     emit_section_header(SectionType::Import, tmp.buffer.len)
@@ -181,7 +192,7 @@ fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
 
     tmp.emit_u32(functions.len)
     for func in functions {
-        tmp.emit_u32(func.header.index.id)
+        tmp.emit_u32(func.header.index.to_int())
     }
 
     emit_section_header(SectionType::Function, tmp.buffer.len)
@@ -235,7 +246,7 @@ fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, mem
     for exp in function_exports {
         tmp.emit_name(exp.name)
         tmp.emit_byte(0x00)
-        tmp.emit_u32(exp.header.index.id)
+        tmp.emit_u32(exp.header.index.to_int())
     }
 
     // Memory
@@ -248,13 +259,13 @@ fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, mem
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#start-section
-fun WasmEmitter.emit_start_section(start: IdWrapper) {
+fun WasmEmitter.emit_start_section(start: Id) {
     if debug_print {
-        debug_print_line("Emit start section: ${start.id}")
+        debug_print_line("Emit start section: ${start}")
     }
     let tmp = WasmEmitter::new()
 
-    tmp.emit_u32(start.id)
+    tmp.emit_u32(start.to_int())
 
     emit_section_header(SectionType::Start, tmp.buffer.len)
     emit(tmp)
@@ -279,7 +290,7 @@ fun WasmEmitter.emit_elements_section(program: WasmProgram) {
     // vec(func_idx)
     tmp.emit_u32(program.lambda_table.len)
     for func_index in program.lambda_table {
-        tmp.emit_u32(func_index.id)
+        tmp.emit_u32(func_index.to_int())
     }
 
     emit_section_header(SectionType::Element, tmp.buffer.len)
@@ -319,7 +330,7 @@ fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
 // https://webassembly.github.io/spec/core/binary/modules.html#code-section
 fun WasmEmitter.emit_code(func: WFunction) {
     if debug_print {
-        debug_print_line("Emit code for function ${func.header.index.id}: ${func.locals.len} locals, offset = ${buffer.len}")
+        debug_print_line("Emit code for function ${func.header.index}: ${func.locals.len} locals, offset = ${buffer.len}")
     }
     let tmp = WasmEmitter::new()
 

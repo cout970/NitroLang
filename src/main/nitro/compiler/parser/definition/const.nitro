@@ -4,7 +4,7 @@
 //     : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
 
 struct NConst {
-    id_wrapper: IdWrapper
+    id: Id
     span: Span
     path: String
     name: String
@@ -24,7 +24,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     let type_usage = read_type_usage()?
 
     let def = NConst @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         path,
         name,
@@ -55,7 +55,7 @@ fun NConst.get_full_name(): String {
 }
 
 
-fun NConst.get_ordering(other: NConst): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
 
 fun NConst.to_string(): String {
     let full_name = get_full_path(path, name)

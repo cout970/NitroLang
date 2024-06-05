@@ -41,7 +41,7 @@ fun CompilationUnit.include_source(source: String, path: String) {
 
     program.extend_with(sub_program)
     let end = Instant::now()
-    Log::debug("Included file: $path in ${(end - start).to_milliseconds()} ms")
+//    Log::debug("Included file: $path in ${(end - start).to_milliseconds()} ms")
 }
 
 fun CompilationUnit::process_path(path: String, current_path: String): String {

@@ -27,7 +27,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
     for inst in code.inst_list {
         if debug_print {
-            debug_buffer[] = "#${inst.id} ------------------------------ $inst\n"
+            debug_suffix = ";; #${inst.id} $inst"
         }
 
         if inst.kind is NInstKind::Let {
@@ -42,15 +42,15 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
                 // Alloc the upvalue
                 add_i32_const(size)
-                add_call(call.id)
-                add_local_set(wvar.index.id)
+                add_call(call.to_int())
+                add_local_set(wvar.index.to_int())
 
                 if debug_print {
-                    debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type} (upvalue)")
+                    debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type} (upvalue)")
                 }
             } else {
                 if debug_print {
-                    debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+                    debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type}")
                 }
             }
 
@@ -197,7 +197,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         let ptypes_str = ptypes.join(", ")
         let header = "${instance.full_name}($ptypes_str) -> $rtype"
         println("------------------------------------------------------------------------------")
-        println("Compiled function ${func.index.id}: ${header}")
+        println("Compiled function ${func.index}: ${header}")
         println(debug_buffer)
         println(code)
         println("------------------------------------------------------------------------------")
@@ -212,9 +212,9 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             ptypes[] = func.ctx.convert_type(param.param_type!!)
         }
         let ptypes_str = ptypes.join(", ")
-        let header = "lambda_${instance.id_wrapper.id}($ptypes_str) -> $rtype"
+        let header = "lambda_${instance.id}($ptypes_str) -> $rtype"
         println("------------------------------------------------------------------------------")
-        println("Compiled lambda ${func.index.id}: ${header}")
+        println("Compiled lambda ${func.index}: ${header}")
         println(debug_buffer)
         println(code)
         println("------------------------------------------------------------------------------")
@@ -236,14 +236,14 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
 
     add_i32_const(size)
-    add_call(call.value.id)
+    add_call(call.value.to_int())
 
     let wvar = func.add_local("tmp_${inst.id}", WType::I32)
     let lambda_index = func.lambda_instances[inst.id]!!
 
     // Copy lambda index to slot 1
-    add_local_tee(wvar.index.id)
-    add_i32_const(lambda_index.id)
+    add_local_tee(wvar.index.to_int())
+    add_i32_const(lambda_index.to_int())
     add_i32_store(0) // ptr: i32, value: i32 -> void
 
     // Copy upvalues to the rest of the slots
@@ -251,15 +251,15 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     for upvalue_id in instance.code.upvalues {
         let upvalue_wvar = func.let_declarations[upvalue_id]!!
 
-        add_local_get(wvar.index.id)
+        add_local_get(wvar.index.to_int())
         add_i32_const(4 + i * 4)
         add_i32_add()
-        add_local_get(upvalue_wvar.index.id)
+        add_local_get(upvalue_wvar.index.to_int())
         add_i32_store(0) // ptr: i32, value: i32 -> void
         i += 1
     }
 
-    add_local_get(wvar.index.id)
+    add_local_get(wvar.index.to_int())
     pop(inst.id, map)
 }
 
@@ -271,7 +271,7 @@ fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBa
     let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
 
     add_i32_const(size)
-    add_call(call.value.id)
+    add_call(call.value.to_int())
 
     if final_type.kind is FinalTypeKind::Struct {
         let instance = (final_type.kind as FinalTypeKind::Struct).instance
@@ -282,14 +282,14 @@ fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBa
             let wvar = func.add_local("tmp_${inst.id}", WType::I32)
 
             if debug_print {
-                debug_print_line("local ${wvar.index.id} ${wvar.name}: ${wvar.wasm_type}")
+                debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type}")
             }
 
             // Fill variant field
-            add_local_tee(wvar.index.id)
+            add_local_tee(wvar.index.to_int())
             add_i32_const(index)
             add_i32_store(0) // ptr: i32, value: i32 -> void
-            add_local_get(wvar.index.id)
+            add_local_get(wvar.index.to_int())
         }
     }
 
@@ -368,8 +368,8 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
     let kind = inst.kind as NInstKind::LoadVar
 
     if kind.constant.is_some() {
-        let id_wrapper = func.constants[inst.id]!!
-        let wconst = backend.find_const(id_wrapper.id)
+        let id = func.constants[inst.id]!!
+        let wconst = backend.find_const(id)
 
         add_i32_const(wconst.section.offset)
         let size = add_load_by_type(wconst.final_type, backend)
@@ -404,7 +404,7 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
         ret
     }
 
-    let local_id = wvar!!.index.id
+    let local_id = wvar!!.index.to_int()
 
     if nvar.is_upvalue {
         let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
@@ -444,7 +444,7 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
         ret
     }
 
-    let local_id = wvar!!.index.id
+    let local_id = wvar!!.index.to_int()
 
     if nvar.is_upvalue {
         let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
@@ -469,8 +469,8 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
 
     when {
         opt is WFuncCall::WFunction -> {
-            let id_wrapper = (opt as WFuncCall::WFunction).value
-            add_call(id_wrapper.id)
+            let id = (opt as WFuncCall::WFunction).value
+            add_call(id.to_int())
         }
         opt is WFuncCall::WLambda -> {
             let call = (opt as WFuncCall::WLambda)
@@ -480,11 +480,11 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
             add_i32_load(0)
 
             // Call the function in the lambdas funcref table
-            add_call_indirect(call.type_id.id, call.table_id)
+            add_call_indirect(call.type_id.to_int(), call.table_id)
         }
         opt is WFuncCall::WImport -> {
-            let id_wrapper = (opt as WFuncCall::WImport).value
-            add_call(id_wrapper.id)
+            let id = (opt as WFuncCall::WImport).value
+            add_call(id.to_int())
         }
         opt is WFuncCall::WOpcode -> {
             let opcode = (opt as WFuncCall::WOpcode).value
@@ -696,7 +696,7 @@ fun WasmEmitter.push(id: NInstId, map: Map<NInstId, InstResultAction>) {
     // Original instruction saved its result in a local, so we need to load it
     if remote_action is InstResultAction::Save {
         let variable = (remote_action as InstResultAction::Save).variable
-        add_local_get(variable.index.id)
+        add_local_get(variable.index.to_int())
         ret
     }
     unreachable()
@@ -720,10 +720,10 @@ fun WasmEmitter.pop(id: NInstId, map: Map<NInstId, InstResultAction>) {
         let variable = (local_action as InstResultAction::Save).variable
 
         if debug_print {
-            debug_print_line("local ${variable.index.id} ${variable.name}: ${variable.wasm_type}")
+            debug_print_line("local \$${variable.index} ${variable.name}: ${variable.wasm_type}")
         }
 
-        add_local_set(variable.index.id)
+        add_local_set(variable.index.to_int())
         ret
     }
     unreachable()

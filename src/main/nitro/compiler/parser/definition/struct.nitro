@@ -11,7 +11,7 @@
 //      : INTERNAL? anyName COLON typeUsage;
 
 struct NStruct {
-    id_wrapper: IdWrapper
+    id: Id
     span: Span
     annotations: List<NAnnotation>
     path: String
@@ -39,7 +39,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
     let name = read_name()?
 
     let def = NStruct @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         annotations,
         path,
@@ -97,7 +97,7 @@ fun NStruct.get_full_name(): String {
     ret full_name
 }
 
-fun NStruct.get_ordering(other: NStruct): Ordering = this.id_wrapper.id <=> other.id_wrapper.id
+fun NStruct.get_ordering(other: NStruct): Ordering = this.id <=> other.id
 
 fun NStruct.to_string(): String {
     let prefix = ""

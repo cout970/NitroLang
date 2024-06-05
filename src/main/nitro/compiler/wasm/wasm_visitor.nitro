@@ -1,5 +1,5 @@
 
-fun WasmBackend.visit_program(main: NFunction): IdWrapper {
+fun WasmBackend.visit_program(main: NFunction): Id {
     // Start visiting the main function
     let index = add_task_visit_function(root_ctx.new_child(main.span), main)
 
@@ -25,7 +25,7 @@ fun WasmBackend.visit_program(main: NFunction): IdWrapper {
     ret index
 }
 
-fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction): IdWrapper {
+fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction): Id {
     let key = get_key_for_function(ctx, instance)
     let log = already_visited[key]
 
@@ -48,11 +48,11 @@ fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction
     ret index
 }
 
-fun WasmBackend.add_task_visit_lambda(ctx: TypeMappingCtx, instance: NLambda, lambda_type: FinalType): IdWrapper {
+fun WasmBackend.add_task_visit_lambda(ctx: TypeMappingCtx, instance: NLambda, lambda_type: FinalType): Id {
     let index = function_indices.next()
-    let lambda_index = IdWrapper @[id: -1]
+    let lambda_index = Id::uninitialized()
     let key = MonomorphizationKey @[
-        name: "lambda_${instance.id_wrapper.id}",
+        name: "lambda_${instance.id}",
         final_type: lambda_type,
     ]
 
@@ -60,7 +60,7 @@ fun WasmBackend.add_task_visit_lambda(ctx: TypeMappingCtx, instance: NLambda, la
     ret lambda_index
 }
 
-fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
+fun WasmBackend.add_task_visit_const(instance: NConst): Id {
     let key = get_key_for_const(instance)
     let log = already_visited[key]
 
@@ -69,8 +69,7 @@ fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
         ret log!!
     }
 
-    last_const += 1
-    let index = IdWrapper @[id: last_const]
+    let index = const_id_provider.next()
     task_queue[] = CompilationTask::VisitConst @[
         key,
         index,
@@ -81,7 +80,7 @@ fun WasmBackend.add_task_visit_const(instance: NConst): IdWrapper {
     ret index
 }
 
-fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NFunction, index: IdWrapper) {
+fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NFunction, index: Id) {
 //    Log::debug("Visiting function $key")
     let header = get_function_header(key, index)
 
@@ -107,7 +106,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
 }
 
 
-fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NLambda, index: IdWrapper, lambda_index: IdWrapper) {
+fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NLambda, index: Id, lambda_index: Id) {
 //    Log::debug("Visiting function $key")
     let header = get_function_header(key, index)
     // First argument is the lambda itself, this is implicit
@@ -132,7 +131,7 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
     wasm_program.functions[] = wasm_func
 
     // Lambda index inside the table
-    lambda_index.id = wasm_program.lambda_table.len
+    lambda_index.update(wasm_program.lambda_table.len)
     wasm_program.lambda_table[] = index
 
     wasm_func.add_param("lambda_instance", WType::I32)
@@ -140,7 +139,7 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
     visit_code(ctx, wasm_func, instance.code)
 }
 
-fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: IdWrapper) {
+fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: Id) {
     // Log::debug("Visiting const $key")
     let const_type = key.final_type
     let const_size = get_size_of(const_type)
@@ -259,7 +258,7 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
     visit_code(root_ctx, wasm_func, instance.code)
 }
 
-fun WasmBackend.visit_import(ctx: TypeMappingCtx, instance: NFunction, lib: String, name: String): IdWrapper {
+fun WasmBackend.visit_import(ctx: TypeMappingCtx, instance: NFunction, lib: String, name: String): Id {
     let key = get_key_for_function(ctx, instance)
     let log = already_visited[key]
 
@@ -390,7 +389,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
     }
 }
 
-fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): IdWrapper {
+fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
     // let func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
     // DEBUG allows to test the alloc instruction without including all the memory management code
     let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!

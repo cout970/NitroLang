@@ -324,6 +324,7 @@ fun WasmEmitter.add_block(block_type: Int) {
     emit_u32(block_type)
     if debug_print {
         debug_print_line("block $block_type")
+        debug_indent += 1
     }
 }
 
@@ -333,6 +334,7 @@ fun WasmEmitter.add_loop(block_type: Int) {
     emit_u32(block_type)
     if debug_print {
         debug_print_line("loop $block_type")
+        debug_indent += 1
     }
 }
 
@@ -341,7 +343,8 @@ fun WasmEmitter.add_if(block_type: Int) {
     emit_opcode(WOpcode::If)
     emit_u32(block_type)
     if debug_print {
-        debug_print_line("if $block_type")
+        debug_print_line("if")
+        debug_indent += 1
     }
 }
 
@@ -349,7 +352,9 @@ fun WasmEmitter.add_else() {
     // 0x05 => else
     emit_opcode(WOpcode::Else)
     if debug_print {
+        debug_indent -= 1
         debug_print_line("else")
+        debug_indent += 1
     }
 }
 
@@ -357,6 +362,7 @@ fun WasmEmitter.add_end() {
     // 0x0B => end
     emit_opcode(WOpcode::End)
     if debug_print {
+        debug_indent -= 1
         debug_print_line("end")
     }
 }
@@ -478,7 +484,7 @@ fun WasmEmitter.add_local_get(local_idx: Int) {
     emit_opcode(WOpcode::LocalGet)
     emit_u32(local_idx)
     if debug_print {
-        debug_print_line("local.get $local_idx")
+        debug_print_line("local.get \$$local_idx")
     }
 }
 
@@ -487,7 +493,7 @@ fun WasmEmitter.add_local_set(local_idx: Int) {
     emit_opcode(WOpcode::LocalSet)
     emit_u32(local_idx)
     if debug_print {
-        debug_print_line("local.set $local_idx")
+        debug_print_line("local.set \$$local_idx")
     }
 }
 
@@ -496,7 +502,7 @@ fun WasmEmitter.add_local_tee(local_idx: Int) {
     emit_opcode(WOpcode::LocalTee)
     emit_u32(local_idx)
     if debug_print {
-        debug_print_line("local.tee $local_idx")
+        debug_print_line("local.tee \$$local_idx")
     }
 }
 

@@ -46,7 +46,7 @@ fun FinalTypePattern.matches_type(final_type: FinalType): Boolean {
             final_type.kind is FinalTypeKind::Option -> {
                 let final_instance = (final_type.kind as FinalTypeKind::Option).instance
 
-                if instance.id_wrapper.id != final_instance.id_wrapper.id {
+                if instance.id != final_instance.id {
                     ret false
                 }
             }
@@ -57,7 +57,7 @@ fun FinalTypePattern.matches_type(final_type: FinalType): Boolean {
                     ret false
                 }
 
-                if instance.id_wrapper.id != final_instance.parent!!.id_wrapper.id {
+                if instance.id != final_instance.parent!!.id {
                     ret false
                 }
             }

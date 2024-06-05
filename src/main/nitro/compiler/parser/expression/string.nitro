@@ -53,7 +53,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::STRING_START)?
 
-    let result = -1
+    let result = Id::uninitialized()
 
     loop {
         when lexer.current_token_kind {
@@ -63,7 +63,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
 
                 let new_string = code.add_lit_string(span, text)
 
-                if result == -1 {
+                if result.is_uninitialized() {
                     result = new_string.id
                 } else {
                     let inst = code.add_fun_call(span, "", "concat", [result, new_string.id], [])
@@ -77,7 +77,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
                 let load_var = code.add_load_var(span, "", variable_name, None())
                 let to_string = code.add_fun_call(span, "", "to_string", [load_var.id], [])
 
-                if result == -1 {
+                if result.is_uninitialized() {
                     result = to_string.id
                 } else {
                     let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
@@ -91,7 +91,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
 
                 let to_string = code.add_fun_call(span, "", "to_string", [expr], [])
 
-                if result == -1 {
+                if result.is_uninitialized() {
                     result = to_string.id
                 } else {
                     let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
@@ -104,7 +104,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
 
     skip_token_kind(TokenKind::STRING_END)?
 
-    if result == -1 {
+    if result.is_uninitialized() {
         let inst = code.add_lit_string(span, "")
         result = inst.id
     }

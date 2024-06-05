@@ -36,9 +36,8 @@ fun NCodeMapping.copy_blocks(src: NCode, dst: NCode) {
             deferred_code[] = child
         }
 
-        dst.last_block_id += 1
         let new_block = NBlock @[
-            id: dst.last_block_id,
+            id: dst.block_id_provider.next(),
             parent_id: Some(parent_id),
             is_jump_target: src_block.is_jump_target,
             deferred_code,
@@ -53,9 +52,8 @@ fun NCodeMapping.copy_blocks(src: NCode, dst: NCode) {
 fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
 
     for src_var in src.vars_map.values_to_list() {
-        dst.last_var_id += 1
         let new_var = NVar @[
-            id: dst.last_var_id,
+            id: dst.variable_id_provider.next(),
             span: src_var.span,
             block: block_mapping[src_var.block]!!,
             name: src_var.name,

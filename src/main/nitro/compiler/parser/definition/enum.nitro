@@ -74,7 +74,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     skip_nl()
 
     let def = NStruct @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         annotations,
         path,
@@ -129,7 +129,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
 
         let const_code = NCode::new(entry.span, get_full_path(module_path, entry.name))
         let const_def = NConst @[
-            id_wrapper: id_provider.next(),
+            id: id_provider.next(),
             span: entry.span,
             path: module_path,
             name: entry.name,

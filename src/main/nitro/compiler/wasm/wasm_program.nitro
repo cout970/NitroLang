@@ -4,9 +4,9 @@ struct WasmProgram {
     imports: List<WImport>
     function_exports: List<WFunctionExport>
     functions: List<WFunction>
-    lambda_table: List<IdWrapper>
+    lambda_table: List<Id>
     indirect_function_types: List<WFunctionHeader>
-    start: Optional<IdWrapper>
+    start: Optional<Id>
     custom_sections: List<WCustom>
 }
 
@@ -39,7 +39,7 @@ struct WFunctionExport {
 }
 
 struct WFunctionHeader {
-    index: IdWrapper
+    index: Id
     key: MonomorphizationKey
     name: String
     params: List<WType>
@@ -47,15 +47,15 @@ struct WFunctionHeader {
 }
 
 struct WFunction {
-    index: IdWrapper
+    index: Id
     name: String
     source: WFunctionSource
     code: NCode
     header: WFunctionHeader
     let_declarations: Map<NVarId, WVar>
     function_calls: Map<NInstId, WFuncCall>
-    lambda_instances: Map<NInstId, IdWrapper>
-    constants: Map<NInstId, IdWrapper>
+    lambda_instances: Map<NInstId, Id>
+    constants: Map<NInstId, Id>
     ctx: TypeMappingCtx
     locals_provider: IdProvider
     locals: List<WVar>
@@ -63,9 +63,9 @@ struct WFunction {
 }
 
 option WFuncCall {
-    WFunction { value: IdWrapper }
-    WLambda { type_id: IdWrapper, table_id: Int }
-    WImport { value: IdWrapper }
+    WFunction { value: Id }
+    WLambda { type_id: Id, table_id: Int }
+    WImport { value: Id }
     WOpcode { value: String }
 }
 
@@ -76,7 +76,7 @@ option WFunctionSource {
 }
 
 struct WConst {
-    index: IdWrapper,
+    index: Id,
     instance: NConst
     final_type: FinalType
     section: WMemSection
@@ -84,7 +84,7 @@ struct WConst {
 }
 
 struct WVar {
-    index: IdWrapper
+    index: Id
     kind: WVarKind
     name: String
     wasm_type: WType

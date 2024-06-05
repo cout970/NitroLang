@@ -1,5 +1,5 @@
 
-type_alias NInstId = Int
+type_alias NInstId = Id
 
 struct NInst {
     id: NInstId
@@ -111,9 +111,8 @@ fun NCode.add_inst(
     span: Span,
     kind: NInstKind,
 ): NInst {
-    last_id += 1
     let i = NInst @[
-        id: last_id,
+        id: inst_id_provider.next(),
         span,
         block: current_block,
         kind,
@@ -129,9 +128,8 @@ fun NCode.add_inst_in_block(
     block: NBlockId,
     kind: NInstKind,
 ): NInst {
-    last_id += 1
     let i = NInst @[
-        id: last_id,
+        id: inst_id_provider.next(),
         span,
         block,
         kind,
@@ -155,10 +153,8 @@ fun NCode.add_let(
     name: String,
     type_usage: Optional<NTypeUsage>
 ): NVar {
-    last_var_id += 1
-
     let variable = NVar @[
-        id: last_var_id,
+        id: variable_id_provider.next(),
         span,
         block: current_block,
         name,
@@ -412,8 +408,7 @@ fun NCode.duplicate_inst(index: Int) {
     // #1 = load_var "x"
     // #2 = store_var "y" #1
     // The store_var doesn't need to be updated, because we didn't change the order, and #3 can be safely modified
-    last_id += 1
-    original.id = last_id
+    original.id = inst_id_provider.next()
     original.back_references.clear()
 
     inst_list.insert(index + 1, dup)

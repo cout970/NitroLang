@@ -12,7 +12,7 @@
 //       : HASH anyName ;
 
 struct NGeneric {
-    id_wrapper: IdWrapper
+    id: Id
     span: Span
     name: String
     source: NGenericSource
@@ -79,7 +79,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
     let name = read_type_parameter()?
 
     let def = NGeneric @[
-        id_wrapper: id_provider.next(),
+        id: id_provider.next(),
         span,
         name,
         source: current_generics.source,
@@ -128,8 +128,8 @@ fun Parser.read_type_parameter(): Parsed<String> {
     ret read_name()
 }
 
-fun NGeneric.get_hash(): Int = id_wrapper.id
-fun NGeneric.get_ordering(other: NGeneric): Ordering = id_wrapper.id.get_ordering(other.id_wrapper.id)
+fun NGeneric.get_hash(): Int = id.get_hash()
+fun NGeneric.get_ordering(other: NGeneric): Ordering = id.get_ordering(other.id)
 
 fun NGeneric.to_string(): String {
     if bounds.is_empty() {
