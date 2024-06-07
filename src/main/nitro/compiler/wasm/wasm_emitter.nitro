@@ -122,14 +122,8 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
     // Data section
     emit_data_section(program.memory)
 
-    // Custom sections
-    for sec in program.custom_sections {
-        let tmp = WasmEmitter::new()
-        tmp.emit_custom_section(sec)
-
-        emit_section_header(SectionType::Custom, tmp.buffer.len)
-        emit(tmp)
-    }
+    // Symbol names
+    emit_custom_section_names(program)
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
@@ -142,15 +136,6 @@ fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
     emit_byte(section.code)
     // size:u32 section size
     emit_u32(size)
-}
-
-// https://webassembly.github.io/spec/core/binary/modules.html#custom-section
-fun WasmEmitter.emit_custom_section(section: WCustom) {
-    if debug_print {
-        debug_print_line("Emit custom section")
-    }
-    emit_name(section.name)
-    emit_bytes(section.data)
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#type-section
@@ -399,6 +384,51 @@ fun WasmEmitter.emit_data_section(memory: WMemory) {
     emit(tmp)
 }
 
+// https://webassembly.github.io/spec/core/appendix/custom.html#name-section
+fun WasmEmitter.emit_custom_section_names(program: WasmProgram) {
+    if debug_print {
+        debug_print_line("Emit custom section: names")
+    }
+    let tmp = WasmEmitter::new()
+
+    tmp.emit_name("name")
+
+    // vec(nameassoc)
+    let func = WasmEmitter::new()
+    // vec(indirectnameassoc)
+    let locals = WasmEmitter::new()
+
+    // namemap
+    func.emit_u32(program.functions.len)
+    locals.emit_u32(program.functions.len)
+
+    for wfunc in program.functions {
+        func.emit_u32(wfunc.header.index.to_int())
+        func.emit_name(wfunc.name)
+
+        locals.emit_u32(wfunc.header.index.to_int())
+        // idx namemap
+        locals.emit_u32(wfunc.locals.len)
+        for wvar in wfunc.locals {
+            locals.emit_u32(wvar.index.to_int())
+            locals.emit_name(wvar.name)
+        }
+    }
+
+    // Subsection Header: funcnamesubsec
+    tmp.emit_byte(0x01)
+    tmp.emit_u32(func.buffer.len)
+    tmp.emit(func)
+
+    // Subsection Header: localnamesubsec
+    tmp.emit_byte(0x02)
+    tmp.emit_u32(locals.buffer.len)
+    tmp.emit(locals)
+
+    emit_section_header(SectionType::Custom, tmp.buffer.len)
+    emit(tmp)
+}
+
 // https://webassembly.github.io/spec/core/binary/values.html#names
 fun WasmEmitter.emit_name(name: String) {
     // names are just a vec of bytes that must be encoded in UTF-8, Strings are already UTF-8
@@ -601,6 +631,8 @@ fun WasmEmitter.emit(other: WasmEmitter) {
     repeat aux.len {
         buffer[] = aux[it]!!
     }
+
+    debug_buffer[] = other.debug_buffer
 }
 
 fun WasmEmitter.emit_byte(value: Int) {

@@ -7,7 +7,6 @@ struct WasmProgram {
     lambda_table: List<Id>
     indirect_function_types: List<WFunctionHeader>
     start: Optional<Id>
-    custom_sections: List<WCustom>
 }
 
 struct WMemory {
@@ -20,11 +19,6 @@ struct WMemSection {
     offset: Int,
     data: List<Byte>
     comment: String
-}
-
-struct WCustom {
-    name: String
-    data: List<Byte>
 }
 
 struct WImport {
@@ -117,7 +111,6 @@ fun WasmProgram::new(): WasmProgram {
         lambda_table: [],
         indirect_function_types: [],
         start: None(),
-        custom_sections: [],
     ]
 }
 
