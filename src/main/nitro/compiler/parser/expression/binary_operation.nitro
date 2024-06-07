@@ -167,6 +167,7 @@ fun depth_first_traverse(tree: BinaryTree, code: NCode): NInstId {
             code.add_fun_call(op.span, "", op.operator.method, [left_id, right_id], [])
         }
 
+        code.last_expression = Some(inst.id)
         ret inst.id
     }
 }

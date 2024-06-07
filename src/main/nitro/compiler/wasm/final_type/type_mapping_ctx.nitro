@@ -59,7 +59,7 @@ fun TypeMappingCtx.convert_type(ty: Type): FinalType {
             ret parent!!.convert_type(ty)
         }
 
-        crash("Generic type not found: #${generic.name} // $span")
+        crash("Generic type not found: #${generic.name}\n$this")
     }
 
     let kind = final_types.kind_to_final(ty.kind)
@@ -122,4 +122,24 @@ fun TypeMappingCtx.convert_pattern(p: ResolvedTypePattern): FinalTypePattern {
     let final_pattern: FinalTypePattern = FinalTypePattern @[kind, params]
     pattern_cache[p] = final_pattern
     ret final_pattern
+}
+
+fun StringBuilder.add(opt: Optional<TypeMappingCtx>) {
+    if opt.is_none() {
+        this[] = "None()"
+    } else {
+        this[] = opt!!
+    }
+}
+
+fun StringBuilder.add(ctx: TypeMappingCtx) {
+    this[] = "TypeMappingCtx {\n"
+    this[] = "  span: ${ctx.span},\n"
+    this[] = "  generic_types: [\n"
+    for entry in ctx.generic_types {
+        this[] = "    ${entry.first}: ${entry.second},\n"
+    }
+    this[] = "  ],\n"
+    this[] = "  parent: ${ctx.parent},\n"
+    this[] = "}"
 }

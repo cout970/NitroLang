@@ -44,16 +44,10 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
                 add_i32_const(size)
                 add_call(call.to_int())
                 add_local_set(wvar.index.to_int())
-
-                if debug_print {
-                    debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type} (upvalue)")
-                }
-            } else {
-                if debug_print {
-                    debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type}")
-                }
             }
-
+            if debug_print {
+                debug_print_local(wvar)
+            }
             continue
         }
         if inst.kind is NInstKind::IfStart {
@@ -199,7 +193,6 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         println("------------------------------------------------------------------------------")
         println("Compiled function ${func.index}: ${header}")
         println(debug_buffer)
-        println(code)
         println("------------------------------------------------------------------------------")
     }
 
@@ -216,7 +209,6 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         println("------------------------------------------------------------------------------")
         println("Compiled lambda ${func.index}: ${header}")
         println(debug_buffer)
-        println(code)
         println("------------------------------------------------------------------------------")
     }
 }
@@ -282,7 +274,7 @@ fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBa
             let wvar = func.add_local("tmp_${inst.id}", WType::I32)
 
             if debug_print {
-                debug_print_line("local \$${wvar.index} ${wvar.name}: ${wvar.wasm_type}")
+                debug_print_local(wvar)
             }
 
             // Fill variant field
@@ -720,7 +712,7 @@ fun WasmEmitter.pop(id: NInstId, map: Map<NInstId, InstResultAction>) {
         let variable = (local_action as InstResultAction::Save).variable
 
         if debug_print {
-            debug_print_line("local \$${variable.index} ${variable.name}: ${variable.wasm_type}")
+            debug_print_local(variable)
         }
 
         add_local_set(variable.index.to_int())

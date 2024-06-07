@@ -20,19 +20,18 @@ fun i32_load(ptr: Int): Int {}
 
 // Temporary extremely simple memory allocator
 fun memory_alloc_internal2(size: Int): Int {
-//    let curr = i32_load(79996)
-//
-//    if curr.is_equal(0) {
-//        curr = 80000
-//    }
-//
-//    // align to 4 bytes boundary
-//    let alloc = (curr + 3) & -4
-//    curr = curr + size
-//
-//    i32_store(79996, curr)
-//    ret alloc
-    ret 80000
+    let curr = i32_load(79996)
+
+    if curr.is_equal(0) {
+        curr = 80000
+    }
+
+    // align to 4 bytes boundary
+    let alloc = (curr + 3) & -4
+    curr = curr + size
+
+    i32_store(79996, curr)
+    ret alloc
 }
 
 fun main() {
@@ -129,7 +128,27 @@ fun main() {
 //        println(b)
 //    }
 
-    println("Hello")
+    let array = Array::new<Long>(10)
+
+    repeat 10 {
+        array[it] = (5 * it * it * it * it * it * 2).to_long()
+    }
+
+    repeat array.len {
+        println(array[it])
+    }
+
+    println("---")
+//
+//    array.fill(-1L)
+//
+//    repeat array.len {
+//        println(array[it])
+//    }
+//
+    // DEBUG
+    memory_alloc_internal2(0)
+    println(2 * 3 * 4 * 5 * 6 * 7)
 }
 
 //fun update_upvalue(l: (Float, Long) -> Nothing) {

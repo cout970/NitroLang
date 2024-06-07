@@ -105,7 +105,6 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
     visit_code(ctx, wasm_func, instance.code)
 }
 
-
 fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NLambda, index: Id, lambda_index: Id) {
 //    Log::debug("Visiting function $key")
     let header = get_function_header(key, index)
@@ -326,17 +325,6 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
                 ret
             }
 
-            // External declaration
-            let extern_annotation = func.get_annotation("Extern")
-            if extern_annotation.is_some() {
-                let lib = extern_annotation!!.get_arg("lib")!!.get_string()!!
-                let name = extern_annotation!!.get_arg("name")!!.get_string()!!
-
-                let index = visit_import(ctx, func, lib, name)
-                wasm_func.function_calls[inst.id] = WFuncCall::WImport @[value: index]
-                ret
-            }
-
             // Replace the generic types
             let sub_ctx = ctx.new_child(inst.span)
 
@@ -345,6 +333,14 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             let final_types = generic_replacements.map @{ i -> ctx.convert_type(i) }
 
             sub_ctx.add_generics(generics.generic_params, final_types)
+
+            // External declaration
+            let extern = func.get_extern_annotation()
+            if extern.is_some() && !extern!!.autogenerate {
+                let index = visit_import(sub_ctx, func, extern!!.lib, extern!!.name)
+                wasm_func.function_calls[inst.id] = WFuncCall::WImport @[value: index]
+                ret
+            }
 
             let intrinsic_annotation = func.get_annotation("Intrinsic")
             if intrinsic_annotation.is_some() && func.full_name == "call" {

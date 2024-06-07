@@ -273,3 +273,43 @@ fun NFunction.to_string(): String {
     return "${prefix}fun $full_name($args): $return_type_usage $code // $span"
 }
 
+struct ExternAnnotation {
+    lib: String
+    name: String
+    autogenerate: Boolean
+}
+
+fun NFunction.get_extern_annotation(): Optional<ExternAnnotation> {
+    let extern_annotation = get_annotation("Extern")
+    if extern_annotation.is_none() {
+        ret None()
+    }
+
+    let a: NAnnotation = extern_annotation!!
+    let lib: Optional<NConstExpr> = a.get_arg("lib")
+    let name: Optional<NConstExpr> = a.get_arg("name")
+
+    if lib.is_none() || name.is_none() {
+        ret None()
+    }
+
+    let lib_str: Optional<String> = lib!!.get_string()
+    let name_str: Optional<String> = name!!.get_string()
+
+    if lib_str.is_none() || name_str.is_none() {
+        ret None()
+    }
+
+    let autogenerate: Boolean = false
+    let autogenerate_arg: Optional<NConstExpr> = a.get_arg("autogenerate")
+
+    if autogenerate_arg.is_some() && autogenerate_arg!!.get_boolean().is_some() {
+        autogenerate = autogenerate_arg!!.get_boolean()!!
+    }
+
+    ret Some(ExternAnnotation @[
+        lib: lib_str!!,
+        name: name_str!!,
+        autogenerate,
+    ])
+}

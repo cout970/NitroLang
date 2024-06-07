@@ -55,6 +55,18 @@ fun WasmEmitter.debug_print_line(line: String) {
     debug_buffer[] = "\n"
 }
 
+fun WasmEmitter.debug_print_local(wvar: WVar) {
+    debug_buffer[] = "  " * debug_indent
+    debug_buffer[] = "(local \$"
+    debug_buffer[] = wvar.index
+    debug_buffer[] = " "
+    debug_buffer[] = wvar.wasm_type.name
+    debug_buffer[] = " \""
+    debug_buffer[] = wvar.name
+    debug_buffer[] = "\")"
+    debug_buffer[] = "\n"
+}
+
 // https://webassembly.github.io/spec/core/binary/modules.html#binary-module
 fun WasmEmitter.emit_program(program: WasmProgram) {
     if debug_print {
