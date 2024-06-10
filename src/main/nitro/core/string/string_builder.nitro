@@ -45,6 +45,17 @@ fun StringBuilder.remove_last(amount: Int) {
     bytes_len = max(0, bytes_len - amount)
 }
 
+// Remove leading whitespace from the internal buffer
+fun StringBuilder.trimEnd() {
+    while bytes_len > 0 {
+        let last = bytes[bytes_len - 1].to_int()
+        if last != a" " && last != a"\n" && last != a"\t" && last != a"\r" {
+            break
+        }
+        bytes_len -= 1
+    }
+}
+
 // Adds a single character to the internal buffer
 // https://stackoverflow.com/a/42013433/13195330
 fun StringBuilder.add(c: Char) {

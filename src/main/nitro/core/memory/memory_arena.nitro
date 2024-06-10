@@ -9,10 +9,6 @@ struct MemoryArena {
     bytes: Array<Byte>
 }
 
-struct MemoryCrashBuffer {
-    value: Int
-}
-
 // Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     let ptr_size = size_of<Ptr<Byte>>

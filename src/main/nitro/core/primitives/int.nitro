@@ -267,17 +267,8 @@ fun Int.to_digit_in_base(base: Int): Char {
 
 // This function compares two integer values and returns an ordering value
 // that represents the sorting order of the values
-fun Int.get_ordering(other: Int): Ordering {
-    if this.is_equal(other) {
-        ret Ordering::Equals
-    } else {
-        if this.greater_equal_signed(other) {
-            ret Ordering::Greater
-        } else {
-            ret Ordering::Less
-        }
-    }
-}
+@Extern [lib: "core", name: "int_get_ordering", autogenerate: true]
+fun Int.get_ordering(other: Int): Ordering {}
 
 // Optimized version of max() for integer values
 fun max(a: Int, b: Int): Int {
