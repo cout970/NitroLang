@@ -281,7 +281,8 @@ fun WasmEmitter.emit_elements_section(program: WasmProgram) {
     // elem -> 0 expr vec(func_idx)
     tmp.emit_u32(0)
     // expr
-    tmp.add_i32_const(0)
+    tmp.emit_opcode(WOpcode::I32Const)
+    tmp.emit_i32(0)
     tmp.emit_byte(0x0B)
 
     // vec(func_idx)
@@ -355,7 +356,7 @@ fun WasmEmitter.emit_locals(locals: List<WVar>) {
 // https://webassembly.github.io/spec/core/binary/instructions.html#expression
 fun WasmEmitter.emit_expr(func: WFunction) {
     if debug_print {
-        debug_print_line("Emit expression")
+        debug_print_line("Emit expression: ${func.name}")
     }
     emit(func.bytecode)
     // end opcode: WOpcode::End
@@ -374,7 +375,8 @@ fun WasmEmitter.emit_data_section(memory: WMemory) {
         // Active data section
         tmp.emit_u32(0)
         // Offset, must be an expression like (i32.const 0)
-        tmp.add_i32_const(sec.offset)
+        tmp.emit_opcode(WOpcode::I32Const)
+        tmp.emit_i32(sec.offset)
         tmp.emit_byte(0x0B)
         // Data
         tmp.emit_bytes(sec.data)
@@ -632,7 +634,9 @@ fun WasmEmitter.emit(other: WasmEmitter) {
         buffer[] = aux[it]!!
     }
 
-    debug_buffer[] = other.debug_buffer
+    debug_buffer[] = other.debug_buffer.to_string().indent(2)
+    debug_buffer.trimEnd()
+    debug_buffer[] = "\n"
 }
 
 fun WasmEmitter.emit_byte(value: Int) {

@@ -607,8 +607,8 @@ fun WasmEmitter.add_table_fill(table_idx: Int) {
 fun WasmEmitter.add_i32_load(offset: Int) {
     // 0x28 => i32.load memarg
     emit_opcode(WOpcode::I32Load)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.load $offset")
     }
@@ -617,8 +617,8 @@ fun WasmEmitter.add_i32_load(offset: Int) {
 fun WasmEmitter.add_i64_load(offset: Int) {
     // 0x29 => i64.load memarg
     emit_opcode(WOpcode::I64Load)
-    emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load $offset")
     }
@@ -627,8 +627,8 @@ fun WasmEmitter.add_i64_load(offset: Int) {
 fun WasmEmitter.add_f32_load(offset: Int) {
     // 0x2A => f32.load memarg
     emit_opcode(WOpcode::F32Load)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("f32.load $offset")
     }
@@ -637,8 +637,8 @@ fun WasmEmitter.add_f32_load(offset: Int) {
 fun WasmEmitter.add_f64_load(offset: Int) {
     // 0x2B => f64.load memarg
     emit_opcode(WOpcode::F64Load)
-    emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
+    emit_u32(offset)
     if debug_print {
         debug_print_line("f64.load $offset")
     }
@@ -647,8 +647,8 @@ fun WasmEmitter.add_f64_load(offset: Int) {
 fun WasmEmitter.add_i32_load8_s(offset: Int) {
     // 0x2C => i32.load8_s memarg
     emit_opcode(WOpcode::I32Load8S)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.load8_s $offset")
     }
@@ -657,8 +657,8 @@ fun WasmEmitter.add_i32_load8_s(offset: Int) {
 fun WasmEmitter.add_i32_load8_u(offset: Int) {
     // 0x2D => i32.load8_u memarg
     emit_opcode(WOpcode::I32Load8U)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.load8_u $offset")
     }
@@ -667,8 +667,8 @@ fun WasmEmitter.add_i32_load8_u(offset: Int) {
 fun WasmEmitter.add_i32_load16_s(offset: Int) {
     // 0x2E => i32.load16_s memarg
     emit_opcode(WOpcode::I32Load16S)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.load16_s $offset")
     }
@@ -677,8 +677,8 @@ fun WasmEmitter.add_i32_load16_s(offset: Int) {
 fun WasmEmitter.add_i32_load16_u(offset: Int) {
     // 0x2F => i32.load16_u memarg
     emit_opcode(WOpcode::I32Load16U)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.load16_u $offset")
     }
@@ -687,8 +687,8 @@ fun WasmEmitter.add_i32_load16_u(offset: Int) {
 fun WasmEmitter.add_i64_load8_s(offset: Int) {
     // 0x30 => i64.load8_s memarg
     emit_opcode(WOpcode::I64Load8S)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load8_s $offset")
     }
@@ -697,8 +697,8 @@ fun WasmEmitter.add_i64_load8_s(offset: Int) {
 fun WasmEmitter.add_i64_load8_u(offset: Int) {
     // 0x31 => i64.load8_u memarg
     emit_opcode(WOpcode::I64Load8U)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load8_u $offset")
     }
@@ -707,8 +707,8 @@ fun WasmEmitter.add_i64_load8_u(offset: Int) {
 fun WasmEmitter.add_i64_load16_s(offset: Int) {
     // 0x32 => i64.load16_s memarg
     emit_opcode(WOpcode::I64Load16S)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load16_s $offset")
     }
@@ -717,8 +717,8 @@ fun WasmEmitter.add_i64_load16_s(offset: Int) {
 fun WasmEmitter.add_i64_load16_u(offset: Int) {
     // 0x33 => i64.load16_u memarg
     emit_opcode(WOpcode::I64Load16U)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load16_u $offset")
     }
@@ -727,8 +727,8 @@ fun WasmEmitter.add_i64_load16_u(offset: Int) {
 fun WasmEmitter.add_i64_load32_s(offset: Int) {
     // 0x34 => i64.load32_s memarg
     emit_opcode(WOpcode::I64Load32S)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load32_s $offset")
     }
@@ -737,8 +737,8 @@ fun WasmEmitter.add_i64_load32_s(offset: Int) {
 fun WasmEmitter.add_i64_load32_u(offset: Int) {
     // 0x35 => i64.load32_u memarg
     emit_opcode(WOpcode::I64Load32U)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.load32_u $offset")
     }
@@ -749,8 +749,8 @@ fun WasmEmitter.add_i64_load32_u(offset: Int) {
 fun WasmEmitter.add_i32_store(offset: Int) {
     // 0x36 => i32.store memarg
     emit_opcode(WOpcode::I32Store)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.store $offset")
     }
@@ -759,8 +759,8 @@ fun WasmEmitter.add_i32_store(offset: Int) {
 fun WasmEmitter.add_i64_store(offset: Int) {
     // 0x37 => i64.store memarg
     emit_opcode(WOpcode::I64Store)
-    emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.store $offset")
     }
@@ -769,8 +769,8 @@ fun WasmEmitter.add_i64_store(offset: Int) {
 fun WasmEmitter.add_f32_store(offset: Int) {
     // 0x38 => f32.store memarg
     emit_opcode(WOpcode::F32Store)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("f32.store $offset")
     }
@@ -779,8 +779,8 @@ fun WasmEmitter.add_f32_store(offset: Int) {
 fun WasmEmitter.add_f64_store(offset: Int) {
     // 0x39 => f64.store memarg
     emit_opcode(WOpcode::F64Store)
-    emit_u32(offset)
     emit_u32(3) // 64 bit => 8 bytes => 2^3
+    emit_u32(offset)
     if debug_print {
         debug_print_line("f64.store $offset")
     }
@@ -789,8 +789,8 @@ fun WasmEmitter.add_f64_store(offset: Int) {
 fun WasmEmitter.add_i32_store8(offset: Int) {
     // 0x3A => i32.store8 memarg
     emit_opcode(WOpcode::I32Store8)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.store8 $offset")
     }
@@ -799,8 +799,8 @@ fun WasmEmitter.add_i32_store8(offset: Int) {
 fun WasmEmitter.add_i32_store16(offset: Int) {
     // 0x3B => i32.store16 memarg
     emit_opcode(WOpcode::I32Store16)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i32.store16 $offset")
     }
@@ -809,8 +809,8 @@ fun WasmEmitter.add_i32_store16(offset: Int) {
 fun WasmEmitter.add_i64_store8(offset: Int) {
     // 0x3C => i64.store8 memarg
     emit_opcode(WOpcode::I64Store8)
-    emit_u32(offset)
     emit_u32(0) // 8 bit => 1 byte => 2^0
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.store8 $offset")
     }
@@ -819,8 +819,8 @@ fun WasmEmitter.add_i64_store8(offset: Int) {
 fun WasmEmitter.add_i64_store16(offset: Int) {
     // 0x3D => i64.store16 memarg
     emit_opcode(WOpcode::I64Store16)
-    emit_u32(offset)
     emit_u32(1) // 16 bit => 2 bytes => 2^1
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.store16 $offset")
     }
@@ -829,8 +829,8 @@ fun WasmEmitter.add_i64_store16(offset: Int) {
 fun WasmEmitter.add_i64_store32(offset: Int) {
     // 0x3E => i64.store32 memarg
     emit_opcode(WOpcode::I64Store32)
-    emit_u32(offset)
     emit_u32(2) // 32 bit => 4 bytes => 2^2
+    emit_u32(offset)
     if debug_print {
         debug_print_line("i64.store32 $offset")
     }

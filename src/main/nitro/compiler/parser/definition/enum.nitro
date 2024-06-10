@@ -146,9 +146,10 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
 
         let used_field_names: List<String> = []
 
-//      Alloc already initializes the variant field
-//        let variant_value = const_code.add_lit_int(entry.span, entry.variant)
-//        const_code.add_store_field(entry.span, alloc.id, VARIANT_FIELD_NAME, variant_value.id)
+        // Alloc initializes the variant field for options, but enums are regular structs,
+        // so we need to initialize it manually
+        let variant_value = const_code.add_lit_int(entry.span, entry.variant)
+        const_code.add_store_field(entry.span, alloc.id, VARIANT_FIELD_NAME, variant_value.id)
         // Variant field
         used_field_names[] = VARIANT_FIELD_NAME
 

@@ -85,6 +85,9 @@ fun WasmBackend.compile_program() {
     // Do dead code elimination and monomorphization by traversing the program from the main function
     wasm_program.start = Some(visit_program(main!!))
 
+    // Genera _start_main that initializes all the constants and calls the main function
+    autogenerate_function_start_main()
+
     // Rewrite indices so imports come before regular functions
     // So `call` instructions use the correct index
     let function_ids_start = import_indices.last_id + 1
@@ -114,11 +117,13 @@ fun WasmBackend.compile_program() {
         func.bytecode.compile_code(func, this)
     }
 
+    compile_function_start_main()
+
     // Add main function as export to be called by the runtime
-    let wasm_main = wasm_program.functions.find @{ it -> it.name == "main" }!!
+    let start_main = wasm_program.functions.find @{ it -> it.name == "_start_main" }!!
     wasm_program.function_exports[] = WFunctionExport @[
         name: "_start_main",
-        header: wasm_main.header,
+        header: start_main.header,
     ]
 
     // Init the memory management struct
@@ -130,6 +135,9 @@ fun WasmBackend.compile_program() {
     memory.add_int_le(wasm_program.memory.size - heap_start)
     memory.add_int_le(0)
     memory.add_int_le(heap_start)
+
+    // Functions must in be ordered by index in the wasm binary
+    wasm_program.functions.sort_in_place()
 
     // Finish the program
     emitter.emit_program(wasm_program)

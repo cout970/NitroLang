@@ -155,41 +155,21 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
             when {
                 expr is NConstExpr::NConstInt -> {
                     let value: Int = (expr as NConstExpr::NConstInt).value
-                    // Little endian
-                    data[] = (value >> 24).to_byte()
-                    data[] = (value >> 16).to_byte()
-                    data[] = (value >> 8).to_byte()
-                    data[] = value.to_byte()
+                    data.add_int_le(value)
                 }
                 expr is NConstExpr::NConstLong -> {
                     let value: Long = (expr as NConstExpr::NConstLong).value
-                    // Little endian
-                    data[] = (value >> 56L).to_byte()
-                    data[] = (value >> 48L).to_byte()
-                    data[] = (value >> 40L).to_byte()
-                    data[] = (value >> 32L).to_byte()
-                    data[] = (value >> 24L).to_byte()
-                    data[] = (value >> 16L).to_byte()
-                    data[] = (value >> 8L).to_byte()
-                    data[] = value.to_byte()
+                    data.add_long_le(value)
                 }
                 expr is NConstExpr::NConstFloat -> {
                     let float_value: Float = (expr as NConstExpr::NConstFloat).value
                     let value: Int = float_value.reinterpret_as_int()
-                    // Little endian
-                    data[] = (value >> 24).to_byte()
-                    data[] = (value >> 16).to_byte()
-                    data[] = (value >> 8).to_byte()
-                    data[] = value.to_byte()
+                    data.add_int_le(value)
                 }
                 expr is NConstExpr::NConstString -> {
                     let string_value: String = (expr as NConstExpr::NConstString).value
                     let address: Int = push_string(string_value)
-                    // Little endian
-                    data[] = (address >> 24).to_byte()
-                    data[] = (address >> 16).to_byte()
-                    data[] = (address >> 8).to_byte()
-                    data[] = address.to_byte()
+                    data.add_int_le(address)
                 }
                 expr is NConstExpr::NConstBoolean -> {
                     let value: Boolean = (expr as NConstExpr::NConstBoolean).value
@@ -212,14 +192,14 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
     let section = wasm_program.memory.add_section(data, "const ${instance.full_name}")
 
     // Store the header for later use
-    let wasm_const = WConst @[
+    let wconst = WConst @[
         index,
         instance,
         final_type: const_type,
         section,
         init_function: None(),
     ]
-    consts[] = wasm_const
+    consts[] = wconst
 
     if const_init {
         ret
@@ -233,14 +213,14 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         key,
         name: "init_const_${instance.full_name}",
         params: [],
-        results: [],
+        results: [encode_to_wasm_type(const_type)],
     ]
 
     // Wasm Function
     let wasm_func = WFunction @[
         index: func_index,
         name: header.name,
-        source: WFunctionSource::Const @[instance],
+        source: WFunctionSource::Const @[instance, wconst],
         code: instance.code,
         header,
         let_declarations: #[],
@@ -390,28 +370,4 @@ fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
     // DEBUG allows to test the alloc instruction without including all the memory management code
     let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
     ret add_task_visit_function(ctx, alloc_func)
-}
-
-fun WFunction.add_local(name: String, wasm_type: WType): WVar {
-    let index = locals_provider.next()
-    let wvar = WVar @[
-        index,
-        kind: WVarKind::Local,
-        name,
-        wasm_type,
-    ]
-    locals[] = wvar
-    ret wvar
-}
-
-fun WFunction.add_param(name: String, wasm_type: WType): WVar {
-    let index = locals_provider.next()
-    let wvar = WVar @[
-        index,
-        kind: WVarKind::Param,
-        name,
-        wasm_type,
-    ]
-    locals[] = wvar
-    ret wvar
 }

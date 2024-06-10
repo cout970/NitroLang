@@ -20,8 +20,13 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     let path = read_declaration_module_path()?
     let name = read_name()?
 
-    skip_token_kind(TokenKind::COLON)?
-    let type_usage = read_type_usage()?
+    let type_usage = if lexer.current_token_kind == TokenKind::ASSIGN {
+        report_error("Constants must have a type defined", span)
+        NTypeUsage::simple(span, "Nothing")
+    } else {
+        skip_token_kind(TokenKind::COLON)?
+        read_type_usage()?
+    }
 
     let def = NConst @[
         id: id_provider.next(),
