@@ -23,22 +23,22 @@ tag GetOrdering {
 }
 
 // Checks if the ordering is 'less than'
-fun Ordering.is_less(): Boolean = this.variant == Ordering::Less.variant
+fun Ordering.is_less(): Boolean = this.variant.is_equal(Ordering::Less.variant)
 
 // Checks if the ordering is 'less than' or 'equal to'
-fun Ordering.is_less_or_equals(): Boolean = this.variant == Ordering::Less.variant || this.variant == Ordering::Equals.variant
+fun Ordering.is_less_or_equals(): Boolean = this.variant.is_equal(Ordering::Less.variant) || this.variant.is_equal(Ordering::Equals.variant)
 
 // Checks if the ordering is 'equal to'
-fun Ordering.is_equals(): Boolean = this.variant == Ordering::Equals.variant
+fun Ordering.is_equals(): Boolean = this.variant.is_equal(Ordering::Equals.variant)
 
 // Checks if the ordering is 'not equal to'
-fun Ordering.is_not_equals(): Boolean = not (this.variant == Ordering::Equals.variant)
+fun Ordering.is_not_equals(): Boolean = not (this.variant.is_equal(Ordering::Equals.variant))
 
 // Checks if the ordering is 'greater than' or 'equal to'
-fun Ordering.is_greater_or_equals(): Boolean = this.variant == Ordering::Greater.variant || this.variant == Ordering::Equals.variant
+fun Ordering.is_greater_or_equals(): Boolean = this.variant.is_equal(Ordering::Greater.variant) || this.variant.is_equal(Ordering::Equals.variant)
 
 // Checks if the ordering is 'greater than'
-fun Ordering.is_greater(): Boolean = this.variant == Ordering::Greater.variant
+fun Ordering.is_greater(): Boolean = this.variant.is_equal(Ordering::Greater.variant)
 
 // Reverses the ordering, so that 'less than' becomes 'greater than' and vice versa
 fun Ordering.reverse(): Ordering {

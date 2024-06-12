@@ -57,7 +57,9 @@ fun <#Key: MapKey> Multimap<#Key, #Value>.get(key: #Key): List<#Value> {
 fun <#Key: MapKey> Multimap<#Key, #Value>.clear(): Nothing = map.clear()
 
 // Removes all values for a key
-fun <#Key: MapKey> Multimap<#Key, #Value>.remove(key: #Key): Nothing = map.remove(key)
+fun <#Key: MapKey> Multimap<#Key, #Value>.remove(key: #Key): Nothing {
+    map.remove(key)
+}
 
 // Removes a value from all lists on the map
 fun <#Key: MapKey, #Value: GetOrdering> Multimap<#Key, #Value>.remove_value(value: #Value) {
