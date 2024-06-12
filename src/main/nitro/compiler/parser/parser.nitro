@@ -4,6 +4,7 @@ struct Parser {
     reporter: Reporter
     program: Program
     id_provider: IdProvider
+    test_id_provider: IdProvider
     module_path_stack: List<String>
     current_generics: NGenericParams
     current_tag: Optional<NTag>
@@ -18,6 +19,7 @@ fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
         reporter,
         program,
         id_provider: program.id_provider,
+        test_id_provider: program.test_id_provider,
         module_path_stack: [],
         current_generics: NGenericParams::new(),
         current_tag: None(),

@@ -153,11 +153,13 @@ fun main() {
 
 //    println("test")
 //    println("test".bytes_len)
-    println(a)
-    println(Ordering::Less.variant)
-    println(Ordering::Equals.variant)
-    println(Ordering::Greater.variant)
-//    println(1 > 2) // TODO
+//    println(a)
+//    println(Ordering::Less.to_string())
+//    println(Ordering::Equals.to_string())
+//    println(Ordering::Greater.to_string())
+    println(a > 1)
+    println(a == 42)
+    println(a < 50)
 }
 
 let a: Int = 42

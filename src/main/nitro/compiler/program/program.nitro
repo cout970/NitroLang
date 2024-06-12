@@ -4,6 +4,7 @@ let VARIANT_FIELD_NAME: String = "variant"
 
 struct Program {
     id_provider: IdProvider
+    test_id_provider: IdProvider
     declared_names: Map<String, Span>
     structs: List<NStruct>
     options: List<NOption>
@@ -22,6 +23,7 @@ struct NFunctionSignature {}
 fun Program::new(): Program {
     ret Program @[
         id_provider: IdProvider::new(),
+        test_id_provider: IdProvider::new(),
         declared_names: #[],
         structs: [],
         options: [],

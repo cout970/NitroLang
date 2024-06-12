@@ -84,6 +84,18 @@ fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeU
     ]
 }
 
+fun NTypeUsage::simple_with_params(span: Span, name: String, params: List<NTypeUsage>): NTypeUsage {
+    ret NTypeUsage @[
+        span,
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        path: "",
+        params,
+        type_token: None(),
+        generic_definition: None(),
+    ]
+}
+
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     let span = lexer.current_token_span
 

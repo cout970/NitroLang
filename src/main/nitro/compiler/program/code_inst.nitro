@@ -266,6 +266,20 @@ fun NCode.add_load_var(
     ])
 }
 
+fun NCode.add_load_const(
+    span: Span,
+    path: String,
+    name: String,
+    constant: Optional<NConst>
+): NInst {
+    ret add_inst(span, NInstKind::LoadVar @[
+        path,
+        name,
+        variable: None(),
+        constant,
+    ])
+}
+
 fun NCode.add_store_var(
     span: Span,
     path: String,

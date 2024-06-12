@@ -34,39 +34,12 @@
 //     | ARROW typeUsage
 //     ;
 
-struct NFunction {
-    id: Id
-    span: Span
-    annotations: List<NAnnotation>
-    generics: NGenericParams
-    has_receiver: Boolean
-    path: String
-    name: String
-    parameters: List<NFunctionParameter>
-    return_type_usage: NTypeUsage
-    return_type: Optional<Type>
-    parent_tag: Optional<NTag>
-    code: NCode
-    full_name_cache: Optional<String>
-}
-
-struct NFunctionParameter {
-    span: Span
-    name: String
-    type_usage: NTypeUsage
-    param_type: Optional<Type>
-}
-
 fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     let def = read_function_header(annotations)?
 
     skip_nl()
 
-    // Create a local variable per function parameter
-    for param in def.parameters {
-        let variable = def.code.add_let(param.span, param.name, Some(param.type_usage))
-        variable.is_parameter = true
-    }
+    def.register_params()
 
     // Read every statement/expression in the function body
     read_code_block(def.code)?
@@ -80,8 +53,16 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
             read_statement_block(code)?
         }
         TokenKind::ASSIGN -> {
+            let span = lexer.current_token_span
             skip_token_kind(TokenKind::ASSIGN)?
-            code.last_expression = Some(read_expression(code)?)
+            let value = read_expression(code)?
+
+            if code.find_inst(value).kind is NInstKind::Return {
+                code.last_expression = Some(value)
+            } else {
+                let ret_inst = code.add_return(span, value)
+                code.last_expression = Some(ret_inst.id)
+            }
         }
     }
 
@@ -137,25 +118,13 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     let name = read_name()?
 
     // Register function
-    let def = NFunction @[
-        id: id_provider.next(),
-        span,
-        annotations,
-        generics,
-        has_receiver,
-        path,
-        name,
-        parameters,
-        return_type_usage: NTypeUsage::simple(span, "Nothing"),
-        return_type: None(),
-        parent_tag: None(),
-        code: NCode::new(span, get_full_path(path, name)),
-        full_name_cache: None(),
-    ]
-    program.functions[] = def
-
-    // Pass generics to the code block to resolve inner references
-    def.code.generics = def.generics
+    let def = create_nitro_function(span, path, name, NTypeUsage::simple(span, "Nothing"))
+    def.annotations = annotations
+    def.has_receiver = has_receiver
+    def.parameters = parameters
+    def.generics = generics
+    def.code.generics = generics
+    register_nitro_function(def)
 
     // Type parameters
     skip_nl()
@@ -168,7 +137,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     skip_token_kind(TokenKind::LPAREN)?
     skip_nl()
     read_until_delimited(TokenKind::RPAREN) @{
-        def.parameters += read_function_parameter()?
+        read_function_parameter(def)?
         ret found(nothing)
     }?
 
@@ -188,7 +157,7 @@ fun Parser.read_function_header(annotations: List<NAnnotation>): Parsed<NFunctio
     ret found(def)
 }
 
-fun Parser.read_function_parameter(): Parsed<NFunctionParameter> {
+fun Parser.read_function_parameter(func: NFunction): Parsed<Nothing> {
     let span = lexer.current_token_span
     read_var_modifier()?
 
@@ -203,14 +172,9 @@ fun Parser.read_function_parameter(): Parsed<NFunctionParameter> {
     skip_token_kind(TokenKind::COLON)?
     let type_usage = read_type_usage()?
 
-    let def = NFunctionParameter @[
-        span,
-        name,
-        type_usage,
-        param_type: None(),
-    ]
+    func.add_parameter(span, name, type_usage)
 
-    ret found(def)
+    ret found(nothing)
 }
 
 fun Parser.read_var_modifier(): Parsed<Nothing> {

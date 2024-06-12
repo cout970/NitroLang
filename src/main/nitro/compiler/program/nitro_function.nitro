@@ -1,0 +1,63 @@
+
+struct NFunction {
+    id: Id
+    span: Span
+    annotations: List<NAnnotation>
+    generics: NGenericParams
+    has_receiver: Boolean
+    path: String
+    name: String
+    parameters: List<NFunctionParameter>
+    return_type_usage: NTypeUsage
+    return_type: Optional<Type>
+    parent_tag: Optional<NTag>
+    code: NCode
+    full_name_cache: Optional<String>
+}
+
+struct NFunctionParameter {
+    span: Span
+    name: String
+    type_usage: NTypeUsage
+    param_type: Optional<Type>
+}
+
+fun Parser.create_nitro_function(span: Span, path: String, name: String, return_type_usage: NTypeUsage): NFunction {
+    let full_name = get_full_path(path, name)
+    let func = NFunction @[
+        id: id_provider.next(),
+        span,
+        annotations: [],
+        generics: NGenericParams::new(),
+        has_receiver: false,
+        path,
+        name,
+        parameters: [],
+        return_type_usage,
+        return_type: None(),
+        parent_tag: None(),
+        code: NCode::new(span, get_full_path(path, name)),
+        full_name_cache: Some(full_name),
+    ]
+
+    func.code.generics = func.generics
+    ret func
+}
+
+fun Parser.register_nitro_function(func: NFunction) {
+    program.functions[] = func
+}
+
+fun NFunction.add_parameter(span: Span, name: String, type_usage: NTypeUsage) {
+    let param = NFunctionParameter @[span, name, type_usage, param_type: None()]
+    parameters[] = param
+}
+
+fun NFunction.register_params() {
+    // Create a local variable per function parameter
+    for param in parameters {
+        let variable = code.add_let(param.span, param.name, Some(param.type_usage))
+        variable.is_parameter = true
+    }
+}
+
