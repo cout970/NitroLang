@@ -25,6 +25,7 @@ enum NGenericSource {
     Function,
     Lambda,
     TypeAlias,
+    Tag,
     Invalid,
 }
 
@@ -36,7 +37,7 @@ struct NGenericParams {
 
 struct NGenericBounds {
     name: String
-    tag_definition: Optional<NTag>
+    tag_instance: Optional<NTag>
 }
 
 fun NGenericParams::new(): NGenericParams {
@@ -75,6 +76,7 @@ fun Parser.read_type_params_def(): Parsed<Nothing> {
 
 fun Parser.read_type_param_def(): Parsed<NGeneric> {
     // `#A: Type1 | Type2` or just `#B`
+    // Also `#A: tag Type1 | tag Type2` is valid
     let span = lexer.current_token_span
     let name = read_type_parameter()?
 
@@ -90,28 +92,25 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
         ret found(def)
     }
 
+    // Skip `:`
     lexer.next_token()
 
-    def.bounds[] = NGenericBounds @[name: read_name()?, tag_definition: None()]
-
+    // Read list of tag bounds delimited by `|`
     loop {
+        // Skip tag
+        if lexer.current_token_kind == TokenKind::TAG {
+            lexer.next_token()
+        }
+
+        def.bounds[] = NGenericBounds @[name: read_name()?, tag_instance: None()]
+
         // End of the list
         if lexer.current_token_kind != TokenKind::OR {
             break
         }
 
-        // Break so read_type_params_def() can read the next item
-        if lexer.next_token_kind == TokenKind::HASH {
-            break
-        }
-
-        // Skip comma
+        // Skip `|`
         lexer.next_token()
-
-        // Found new constraint
-        if lexer.current_token_kind != TokenKind::HASH {
-            def.bounds[] = NGenericBounds @[name: read_name()?, tag_definition: None()]
-        }
     }
 
     ret found(def)
@@ -137,7 +136,7 @@ fun NGeneric.to_string(): String {
     }
     let s = bounds.join_to_string(", ") @{ i -> i.name }
 
-    ret "#$name: s"
+    ret "#$name: $s"
 }
 
 fun NGenericParams.to_string(): String {
@@ -160,3 +159,5 @@ fun NGenericParams.to_string(): String {
 fun NGenericBounds.get_ordering(other: NGenericBounds): Ordering = name.get_ordering(other.name)
 
 fun NGenericBounds.get_hash(): Int = name.get_hash()
+
+fun NGenericBounds.to_string(): String = name

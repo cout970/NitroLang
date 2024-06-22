@@ -41,6 +41,10 @@ fun TypeMappingCtx.add_generics(generics: NGenericParams, types: List<FinalType>
     }
 }
 
+fun TypeMappingCtx.add_generic(generic: NGeneric, final_type: FinalType) {
+    generic_types[generic] = final_type
+}
+
 fun TypeMappingCtx.convert_type(ty: Type): FinalType {
     let cache_item = type_cache[ty]
     if cache_item.is_some() {

@@ -66,7 +66,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
                 if result.is_uninitialized() {
                     result = new_string.id
                 } else {
-                    let inst = code.add_fun_call(span, "", "concat", [result, new_string.id], [])
+                    let inst = code.add_fun_call(span, "", "concat", true, [result, new_string.id], [])
                     result = inst.id
                 }
             }
@@ -75,12 +75,12 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
                 lexer.next_token()
 
                 let load_var = code.add_load_var(span, "", variable_name, None())
-                let to_string = code.add_fun_call(span, "", "to_string", [load_var.id], [])
+                let to_string = code.add_fun_call(span, "", "to_string", true, [load_var.id], [])
 
                 if result.is_uninitialized() {
                     result = to_string.id
                 } else {
-                    let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
+                    let inst = code.add_fun_call(span, "", "concat", true, [result, to_string.id], [])
                     result = inst.id
                 }
             }
@@ -89,12 +89,12 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
                 let expr = read_expression(code)?
                 skip_token_kind(TokenKind::STRING_INTERP_END)?
 
-                let to_string = code.add_fun_call(span, "", "to_string", [expr], [])
+                let to_string = code.add_fun_call(span, "", "to_string", true, [expr], [])
 
                 if result.is_uninitialized() {
                     result = to_string.id
                 } else {
-                    let inst = code.add_fun_call(span, "", "concat", [result, to_string.id], [])
+                    let inst = code.add_fun_call(span, "", "concat", true, [result, to_string.id], [])
                     result = inst.id
                 }
             }

@@ -104,28 +104,10 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         let span = lexer.current_token_span
         lexer.next_token()
 
-        if current_tag.is_none() {
+        if current_tag_this.is_none() {
             report_error("'This' type can only be used in a Tag definition", span)
             ret found(NTypeUsage::unresolved(span))
         }
-        // Translate
-        // tag Foo { fun This.test() }
-        // to
-        // tag Foo { fun <#Foo: Tag> #Foo.test() }
-
-        let instance = NGeneric @[
-            id: id_provider.next(),
-            span,
-            name: "This",
-            source: NGenericSource::Function,
-            bounds: [
-                NGenericBounds @[
-                    name: current_tag!!.name,
-                    tag_definition: current_tag,
-                ]
-            ]
-        ]
-        current_generics.definitions[] = instance
 
         ret found(NTypeUsage @[
             span,
@@ -134,7 +116,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             path: "",
             params: [],
             type_token: None(),
-            generic_definition: Some(instance),
+            generic_definition: current_tag_this,
         ])
     }
 

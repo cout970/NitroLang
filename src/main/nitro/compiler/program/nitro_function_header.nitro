@@ -1,0 +1,126 @@
+
+struct NFunctionHeader {
+    key: String
+    span: Span
+    generics: NGenericParams
+    has_receiver: Boolean
+    path: String
+    name: String
+    parameters: List<NFunctionParameter>
+    return_type_usage: NTypeUsage
+    return_type: Optional<Type>
+}
+
+option NFunCallTarget {
+    Func {
+        header: NFunctionHeader
+        func: NFunction
+    }
+    Tag {
+        header: NFunctionHeader
+        tag_func: NTagFunction
+    }
+}
+
+fun NFunCallTarget.get_header(): NFunctionHeader {
+    ret when {
+        this is NFunCallTarget::Func -> ret (this as NFunCallTarget::Func).header
+        this is NFunCallTarget::Tag -> ret (this as NFunCallTarget::Tag).header
+        else -> unreachable()
+    }
+}
+
+fun NFunctionHeader::new(span: Span, path: String, name: String, return_type_usage: NTypeUsage): NFunctionHeader {
+    let generics = NGenericParams::new()
+    ret NFunctionHeader::new_full(span, path, name, return_type_usage, [], generics)
+}
+
+fun NFunctionHeader::new_full(span: Span, path: String, name: String, return_type_usage: NTypeUsage, parameters: List<NFunctionParameter>, generics: NGenericParams): NFunctionHeader {
+    let key = NFunctionHeader::get_key(path, name, parameters, return_type_usage, generics)
+
+    let header = NFunctionHeader @[
+        key,
+        span,
+        generics,
+        has_receiver: false,
+        path,
+        name,
+        parameters,
+        return_type_usage,
+        return_type: None(),
+    ]
+
+    ret header
+}
+
+fun NFunctionHeader.get_param_types(): List<Type> {
+    let result = []
+    for p in parameters {
+        if p.param_type.is_none() {
+            continue
+        }
+        result += p.param_type!!
+    }
+    ret result
+}
+
+fun NFunctionHeader.update_key() {
+    key = NFunctionHeader::get_key(path, name, parameters, return_type_usage, generics)
+}
+
+fun NFunctionHeader.get_full_name(): String = Path::join(path, name)
+
+fun NFunctionHeader::get_key(path: String, name: String, parameters: List<NFunctionParameter>, return_type_usage: NTypeUsage, generics: NGenericParams): String {
+    let builder = StringBuilder::new()
+    builder[] = Path::join(path, name)
+    builder[] = "("
+    if parameters.is_not_empty() {
+        for p in parameters {
+            builder[] = NTypeUsage::get_key(p.type_usage, generics)
+            builder[] = ","
+        }
+        builder.remove_last(1)
+    }
+    builder[] = "):"
+    builder[] = NTypeUsage::get_key(return_type_usage, generics)
+    ret builder.to_string()
+}
+
+fun NTypeUsage::get_key(type_usage: NTypeUsage, generics: NGenericParams): String {
+    let builder = StringBuilder::new()
+
+    when type_usage.kind {
+        TypeUsageKind::TYPE_SIMPLE -> {
+            if type_usage.path != "" {
+                builder[] = type_usage.path
+                builder[] = "::"
+            }
+
+            builder[] = type_usage.name
+
+            if type_usage.params.len > 0 {
+                builder[] = "<"
+                repeat type_usage.params.len {
+                    builder[] = NTypeUsage::get_key(type_usage.params[it]!!, generics)
+                    if it < limit - 1 {
+                        builder[] =  ","
+                    }
+                }
+                builder[] = ">"
+            }
+        }
+        TypeUsageKind::TYPE_PARAM -> {
+            let def = type_usage.generic_definition!!
+            let index = generics.definitions.find_index @{ n -> n == def }!!
+            builder[] = "#"
+            builder[] = index
+        }
+        TypeUsageKind::TYPE_UNRESOLVED -> {
+            crash("Unresolved type usage")
+        }
+    }
+
+    ret builder.to_string()
+}
+
+fun NFunctionHeader.to_string(): String = key

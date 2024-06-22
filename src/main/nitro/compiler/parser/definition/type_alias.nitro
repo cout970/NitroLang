@@ -46,7 +46,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
 }
 
 fun NTypeAlias.to_string() -> String {
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
 
     return "typealias $full_name$generics = $type_usage // $span"
 }

@@ -26,8 +26,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     ]
 
     let name = "test_${test_id_provider.next()}"
-    let def = create_nitro_function(span, "", name, NTypeUsage::simple(span, "Nothing"))
-    def.annotations = annotations
+    let def = create_function(NFunctionHeader::new(span, "", name, NTypeUsage::simple(span, "Nothing")), annotations)
     register_nitro_function(def)
 
     read_code_block(def.code)?

@@ -72,16 +72,16 @@ fun Parser.read_declaration_module_path(): Parsed<String> {
         ret found(enclosing)
     }
 
-    ret found(get_full_path(enclosing, path))
+    ret found(Path::join(enclosing, path))
 }
 
 // Given a module path and a name, returns the full path, i.e `foo::bar` and `Int` will return `foo::bar::Int`
-fun get_full_path(path: String, name: String): String {
-    if path.is_empty() {
-        ret name
-    }
+fun Path::join(path: String, name: String): String {
+  if path.is_empty() {
+      ret name
+  }
 
-    ret "$path::$name"
+  ret "$path::$name"
 }
 
 // Read a plain string, e.g. "hello world"

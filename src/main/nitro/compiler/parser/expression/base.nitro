@@ -158,7 +158,7 @@ fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInst
             args[] = read_expression_function_call_end(code)?
         }
 
-        let inst = code.add_fun_call(span, "", "call", args, type_args)
+        let inst = code.add_fun_call(span, "", "call", true, args, type_args)
         ret found(inst.id)
     }
 
@@ -166,7 +166,7 @@ fun Parser.read_expression_call_suffix(code: NCode, expr: NInstId): Parsed<NInst
     if lexer.current_token_kind == TokenKind::LAMBDA_START {
         let args = [expr, read_expression_function_call_end(code)?]
 
-        let inst = code.add_fun_call(span, "", "call", args, type_args)
+        let inst = code.add_fun_call(span, "", "call", true, args, type_args)
         ret found(inst.id)
     }
 
@@ -208,14 +208,14 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
             args[] = read_expression_function_call_end(code)?
         }
 
-        let inst = code.add_fun_call(span, path, name, args, type_args)
+        let inst = code.add_fun_call(span, path, name, false, args, type_args)
         ret found(inst.id)
     }
 
     if lexer.current_token_kind == TokenKind::LAMBDA_START {
         let args = [read_expression_function_call_end(code)?]
 
-        let inst = code.add_fun_call(span, path, name, args, type_args)
+        let inst = code.add_fun_call(span, path, name, false, args, type_args)
         ret found(inst.id)
     }
 
@@ -284,10 +284,10 @@ fun Parser.read_expression_name_assignment(code: NCode, path: String, name: Stri
     let right_id = read_expression(code)?
 
     let result = if operator.uses_ordering {
-        let get_ordering = code.add_fun_call(span, "", "get_ordering", [left_id, right_id], [])
-        code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
+        let get_ordering = code.add_fun_call(span, "", "get_ordering", true, [left_id, right_id], [])
+        code.add_fun_call(span, "", operator.method, true, [get_ordering.id], []).id
     } else {
-        code.add_fun_call(span, "", operator.method, [left_id, right_id], []).id
+        code.add_fun_call(span, "", operator.method, true, [left_id, right_id], []).id
     }
 
     code.add_store_var(span, path, name, result, None())
@@ -352,14 +352,14 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
 
     if lexer.current_token_kind == TokenKind::PLAIN_STRING {
         let expr = read_expression_string(code)?
-        let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "String")])
-        code.add_fun_call(span, "", "add", [expr], [])
+        let list = code.add_fun_call(span, "List", "new", false, [], [NTypeUsage::simple(span, "String")])
+        code.add_fun_call(span, "", "add", true, [list.id, expr], [])
 
-        let inst = code.add_fun_call(span, path, name, [list.id], [])
+        let inst = code.add_fun_call(span, path, name, false, [list.id], [])
         ret found(inst.id)
     }
 
-    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "String")]).id
+    let list = code.add_fun_call(span, "List", "new", false, [], [NTypeUsage::simple(span, "String")]).id
     let args = [list]
     let prev_is_string = false
 
@@ -371,7 +371,7 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
             lexer.next_token()
 
             let new_string = code.add_lit_string(span, text).id
-            code.add_fun_call(span, "", "add", [list, new_string], [])
+            code.add_fun_call(span, "", "add", true, [list, new_string], [])
             prev_is_string = true
             continue
         }
@@ -379,7 +379,7 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
         if lexer.current_token_kind == TokenKind::STRING_VAR {
             if !prev_is_string {
                 let new_string = code.add_lit_string(span, "").id
-                code.add_fun_call(span, "", "add", [list, new_string], [])
+                code.add_fun_call(span, "", "add", true, [list, new_string], [])
             }
             let variable_name = lexer.current_token_text
             lexer.next_token()
@@ -393,7 +393,7 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
         if lexer.current_token_kind == TokenKind::STRING_INTERP_START {
             if !prev_is_string {
                 let new_string = code.add_lit_string(span, "").id
-                code.add_fun_call(span, "", "add", [list, new_string], [])
+                code.add_fun_call(span, "", "add", true, [list, new_string], [])
             }
             lexer.next_token()
             let expr = read_expression(code)?
@@ -407,6 +407,6 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
         break
     }
 
-    let inst = code.add_fun_call(span, path, name, args, [])
+    let inst = code.add_fun_call(span, path, name, false, args, [])
     ret found(inst.id)
 }

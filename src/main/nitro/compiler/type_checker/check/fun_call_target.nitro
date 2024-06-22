@@ -1,0 +1,203 @@
+
+// Represents a function and its score for a given call site
+struct FunctionMatch {
+    target: NFunCallTarget
+    score: Float
+}
+
+// Debug option when a conflict is found, to know why
+let debug_find_best_function_match: Boolean = false
+
+fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<Type>, receiver_type: Optional<Type>, return_tt: TypeToken): Optional<NFunCallTarget> {
+    let matches: List<FunctionMatch> = find_best_function_match(full_name, args, receiver_type)
+
+    if matches.is_empty() {
+        let error = create_error_type("Function '$full_name' not found", span).to_token()
+        cons.add_unify(return_tt, error, span)
+        ret None()
+    }
+
+    if matches.len > 1 {
+        // TODO better display if arg contains any error type
+        let options_str = []
+        for i in matches {
+            options_str[] = "  - ${i.target.header} at ${i.target.header.span}"
+        }
+        let str = options_str.join("\n")
+        let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", span).to_token()
+        cons.add_unify(return_tt, error, span)
+        ret None()
+    }
+
+    let best_match = matches.first()!!.target
+    ret Some(best_match)
+}
+
+// Allows to sort functions by score
+fun FunctionMatch.get_ordering(other: FunctionMatch): Ordering = this.score <=> other.score
+
+// Finds the best function match for a given name and arguments
+fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receiver_tt: Optional<Type>): List<FunctionMatch> {
+    let options: List<NFunCallTarget> = function_lookup[name]
+
+    if options.is_empty() {
+        ret []
+    }
+
+    if debug_find_best_function_match { Log::debug("Finding best function match for $name(${args})") }
+    let scored_options = []
+
+    for target in options {
+        let score = 1f
+        let params = target.header.param_types
+
+        if receiver_tt.is_some() && target.header.has_receiver {
+            let args_with_receiver = [receiver_tt!!]
+            args_with_receiver.add_all(args)
+            score += min(
+                types_diff_score(params, args_with_receiver),
+                types_diff_score(params, args)
+            )
+        } else {
+            score += types_diff_score(params, args)
+        }
+
+        // Prefer non auto-generated functions if they exist
+        if target is NFunCallTarget::Func {
+            let func = (target as NFunCallTarget::Func).func
+            if func.is_auto_generated() {
+                score += 0.5f
+            }
+        }
+
+        // Prefer regular functions than tags
+        // Prefer tags with less functions
+        if target is NFunCallTarget::Tag {
+            let tag_func = (target as NFunCallTarget::Tag).tag_func
+            score += tag_func.parent_tag.functions.len.to_float() * 0.01f
+        }
+
+        if debug_find_best_function_match { Log::debug("  - $score: ${target.header.full_name}($params)") }
+        scored_options[] = FunctionMatch @[target, score]
+    }
+
+    scored_options.sort_in_place()
+
+    // Collect all functions with the best score
+    let best_score = scored_options.first()!!
+    let result = []
+
+    for opt in scored_options {
+        if opt.score == best_score.score {
+            result[] = opt
+        } else {
+            break
+        }
+    }
+
+    if debug_find_best_function_match {
+        Log::debug("Best score: ${best_score.score}")
+        for func_match in result {
+            let header = func_match.target.header
+            Log::debug("  - ${header} // ${header.span}")
+        }
+    }
+    ret result
+}
+
+// Computes a score for how different two lists of types are:
+// 0f means they are the same, higher values mean they are more different
+fun TypeChecker.types_diff_score(params: List<Type>, args: List<Type>): Float {
+    let score = 0f
+
+    if params.len != args.len {
+        score += 100000f
+    }
+
+    repeat min(params.len, args.len) {
+        score += type_diff_score(params[it]!!, args[it]!!)
+    }
+
+    ret score
+}
+
+// Computes a score for how different two types are:
+// 0f means they are the same, higher values mean they are more different
+fun TypeChecker.type_diff_score(param: Type, arg: Type): Float {
+    // Same type
+    if param == arg {
+        ret 0f
+    }
+
+    // Special case for lambdas
+    if param.is_function() && arg.is_unresolved_function() {
+        ret 0f
+    }
+
+    // Simple types, just check if they are compatible
+    if param.is_composite() && arg.is_composite() {
+        if param.kind != arg.kind {
+            if param.params.is_empty() || arg.params.is_empty() {
+                ret 100000f
+            }
+
+            ret 1500f
+        }
+
+        let score = 0f
+
+        if param.params.len != arg.params.len {
+            score += 100f
+        }
+
+        repeat min(param.params.len, arg.params.len) {
+            let p = types.get_type_by_id(param.params[it]!!)
+            let a = types.get_type_by_id(arg.params[it]!!)
+
+            score += type_diff_score(p, a) * 0.1f
+        }
+
+        ret score
+    }
+
+    // Both generics need to share the tag bounds
+    if param.is_generic() && arg.is_generic() {
+        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
+        let required_bounds = generic.bounds.to_set()
+
+        let arg_generic: NGeneric = (arg.kind as TypeKind::Generic).instance
+        required_bounds.remove_all(arg_generic.bounds)
+        ret required_bounds.len.to_float() * 10f + 1f
+    }
+
+    // The argument type need to be an implementor of the tag required by the generic
+    if param.is_generic() && arg.is_composite() {
+        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
+        let missing_tags = 0f
+
+        for bounds in generic.bounds {
+            if !matches_generic_bounds(bounds, arg) {
+                missing_tags += 1f
+            }
+        }
+
+        ret missing_tags * 10f + 1f
+    }
+
+    // No matches found
+    ret 10000f
+}
+
+fun TypeChecker.matches_generic_bounds(bounds: NGenericBounds, arg: Type): Boolean {
+    if bounds.tag_instance.is_none() {
+        return false
+    }
+
+    for pattern in bounds.tag_instance!!.impl_patterns {
+        if types.matches_pattern(arg, pattern) {
+            return true
+        }
+    }
+
+    return false
+}

@@ -29,6 +29,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
             next.kind = NInstKind::FunCall @[
                 path: "",
                 name: "call",
+                explicit_receiver: true,
                 arguments,
                 explicit_type_arguments: [],
                 call_site: None(),
@@ -69,47 +70,34 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
 }
 
 struct FunCallSite {
-    func: NFunction
+    target: NFunCallTarget
     uses_implicit_this: Boolean
     argument_types: List<TypeToken>
     call_site_generics: CallSiteGenerics
 }
 
 fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, code: NCode, return_tt: TypeToken) {
-    let full_name = get_full_path(kind.path, kind.name)
+    let full_name = Path::join(kind.path, kind.name)
     let args: List<Type> = []
 
     for arg in kind.arguments {
         args[] = code.find_inst_type_token(arg)!!.find_type()
     }
 
-    let receiver_type: Optional<Type> = code.find_receiver_type()
-    let options: List<NFunction> = find_best_function_match(full_name, args, receiver_type)
+    // If the function call uses method-syntax `foo.bar()` then we don't consider the function body receiver type
+    // if the function call uses the regular syntax `foo()` then we check for both `this.foo()` and `foo()`
+    let receiver_type: Optional<Type> = if kind.explicit_receiver { None() } else { code.find_receiver_type() }
+    let target: Optional<NFunCallTarget> = find_fun_call_target(inst.span, full_name, args, receiver_type, return_tt)
 
-    if options.is_empty() {
-        let error = create_error_type("Function '$full_name' not found", inst.span).to_token()
-        cons.add_unify(return_tt, error, inst.span)
+    if target.is_none() {
         ret
     }
 
-    if options.len > 1 {
-        // TODO better display if arg contains any error type
-        let options_str = []
-        for i in options {
-            options_str[] = "  - ${i.full_name}(${i.param_types}) at ${i.span}"
-        }
-        let str = options_str.join("\n")
-        let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", inst.span).to_token()
-        cons.add_unify(return_tt, error, inst.span)
-        ret
-    }
-
-    let func = options.first()!!
+    let header = target!!.header
     let uses_implicit_this = false
     let arg_types: List<Type> = []
-    let receiver_type = code.find_receiver_type()
 
-    if receiver_type.is_some() && func.parameters.len == args.len + 1 {
+    if receiver_type.is_some() && header.parameters.len == args.len + 1 {
         let index = code.index_of(inst.id)!!
         let load_this = add_load_this_var(code, index)
         inst = code.inst_list[index.current]!!
@@ -122,20 +110,22 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
 
     arg_types.add_all(args)
 
-    if func.parameters.len != arg_types.len {
-        reporter.report_error("Function '$full_name' expects ${func.parameters.len} arguments, but got ${arg_types.len}", inst.span)
+    let type_parameters: List<TypeToken> = []
+    let function_params: List<Type> = header.param_types
+    let function_return: Type = header.return_type!!
+
+    if function_params.len != arg_types.len {
+        reporter.report_error("Function '$full_name' expects ${function_params.len} arguments, but got ${arg_types.len}", inst.span)
     }
 
-    let type_parameters: List<TypeToken> = []
-    let function_params: List<Type> = func.param_types
-    let function_return: Type = func.return_type!!
-
-    let call_site_generics = create_call_site_generics(func.generics, inst.span)
+    let call_site_generics = create_call_site_generics(header.generics, inst.span)
 
     // Convert every generic type defined in the function to a unresolved type at the call site
     function_return = call_site_generics.replace_with_unresolved(function_return)
     function_params = call_site_generics.replace_all_with_unresolved(function_params)
 
+    // Explicit call-site type arguments
+    // `add<Int>()` where `Int` is the explicit type argument
     repeat kind.explicit_type_arguments.len {
         let e = kind.explicit_type_arguments[it]!!
         let tt = check_local_type_usage(e, code)
@@ -148,8 +138,20 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         cons.add_unify(tt, call_site_generics.resolved[it]!!, e.span)
     }
 
+    // Type param bounds
+    repeat header.generics.definitions.len {
+        let tt = call_site_generics.resolved[it]!!
+        let def = header.generics.definitions[it]!!
+
+        for bound in def.bounds {
+            let tag_instance = bound.tag_instance!!
+
+            cons.add_bounds(tt, tag_instance, inst.span)
+        }
+    }
+
     let call_site = FunCallSite @[
-        func,
+        target: target!!,
         uses_implicit_this,
         argument_types: arg_types.to_type_tokens(),
         call_site_generics,
@@ -160,169 +162,3 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     cons.add_unify(return_tt, function_return.to_token(), inst.span)
 }
 
-// Represents a function and its score for a given call site
-struct FunctionScore {
-    func: NFunction
-    score: Float
-}
-
-// Allows to sort functions by score
-fun FunctionScore.get_ordering(other: FunctionScore): Ordering = this.score <=> other.score
-
-// Debug option when a conflict is found, to know why
-let debug_find_best_function_match: Boolean = false
-
-// Finds the best function match for a given name and arguments
-fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receiver_tt: Optional<Type>): List<NFunction> {
-    let options: List<NFunction> = function_lookup[name]
-
-    if options.is_empty() {
-        ret options
-    }
-
-    if debug_find_best_function_match { Log::debug("Finding best function match for $name(${args})") }
-    let scored_options = []
-
-    for func in options {
-        let score = 1f
-        let params = func.param_types
-
-        if receiver_tt.is_some() && func.has_receiver {
-            let args_with_receiver = [receiver_tt!!]
-            args_with_receiver.add_all(args)
-            score += min(
-                types_diff_score(params, args_with_receiver),
-                types_diff_score(params, args)
-            )
-        } else {
-            score += types_diff_score(params, args)
-        }
-
-        // Prefer non auto-generated functions if they exist
-        if func.is_auto_generated() {
-            score += 0.5f
-        }
-
-        // Prefer tags with fewer functions
-        if func.parent_tag.is_some() {
-            score += func.parent_tag!!.functions.len.to_float() * 0.01f
-        }
-
-        if debug_find_best_function_match { Log::debug("  - $score: ${func.full_name}($params)") }
-        scored_options[] = FunctionScore @[func, score]
-    }
-
-    scored_options.sort_in_place()
-
-    // Collect all functions with the best score
-    let best_score = scored_options.first()!!
-    let result = []
-
-    for opt in scored_options {
-        if opt.score == best_score.score {
-            result[] = opt.func
-        } else {
-            break
-        }
-    }
-
-    if debug_find_best_function_match {
-        Log::debug("Best score: ${best_score.score}")
-        for func in result {
-            Log::debug("  - ${func.full_name}(${func.param_types}) // ${func.span}")
-        }
-    }
-    ret result
-}
-
-// Computes a score for how different two lists of types are:
-// 0f means they are the same, higher values mean they are more different
-fun TypeChecker.types_diff_score(params: List<Type>, args: List<Type>): Float {
-    let score = 0f
-
-    if params.len != args.len {
-        score += 100000f
-    }
-
-    repeat min(params.len, args.len) {
-        score += type_diff_score(params[it]!!, args[it]!!)
-    }
-
-    ret score
-}
-
-// Computes a score for how different two types are:
-// 0f means they are the same, higher values mean they are more different
-fun TypeChecker.type_diff_score(param: Type, arg: Type): Float {
-    // Same type
-    if param == arg {
-        ret 0f
-    }
-
-    // Special case for lambdas
-    if param.is_function() && arg.is_unresolved_function() {
-        ret 0f
-    }
-
-    // Simple types, just check if they are compatible
-    if param.is_composite() && arg.is_composite() {
-        if param.kind != arg.kind {
-            if param.params.is_empty() || arg.params.is_empty() {
-                ret 100000f
-            }
-
-            ret 1500f
-        }
-
-        let score = 0f
-
-        if param.params.len != arg.params.len {
-            score += 100f
-        }
-
-        repeat min(param.params.len, arg.params.len) {
-            let p = types.get_type_by_id(param.params[it]!!)
-            let a = types.get_type_by_id(arg.params[it]!!)
-
-            score += type_diff_score(p, a) * 0.1f
-        }
-
-        ret score
-    }
-
-    // Both generics need to share the tag bounds
-    if param.is_generic() && arg.is_generic() {
-        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
-        let required_bounds = generic.bounds.to_set()
-
-        let arg_generic: NGeneric = (arg.kind as TypeKind::Generic).instance
-        required_bounds.remove_all(arg_generic.bounds)
-        ret required_bounds.len.to_float() * 10f + 1f
-    }
-
-    // The argument type need to be an implementor of the tag required by the generic
-    if param.is_generic() && arg.is_composite() {
-        let generic: NGeneric = (param.kind as TypeKind::Generic).instance
-        let missing_tags = 0f
-
-        for bounds in generic.bounds {
-            if bounds.tag_definition.is_none(){
-                continue
-            }
-            let bounds_tag: NTag = bounds.tag_definition!!
-
-            for imp in bounds_tag.implementors {
-                if imp == arg {
-                    break
-                }
-            }
-
-            missing_tags += 1f
-        }
-
-        ret missing_tags * 10f + 1f
-    }
-
-    // No matches found
-    ret 10000f
-}

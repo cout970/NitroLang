@@ -180,37 +180,37 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         crash("Found unknown instruction: $inst")
     }
 
-    if debug_print && func.source is WFunctionSource::Function {
-        let instance = (func.source as WFunctionSource::Function).instance
-        let rtype = func.ctx.convert_type(instance.return_type!!)
-        let ptypes = []
-
-        for param in instance.parameters {
-            ptypes[] = func.ctx.convert_type(param.param_type!!)
-        }
-        let ptypes_str = ptypes.join(", ")
-        let header = "${instance.full_name}($ptypes_str) -> $rtype"
-        println("------------------------------------------------------------------------------")
-        println("Compiled function ${func.index}: ${header}")
-        println(debug_buffer)
-        println("------------------------------------------------------------------------------")
-    }
-
-    if debug_print && func.source is WFunctionSource::Lambda {
-        let instance = (func.source as WFunctionSource::Lambda).instance
-        let rtype = func.ctx.convert_type(instance.return_type_token!!.find_type())
-        let ptypes = []
-
-        for param in instance.parameters {
-            ptypes[] = func.ctx.convert_type(param.param_type!!)
-        }
-        let ptypes_str = ptypes.join(", ")
-        let header = "lambda_${instance.id}($ptypes_str) -> $rtype"
-        println("------------------------------------------------------------------------------")
-        println("Compiled lambda ${func.index}: ${header}")
-        println(debug_buffer)
-        println("------------------------------------------------------------------------------")
-    }
+//    if debug_print && func.source is WFunctionSource::Function {
+//        let instance = (func.source as WFunctionSource::Function).instance
+//        let rtype = func.ctx.convert_type(instance.header.return_type!!)
+//        let ptypes = []
+//
+//        for param in instance.header.parameters {
+//            ptypes[] = func.ctx.convert_type(param.param_type!!)
+//        }
+//        let ptypes_str = ptypes.join(", ")
+//        let header = "${instance.full_name}($ptypes_str) -> $rtype"
+//        println("------------------------------------------------------------------------------")
+//        println("Compiled function ${func.index}: ${header}")
+//        println(debug_buffer)
+//        println("------------------------------------------------------------------------------")
+//    }
+//
+//    if debug_print && func.source is WFunctionSource::Lambda {
+//        let instance = (func.source as WFunctionSource::Lambda).instance
+//        let rtype = func.ctx.convert_type(instance.return_type_token!!.find_type())
+//        let ptypes = []
+//
+//        for param in instance.parameters {
+//            ptypes[] = func.ctx.convert_type(param.param_type!!)
+//        }
+//        let ptypes_str = ptypes.join(", ")
+//        let header = "lambda_${instance.id}($ptypes_str) -> $rtype"
+//        println("------------------------------------------------------------------------------")
+//        println("Compiled lambda ${func.index}: ${header}")
+//        println(debug_buffer)
+//        println("------------------------------------------------------------------------------")
+//    }
 }
 
 fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {

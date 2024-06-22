@@ -25,7 +25,7 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
         lexer.next_token()
         let expr = read_expression_simple(code)?
 
-        let call = code.add_fun_call(span, "", "logical_not", [expr], [])
+        let call = code.add_fun_call(span, "", "logical_not", true, [expr], [])
         ret found(call.id)
     }
 
@@ -33,7 +33,7 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
         lexer.next_token()
         let expr = read_expression_simple(code)?
 
-        let call = code.add_fun_call(span, "", "unary_minus", [expr], [])
+        let call = code.add_fun_call(span, "", "unary_minus", true, [expr], [])
         ret found(call.id)
     }
 
@@ -41,7 +41,7 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
         lexer.next_token()
         let expr = read_expression_simple(code)?
 
-        let call = code.add_fun_call(span, "", "unary_plus", [expr], [])
+        let call = code.add_fun_call(span, "", "unary_plus", true, [expr], [])
         ret found(call.id)
     }
 
@@ -68,7 +68,7 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
         lexer.next_token()
 
         let right = read_expression_with_suffix(code)?
-        let inst = code.add_fun_call(span, "", "contains", [right, left], [])
+        let inst = code.add_fun_call(span, "", "contains", true, [right, left], [])
 
         ret found(inst.id)
     }
@@ -82,7 +82,7 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
             let type_pattern = read_type_pattern()?
             let inst = code.add_is_type(span, left, type_pattern)
 
-            inst = code.add_fun_call(span, "", "logical_not", [inst.id], [])
+            inst = code.add_fun_call(span, "", "logical_not", true, [inst.id], [])
 
             ret found(inst.id)
         }
@@ -91,9 +91,9 @@ fun Parser.read_expression_simple(code: NCode): Parsed<NInstId> {
             lexer.next_token()
 
             let right = read_expression_with_suffix(code)?
-            let inst = code.add_fun_call(span, "", "contains", [right, left], [])
+            let inst = code.add_fun_call(span, "", "contains", true, [right, left], [])
 
-            inst = code.add_fun_call(span, "", "logical_not", [inst.id], [])
+            inst = code.add_fun_call(span, "", "logical_not", true, [inst.id], [])
 
             ret found(inst.id)
         }

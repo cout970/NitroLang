@@ -44,7 +44,7 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         full_name_cache: None(),
     ]
     program.options[] = def
-    declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(Path::join(def.path, def.name), def.span)
 
     start_generics_collection(def.generics, NGenericSource::Option)
     defer { stop_generics_collection() }
@@ -71,7 +71,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         id: id_provider.next(),
         span,
         annotations: [],
-        path: get_full_path(parent.path, parent.name),
+        path: Path::join(parent.path, parent.name),
         name,
         generics: parent.generics,
         fields: [],
@@ -80,7 +80,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         full_name_cache: None(),
     ]
     program.structs[] = def
-    declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(Path::join(def.path, def.name), def.span)
 
     def.fields[] = NStructField @[
        span,
@@ -114,7 +114,7 @@ fun NOption.get_full_name(): String {
         ret full_name_cache!!
     }
 
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
     full_name_cache = Some(full_name)
     ret full_name
 }
@@ -144,7 +144,7 @@ fun NOption.to_string(): String {
         items_str += "$line\n"
     }
     items_str = items_str + "}"
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
 
     ret "${prefix}option $full_name $items_str // $span"
 }

@@ -25,7 +25,7 @@ fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothin
     ]
 
     program.modules[] = def
-    module_path_stack[] = get_full_path(def.path, def.name)
+    module_path_stack[] = Path::join(def.path, def.name)
     defer { module_path_stack.remove_last()!! }
 
     skip_token_kind(TokenKind::LBRACE)?
@@ -53,7 +53,7 @@ fun NModule.to_string(): String {
         prefix = "$prefix$a\n"
     }
 
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
 
     ret "${prefix}mod $full_name // $span"
 }

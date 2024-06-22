@@ -70,7 +70,7 @@ fun Parser.read_when_statement(code: NCode): Parsed<Nothing> {
             let span = lexer.current_token_span
             let cond_aux = read_expression(code)?
 
-            code.add_fun_call(span, "", "is_equal", [expr!!, cond_aux], []).id
+            code.add_fun_call(span, "", "is_equal", true, [expr!!, cond_aux], []).id
         } else {
             read_expression(code)?
         }

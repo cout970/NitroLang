@@ -43,6 +43,7 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
         inst.kind = NInstKind::FunCall @[
             path: "",
             name: "get_$field_name",
+            explicit_receiver: true,
             arguments: [kind.instance],
             explicit_type_arguments: [],
             call_site: None(),
@@ -104,6 +105,7 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
         inst.kind = NInstKind::FunCall @[
             path: "",
             name: "set_$field_name",
+            explicit_receiver: true,
             arguments: [kind.instance, kind.value],
             explicit_type_arguments: [],
             call_site: None(),

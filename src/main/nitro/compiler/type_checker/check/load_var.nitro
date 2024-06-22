@@ -24,7 +24,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
         }
     }
 
-    let full_name = get_full_path(kind.path, var_name)
+    let full_name = Path::join(kind.path, var_name)
     let constant: Optional<NConst> = find_constant(code, full_name)
 
     // Is a constant?
@@ -74,6 +74,7 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
         inst.kind = NInstKind::FunCall @[
             path: kind.path,
             name: "get_${var_name}",
+            explicit_receiver: true,
             arguments: [load_this],
             explicit_type_arguments: [],
             call_site: None(),
@@ -152,6 +153,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
             inst.kind = NInstKind::FunCall @[
                 path: kind.path,
                 name: "set_${var_name}",
+                explicit_receiver: true,
                 arguments: [load_this, kind.value],
                 explicit_type_arguments: [],
                 call_site: None(),
@@ -162,7 +164,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         }
     }
 
-    let full_name = get_full_path(kind.path, var_name)
+    let full_name = Path::join(kind.path, var_name)
     let constant: Optional<NConst> = find_constant(code, full_name)
 
     // Is a constant?

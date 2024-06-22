@@ -36,46 +36,46 @@ fun Parser.read_expression_json_value(code: NCode): Parsed<NInstId> {
     when lexer.current_token_kind {
         TokenKind::PLAIN_STRING -> {
             let expr = read_expression_string(code)?
-            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            let inst = code.add_fun_call(span, "Json", "from_string", false, [expr], [])
             ret found(inst.id)
         }
         TokenKind::STRING_START -> {
             let expr = read_expression_string(code)?
-            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            let inst = code.add_fun_call(span, "Json", "from_string", false, [expr], [])
             ret found(inst.id)
         }
         TokenKind::STRING2_START -> {
             let expr = read_expression_string(code)?
-            let inst = code.add_fun_call(span, "Json", "from_string", [expr], [])
+            let inst = code.add_fun_call(span, "Json", "from_string", false, [expr], [])
             ret found(inst.id)
         }
         TokenKind::INT_NUMBER -> {
             let value: Int = read_int()?
             let expr = code.add_lit_int(span, value)
-            let inst = code.add_fun_call(span, "Json", "from_int", [expr.id], [])
+            let inst = code.add_fun_call(span, "Json", "from_int", false, [expr.id], [])
             ret found(inst.id)
         }
         TokenKind::FLOAT_NUMBER -> {
             let value: Float = read_float()?
             let expr = code.add_lit_float(span, value)
-            let inst = code.add_fun_call(span, "Json", "from_float", [expr.id], [])
+            let inst = code.add_fun_call(span, "Json", "from_float", false, [expr.id], [])
             ret found(inst.id)
         }
         TokenKind::TRUE -> {
             lexer.next_token()
             let expr = code.add_lit_boolean(span, true)
-            let inst = code.add_fun_call(span, "Json", "from_boolean", [expr.id], [])
+            let inst = code.add_fun_call(span, "Json", "from_boolean", false, [expr.id], [])
             ret found(inst.id)
         }
         TokenKind::FALSE -> {
             lexer.next_token()
             let expr = code.add_lit_boolean(span, false)
-            let inst = code.add_fun_call(span, "Json", "from_boolean", [expr.id], [])
+            let inst = code.add_fun_call(span, "Json", "from_boolean", false, [expr.id], [])
             ret found(inst.id)
         }
         TokenKind::NULL -> {
             lexer.next_token()
-            let inst = code.add_fun_call(span, "Json", "from_nothing", [], [])
+            let inst = code.add_fun_call(span, "Json", "from_nothing", false, [], [])
             ret found(inst.id)
         }
         TokenKind::LBRACE -> {
@@ -103,7 +103,7 @@ fun Parser.read_expression_json_object(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
-    let map = code.add_fun_call(span, "Map", "new", [], [
+    let map = code.add_fun_call(span, "Map", "new", false, [], [
         NTypeUsage::simple(span, "String"),
         NTypeUsage::simple(span, "Json"),
     ]).id
@@ -122,11 +122,11 @@ fun Parser.read_expression_json_object(code: NCode): Parsed<NInstId> {
 
         let value = read_expression_json_value(code)?
 
-        code.add_fun_call(span, "Map", "set", [map, key, value], [])
+        code.add_fun_call(span, "Map", "set", false, [map, key, value], [])
         ret found(nothing)
     }?
 
-    let inst = code.add_fun_call(span, "Json", "from_map", [map], [])
+    let inst = code.add_fun_call(span, "Json", "from_map", false, [map], [])
     ret found(inst.id)
 }
 
@@ -135,15 +135,15 @@ fun Parser.read_expression_json_array(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LBRACKET)?
     skip_nl()
 
-    let list = code.add_fun_call(span, "List", "new", [], [NTypeUsage::simple(span, "Json")]).id
+    let list = code.add_fun_call(span, "List", "new", false, [], [NTypeUsage::simple(span, "Json")]).id
 
     read_until_delimited(TokenKind::RBRACKET) @{
         let value = read_expression_json_value(code)?
 
-        code.add_fun_call(span, "", "add", [list, value], [])
+        code.add_fun_call(span, "", "add", true, [list, value], [])
         ret found(nothing)
     }?
 
-    let inst = code.add_fun_call(span, "Json", "from_list", [list], [])
+    let inst = code.add_fun_call(span, "Json", "from_list", false, [list], [])
     ret found(inst.id)
 }

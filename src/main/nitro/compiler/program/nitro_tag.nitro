@@ -1,0 +1,42 @@
+
+struct NTag {
+    id: Id
+    span: Span
+    annotations: List<NAnnotation>
+    path: String
+    name: String
+    full_path: String
+    functions: List<NTagFunction>
+    impl_patterns: List<ResolvedTypePattern>
+}
+
+struct NTagFunction {
+    id: Id
+    header: NFunctionHeader
+    parent_tag: NTag
+    possible_implementors: Map<ResolvedTypePattern, Pair<Type, NFunction>>
+    final_implementors: Map<ResolvedTypePattern, Pair<Type, NFunction>>
+}
+
+fun NTagFunction.to_string(): String = "$id: $header"
+
+fun NTag.to_string() -> String {
+    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
+    let full_name = Path::join(path, name)
+    let str = ""
+
+    for f in functions {
+        if str.is_not_empty() {
+            str += "\n"
+        }
+        str += f.to_string()
+    }
+
+    if str.is_not_empty() {
+        str += "\n"
+    }
+
+    return "${prefix}tag $full_name {$str} // $span"
+}
+
+fun NTag.get_ordering(other: NTag): Ordering = this.full_path <=> other.full_path

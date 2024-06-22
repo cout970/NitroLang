@@ -6,15 +6,6 @@
 // tagDefinitionFunction
 //     : annotation* functionHeader;
 
-struct NTag {
-    id: Id
-    span: Span
-    annotations: List<NAnnotation>
-    path: String
-    name: String
-    functions: List<NFunction>
-    implementors: List<Type>
-}
 
 fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::TAG)?
@@ -28,48 +19,49 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
         annotations
         path,
         name,
+        full_path: Path::join(path, name),
         functions: [],
-        implementors: [],
+        impl_patterns: [],
     ]
     program.tags[] = def
-    declare_name(get_full_path(def.path, def.name), def.span)
-
-    current_tag = Some(def)
-    defer { current_tag = None() }
+    declare_name(Path::join(def.path, def.name), def.span)
 
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
     read_until_delimited_by(TokenKind::NL, TokenKind::RBRACE) @{
-        let func = read_tag_function_header()?
-        func.parent_tag = Some(def)
-        def.functions[] = func
+        def.functions[] = read_tag_function(def)?
+
         ret found(nothing)
     }?
 
     ret found(nothing)
 }
 
-fun Parser.read_tag_function_header(): Parsed<NFunction> {
-    let annotations = read_annotations()?
-    ret read_function_header(annotations)
-}
+fun Parser.read_tag_function(def: NTag): Parsed<NTagFunction> {
+    let generics = NGenericParams::new()
+    let bound = NGenericBounds @[name: def.name, tag_instance: Some(def)]
 
-fun NTag.to_string() -> String {
-    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-    let full_name = get_full_path(path, name)
-    let str = ""
+    let this_generic = NGeneric @[
+       id: id_provider.next(),
+       span: lexer.current_token_span,
+       name: "This",
+       source: NGenericSource::Tag,
+       bounds: [bound],
+    ]
+    generics.definitions[] = this_generic
 
-    for f in functions {
-        if str.is_not_empty() {
-            str += "\n"
-        }
-        str += f.to_string()
-    }
+    current_tag_this = Some(this_generic)
+    defer { current_tag_this = None() }
 
-    if str.is_not_empty() {
-        str += "\n"
-    }
+    let header = read_function_header(generics)?
+    let tag_func = NTagFunction @[
+        id: id_provider.next(),
+        header,
+        parent_tag: def,
+        possible_implementors: #[],
+        final_implementors: #[],
+    ]
 
-    return "${prefix}tag $full_name {$str} // $span"
+    ret found(tag_func)
 }

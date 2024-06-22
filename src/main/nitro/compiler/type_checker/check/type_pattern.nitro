@@ -29,13 +29,13 @@ fun TypeChecker.resolve_type_pattern(tp: NTypePattern, code: NCode): ResolvedTyp
 
     let kind = when tp.kind {
         TypePatternKind::TYPE_SIMPLE -> {
-            let full_name = get_full_path(tp.path, tp.name)
+            let full_name = Path::join(tp.path, tp.name)
             let ty = find_type_by_name(full_name, [], tp.span)
 
             types.type_kind_to_pattern(ty.kind, false)
         }
         TypePatternKind::TYPE_PARAM -> {
-            let full_name = get_full_path(tp.path, tp.name)
+            let full_name = Path::join(tp.path, tp.name)
             let opt = find_generic_by_name(code, full_name)
 
             let ty = if opt.is_some() {
@@ -163,6 +163,73 @@ fun TypeContainer.matches_pattern(a: Type, b: ResolvedTypePattern): Boolean {
         if a.kind is TypeKind::Struct {
             let a_struct: NStruct = (a.kind as TypeKind::Struct).instance
             let opt: NOption = (pattern_kind as ResolvedTypePatternKind::Option).instance
+
+            for item in opt.items {
+                if item.def == a_struct {
+                    ret true
+                }
+            }
+        }
+        ret false
+    }
+
+    unreachable()
+}
+
+
+fun TypeContainer.pattern_matches_pattern(value: ResolvedTypePattern, shape: ResolvedTypePattern): Boolean {
+    if shape.kind is ResolvedTypePatternKind::Any {
+        ret true
+    }
+
+    if shape.kind is ResolvedTypePatternKind::Generic {
+        if value.kind !is ResolvedTypePatternKind::Generic {
+            ret false
+        }
+        let left = (value.kind as ResolvedTypePatternKind::Generic).instance
+        let right = (shape.kind as ResolvedTypePatternKind::Generic).instance
+        ret left.id == right.id
+    }
+
+    if shape.kind is ResolvedTypePatternKind::Struct {
+        if value.params.len != shape.params.len {
+            ret false
+        }
+        repeat value.params.len {
+            if !pattern_matches_pattern(value.params[it]!!, shape.params[it]!!) {
+                ret false
+            }
+        }
+
+        if value.kind is ResolvedTypePatternKind::Struct {
+            let a_id: NStruct = (value.kind as ResolvedTypePatternKind::Struct).instance
+            let b_id: NStruct = (shape.kind as ResolvedTypePatternKind::Struct).instance
+
+            ret a_id == b_id
+        }
+        ret false
+    }
+
+    if shape.kind is ResolvedTypePatternKind::Option {
+        if value.params.len != shape.params.len {
+            ret false
+        }
+        repeat value.params.len {
+            if !pattern_matches_pattern(value.params[it]!!, shape.params[it]!!) {
+                ret false
+            }
+        }
+
+        if value.kind is ResolvedTypePatternKind::Option {
+            let a_id: NOption = (value.kind as ResolvedTypePatternKind::Option).instance
+            let b_id: NOption = (shape.kind as ResolvedTypePatternKind::Option).instance
+
+            ret a_id == b_id
+        }
+
+        if value.kind is ResolvedTypePatternKind::Struct {
+            let a_struct: NStruct = (value.kind as ResolvedTypePatternKind::Struct).instance
+            let opt: NOption = (shape.kind as ResolvedTypePatternKind::Option).instance
 
             for item in opt.items {
                 if item.def == a_struct {

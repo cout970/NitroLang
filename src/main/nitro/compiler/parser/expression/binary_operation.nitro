@@ -161,10 +161,10 @@ fun depth_first_traverse(tree: BinaryTree, code: NCode): NInstId {
         let right_id = code.last_expression!!
 
         let inst = if op.operator.uses_ordering {
-            let get_ordering = code.add_fun_call(op.span, "", "get_ordering", [left_id, right_id], [])
-            code.add_fun_call(op.span, "", op.operator.method, [get_ordering.id], [])
+            let get_ordering = code.add_fun_call(op.span, "", "get_ordering", true, [left_id, right_id], [])
+            code.add_fun_call(op.span, "", op.operator.method, true, [get_ordering.id], [])
         } else {
-            code.add_fun_call(op.span, "", op.operator.method, [left_id, right_id], [])
+            code.add_fun_call(op.span, "", op.operator.method, true, [left_id, right_id], [])
         }
 
         code.last_expression = Some(inst.id)

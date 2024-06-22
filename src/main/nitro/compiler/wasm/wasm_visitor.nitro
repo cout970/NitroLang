@@ -299,10 +299,42 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
         }
         inst.kind is NInstKind::FunCall -> {
             let call_site = (inst.kind as NInstKind::FunCall).call_site!!
-            let func: NFunction = call_site.func
+            let func_target: Optional<NFunction> = None()
+
+            let sub_ctx = ctx.new_child(inst.span)
+
+            if call_site.target is NFunCallTarget::Tag {
+                let tag_func = (call_site.target as NFunCallTarget::Tag).tag_func
+
+                let generics = call_site.call_site_generics
+                let final_tag_type = ctx.convert_type(generics.resolved.first()!!.find_type())
+
+                for entry in tag_func.final_implementors {
+                    let pattern = ctx.convert_pattern(entry.first)
+                    let tag_type = entry.second.first
+                    let func = entry.second.second
+
+                    if pattern.matches_type(final_tag_type) {
+                        find_tag_type_replacements(tag_type, final_tag_type, sub_ctx)
+                        func_target = Some(func)
+                        break
+                    }
+                }
+
+                if func_target.is_none() {
+                    crash("Unable to find implementation of tag ${tag_func.parent_tag.name} for type ${final_tag_type}")
+                }
+            }
+
+            if call_site.target is NFunCallTarget::Func {
+                func_target = Some((call_site.target as NFunCallTarget::Func).func)
+            }
+
+
+            let func = func_target!!
 
             // Use a inline wasm instruction
-            let inline_annotation = call_site.func.get_annotation("WasmInline")
+            let inline_annotation = func.get_annotation("WasmInline")
             if inline_annotation.is_some() {
                 let opcode = inline_annotation!!.get_arg("opcode")!!.get_string()!!
 
@@ -311,8 +343,6 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             }
 
             // Replace the generic types
-            let sub_ctx = ctx.new_child(inst.span)
-
             let generics = call_site.call_site_generics
             let generic_replacements = generics.resolved.find_types()
             let final_types = generic_replacements.map @{ i -> ctx.convert_type(i) }
@@ -329,7 +359,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
             let intrinsic_annotation = func.get_annotation("Intrinsic")
             if intrinsic_annotation.is_some() && func.full_name == "call" {
-                let final_lambda_type = sub_ctx.convert_type(func.parameters.first()!!.param_type!!)
+                let final_lambda_type = sub_ctx.convert_type(func.header.parameters.first()!!.param_type!!)
                 let header = get_indirect_function_header(final_lambda_type)
 
                 wasm_func.function_calls[inst.id] = WFuncCall::WLambda @[type_id: header.index, table_id: 0]
@@ -375,4 +405,54 @@ fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
     // DEBUG allows to test the alloc instruction without including all the memory management code
     let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
     ret add_task_visit_function(ctx, alloc_func)
+}
+
+// Check if a type that implements a tag matches the final type that will be used at runtime
+fun WasmBackend.tag_type_matches_final_type(tag_type: Type, final_tag_type: FinalType): Boolean {
+    if tag_type.is_generic() {
+        return true
+    }
+
+    let tag_type_params = tag_type.type_params
+    if tag_type_params.len != final_tag_type.type_params.len {
+        return false
+    }
+
+    repeat tag_type.params.len {
+        if !tag_type_matches_final_type(tag_type_params[it]!!, final_tag_type.type_params[it]!!) {
+            return false
+        }
+    }
+
+    when {
+        tag_type.kind is TypeKind::Struct && final_tag_type.kind is FinalTypeKind::Struct -> {
+            ret (tag_type.kind as TypeKind::Struct).instance.id == (final_tag_type.kind as FinalTypeKind::Struct).instance.id
+        }
+        tag_type.kind is TypeKind::Option && final_tag_type.kind is FinalTypeKind::Option -> {
+            ret (tag_type.kind as TypeKind::Option).instance.id == (final_tag_type.kind as FinalTypeKind::Option).instance.id
+        }
+        tag_type.kind is TypeKind::OptionItem && final_tag_type.kind is FinalTypeKind::Struct -> {
+            ret (tag_type.kind as TypeKind::OptionItem).instance.id == (final_tag_type.kind as FinalTypeKind::Struct).instance.id
+        }
+        tag_type.kind is TypeKind::Lambda && final_tag_type.kind is FinalTypeKind::Lambda -> {
+            ret (tag_type.kind as TypeKind::Lambda).instance.id == (final_tag_type.kind as FinalTypeKind::Lambda).instance.id
+        }
+    }
+
+    ret false
+}
+
+fun WasmBackend.find_tag_type_replacements(left: Type, right: FinalType, ctx: TypeMappingCtx) {
+    if left.is_generic() {
+        let instance = (left.kind as TypeKind::Generic).instance
+        ctx.add_generic(instance, right)
+        ret
+    }
+
+    let left_params = left.type_params
+    let right_params = right.type_params
+
+    repeat min(left_params.len, right_params.len) {
+        find_tag_type_replacements(left_params[it]!!, right_params[it]!!, ctx)
+    }
 }

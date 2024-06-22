@@ -1,0 +1,143 @@
+fun TypeChecker.check_tag(tag_instance: NTag) {
+    let all_set = Set::new<ResolvedTypePattern>()
+
+    for tag_func in tag_instance.functions {
+        let targets: List<NFunCallTarget> = function_lookup[tag_func.header.full_name]
+
+        for target in targets {
+            if target !is NFunCallTarget::Func {
+                continue
+            }
+
+            let func = (target as NFunCallTarget::Func).func
+            let tag_implementation = tag_matches_func(func.header, tag_func.header, tag_instance)
+
+            if tag_implementation.is_none() {
+                continue
+            }
+
+            let pattern = types.type_to_pattern_ignore_generics(tag_implementation!!)
+            tag_func.possible_implementors[pattern] = Pair::of(tag_implementation!!, func)
+            all_set[] = pattern
+        }
+    }
+
+    // Remove from `all_set` the patterns that are not valid for all required functions
+    for tag_func in tag_instance.functions {
+        let new_set = %[]
+
+        for tag_implementor in all_set {
+            let found = false
+
+            // There must be at least one function that matches the tag function for this pattern to be valid
+            for posible_implementor in tag_func.possible_implementors.keys_to_list() {
+                if types.pattern_matches_pattern(tag_implementor, posible_implementor) {
+                    found = true
+                }
+            }
+
+            if found {
+                new_set[] = tag_implementor
+            }
+        }
+
+        all_set = new_set
+    }
+
+    for tag_func in tag_instance.functions {
+        for key in tag_func.possible_implementors.keys_to_list() {
+            if key !in all_set {
+                tag_func.possible_implementors.remove(key)
+            }
+        }
+        tag_func.final_implementors = tag_func.possible_implementors
+    }
+
+    tag_instance.impl_patterns = all_set.to_list()
+}
+
+fun TypeChecker.tag_matches_func(func: NFunctionHeader, tag_func: NFunctionHeader, tag_instance: NTag): Optional<Type> {
+    if func.parameters.len != tag_func.parameters.len {
+        ret None()
+    }
+
+    let impl_type: Optional<Type> = tag_matches_types(func.param_types, tag_func.param_types, tag_instance)
+
+    let left = func.return_type!!
+    let right = tag_func.return_type!!
+    let opt = tag_matches_type(left, right, tag_instance)
+
+    if opt.is_some() {
+        if impl_type.is_some() && impl_type!! != left {
+            ret None()
+        }
+        impl_type = Some(left)
+    } else {
+        if left != right {
+            ret None()
+        }
+    }
+
+    if impl_type.is_none() {
+        ret None()
+    }
+
+    ret impl_type
+}
+
+fun TypeChecker.tag_matches_types(left_list: List<Type>, right_list: List<Type>, tag_instance: NTag): Optional<Type> {
+    if left_list.len != right_list.len {
+        ret None()
+    }
+
+    let impl_type: Optional<Type> = None()
+
+    repeat left_list.len {
+        let left: Type = left_list[it]!!
+        let right: Type = right_list[it]!!
+
+        let opt = tag_matches_type(left, right, tag_instance)
+
+        if opt.is_some() {
+            if impl_type.is_some() && impl_type!! != left {
+                ret None()
+            }
+            impl_type = Some(left)
+            continue
+        }
+
+        if left != right {
+            ret None()
+        }
+    }
+
+    ret impl_type
+}
+
+fun TypeChecker.tag_matches_type(left: Type, right: Type, tag_instance: NTag): Optional<Type> {
+    if !right.is_generic() {
+        if left.kind == right.kind {
+            ret tag_matches_types(left.type_params, right.type_params, tag_instance)
+        }
+
+        ret None()
+    }
+
+    let generic: NGeneric = (right.kind as TypeKind::Generic).instance
+
+    if generic.bounds.len != 1 {
+        ret None()
+    }
+
+    let right_tag_instance = generic.bounds.first()!!.tag_instance
+
+    if right_tag_instance.is_none() {
+        ret None()
+    }
+
+    if right_tag_instance!! != tag_instance {
+        ret None()
+    }
+
+    ret Some(left)
+}

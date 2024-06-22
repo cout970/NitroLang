@@ -41,6 +41,7 @@ option NInstKind {
     FunCall {
         path: String
         name: String
+        explicit_receiver: Boolean
         arguments: List<NInstId>
         explicit_type_arguments: List<NTypeUsage>
         call_site: Optional<FunCallSite>
@@ -349,12 +350,14 @@ fun NCode.add_fun_call(
     span: Span,
     path: String,
     name: String,
+    explicit_receiver: Boolean,
     arguments: List<NInstId>,
     explicit_type_arguments: List<NTypeUsage>
 ): NInst {
     ret add_inst(span, NInstKind::FunCall @[
         path,
         name,
+        explicit_receiver,
         arguments,
         explicit_type_arguments,
         call_site: None(),
@@ -501,6 +504,7 @@ fun NInst.to_string(): String {
 
             if kind.call_site.is_some() {
                 let call_site = kind.call_site!!
+                let header = call_site.target.header
                 let tp = ""
 
                 if call_site.call_site_generics.resolved.is_not_empty() {
@@ -514,10 +518,10 @@ fun NInst.to_string(): String {
                         args += ", "
                     }
 
-                    args += "[#${kind.arguments[it]!!} ${call_site.func.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
+                    args += "[#${kind.arguments[it]!!} ${header.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
                 }
 
-                ret "fun-call fun.${call_site.func.full_name}${call_site.func.span.link_params} $tp $args"
+                ret "fun-call fun.${header.full_name}${header.span.link_params} $tp $args"
             }
 
             let args = "()"
@@ -577,7 +581,7 @@ fun NInst.to_string(): String {
             let extra = "$full_name [unlinked]"
 
             if kind.variable.is_some() {
-                extra = kind.variable!!.to_string()
+                extra = "var:${kind.variable!!}"
             }
             if kind.constant.is_some() {
                 extra = "[const: ${kind.constant!!.full_name} ${kind.constant!!.span.link}]"
@@ -591,7 +595,7 @@ fun NInst.to_string(): String {
             let extra = "$full_name = #${kind.value} [unlinked]"
 
             if kind.variable.is_some() {
-                extra = "${kind.variable!!.to_string()} = #${kind.value}"
+                extra = "var:${kind.variable!!.to_string()} = #${kind.value}"
             }
 
             "store-var $extra"
@@ -610,6 +614,219 @@ fun NInst.to_string(): String {
 
             if kind.field_type_token.is_some() {
                 ret "store-field #${kind.instance} -> [${kind.name}: ${kind.field_type_token!!}] = #${kind.value}"
+            }
+
+            "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
+        }
+        t is NInstKind::SizeOf -> {
+            let kind = t as NInstKind::SizeOf
+
+            "size_of ${kind.type_usage}"
+        }
+        t is NInstKind::Alloc -> {
+            let kind = t as NInstKind::Alloc
+
+            "alloc ${kind.type_usage}"
+        }
+        t is NInstKind::Lambda -> {
+            let kind = t as NInstKind::Lambda
+
+            "lambda ${kind.instance}"
+        }
+        t is NInstKind::Link -> {
+            let kind = t as NInstKind::Link
+
+            "link #${kind.linked_id}"
+        }
+        t is NInstKind::Noop -> {
+            "noop"
+        }
+        t is NInstKind::Comment -> {
+            let kind = t as NInstKind::Comment
+            let line = kind.text.replace("\n", "\\n").trim()
+
+            "// $line"
+        }
+        else -> crash("Unknown NInstKind variant")
+    }
+}
+
+fun NCode.var_to_string(variable_id: NVarId): String {
+    let variable: NVar = this.vars_map[variable_id]!!
+    let ty = if variable.type_token.is_some() {
+        variable.type_token!!.to_string()
+    } else {
+        variable.type_usage.to_string()
+    }
+
+    ret "var:${variable_id} [${variable.name}: $ty]"
+}
+
+fun NInst.to_string(code: NCode): String {
+    let t = this.kind
+    ret when {
+        t is NInstKind::Let -> {
+            let kind = t as NInstKind::Let
+
+            "let ${code.var_to_string(kind.variable)}"
+        }
+        t is NInstKind::IfStart -> {
+            let kind = t as NInstKind::IfStart
+
+            "if-start #${kind.condition}"
+        }
+        t is NInstKind::IfElse -> {
+            "if-else"
+        }
+        t is NInstKind::IfEnd -> {
+            "if-end"
+        }
+        t is NInstKind::IfChoose -> {
+            let kind = t as NInstKind::IfChoose
+
+            "if-choose #${kind.condition} => #${kind.if_true} | #${kind.if_false}"
+        }
+        t is NInstKind::LoopStart -> {
+            let kind = t as NInstKind::LoopStart
+
+            "loop-start break_block: ${kind.break_block}, continue_block: ${kind.continue_block}"
+        }
+        t is NInstKind::LoopEnd -> {
+            "loop-end"
+        }
+        t is NInstKind::BlockJump -> {
+            let kind = t as NInstKind::BlockJump
+
+            "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
+        }
+        t is NInstKind::FunCall -> {
+            let kind = t as NInstKind::FunCall
+
+            if kind.call_site.is_some() {
+                let call_site = kind.call_site!!
+                let header = call_site.target.header
+                let tp = ""
+
+                if call_site.call_site_generics.resolved.is_not_empty() {
+                    let gp: NGenericParams = call_site.call_site_generics.generic_params
+                    let buf = StringBuilder::new()
+
+                    repeat gp.definitions.len {
+                        let def: NGeneric = gp.definitions[it]!!
+                        let tt: TypeToken = call_site.call_site_generics.resolved[it]!!
+
+                        if buf.is_not_empty() {
+                            buf[] = ", "
+                        }
+                        buf[] = "#${def.name}: $tt"
+                    }
+
+                    tp = "<${buf}>"
+                }
+
+                let args = ""
+
+                repeat call_site.argument_types.len {
+                    if args.is_not_empty() {
+                        args += ", "
+                    }
+
+                    args += "[#${kind.arguments[it]!!} ${header.parameters[it]!!.name}: ${call_site.argument_types[it]!!}]"
+                }
+
+                ret "fun-call fun.${header.full_name}${header.span.link_params} $tp $args"
+            }
+
+            let args = "()"
+            let type_args = ""
+
+            if kind.arguments.is_not_empty() {
+                args = "("
+                for arg in kind.arguments {
+                    args += "#$arg, "
+                }
+                args = args.slice(0, -2)
+                args += ")"
+            }
+
+            if kind.explicit_type_arguments.is_not_empty() {
+                type_args += "<"
+                for arg in kind.explicit_type_arguments {
+                    type_args += "$arg, "
+                }
+                type_args = type_args.slice(0, -2)
+                type_args += ">"
+            }
+
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+
+            "fun-call $full_name$type_args$args"
+        }
+        t is NInstKind::WhenStart -> {
+            "when-start"
+        }
+        t is NInstKind::WhenEnd -> {
+            "when-end"
+        }
+        t is NInstKind::Literal -> {
+            let kind = t as NInstKind::Literal
+
+            "literal ${kind.value}"
+        }
+        t is NInstKind::Return -> {
+            let kind = t as NInstKind::Return
+
+            "return #${kind.value}"
+        }
+        t is NInstKind::IsType -> {
+            let kind = t as NInstKind::IsType
+
+            "is-type #${kind.value} ${kind.type_pattern}"
+        }
+        t is NInstKind::AsType -> {
+            let kind = t as NInstKind::AsType
+
+            "as-type #${kind.value} ${kind.type_usage}"
+        }
+        t is NInstKind::LoadVar -> {
+            let kind = t as NInstKind::LoadVar
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+            let extra = "$full_name [unlinked]"
+
+            if kind.variable.is_some() {
+                extra = code.var_to_string(kind.variable!!)
+            }
+            if kind.constant.is_some() {
+                extra = "[const: ${kind.constant!!.full_name} ${kind.constant!!.span.link}]"
+            }
+
+            "load-var $extra"
+        }
+        t is NInstKind::StoreVar -> {
+            let kind = t as NInstKind::StoreVar
+            let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
+            let extra = "$full_name = #${kind.value} [unlinked]"
+
+            if kind.variable.is_some() {
+                extra = "${code.var_to_string(kind.variable!!)} = #${kind.value}"
+            }
+
+            "store-var $extra"
+        }
+        t is NInstKind::LoadField -> {
+            let kind = t as NInstKind::LoadField
+
+            if kind.field_type_token.is_some() {
+                ret "load-field #${kind.instance} => [${kind.name}: ${kind.field_type_token!!}]"
+            }
+
+            "load-field #${kind.instance} -> ${kind.name}"
+        }
+        t is NInstKind::StoreField -> {
+            let kind = t as NInstKind::StoreField
+
+            if kind.field_type_token.is_some() {
+                ret "store-field #${kind.instance} => [${kind.name}: ${kind.field_type_token!!}] = #${kind.value}"
             }
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"

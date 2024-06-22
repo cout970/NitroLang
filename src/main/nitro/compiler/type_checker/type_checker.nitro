@@ -9,7 +9,7 @@ struct TypeChecker {
     cons: TypeConstraints
     property_cache: PropertyCache
     current_code: Optional<NCode>
-    function_lookup: Multimap<String, NFunction>
+    function_lookup: Multimap<String, NFunCallTarget>
 }
 
 fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
@@ -29,26 +29,48 @@ fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
 
 fun TypeChecker.check_all() {
     // Step 1: Definitions
-    for s in program.structs {
-        check_struct(s)
+    for def in program.structs {
+        check_struct(def)
     }
-    for s in program.options {
-        check_option(s)
+
+    for def in program.options {
+        check_option(def)
     }
-    for s in program.type_aliases {
-        check_type_alias(s)
+
+    for def in program.type_aliases {
+        check_type_alias(def)
     }
-    for s in program.consts {
-        check_const_header(s)
+
+    for def in program.consts {
+        check_const_header(def)
     }
-    for s in program.functions {
-        check_function_header(s)
-        collect_getters_and_setters(s)
+
+    for def in program.tags {
+        for tag_func in def.functions {
+            check_function_header(tag_func.header)
+
+            let full_name = Path::join(tag_func.header.path, tag_func.header.name)
+            for seg in create_path_segments(full_name) {
+                function_lookup.add(seg, NFunCallTarget::Tag @[header: tag_func.header, tag_func])
+            }
+        }
+    }
+
+    for func in program.functions {
+        check_function_header(func.header)
+        func.code.return_type_token = Some(func.header.return_type!!.to_token())
+
+        collect_getters_and_setters(func)
 
         // Store the function in the lookup map
-        for seg in create_path_segments(s.full_name) {
-            function_lookup.add(seg, s)
+        for seg in create_path_segments(func.full_name) {
+            function_lookup.add(seg, NFunCallTarget::Func @[header: func.header, func])
         }
+    }
+
+    // Verify tag implementors
+    for def in program.tags {
+        check_tag(def)
     }
 
     // Step 2: Code inside definitions
@@ -89,14 +111,13 @@ fun TypeChecker.check_const_header(s: NConst) {
     s.code.return_type_token = Some(ty.to_token())
 }
 
-fun TypeChecker.check_function_header(s: NFunction) {
-    check_generics(s.generics)
-    for param in s.parameters {
+fun TypeChecker.check_function_header(header: NFunctionHeader) {
+    check_generics(header.generics)
+    for param in header.parameters {
         param.param_type = Some(check_type_usage(param.type_usage))
     }
-    let ty = check_type_usage(s.return_type_usage)
-    s.return_type = Some(ty)
-    s.code.return_type_token = Some(ty.to_token())
+    let ty = check_type_usage(header.return_type_usage)
+    header.return_type = Some(ty)
 }
 
 fun TypeChecker.check_generics(generics: NGenericParams) {
@@ -113,7 +134,7 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
             for tag_def in program.tags {
                 if tag_def.name == bounds.name {
                     found = true
-                    bounds.tag_definition = Some(tag_def)
+                    bounds.tag_instance = Some(tag_def)
                     break
                 }
             }

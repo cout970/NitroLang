@@ -37,7 +37,7 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
 
     // let iter = <iterable>.to_iterator()
     let var_iter = code.add_let(span, "iter", None())
-    let iterator = code.add_fun_call(span, "", "to_iterator", [iterable], [])
+    let iterator = code.add_fun_call(span, "", "to_iterator", true, [iterable], [])
     code.add_store_var(span, "", "iter", iterator.id, Some(var_iter.id))
 
     // loop {
@@ -53,17 +53,17 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
 
     // let next_item = iter.next()
     let var_next_item = code.add_let(span, "next_item", None())
-    let next_item = code.add_fun_call(span, "", "next", [iterator.id], [])
+    let next_item = code.add_fun_call(span, "", "next", true, [iterator.id], [])
     code.add_store_var(span, "", "next_item", next_item.id, Some(var_next_item.id))
 
     //     if (next_item.is_some()) {
-    let condition = code.add_fun_call(span, "", "is_some", [next_item.id], [])
+    let condition = code.add_fun_call(span, "", "is_some", true, [next_item.id], [])
     code.add_if_start(span, condition.id)
     code.enter_block(false)
 
     //       let <iter_value> = next_item.get_or_crash()
     let var_value = code.add_let(span, iter_value, None())
-    let value = code.add_fun_call(span, "", "get_or_crash", [next_item.id], [])
+    let value = code.add_fun_call(span, "", "get_or_crash", true, [next_item.id], [])
     code.add_store_var(span, "", iter_value, value.id, Some(var_value.id))
 
     //       Code in loop...

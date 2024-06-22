@@ -55,7 +55,7 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): Type {
 }
 
 fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Type {
-    let full_name = get_full_path(tu.path, tu.name)
+    let full_name = Path::join(tu.path, tu.name)
     let ty = find_type_by_name(full_name, params, tu.span)
     tu.type_token = Some(ty.to_token())
     ret ty
@@ -76,7 +76,7 @@ fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: S
 
         // Type alias
         for i in program.type_aliases {
-            if get_full_path(i.path, i.name) != segment {
+            if Path::join(i.path, i.name) != segment {
                 continue
             }
             let alias_type = check_type_usage(i.type_usage)

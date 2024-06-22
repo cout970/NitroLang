@@ -8,7 +8,7 @@ struct TypeConstraints {
 
 option TypeConstraint {
     Unify { id: Int, left: TypeToken, right: TypeToken, span: Span }
-    Bounds { id: Int, arg: TypeToken, required_tags: List<NTag>, span: Span }
+    Bounds { id: Int, arg: TypeToken, required_tag: NTag, span: Span, visited: Boolean }
 }
 
 struct DeferredActions {
@@ -49,9 +49,9 @@ fun TypeConstraints.add_unify_list(left: List<Type>, right: List<Type>, span: Sp
 }
 
 // Assert that a type has the required tags
-fun TypeConstraints.add_bounds(arg: TypeToken, required_tags: List<NTag>, span: Span) {
+fun TypeConstraints.add_bounds(arg: TypeToken, required_tag: NTag, span: Span) {
     last_constraint_id += 1
-    all[] = TypeConstraint::Bounds @[ id: last_constraint_id, arg, required_tags, span ]
+    all[] = TypeConstraint::Bounds @[ id: last_constraint_id, arg, required_tag, span, visited: false ]
 }
 
 // Run an action once all argument types are resolved
@@ -86,6 +86,48 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
 
                 ctx.initial_types = Some(Pair::of(left_type, right_type))
                 ctx.unify(left_type, right_type)
+            }
+            if constraint is TypeConstraint::Bounds {
+                let c = constraint as TypeConstraint::Bounds
+                let arg_type = c.arg.find_type()
+
+                if arg_type.is_unresolved() {
+                    continue
+                }
+
+                let tag_instance = c.required_tag
+
+                if arg_type.is_generic() {
+                    let generic = (arg_type.kind as TypeKind::Generic).instance
+                    let found = false
+
+                    for bound in generic.bounds {
+                        if bound.tag_instance!!.name == tag_instance.name {
+                            found = true
+                            break
+                        }
+                    }
+
+                    if !found {
+                        type_checker.report_error("Type param ${arg_type} (${generic.bounds}) does not implement tag ${tag_instance.name}", ctx.span)
+                    }
+
+                } else {
+                    let found = false
+
+                    for pattern in tag_instance.impl_patterns {
+                        if ctx.types.matches_pattern(arg_type, pattern) {
+                            found = true
+                            break
+                        }
+                    }
+
+                    if !found {
+                        type_checker.report_error("Type ${arg_type} does not implement tag ${tag_instance.name}", ctx.span)
+                    }
+                }
+
+                c.visited = true
             }
         }
 
@@ -132,6 +174,16 @@ fun TypeChecker.remove_obsolete_constraints(): Boolean {
             }
         }
 
+        if constraint is TypeConstraint::Bounds {
+            let c = constraint as TypeConstraint::Bounds
+
+            if c.visited {
+                cons.all.remove_at(index)
+                changes = true
+                continue
+            }
+        }
+
         index += 1
     }
 
@@ -166,7 +218,7 @@ fun TypeConstraint.to_string(): String {
     }
     if this is TypeConstraint::Bounds {
         let c = this as TypeConstraint::Bounds
-        ret "Bounds ${c.id}: ${c.arg}, ${c.required_tags}"
+        ret "Bounds ${c.id}: ${c.arg}, ${c.required_tag}"
     }
 
     unreachable()

@@ -49,14 +49,14 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             // ```
 
             lexer.next_token()
-            let call = code.add_fun_call(span, "", "is_returnable_error", [last], [])
+            let call = code.add_fun_call(span, "", "is_returnable_error", true, [last], [])
 
             code.add_if_start(span, call.id)
-            let call2 = code.add_fun_call(span, "", "convert_error", [last], [])
+            let call2 = code.add_fun_call(span, "", "convert_error", true, [last], [])
             code.add_return(span, call2.id)
             code.add_if_end(span)
 
-            let call3 = code.add_fun_call(span, "", "get_or_crash", [last], [])
+            let call3 = code.add_fun_call(span, "", "get_or_crash", true, [last], [])
             last = call3.id
             continue
         }
@@ -69,7 +69,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             // ```
 
             lexer.next_token()
-            let call = code.add_fun_call(span, "", "get_or_crash", [last], [])
+            let call = code.add_fun_call(span, "", "get_or_crash", true, [last], [])
             last = call.id
             continue
         }
@@ -88,7 +88,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 let right = read_expression(code)?
                 let args = [last, right]
 
-                let call = code.add_fun_call(span, "", "add", args, [])
+                let call = code.add_fun_call(span, "", "add", true, args, [])
                 last = call.id
                 continue
             }
@@ -119,7 +119,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 let right = read_expression(code)?
                 args[] = right
 
-                let call = code.add_fun_call(span, "", "set", args, [])
+                let call = code.add_fun_call(span, "", "set", true, args, [])
                 last = call.id
                 continue
             }
@@ -136,7 +136,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
 
             // Not an operator, just getting the value
             if op.is_none() || !allow_expression_assignment {
-                let call = code.add_fun_call(span, "", "get", args, [])
+                let call = code.add_fun_call(span, "", "get", true, args, [])
                 last = call.id
                 continue
             }
@@ -148,14 +148,14 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             let right_id = read_expression(code)?
 
             let result = if operator.uses_ordering {
-                let get_ordering = code.add_fun_call(span, "", "get_ordering", [last, right_id], [])
-                code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", true, [last, right_id], [])
+                code.add_fun_call(span, "", operator.method, true, [get_ordering.id], []).id
             } else {
-                code.add_fun_call(span, "", operator.method, [last, right_id], []).id
+                code.add_fun_call(span, "", operator.method, true, [last, right_id], []).id
             }
             args[] = result
 
-            code.add_fun_call(span, "", "set", args, [])
+            code.add_fun_call(span, "", "set", true, args, [])
 
             let inst = code.add_lit_nothing(span)
             last = inst.id
@@ -193,7 +193,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                     args[] = read_expression_function_call_end(code)?
                 }
 
-                let call = code.add_fun_call(span, path, name, args, type_param_args)
+                let call = code.add_fun_call(span, path, name, true, args, type_param_args)
                 last = call.id
                 continue
             }
@@ -203,7 +203,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 let args = [last]
                 args[] = read_expression_function_call_end(code)?
 
-                let call = code.add_fun_call(span, path, name, args, type_param_args)
+                let call = code.add_fun_call(span, path, name, true, args, type_param_args)
                 last = call.id
                 continue
             }
@@ -252,10 +252,10 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             let right_id = read_expression(code)?
 
             let result = if operator.uses_ordering {
-                let get_ordering = code.add_fun_call(span, "", "get_ordering", [access.id, right_id], [])
-                code.add_fun_call(span, "", operator.method, [get_ordering.id], []).id
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", true, [access.id, right_id], [])
+                code.add_fun_call(span, "", operator.method, true, [get_ordering.id], []).id
             } else {
-                code.add_fun_call(span, "", operator.method, [access.id, right_id], []).id
+                code.add_fun_call(span, "", operator.method, true, [access.id, right_id], []).id
             }
 
             code.add_store_field(span, last, name, result)

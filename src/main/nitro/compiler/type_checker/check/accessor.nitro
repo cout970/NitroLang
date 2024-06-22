@@ -15,16 +15,17 @@ fun PropertyCache::new(): PropertyCache {
 }
 
 fun TypeChecker.collect_getters_and_setters(func: NFunction) {
-    let name = func.name
+    let header = func.header
+    let name = header.name
 
-    if name.bytes_len <= 4 || !func.has_receiver || func.parameters.is_empty() {
+    if name.bytes_len <= 4 || !header.has_receiver || header.parameters.is_empty() {
         ret
     }
 
-    let receiver_type: Type = func.parameters.first()!!.param_type!!
-    let ret_ty: Type = func.return_type!!
+    let receiver_type: Type = header.parameters.first()!!.param_type!!
+    let ret_ty: Type = header.return_type!!
 
-    if name.starts_with("get_") && func.parameters.len == 1 {
+    if name.starts_with("get_") && header.parameters.len == 1 {
         if !ret_ty.is_nothing() && !ret_ty.is_never() {
             let property_name = name.slice(4, name.bytes_len - 4)
             let pattern = types.type_to_pattern_ignore_generics(receiver_type)
@@ -39,7 +40,7 @@ fun TypeChecker.collect_getters_and_setters(func: NFunction) {
         }
     }
 
-    if name.starts_with("set_") && func.parameters.len == 2 {
+    if name.starts_with("set_") && header.parameters.len == 2 {
         if ret_ty.is_nothing() || ret_ty == receiver_type {
             let property_name = name.slice(4, name.bytes_len - 4)
             let pattern = types.type_to_pattern_ignore_generics(receiver_type)

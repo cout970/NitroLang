@@ -51,7 +51,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
         full_name_cache: None(),
     ]
     program.structs[] = def
-    declare_name(get_full_path(def.path, def.name), def.span)
+    declare_name(Path::join(def.path, def.name), def.span)
 
     start_generics_collection(def.generics, NGenericSource::Struct)
     defer { stop_generics_collection() }
@@ -92,7 +92,7 @@ fun NStruct.get_full_name(): String {
         ret full_name_cache!!
     }
 
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
     full_name_cache = Some(full_name)
     ret full_name
 }
@@ -112,7 +112,7 @@ fun NStruct.to_string(): String {
         fields_str += "  ${field.name}: ${field.type_usage}\n"
     }
     fields_str = fields_str + "}"
-    let full_name = get_full_path(path, name)
+    let full_name = Path::join(path, name)
 
     ret "${prefix}struct $full_name $fields_str  // $span"
 }

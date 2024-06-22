@@ -341,7 +341,6 @@ fun NCode.to_string(): String {
 
     let body_str = StringBuilder::new()
 
-
     body_str[] = "{"
     body_str[] = "\n  span: $span"
     body_str[] = "\n  name: $name"
@@ -365,13 +364,16 @@ fun NCode.to_string(): String {
         line[] = " | "
         let prefix_len = line.bytes_len
         line[] = "  " * find_block(i.block).depth
-        line[] = i.to_string().indent(prefix_len).trim()
+        line[] = i.to_string(this).indent(prefix_len).trim()
 
-        line[] = " -> "
         if i.type_token.is_some() {
-            line[] = i.type_token!!.to_string()
+            if !i.type_token!!.find_type().is_nothing() {
+                line[] = " -> "
+                line[] = i.type_token!!.to_string()
+            }
         } else {
-            line[] = "<not inferred>"
+            line[] = " -> "
+            line[] = "<not set>"
         }
 
         body_str[] = "\n"
