@@ -181,17 +181,8 @@ fun Float.to_string(): String {}
 
 // This function compares two floating point numbers and returns an ordering value
 // that represents the sorting order of the values
-fun Float.get_ordering(other: Float): Ordering {
-    if this == other {
-        ret Ordering::Equals
-    } else {
-        if this > other {
-            ret Ordering::Greater
-        } else {
-            ret Ordering::Less
-        }
-    }
-}
+@Extern [lib: "core", name: "float_get_ordering", autogenerate: true]
+fun Float.get_ordering(other: Float): Ordering {}
 
 // Clamps a floating point number between a minimum and a maximum value
 fun Float.clamp(min: Float, max: Float): Float {
