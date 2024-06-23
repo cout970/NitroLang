@@ -11,12 +11,8 @@ struct MemoryArena {
 
 // Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
-    let ptr_size = size_of<Ptr<Byte>>
-
     // Bump allocator
-    let next = len
-    let pad = (ptr_size - next) % ptr_size;
-    next = next + (if pad < 0 { pad + ptr_size } else { pad })
+    let next = (len + 3) & 3.bitwise_not()
 
     len = next + amount
 
@@ -28,7 +24,7 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     let end = start + amount
 
     // Check we are out-of-memory
-    if end > base_end {
+    if end.greater_than_signed(base_end) {
         // Error handled in native code, since we don't have enough memory to generate a stacktrace
         memory_alloc_error(amount, start, capacity, len, base_start)
     }

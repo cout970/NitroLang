@@ -425,19 +425,20 @@ fun List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
 
 // Converts the list to a string
 fun <#Item: ToString> List<#Item>.to_string(): String {
-    let str = "["
+    let str = StringBuilder::new()
+    str[] = "["
 
     repeat count {
         let item = this[it]!!.to_string()
-        str += item
-
-        if it != limit - 1 {
-            str += ", "
+        if it != 0 {
+            str[] = ", "
         }
-    }
-    str += "]"
 
-    ret str
+        str[] = item
+    }
+
+    str[] = "]"
+    ret str.to_string()
 }
 
 // Iterates over the list and calls the given function for each item

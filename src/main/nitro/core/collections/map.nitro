@@ -381,16 +381,16 @@ fun <#Key: MapKey> Map<#Key, #Value>.to_map(): Map<#Key, #Value> {
 
 // Converts the map to a string
 fun <#Key: MapKey | ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
-    let str = ""
+    let str = StringBuilder::new()
 
     for_each_entry @{ key: #Key, value: #Value ->
         if str.is_not_empty() {
-            str += ",\n"
+            str[] = ",\n"
         }
-        str += "  "
-        str += key.to_string()
-        str += " => "
-        str +=  value.to_string()
+        str[] = "  "
+        str[] = key.to_string()
+        str[] = " => "
+        str[] = value.to_string()
     }
 
     ret if str.is_empty() { "#[]" } else { "#[\n$str\n]" }
