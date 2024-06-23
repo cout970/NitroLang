@@ -33,7 +33,13 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         if inst.kind is NInstKind::Let {
             let nvar_id = (inst.kind as NInstKind::Let).variable
             let nvar = code.find_var(nvar_id)
-            let wvar = func.let_declarations[nvar_id]!!
+            let opt = func.let_declarations[nvar_id]
+
+            if opt.is_none() {
+                continue
+            }
+
+            let wvar = opt!!
 
             if nvar.is_upvalue {
                 let call = (func.function_calls[inst.id]!! as WFuncCall::WFunction).value
@@ -66,9 +72,9 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
         if inst.kind is NInstKind::IfChoose {
             let kind = inst.kind as NInstKind::IfChoose
-            push(kind.condition, map)
             push(kind.if_true, map)
             push(kind.if_false, map)
+            push(kind.condition, map)
             add_select()
             pop(inst.id, map)
             continue
@@ -178,6 +184,15 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         crash("Found unknown instruction: $inst")
+    }
+
+    // Wasm requires a explicit return, implicit return or unreachable
+    // In some case, the function ends in a if-else block with returns in each branch, so the end is unreachable
+    // but wasm requires a explicit return or unreachable
+    if !func.header.results.is_empty() {
+        if !ends_in_return() {
+            add_unreachable()
+        }
     }
 
 //    if debug_print && func.source is WFunctionSource::Function {
@@ -323,6 +338,7 @@ fun WasmEmitter.compile_inst_store_field(inst: NInst, func: WFunction, backend: 
     push(kind.value, map)
     add_store_by_type(field_type, backend)
 }
+
 fun WasmEmitter.compile_inst_load_field(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
     let kind = inst.kind as NInstKind::LoadField
 
@@ -374,22 +390,30 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
 
     let nvar_id: NVarId = kind.variable!!
     let nvar = code.find_var(nvar_id)
+
+    // If the variable is local `let_final_types` will have the type, otherwise it's an upvalue and we check the original variable
+    let final_type = func.let_final_types[nvar_id].get_or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
+
+    // Zero size type, no need to load
+    if backend.get_size_of(final_type) == 0 {
+        ret
+    }
+
     let wvar = func.let_declarations[nvar_id]
 
     // Using upvalue outside the code block
     if wvar.is_none() {
-        let index = code.upvalues.index_of(nvar_id)
+        let index = code.upvalues.index_of(nvar_id)!!
 
         // Implicit lambda instance
         add_local_get(0)
 
         // Load upvalue ptr
-        add_i32_const((1 + index!!) * 4)
+        add_i32_const((1 + index) * 4)
         add_i32_add()
         add_i32_load(0)
 
         // Load the value
-        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
         add_load_by_type(final_type, backend)
 
         pop(inst.id, map)
@@ -399,8 +423,6 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
     let local_id = wvar!!.index.to_int()
 
     if nvar.is_upvalue {
-        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
-
         // Upvalues are pointers in the stack, the value is in the heap
         add_local_get(local_id)
         add_load_by_type(final_type, backend)
@@ -415,6 +437,15 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
     let kind = inst.kind as NInstKind::StoreVar
     let nvar_id = kind.variable!!
     let nvar = code.find_var(nvar_id)
+
+    // If the variable is local `let_final_types` will have the type, otherwise it's an upvalue and we check the original variable
+    let final_type = func.let_final_types[nvar_id].get_or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
+
+    // Zero size type, no need to store
+    if backend.get_size_of(final_type) == 0 {
+        ret
+    }
+
     let wvar = func.let_declarations[nvar_id]
 
     // Using upvalue outside the code block
@@ -430,7 +461,6 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
         add_i32_load(0)
 
         // Store the value
-        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
         push(kind.value, map)
         add_store_by_type(final_type, backend) // ptr: i32, value: i32 -> void
         ret
@@ -439,8 +469,6 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
     let local_id = wvar!!.index.to_int()
 
     if nvar.is_upvalue {
-        let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
-
         // Upvalues are pointers in the stack, the value is in the heap
         add_local_get(local_id)
         push(kind.value, map)
@@ -461,8 +489,15 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
 
     when {
         opt is WFuncCall::WFunction -> {
-            let id = (opt as WFuncCall::WFunction).value
+            let func = opt as WFuncCall::WFunction
+            let id = func.value
+            let return_final_type = func.return_final_type
             add_call(id.to_int())
+
+            // If the function never returns, add unreachable()
+            if return_final_type.is_never() {
+                add_unreachable()
+            }
         }
         opt is WFuncCall::WLambda -> {
             let call = (opt as WFuncCall::WLambda)
@@ -723,10 +758,15 @@ fun WasmEmitter.pop(id: NInstId, map: Map<NInstId, InstResultAction>) {
 
 // Add a load instruction based on the size of the type
 fun WasmEmitter.add_load_by_type(final_type: FinalType, backend: WasmBackend): Int {
-    let size = backend.get_size_of(final_type)
+    let heap_size = backend.get_size_of(final_type)
+    let size = backend.get_ref_size_of(final_type)
+
+    // Zero size types are not loaded
+    if heap_size == 0 {
+        ret 0
+    }
 
     when size {
-        // Zero size types are not loaded
         0 -> {}
         // Load a single byte
         1 -> add_i32_load8_u(0)
@@ -751,10 +791,15 @@ fun WasmEmitter.add_load_by_type(final_type: FinalType, backend: WasmBackend): I
 
 // Add a store instruction based on the size of the type
 fun WasmEmitter.add_store_by_type(final_type: FinalType, backend: WasmBackend): Int {
-    let size = backend.get_size_of(final_type)
+    let heap_size = backend.get_size_of(final_type)
+    let size = backend.get_ref_size_of(final_type)
+
+    // Zero size types are not loaded
+    if heap_size == 0 {
+        ret 0
+    }
 
     when size {
-        // Zero size types are not loaded
         0 -> {}
         // Load a single byte
         1 -> add_i32_store8(0)

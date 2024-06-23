@@ -130,7 +130,7 @@ fun WasmBackend.compile_program() {
     // capacity: total size - allocated size
     // len: 0
     // data: start of not-yet-allocated memory
-    let heap_start = WasmBackend::pad(wasm_program.memory.size - wasm_program.memory.offset)
+    let heap_start = WasmBackend::pad(wasm_program.memory.offset + 4)
     memory.clear()
     memory.add_int_le(wasm_program.memory.size - heap_start)
     memory.add_int_le(0)
@@ -418,6 +418,8 @@ fun WasmBackend.get_final_lambda(instance: NLambda, final_type: FinalType): Fina
         size: 0,
     ]
 
+    let ctx = instance.ctx!!
+
     // Size computation
     // header + function ptr + upvalues
     final_lambda.size = STRUCT_HEADER_SIZE + 4
@@ -426,7 +428,7 @@ fun WasmBackend.get_final_lambda(instance: NLambda, final_type: FinalType): Fina
 
     for upvalue_id in code.upvalues {
         let nvar = code.find_var(upvalue_id)
-        let final_type = root_ctx.convert_type(nvar.type_token!!.find_type())
+        let final_type = ctx.convert_type(nvar.type_token!!.find_type())
         let size = get_size_of(final_type)
 
         if size > 0 {

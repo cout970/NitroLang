@@ -47,6 +47,7 @@ struct WFunction {
     code: NCode
     header: WFunctionHeader
     let_declarations: Map<NVarId, WVar>
+    let_final_types: Map<NVarId, FinalType>
     function_calls: Map<NInstId, WFuncCall>
     lambda_instances: Map<NInstId, Id>
     constants: Map<NInstId, Id>
@@ -57,7 +58,7 @@ struct WFunction {
 }
 
 option WFuncCall {
-    WFunction { value: Id }
+    WFunction { value: Id, return_final_type: FinalType }
     WLambda { type_id: Id, table_id: Int }
     WImport { value: Id }
     WOpcode { value: String }

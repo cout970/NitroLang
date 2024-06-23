@@ -652,7 +652,8 @@ fun NInst.to_string(): String {
 }
 
 fun NCode.var_to_string(variable_id: NVarId): String {
-    let variable: NVar = this.vars_map[variable_id]!!
+    let variable: NVar = find_var(variable_id)
+
     let ty = if variable.type_token.is_some() {
         variable.type_token!!.to_string()
     } else {

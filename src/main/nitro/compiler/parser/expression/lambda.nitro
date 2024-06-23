@@ -40,6 +40,7 @@ struct NLambda {
     type_token: Optional<TypeToken>
     parameters: List<NFunctionParameter>
     code: NCode
+    ctx: Optional<TypeMappingCtx>
 }
 
 fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
@@ -55,6 +56,7 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
         type_token: None(),
         parameters: [],
         code: code.new_child(span),
+        ctx: None(),
     ]
 
     program.lambda_functions[] = lambda

@@ -18,7 +18,7 @@ fun i32_store(ptr: Int, value: Int) {}
 @WasmInline [opcode: "i32.load"]
 fun i32_load(ptr: Int): Int {}
 
-//fun main() {
+fun main() {
 //    if false {
 //        println(1)
 //    } else {
@@ -131,7 +131,7 @@ fun i32_load(ptr: Int): Int {}
 //    }
 //
     // DEBUG
-//    memory_alloc_internal2(0)
+//    memory_alloc_internal(0)
 //    println(2 * 3 * 4 * 5 * 6 * 7)
 //    println(1.get_ordering(2))
 
@@ -148,26 +148,46 @@ fun i32_load(ptr: Int): Int {}
 //    List::new<Int>().test()
 //    List::new<Float>().test2()
 //
-//    println(pass(List::new<Int>()))
+
+    // TODO:
+    //error: expected local name count (4) <= local count (3)
+    //00033da: error: OnLocalNameLocalCount callback failed
+//    let list = [1, 2, 3]
+//
+//    println(list)
+//
+//    let map: Map<String, Int> = #[
+//        "0": 0,
+//        "1": 1,
+//        "2": 2,
+//    ]
+//
+//    println(map)
+
+    println([
+        #[test: 1890],
+        #[test2: 2890],
+        #[test3: 3890],
+        #[test4: 1234],
+    ])
+}
+
+//tag HasTestFunctions2 {
+//    fun List<This>.test(): List<This>
+//    fun List<This>.test2(): List<This>
+//    fun List<This>.test3(): List<This>
 //}
-
-
-tag HasTestFunctions2 {
-    fun List<This>.test(): List<This>
-    fun List<This>.test2(): List<This>
-    fun List<This>.test3(): List<This>
-}
-
-fun List<#T>.test(): List<#T> = this
-fun List<#T>.test2(): List<#T> = this
-fun List<Int>.test3(): List<Int> = this
-
-fun <#T: tag HasTestFunctions2> passes_the_test(arg: List<#T>): Boolean = arg is List<List<Int>>
-
-fun main() {
-    println(passes_the_test(List::new<List<Int>>()))      // -> true
-//    println(passes_the_test(List::new<List<Float>>()))    // -> Error: Type List<Float> does not implement tag HasTestFunctions2
-}
+//
+//fun List<#T>.test(): List<#T> = this
+//fun List<#T>.test2(): List<#T> = this
+//fun List<Int>.test3(): List<Int> = this
+//
+//fun <#T: tag HasTestFunctions2> passes_the_test(arg: List<#T>): Boolean = arg is List<List<Int>>
+//
+//fun main() {
+//    println(passes_the_test(List::new<List<Int>>()))      // -> true
+////    println(passes_the_test(List::new<List<Float>>()))    // -> Error: Type List<Float> does not implement tag HasTestFunctions2
+//}
 
 //let a: Int = 42
 
@@ -200,18 +220,3 @@ fun main() {
 //    ret arg.to_int()
 //}
 //
-// Temporary extremely simple memory allocator
-fun memory_alloc_internal2(size: Int): Int {
-    let curr = i32_load(79996)
-
-    if curr.is_equal(0) {
-        curr = 80000
-    }
-
-    // align to 4 bytes boundary
-    let alloc = (curr + 3) & -4
-    curr = curr + size
-
-    i32_store(79996, curr)
-    ret alloc
-}
