@@ -90,6 +90,16 @@ fun TypeContainer.replace(src: Type, find: Type, replace: Type): Type {
     ret create_type_direct(src.kind, new_params)
 }
 
+fun TypeContainer.replace_with_map(src: Type, replacements: Map<Type, Type>): Type {
+    let aux = src
+
+    for entry in replacements {
+        aux = this.replace(aux, entry.first, entry.second)
+    }
+
+    ret aux
+}
+
 fun TypeContainer.replace_generics(ty: Type, generics: List<NGeneric>, args: List<Type>): Type {
     if generics.is_empty() || args.is_empty() {
         ret ty

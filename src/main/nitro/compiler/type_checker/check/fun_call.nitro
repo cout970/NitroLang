@@ -135,7 +135,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
             continue
         }
 
-        cons.add_unify(tt, call_site_generics.resolved[it]!!, e.span)
+        cons.add_unify(tt, call_site_generics.resolved[it]!!, e.span, TypeConstraintSource::TypeParameter)
     }
 
     // Type param bounds
@@ -158,7 +158,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     ]
     kind.call_site = Some(call_site)
 
-    cons.add_unify_list(function_params, arg_types, inst.span)
-    cons.add_unify(return_tt, function_return.to_token(), inst.span)
+    cons.add_unify_list(function_params, arg_types, inst.span, TypeConstraintSource::FunctionCallArg)
+    cons.add_unify(return_tt, function_return.to_token(), inst.span, TypeConstraintSource::InstType)
 }
 

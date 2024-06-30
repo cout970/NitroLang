@@ -7,8 +7,24 @@ struct TypeConstraints {
 }
 
 option TypeConstraint {
-    Unify { id: Int, left: TypeToken, right: TypeToken, span: Span }
+    Unify { id: Int, left: TypeToken, right: TypeToken, span: Span, source: TypeConstraintSource }
     Bounds { id: Int, arg: TypeToken, required_tag: NTag, span: Span, visited: Boolean }
+}
+
+enum TypeConstraintSource {
+    let info: String
+    InstType @[info: ""]
+    FunctionCallArg @[info: "function call argument"]
+    TypeParameter @[info: "type parameter"]
+    LoadField @[info: "field access"]
+    StoreField @[info: "field store"]
+    Alloc @[info: "allocation"]
+    Return @[info: "return"]
+    IfCondition @[info: "if condition"]
+    IfBranch @[info: "if branch"]
+    WhenBranch @[info: "when branch"]
+    Lambda @[info: "lambda"]
+    StoreVariable @[info: "variable store"]
 }
 
 struct DeferredActions {
@@ -26,25 +42,25 @@ fun TypeConstraints::new(): TypeConstraints {
 }
 
 // Assert that 2 types are related by equality
-fun TypeConstraints.add_unify(left: TypeToken, right: TypeToken, span: Span) {
-    last_constraint_id += 1
-    all[] = TypeConstraint::Unify @[ id: last_constraint_id, left, right, span ]
-}
-
-fun TypeConstraints.add_unify(left: Type, right: Type, span: Span) {
+fun TypeConstraints.add_unify(left: TypeToken, right: TypeToken, span: Span, source: TypeConstraintSource) {
     last_constraint_id += 1
     all[] = TypeConstraint::Unify @[
         id: last_constraint_id,
-        left: left.to_token(),
-        right: right.to_token(),
-        span
+        left,
+        right,
+        span,
+        source,
     ]
 }
 
+fun TypeConstraints.add_unify(left: Type, right: Type, span: Span, source: TypeConstraintSource) {
+    add_unify(left.to_token(), right.to_token(), span, source)
+}
+
 // Same as add_unify but with lists
-fun TypeConstraints.add_unify_list(left: List<Type>, right: List<Type>, span: Span) {
+fun TypeConstraints.add_unify_list(left: List<Type>, right: List<Type>, span: Span, source: TypeConstraintSource) {
     repeat min(left.len, right.len) {
-        add_unify(left[it]!!.to_token(), right[it]!!.to_token(), span)
+        add_unify(left[it]!!, right[it]!!, span, source)
     }
 }
 
@@ -74,7 +90,8 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
             code,
             cons: this,
             unresolved_types: #[],
-            initial_types: None()
+            initial_types: None(),
+            current_constraint: None(),
         ]
 
         // Find types for unresolved
@@ -85,6 +102,7 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                 let right_type = c.right.find_type()
 
                 ctx.initial_types = Some(Pair::of(left_type, right_type))
+                ctx.current_constraint = Some(constraint)
                 ctx.unify(left_type, right_type)
             }
             if constraint is TypeConstraint::Bounds {

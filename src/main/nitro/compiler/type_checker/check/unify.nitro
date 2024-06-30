@@ -8,6 +8,7 @@ struct UnifyCtx {
     span: Span
     unresolved_types: Map<Type, TypeToken>
     initial_types: Optional<Pair<Type, Type>>
+    current_constraint: Optional<TypeConstraint>
 }
 
 fun UnifyCtx.unify(left: Type, right: Type) {
@@ -147,6 +148,7 @@ fun UnifyCtx.add_substitution(key: Type, value: Type) {
         code,
         unresolved_types: #[],
         initial_types,
+        current_constraint,
     ]
 
     sub_ctx.unify(prev, next)
@@ -156,18 +158,38 @@ fun UnifyCtx.add_substitution(key: Type, value: Type) {
 fun UnifyCtx.report_type_mismatch(a: Type, b: Type) {
     // Initial types contain the full types, while a/b contain the part of the types that caused the mismatch
     // Is best to report `List<Int> != List<String>` instead of `Int != String`
+    let error_msg = ""
+
     if initial_types.is_some() {
         let first = initial_types!!.first
         let second = initial_types!!.second
+        let replacement = #[]
+
+        for entry in unresolved_types {
+            replacement[entry.first] = entry.second.find_type()
+        }
+
+        first = types.replace_with_map(first, replacement)
+        second = types.replace_with_map(second, replacement)
 
         if a != first || b != second {
-            reporter.report_error("Type mismatch: $first != $second ($a != $b)", span)
+            error_msg = "$first != $second ($a != $b)"
         } else {
-            reporter.report_error("Type mismatch: $first != $second", span)
+            error_msg = "$first != $second"
         }
     } else {
-        reporter.report_error("Type mismatch: $a != $b", span)
+        error_msg = "$a != $b"
     }
+
+    if current_constraint.is_some() && current_constraint!! is TypeConstraint::Unify {
+        let source: TypeConstraintSource = (current_constraint!! as TypeConstraint::Unify).source
+
+        if source != TypeConstraintSource::InstType {
+            error_msg = "$error_msg in ${source.info}"
+        }
+    }
+
+    reporter.report_error("Type mismatch: $error_msg", span)
 }
 
 fun UnifyCtx.merge_into(other: UnifyCtx) {

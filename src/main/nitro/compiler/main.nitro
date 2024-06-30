@@ -14,7 +14,9 @@ fun compile_all() {
 
     // Parse errors
     if unit.reporter.has_reports() {
-        unit.reporter.report_errors()
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
         ret
     }
 
@@ -28,7 +30,9 @@ fun compile_all() {
 
     // Parse errors
     if unit.reporter.has_reports() {
-        unit.reporter.report_errors()
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
         ret
     }
 
@@ -41,7 +45,9 @@ fun compile_all() {
 
     // Type errors
     if unit.reporter.has_reports() {
-        unit.reporter.report_errors()
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
         ret
     }
 
@@ -54,7 +60,9 @@ fun compile_all() {
 
     // Final errors
     if unit.reporter.has_reports() {
-        unit.reporter.report_errors()
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
         ret
     }
 

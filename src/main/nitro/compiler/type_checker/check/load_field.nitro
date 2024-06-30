@@ -30,8 +30,8 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
         kind.field_type_token = Some(field_tt)
         kind.call_site_generics = Some(call_site)
 
-        cons.add_unify_list(instance_type.type_params, call_site.unresolved, inst.span)
-        cons.add_unify(inst_type, field_type.to_token(), inst.span)
+        cons.add_unify_list(instance_type.type_params, call_site.unresolved, inst.span, TypeConstraintSource::LoadField)
+        cons.add_unify(inst_type, field_type.to_token(), inst.span, TypeConstraintSource::InstType)
         ret
     }
 
@@ -51,12 +51,12 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
         let index = code.index_of(inst.id)!!
         inst.type_token = None()
         check_inst(index, inst, code)
-        cons.add_unify(inst_type, inst.type_token!!, inst.span)
+        cons.add_unify(inst_type, inst.type_token!!, inst.span, TypeConstraintSource::InstType)
         ret
     }
 
     let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span).to_token()
-    cons.add_unify(inst_type, error, inst.span)
+    cons.add_unify(inst_type, error, inst.span, TypeConstraintSource::InstType)
 }
 
 fun TypeChecker.check_inst_store_field(kind: NInstKind::StoreField, inst: NInst, code: NCode) {
@@ -88,11 +88,11 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
         kind.field_type_token = Some(field_tt)
         kind.call_site_generics = Some(call_site)
 
-        cons.add_unify_list(instance_tt.type_params, call_site.resolved.find_types(), inst.span)
+        cons.add_unify_list(instance_tt.type_params, call_site.resolved.find_types(), inst.span, TypeConstraintSource::TypeParameter)
 
         let value_tt = code.find_inst_type_token(kind.value)
         if value_tt.is_some() {
-            cons.add_unify(value_tt!!, field_tt, inst.span)
+            cons.add_unify(value_tt!!, field_tt, inst.span, TypeConstraintSource::StoreField)
         }
         ret
     }

@@ -9,7 +9,7 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     // Not a struct
     if ty.kind !is TypeKind::Struct && ty.kind !is TypeKind::OptionItem {
         let error = create_error_type("Type '$ty' cannot be instantiated", inst.span).to_token()
-        cons.add_unify(unresolved, error, inst.span)
+        cons.add_unify(unresolved, error, inst.span, TypeConstraintSource::Alloc)
         ret
     }
 
@@ -23,7 +23,7 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     // Check enum
     if instance.is_enum && !kind.is_enum {
         let error = create_error_type("Type '$ty' is an enum and cannot be instantiated", inst.span).to_token()
-        cons.add_unify(unresolved, error, inst.span)
+        cons.add_unify(unresolved, error, inst.span, TypeConstraintSource::Alloc)
         ret
     }
 
@@ -31,10 +31,10 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     let call_site = create_call_site_generics(instance.generics, inst.span)
 
     repeat min(call_site.resolved.len, ty.params.len) {
-        cons.add_unify(types.create_type_token(ty.params[it]!!), call_site.resolved[it]!!, inst.span)
+        cons.add_unify(types.create_type_token(ty.params[it]!!), call_site.resolved[it]!!, inst.span, TypeConstraintSource::TypeParameter)
     }
 
     let final_type: Type = types.create_type_direct(ty.kind, call_site.resolved.find_types())
 
-    cons.add_unify(unresolved, final_type.to_token(), inst.span)
+    cons.add_unify(unresolved, final_type.to_token(), inst.span, TypeConstraintSource::InstType)
 }

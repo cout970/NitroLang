@@ -149,10 +149,11 @@ fun main() {
 //    List::new<Float>().test2()
 //
 
-    // TODO:
-    //error: expected local name count (4) <= local count (3)
-    //00033da: error: OnLocalNameLocalCount callback failed
-//    let list = [1, 2, 3]
+//    let list: List<List<Int>> = [
+//        [1, 2, 3]
+//        [4, 5, 6]
+//        [7, 8, 9]
+//    ]
 //
 //    println(list)
 //
@@ -164,12 +165,18 @@ fun main() {
 //
 //    println(map)
 
-    println([
-        #[test: 1890],
-        #[test2: 2890],
-        #[test3: 3890],
-        #[test4: 1234],
-    ])
+//    println([
+//        #[test: 1890],
+//        #[test2: 2890],
+//        #[test3: 3890],
+//        #[test4: 1234],
+//    ])
+
+//    let map: Map<String, Int> = #["test3": 1, "list": 2]
+//    for entry in map {
+//        println(entry.first)
+//        println(entry.second)
+//    }
 }
 
 //tag HasTestFunctions2 {

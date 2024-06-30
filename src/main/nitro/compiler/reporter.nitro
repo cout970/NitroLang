@@ -4,6 +4,7 @@ struct Reporter {
     errors: List<Report>
     warnings: List<Report>
     suggestions: List<Report>
+    deduplication: List<Pair<String, Span>>
     immediate_output: Boolean
 }
 
@@ -28,7 +29,8 @@ fun Reporter::new(): Reporter {
         errors: [],
         warnings: [],
         suggestions: [],
-        immediate_output: true,
+        deduplication: [],
+        immediate_output: false,
     ]
 }
 
@@ -54,6 +56,9 @@ fun Reporter.report_errors() {
 
 // Report an parse error
 fun Reporter.report_parse_error(message: String, location: Span, stack_trace: List<String>) {
+    let key = Pair::of(message, location)
+    if key in deduplication { ret }
+
     let error = Report @[
         kind: ReportKind::Error,
         message,
@@ -61,11 +66,15 @@ fun Reporter.report_parse_error(message: String, location: Span, stack_trace: Li
         stack_trace,
     ]
     errors[] = error
+    deduplication[] = key
     if immediate_output { Log::error(error.to_string()) }
 }
 
 // Report an error
 fun Reporter.report_error(message: String, location: Span) {
+    let key = Pair::of(message, location)
+    if key in deduplication { ret }
+
     let error = Report @[
         kind: ReportKind::Error,
         message,
@@ -73,11 +82,15 @@ fun Reporter.report_error(message: String, location: Span) {
         stack_trace: Trace::get_stack_trace()
     ]
     errors[] = error
+    deduplication[] = key
     if immediate_output { Log::error(error.to_string()) }
 }
 
 // Report a warning
 fun Reporter.report_warning(message: String, location: Span) {
+    let key = Pair::of(message, location)
+    if key in deduplication { ret }
+
     let warn = Report @[
         kind: ReportKind::Warning,
         message,
@@ -85,11 +98,15 @@ fun Reporter.report_warning(message: String, location: Span) {
         stack_trace: Trace::get_stack_trace()
     ]
     warnings[] = warn
+    deduplication[] = key
     if immediate_output { Log::warn(warn.to_string()) }
 }
 
 // Report a suggestion
 fun Reporter.report_suggestion(message: String, location: Span) {
+    let key = Pair::of(message, location)
+    if key in deduplication { ret }
+
     let suggestion = Report @[
         kind: ReportKind::Suggestion,
         message,
@@ -97,6 +114,7 @@ fun Reporter.report_suggestion(message: String, location: Span) {
         stack_trace: Trace::get_stack_trace()
     ]
     suggestions[] = suggestion
+    deduplication[] = key
     if immediate_output { Log::info(suggestion.to_string()) }
 }
 

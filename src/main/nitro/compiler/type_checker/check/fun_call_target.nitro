@@ -13,7 +13,7 @@ fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<T
 
     if matches.is_empty() {
         let error = create_error_type("Function '$full_name' not found", span).to_token()
-        cons.add_unify(return_tt, error, span)
+        cons.add_unify(return_tt, error, span, TypeConstraintSource::InstType)
         ret None()
     }
 
@@ -25,7 +25,7 @@ fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<T
         }
         let str = options_str.join("\n")
         let error = create_error_type("Ambiguous function call $full_name(${args}), posible matches:\n$str", span).to_token()
-        cons.add_unify(return_tt, error, span)
+        cons.add_unify(return_tt, error, span, TypeConstraintSource::InstType)
         ret None()
     }
 

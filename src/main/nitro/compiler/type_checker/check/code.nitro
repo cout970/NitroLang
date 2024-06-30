@@ -65,7 +65,7 @@ fun TypeChecker.check_code(code: NCode) {
         }
 
         let current = code.find_inst(code.last_expression!!)
-        cons.add_unify(current.type_token!!, code.return_type_token!!, current.span)
+        cons.add_unify(current.type_token!!, code.return_type_token!!, current.span, TypeConstraintSource::Return)
         cons.resolve(this, code, current.id, current.span)
     }
 }
@@ -157,9 +157,9 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
 
         let common_type = create_unresolved_type(inst.span).to_token()
 
-        cons.add_unify(cond_type!!, type_cache["Boolean"]!!.to_token(), inst.span)
-        cons.add_unify(common_type, if_true_type!!, inst.span)
-        cons.add_unify(common_type, if_false_type!!, inst.span)
+        cons.add_unify(cond_type!!, type_cache["Boolean"]!!.to_token(), inst.span, TypeConstraintSource::IfCondition)
+        cons.add_unify(common_type, if_true_type!!, inst.span, TypeConstraintSource::IfBranch)
+        cons.add_unify(common_type, if_false_type!!, inst.span, TypeConstraintSource::IfBranch)
 
         inst.type_token = Some(common_type)
         ret
@@ -196,7 +196,7 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let common_type = create_unresolved_type(inst.span).to_token()
 
         if kind.variable.is_some() {
-            cons.add_unify(common_type, code.find_var(kind.variable!!).type_token!!, inst.span)
+            cons.add_unify(common_type, code.find_var(kind.variable!!).type_token!!, inst.span, TypeConstraintSource::WhenBranch)
         }
 
         for id in kind.branches {
@@ -206,7 +206,7 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
                 "Branch must have a type (#$id)"
             }
 
-            cons.add_unify(common_type, branch_type!!, inst.span)
+            cons.add_unify(common_type, branch_type!!, inst.span, TypeConstraintSource::WhenBranch)
         }
 
         inst.type_token = Some(common_type)
@@ -228,7 +228,7 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
         let value_tt = code.find_inst_type_token(kind.value)
 
         if value_tt.is_some() && code.return_type_token.is_some() {
-            cons.add_unify(value_tt!!, code.return_type_token!!, inst.span)
+            cons.add_unify(value_tt!!, code.return_type_token!!, inst.span, TypeConstraintSource::Return)
         }
 
         inst.type_token = type_cache["Never"].to_token()

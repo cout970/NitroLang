@@ -330,7 +330,7 @@ fun WasmBackend.get_final_struct(instance: NStruct, final_type: FinalType): Fina
     for field in instance.fields {
         let ty: Type = field.field_type!!
         let field_type = ctx.convert_type(ty)
-        let size = get_size_of(field_type)
+        let size = get_ref_size_of(field_type)
 
         let final_field = FinalStructField @[
             name: field.name,
@@ -429,7 +429,7 @@ fun WasmBackend.get_final_lambda(instance: NLambda, final_type: FinalType): Fina
     for upvalue_id in code.upvalues {
         let nvar = code.find_var(upvalue_id)
         let final_type = ctx.convert_type(nvar.type_token!!.find_type())
-        let size = get_size_of(final_type)
+        let size = get_ref_size_of(final_type)
 
         if size > 0 {
             final_lambda.size += 4

@@ -97,7 +97,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         let value_type_token = code.find_inst_type_token(kind.value)
         if value_type_token.is_some() {
             let variable = code.find_var(kind.variable!!)
-            cons.add_unify(value_type_token!!, variable.type_token!!, inst.span)
+            cons.add_unify(value_type_token!!, variable.type_token!!, inst.span, TypeConstraintSource::StoreVariable)
         }
         ret
     }
@@ -113,7 +113,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
 
             let value_type_token = code.find_inst_type_token(kind.value)
             if value_type_token.is_some() {
-                cons.add_unify(value_type_token!!, variable!!.type_token!!, inst.span)
+                cons.add_unify(value_type_token!!, variable!!.type_token!!, inst.span, TypeConstraintSource::StoreVariable)
             }
             ret
         }

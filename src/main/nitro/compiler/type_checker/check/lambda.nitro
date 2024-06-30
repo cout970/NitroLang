@@ -25,7 +25,7 @@ fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, cod
 
     if !inst_ty.is_function() {
         let error = create_error_type("Lambda type cannot be resolved", inst.span).to_token()
-        cons.add_unify(inst_tt, error, inst.span)
+        cons.add_unify(inst_tt, error, inst.span, TypeConstraintSource::InstType)
         ret
     }
 
@@ -38,10 +38,10 @@ fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, cod
         let param = lambda.parameters[it]!!
         let tt = check_local_type_usage(param.type_usage, code)
         param.param_type = Some(tt.find_type())
-        cons.add_unify(tt, types.create_type_token(inst_ty.params[it]!!), param.span)
+        cons.add_unify(tt, types.create_type_token(inst_ty.params[it]!!), param.span, TypeConstraintSource::Lambda)
     }
 
-    cons.add_unify(lambda.return_type_token!!, types.create_type_token(inst_ty.params.last()!!), inst.span)
+    cons.add_unify(lambda.return_type_token!!, types.create_type_token(inst_ty.params.last()!!), inst.span, TypeConstraintSource::Lambda)
 
     let real_type_id = types.create_type_id_by_ids(type_kind, inst_ty.params)
     lambda.type_token = Some(types.create_type_token(real_type_id))

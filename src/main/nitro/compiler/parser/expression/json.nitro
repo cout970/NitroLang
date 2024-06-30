@@ -122,7 +122,7 @@ fun Parser.read_expression_json_object(code: NCode): Parsed<NInstId> {
 
         let value = read_expression_json_value(code)?
 
-        code.add_fun_call(span, "Map", "set", false, [map, key, value], [])
+        code.add_fun_call(span, "", "set", false, [map, key, value], [])
         ret found(nothing)
     }?
 

@@ -44,7 +44,8 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     skip_token_kind(TokenKind::ASSIGN)?
     skip_nl()
 
-    read_expression(def.code)?
+    let expr = read_expression(def.code)?
+    def.code.add_return(span, expr)
 
     ret found(nothing)
 }
