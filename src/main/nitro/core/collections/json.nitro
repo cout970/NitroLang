@@ -118,7 +118,7 @@ fun Json::Array.to_string(): String {
     builder[] = "\n"
     repeat list.len {
         builder[] = "  "
-        builder[] = list[it].to_string().replace("\n", "\n  ")
+        builder[] = list[it]!!.to_string().replace("\n", "\n  ")
 
         if it + 1 < limit {
             builder[] = ", "
