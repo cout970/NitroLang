@@ -140,7 +140,7 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
             }
 
             if !found {
-                report_error("Tag not found: ${bounds.name}", def.span)
+                reporter.report_error("Tag not found: ${bounds.name}", def.span)
             }
         }
     }

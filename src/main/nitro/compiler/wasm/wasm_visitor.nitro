@@ -93,6 +93,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
         header,
         let_declarations: #[],
         let_final_types: #[],
+        inst_final_types: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
@@ -126,6 +127,7 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
         header,
         let_declarations: #[],
         let_final_types: #[],
+        inst_final_types: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
@@ -232,6 +234,7 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         header,
         let_declarations: #[],
         let_final_types: #[],
+        inst_final_types: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
@@ -276,20 +279,22 @@ fun WasmBackend.visit_code(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCod
 }
 
 fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, code: NCode, inst: NInst) {
+    let final_type = ctx.convert_type(inst.type_token!!.find_type())
+    wasm_func.inst_final_types[inst.id] = final_type
+
     when {
         inst.kind is NInstKind::Let -> {
             let nvar: NVar = code.find_var((inst.kind as NInstKind::Let).variable)
-            let nvar_type = nvar.type_token!!.find_type()
-            let final_type = ctx.convert_type(nvar_type)
+            let nvar_type = ctx.convert_type(nvar.type_token!!.find_type())
 
-            wasm_func.let_final_types[nvar.id] = final_type
+            wasm_func.let_final_types[nvar.id] = nvar_type
 
             // zero size types are erased
-            if get_size_of(final_type) == 0 {
+            if get_size_of(nvar_type) == 0 {
                 ret
             }
 
-            let wasm_type = encode_to_wasm_type(final_type)
+            let wasm_type = encode_to_wasm_type(nvar_type)
 
             // Upvalues are presented with Ptr<#T>
             if nvar.is_upvalue {
@@ -297,7 +302,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
                 // Call to alloc function
                 let alloc_index = get_alloc_function(ctx)
-                wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
+                wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: nvar_type]
             }
 
             let wvar = if nvar.is_parameter {
@@ -311,17 +316,16 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
         inst.kind is NInstKind::LetUpvalue -> {
             let nvar: NVar = code.find_var((inst.kind as NInstKind::LetUpvalue).variable)
-            let nvar_type = nvar.type_token!!.find_type()
-            let final_type = ctx.convert_type(nvar_type)
+            let nvar_type = ctx.convert_type(nvar.type_token!!.find_type())
 
-            wasm_func.let_final_types[nvar.id] = final_type
+            wasm_func.let_final_types[nvar.id] = nvar_type
 
             // zero size types are erased
-            if get_size_of(final_type) == 0 {
+            if get_size_of(nvar_type) == 0 {
                 ret
             }
 
-            let wasm_type = encode_to_wasm_type(final_type)
+            let wasm_type = encode_to_wasm_type(nvar_type)
             let wvar = wasm_func.add_local(nvar.name, wasm_type)
             wasm_func.let_declarations[nvar.id] = wvar
         }
@@ -410,7 +414,6 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
         }
         inst.kind is NInstKind::Alloc -> {
             let alloc_index = get_alloc_function(ctx)
-            let final_type = ctx.convert_type(inst.type_token!!.find_type())
 
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
         }
@@ -419,15 +422,12 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             let sub_ctx = ctx.new_child(inst.span)
             lambda.ctx = Some(sub_ctx)
 
-            let lambda_type = sub_ctx.convert_type(inst.type_token!!.find_type())
-
             // Instantiation of the lambda as wasm function
-            let index = add_task_visit_lambda(sub_ctx, lambda, lambda_type)
+            let index = add_task_visit_lambda(sub_ctx, lambda, final_type)
             wasm_func.lambda_instances[inst.id] = index
 
             // Call to alloc function
             let alloc_index = get_alloc_function(ctx)
-            let final_type = ctx.convert_type(inst.type_token!!.find_type())
 
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
         }

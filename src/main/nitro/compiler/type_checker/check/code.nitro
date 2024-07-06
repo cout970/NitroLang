@@ -102,7 +102,8 @@ fun TypeChecker.finalize_code(code: NCode) {
         if i.kind is NInstKind::FunCall {
             let kind = i.kind as NInstKind::FunCall
 
-            check(kind.call_site.is_some()) @{ "FunCall is not linked: #${i.id} $i\n$code" }
+            // There is already an error when a function is not found
+//            check(kind.call_site.is_some()) @{ "FunCall is not linked: #${i.id} $i\n$code" }
         }
 
         let ty = i.type_token!!.find_type()

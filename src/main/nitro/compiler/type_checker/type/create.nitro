@@ -1,6 +1,6 @@
 
 fun TypeChecker.create_error_type(message: String, span: Span): Type {
-    report_error(message, span)
+    reporter.report_error(message, span)
     ret types.create_type_direct(TypeKind::Invalid @[message, span], [])
 }
 

@@ -127,7 +127,7 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                     }
 
                     if !found {
-                        type_checker.report_error("Type param ${arg_type} (${generic.bounds}) does not implement tag ${tag_instance.name}", ctx.span)
+                        type_checker.reporter.report_error("Type param ${arg_type} (${generic.bounds}) does not implement tag ${tag_instance.name}", ctx.span)
                     }
 
                 } else {
@@ -141,7 +141,7 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                     }
 
                     if !found {
-                        type_checker.report_error("Type ${arg_type} does not implement tag ${tag_instance.name}", ctx.span)
+                        type_checker.reporter.report_error("Type ${arg_type} does not implement tag ${tag_instance.name}", ctx.span)
                     }
                 }
 

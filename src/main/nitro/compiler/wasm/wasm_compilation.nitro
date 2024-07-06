@@ -43,7 +43,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
             if nvar.is_upvalue {
                 let call = (func.function_calls[inst.id]!! as WFuncCall::WFunction).value
-                let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+                let final_type = func.let_final_types[nvar.id]!!
                 let size = backend.get_size_of(final_type)
 
                 // Alloc the upvalue
@@ -67,8 +67,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             }
 
             let wvar = opt!!
-
-            let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+            let final_type = func.let_final_types[nvar.id]!!
             let size = backend.get_size_of(final_type)
 
             if size == 0 {
@@ -186,7 +185,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
         if inst.kind is NInstKind::SizeOf {
             let kind = inst.kind as NInstKind::SizeOf
-            let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
+            let final_type = func.inst_final_types[inst.id]!!
             let size = backend.get_size_of(final_type)
             add_i32_const(size)
             pop(inst.id, map)
@@ -263,7 +262,8 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     let instance = (inst.kind as NInstKind::Lambda).instance
 
     // Function type ie. (i32, i32) -> i32
-    let final_type = func.ctx.convert_type(inst.type_token!!.find_type())
+    let final_type = func.inst_final_types[inst.id]!!
+
     // Lambda1(i32, i32) -> i32
     let real_final_type = backend.final_types.create_final_type(
         FinalTypeKind::Lambda @[instance],
@@ -287,10 +287,9 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     // Copy upvalues to the rest of the slots
     let i = 0
     for upvalue_id in instance.code.upvalues {
-        // TODO
-//        if upvalue_id !in func.let_declarations {
-//            continue
-//        }
+        if upvalue_id !in func.let_declarations {
+            continue
+        }
         let upvalue_wvar = func.let_declarations[upvalue_id]!!
 
         add_local_get(wvar.index.to_int())
@@ -308,7 +307,7 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
 fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
     let kind = inst.kind as NInstKind::Alloc
 
-    let final_type = func.ctx.convert_type(kind.type_token!!.find_type())
+    let final_type = func.inst_final_types[inst.id]!!
     let size = backend.get_size_of(final_type)
     let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
 
@@ -708,7 +707,7 @@ fun WasmEmitter.compile_inst_as_type(inst: NInst, func: WFunction, backend: Wasm
 fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, InstResultAction>) {
 
     for inst in code.inst_list {
-        let final_type = ctx.convert_type(inst.type_token!!.find_type())
+        let final_type = inst_final_types[inst.id]!!
         let size = backend.get_size_of(final_type)
 
         // Zero size types don't exist on runtime,

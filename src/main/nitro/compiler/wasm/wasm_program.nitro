@@ -48,6 +48,7 @@ struct WFunction {
     header: WFunctionHeader
     let_declarations: Map<NVarId, WVar>
     let_final_types: Map<NVarId, FinalType>
+    inst_final_types: Map<NInstId, FinalType>
     function_calls: Map<NInstId, WFuncCall>
     lambda_instances: Map<NInstId, Id>
     constants: Map<NInstId, Id>
