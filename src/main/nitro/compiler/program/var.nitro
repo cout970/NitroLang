@@ -11,6 +11,7 @@ struct NVar {
     defined_in: NCode
     is_parameter: Boolean
     is_upvalue: Boolean
+    code_depth: Int
 }
 
 fun NVar.to_string(): String {

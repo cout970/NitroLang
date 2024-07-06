@@ -42,8 +42,6 @@ struct NCode {
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
-    // List of upvalues used by this code, to be used by the parent code
-    upvalues: List<NVarId>
 }
 
 fun NCode::new(span: Span, name: String): NCode {
@@ -72,7 +70,6 @@ fun NCode::new(span: Span, name: String): NCode {
         receiver_type_token: None(),
         return_type_token: None(),
         const_cache: #[],
-        upvalues: [],
     ]
 
     let root_block = NBlock @[
@@ -147,11 +144,11 @@ fun NCode.find_inst_type_token(id: NInstId): Optional<TypeToken> {
     ret None()
 }
 
-fun NCode.index_of(id: NInstId): Optional<Index> {
+fun NCode.index_of_inst(id: NInstId): Optional<Int> {
     let current = 0
     for i in inst_list {
         if i.id == id {
-            ret Some(Index @[current])
+            ret Some(current)
         }
         current += 1
     }
@@ -191,6 +188,19 @@ fun NCode.find_receiver_type(): Optional<Type> {
     }
 
     ret None()
+}
+
+fun NCode.get_upvalues(): List<NVarId> {
+    let upvalues = []
+
+    for inst in inst_list {
+        if inst.kind is NInstKind::LetUpvalue {
+            let kind = inst.kind as NInstKind::LetUpvalue
+            upvalues[] = kind.variable
+        }
+    }
+
+    ret upvalues
 }
 
 fun NCode.execute_deferred_actions(block_id: NBlockId, is_return: Boolean) {

@@ -2,11 +2,11 @@
 fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, inst_id: NInstId): Optional<NVar> {
     let block = code.find_block(block_id)
     let depth = block.depth
-    let index_opt = code.index_of(inst_id)
+    let index_opt = code.index_of_inst(inst_id)
     let index = 0
 
-    if index_opt.is_some() && index_opt!!.current >= 0 {
-        index = index_opt!!.current
+    if index_opt.is_some() && index_opt!! >= 0 {
+        index = index_opt!!
     }
 
     // Go backwards from this instruction to the beginning of the code
@@ -48,12 +48,7 @@ fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, ins
         let opt = find_variable(parent_code, name, parent_block, parent_inst)
 
         if opt.is_some() {
-            let variable = opt!!
-            variable.is_upvalue = true
-
-            if variable.id !in code.upvalues {
-                code.upvalues[] = variable.id
-            }
+            check_upvalue(opt!!, code)
         }
 
         ret opt

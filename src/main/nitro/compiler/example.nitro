@@ -130,7 +130,6 @@ fun main() {
 //        println(array[it])
 //    }
 //
-    // DEBUG
 //    memory_alloc_internal(0)
 //    println(2 * 3 * 4 * 5 * 6 * 7)
 //    println(1.get_ordering(2))
@@ -177,6 +176,36 @@ fun main() {
 //        println(entry.first)
 //        println(entry.second)
 //    }
+
+    let a = 0
+    println("main: $a")
+    a = 42
+    println("main: $a")
+
+    let lambda1: () -> Nothing = @{
+        println("lambda1: $a")
+        a = 69
+        println("lambda1: $a")
+//        println("Hello from lambda1!")
+
+        let lambda2: () -> Nothing = @{
+            println("lambda2: $a")
+            a = 420
+            println("lambda2: $a")
+//            println("Hello from lambda2!")
+        }
+
+        lambda2()
+        println("lambda1: $a")
+    }
+
+//    println("Hello from main!")
+
+    lambda1()
+    println("main: $a")
+
+
+//    println(a)
 }
 
 //tag HasTestFunctions2 {

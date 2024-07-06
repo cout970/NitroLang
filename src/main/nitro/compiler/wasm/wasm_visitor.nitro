@@ -308,6 +308,24 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
             wasm_func.let_declarations[nvar.id] = wvar
         }
+
+        inst.kind is NInstKind::LetUpvalue -> {
+            let nvar: NVar = code.find_var((inst.kind as NInstKind::LetUpvalue).variable)
+            let nvar_type = nvar.type_token!!.find_type()
+            let final_type = ctx.convert_type(nvar_type)
+
+            wasm_func.let_final_types[nvar.id] = final_type
+
+            // zero size types are erased
+            if get_size_of(final_type) == 0 {
+                ret
+            }
+
+            let wasm_type = encode_to_wasm_type(final_type)
+            let wvar = wasm_func.add_local(nvar.name, wasm_type)
+            wasm_func.let_declarations[nvar.id] = wvar
+        }
+
         inst.kind is NInstKind::FunCall -> {
             let call_site = (inst.kind as NInstKind::FunCall).call_site!!
             let func_target: Optional<NFunction> = None()

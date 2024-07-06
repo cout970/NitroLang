@@ -14,6 +14,9 @@ option NInstKind {
     Let {
         variable: NVarId
     }
+    LetUpvalue {
+        variable: NVarId
+    }
     IfStart {
         condition: NInstId
     }
@@ -154,6 +157,13 @@ fun NCode.add_let(
     name: String,
     type_usage: Optional<NTypeUsage>
 ): NVar {
+    let code_depth = 0
+    let curr = this.parent_code
+    while curr.is_some() {
+        code_depth += 1
+        curr = curr!!.parent_code
+    }
+
     let variable = NVar @[
         id: variable_id_provider.next(),
         span,
@@ -164,11 +174,46 @@ fun NCode.add_let(
         defined_in: this,
         is_parameter: false,
         is_upvalue: false,
+        code_depth,
     ]
     vars_map[variable.id] = variable
 
     add_inst(span, NInstKind::Let @[variable: variable.id])
     ret variable
+}
+
+fun NCode.add_let_upvalue(
+    span: Span,
+    variable: NVarId,
+): NInst {
+    let kind = NInstKind::LetUpvalue @[variable]
+    let i = NInst @[
+        id: inst_id_provider.next(),
+        span,
+        block: current_block,
+        kind,
+        type_token: None(),
+        back_references: [],
+    ]
+
+    let added = false
+    repeat inst_list.len {
+        let inst = inst_list[it]!!
+
+        if inst.kind is NInstKind::LetUpvalue {
+            continue
+        }
+
+        added = true
+        inst_list.insert(it, i)
+        break
+    }
+
+    if !added {
+        inst_list[] = i
+    }
+
+    ret i
 }
 
 fun NCode.add_if_start(
@@ -431,9 +476,15 @@ fun NCode.duplicate_inst(index: Int) {
     inst_list.insert(index + 1, dup)
 }
 
+fun NCode.next_inst(id: NInstId): Optional<NInst> {
+    let index = index_of_inst(id)?
+    ret inst_list[index + 1]
+}
+
 fun NInstKind.get_name(): String {
     ret when {
         this is NInstKind::Let -> "let"
+        this is NInstKind::LetUpvalue -> "let-upvalue"
         this is NInstKind::IfStart -> "if-start"
         this is NInstKind::IfElse -> "if-else"
         this is NInstKind::IfEnd -> "if-end"
@@ -469,6 +520,11 @@ fun NInst.to_string(): String {
             let kind = t as NInstKind::Let
 
             "let var:${kind.variable}"
+        }
+        t is NInstKind::LetUpvalue -> {
+            let kind = t as NInstKind::LetUpvalue
+
+            "let-upvalue var:${kind.variable}"
         }
         t is NInstKind::IfStart -> {
             let kind = t as NInstKind::IfStart
@@ -670,6 +726,11 @@ fun NInst.to_string(code: NCode): String {
             let kind = t as NInstKind::Let
 
             "let ${code.var_to_string(kind.variable)}"
+        }
+        t is NInstKind::LetUpvalue -> {
+            let kind = t as NInstKind::LetUpvalue
+
+            "let-upvalue ${code.var_to_string(kind.variable)}"
         }
         t is NInstKind::IfStart -> {
             let kind = t as NInstKind::IfStart

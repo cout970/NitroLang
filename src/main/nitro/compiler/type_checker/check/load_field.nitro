@@ -48,9 +48,8 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
             explicit_type_arguments: [],
             call_site: None(),
         ]
-        let index = code.index_of(inst.id)!!
         inst.type_token = None()
-        check_inst(index, inst, code)
+        check_inst(inst, code)
         cons.add_unify(inst_type, inst.type_token!!, inst.span, TypeConstraintSource::InstType)
         ret
     }
@@ -110,9 +109,7 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
             explicit_type_arguments: [],
             call_site: None(),
         ]
-        let index = code.index_of(inst.id)!!
         inst.type_token = None()
-        check_inst(index, inst, code)
         ret
     }
 

@@ -56,6 +56,37 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             }
             continue
         }
+
+        if inst.kind is NInstKind::LetUpvalue {
+            let nvar_id = (inst.kind as NInstKind::LetUpvalue).variable
+            let nvar = code.find_var(nvar_id)
+            let opt = func.let_declarations[nvar_id]
+
+            if opt.is_none() {
+                continue
+            }
+
+            let wvar = opt!!
+
+            let final_type = func.ctx.convert_type(nvar.type_token!!.find_type())
+            let size = backend.get_size_of(final_type)
+
+            if size == 0 {
+                continue
+            }
+
+            let upvalue_index = code.upvalues.index_of(nvar_id)!!
+
+            add_local_get(0 /* $lambda_instance */)
+            add_i32_load((1 + upvalue_index) * 4)
+            add_local_set(wvar.index.to_int())
+
+            if debug_print {
+                debug_print_local(wvar)
+            }
+            continue
+        }
+
         if inst.kind is NInstKind::IfStart {
             let kind = inst.kind as NInstKind::IfStart
             push(kind.condition, map)
@@ -256,6 +287,10 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     // Copy upvalues to the rest of the slots
     let i = 0
     for upvalue_id in instance.code.upvalues {
+        // TODO
+//        if upvalue_id !in func.let_declarations {
+//            continue
+//        }
         let upvalue_wvar = func.let_declarations[upvalue_id]!!
 
         add_local_get(wvar.index.to_int())
@@ -691,11 +726,11 @@ fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, Ins
         // No working as intended, left for future improvements
 //        if inst.back_references.len == 1 {
 //            let usage: NInstId = inst.back_references.first()!!
-//            let inst_index = code.index_of(inst.id)!!
-//            let usage_index = code.index_of(usage)!!
+//            let inst_index = code.index_of_inst(inst.id)!!
+//            let usage_index = code.index_of_inst(usage)!!
 //
 //            // Used in the next instruction, avoid saving and loading from a local
-//            if inst_index.current + 1 == usage_index.current {
+//            if inst_index + 1 == usage_index {
 //                map[inst.id] = InstResultAction::Keep @[]
 //                continue
 //            }

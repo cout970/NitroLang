@@ -1,0 +1,20 @@
+
+
+fun TypeChecker.check_upvalue(variable: NVar, code: NCode) {
+    variable.is_upvalue = true
+
+    let current_opt: Optional<NCode> = Some(code)
+
+    while current_opt.is_some() {
+        let current = current_opt!!
+        if variable.id in current.vars_map {
+            break
+        }
+
+        if variable.id !in current.upvalues {
+            let inst = current.add_let_upvalue(current.span, variable.id)
+            inst.type_token = type_cache["Nothing"].to_token()
+        }
+        current_opt = current.parent_code
+    }
+}

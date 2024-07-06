@@ -1,8 +1,4 @@
 
-struct Index {
-    current: Int
-}
-
 fun TypeChecker.finalize() {
     let index = 0
     while index < cons.codes.len {
@@ -42,18 +38,34 @@ fun TypeChecker.check_code(code: NCode) {
         check_var(v, code)
     }
 
-    // check_inst() can add new instructions, so we need to loop until the end
-    let index = Index @[current: 0]
-    while index.current < code.inst_list.len {
-        let current = code.inst_list[index.current]!!
-        check_inst(index, current, code)
-        index.current += 1
+    // Less efficient loop, but required for the un-ordered list modifications
+    loop {
+        let index = 0
+        let visited = false
 
-        // Resolve constraints to replace unresolved types
-        // We do this on every line, so when a error occurs, we at the location of the error
-        // If we solve at the end, we would have no way of knowing where the error occurred,
-        // because the are relations between types that are complex and can be solved in many different ways
-        cons.resolve(this, code, current.id, current.span)
+        while index < code.inst_list.len {
+            let inst = code.inst_list[index]!!
+            index += 1
+
+            // Already visited
+            if inst.type_token.is_some() {
+                continue
+            }
+
+            check_inst(inst, code)
+
+            // Resolve constraints to replace unresolved types
+            // We do this on every line, so when a error occurs, we at the location of the error
+            // If we solve at the end, we would have no way of knowing where the error occurred,
+            // because the are relations between types that are complex and can be solved in many different ways
+            cons.resolve(this, code, inst.id, inst.span)
+            visited = true
+            break
+        }
+
+        if !visited {
+            break
+        }
     }
 
     // The last expression, which has an implicit return, must match the return type of the function
@@ -116,7 +128,7 @@ fun TypeChecker.check_var(v: NVar, code: NCode) {
     }
 }
 
-fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
+fun TypeChecker.check_inst(inst: NInst, code: NCode) {
     // Already visited
     if inst.type_token.is_some() {
         ret
@@ -124,6 +136,14 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
 
     if inst.kind is NInstKind::Let {
         let kind = inst.kind as NInstKind::Let
+        check_var(code.find_var(kind.variable), code)
+
+        inst.type_token = type_cache["Nothing"].to_token()
+        ret
+    }
+
+    if inst.kind is NInstKind::LetUpvalue {
+        let kind = inst.kind as NInstKind::LetUpvalue
         check_var(code.find_var(kind.variable), code)
 
         inst.type_token = type_cache["Nothing"].to_token()
@@ -250,12 +270,12 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     }
 
     if inst.kind is NInstKind::LoadVar {
-        check_inst_load_var(inst.kind as NInstKind::LoadVar, index, inst, code)
+        check_inst_load_var(inst.kind as NInstKind::LoadVar, inst, code)
         ret
     }
 
     if inst.kind is NInstKind::StoreVar {
-        check_inst_store_var(inst.kind as NInstKind::StoreVar, index, inst, code)
+        check_inst_store_var(inst.kind as NInstKind::StoreVar, inst, code)
         ret
     }
 
@@ -313,11 +333,11 @@ fun TypeChecker.check_inst(index: Index, inst: NInst, code: NCode) {
     ret
 }
 
-fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
-    // Duplicate current instruction
-    code.duplicate_inst(index.current)
+fun TypeChecker.add_load_this_var(code: NCode, id: NInstId): NInstId {
+    let index = code.index_of_inst(id)!!
+    code.duplicate_inst(index)
     // Get the duplicated instruction (first of the two)
-    let dup = code.inst_list[index.current]!!
+    let dup = code.inst_list[index]!!
 
     let variable = find_variable(code, "this", dup.block, dup.id)
 
@@ -334,11 +354,7 @@ fun TypeChecker.add_load_this_var(code: NCode, index: Index): NInstId {
     ]
 
     // Check the new instruction now
-    check_inst(index, dup, code)
-
-    // Skip the LoadVar instruction
-    index.current += 1
-
+    dup.type_token = None()
     ret dup.id
 }
 

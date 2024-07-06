@@ -1,5 +1,5 @@
 
-fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst: NInst, code: NCode) {
+fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, inst: NInst, code: NCode) {
     let var_name = kind.name
 
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
@@ -19,7 +19,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
     // Is it a property of `this`?
     let receiver_type: Optional<Type> = code.find_receiver_type()
     if receiver_type.is_some() {
-        if check_inst_load_var_from_receiver(kind, index, inst, current_code!!, receiver_type!!) {
+        if check_inst_load_var_from_receiver(kind, inst, current_code!!, receiver_type!!) {
             ret
         }
     }
@@ -42,13 +42,13 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, index: Index, inst
     ret
 }
 
-fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, index: Index, inst: NInst, code: NCode, receiver_type: Type): Boolean {
+fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inst: NInst, code: NCode, receiver_type: Type): Boolean {
     let var_name = kind.name
     let field: Optional<NStructField> = find_field(receiver_type, var_name)
 
     if field.is_some() {
-        let load_this = add_load_this_var(code, index)
-        inst = code.inst_list[index.current]!!
+        let load_this = add_load_this_var(code, inst.id)
+        inst = code.next_inst(load_this)!!
 
         // Overwrite with a LoadField
         inst.kind = NInstKind::LoadField @[
@@ -59,7 +59,6 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
             call_site_generics: None(),
         ]
         inst.type_token = None()
-        check_inst(index, inst, code)
         ret true
     }
 
@@ -67,8 +66,8 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
     let getter: Optional<NFunction> = find_getter(receiver_type, var_name)
 
     if getter.is_some() {
-        let load_this = add_load_this_var(code, index)
-        inst = code.inst_list[index.current]!!
+        let load_this = add_load_this_var(code, inst.id)
+        inst = code.next_inst(load_this)!!
 
         // Overwrite with a FunCall
         inst.kind = NInstKind::FunCall @[
@@ -80,14 +79,13 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inde
             call_site: None(),
         ]
         inst.type_token = None()
-        check_inst(index, inst, code)
         ret true
     }
 
     ret false
 }
 
-fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, inst: NInst, code: NCode) {
+fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, inst: NInst, code: NCode) {
     let var_name = kind.name
 
     // Variable already linked by the parser
@@ -125,8 +123,8 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         let field: Optional<NStructField> = find_field(receiver_type!!, var_name)
 
         if field.is_some() {
-            let load_this = add_load_this_var(code, index)
-            inst = code.inst_list[index.current]!!
+            let load_this = add_load_this_var(code, inst.id)
+            inst = code.next_inst(load_this)!!
 
             // Overwrite with a LoadField
             inst.kind = NInstKind::StoreField @[
@@ -138,7 +136,6 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 value: kind.value,
             ]
             inst.type_token = None()
-            check_inst(index, inst, code)
             ret
         }
 
@@ -146,8 +143,8 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
         let setter: Optional<NFunction> = find_setter(receiver_type!!, var_name)
 
         if setter.is_some() {
-            let load_this = add_load_this_var(code, index)
-            inst = code.inst_list[index.current]!!
+            let load_this = add_load_this_var(code, inst.id)
+            inst = code.next_inst(load_this)!!
 
             // Overwrite with a FunCall
             inst.kind = NInstKind::FunCall @[
@@ -159,7 +156,6 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, index: Index, in
                 call_site: None(),
             ]
             inst.type_token = None()
-            check_inst(index, inst, code)
             ret
         }
     }

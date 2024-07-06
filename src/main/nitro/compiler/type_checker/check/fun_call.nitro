@@ -4,11 +4,13 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
     // Support syntax `var()` instead of `var.call()` where var is local variable with type Function
     if kind.path.is_empty() && kind.explicit_type_arguments.is_empty() {
         let variable = find_variable(code, kind.name, inst.block, inst.id)
-        let index = code.index_of(inst.id)!!
 
         if variable.is_some() && variable!!.type_token.is_some() && variable!!.type_token!!.find_type().is_function() {
-            code.duplicate_inst(index.current)
-            let dup = code.inst_list[index.current]!!
+            let index = code.index_of_inst(inst.id)!!
+
+            code.duplicate_inst(index)
+            let dup = code.inst_list[index]!!
+            let next = code.inst_list[index + 1]!!
 
             // Replace it's kind with LoadVar
             dup.kind = NInstKind::LoadVar @[
@@ -18,11 +20,8 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
                 constant: None(),
             ]
             dup.type_token = None()
-            check_inst(index, dup, code)
 
             // Next instruction will be the function call
-            index.current += 1
-            let next = code.inst_list[index.current]!!
             let arguments = kind.arguments.to_list()
             arguments.add_first(dup.id)
 
@@ -35,7 +34,6 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
                 call_site: None(),
             ]
             next.type_token = None()
-            check_inst(index, dup, code)
             ret
         }
     }
@@ -44,7 +42,11 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
     let arg_types: List<TypeToken> = []
 
     for arg in kind.arguments {
-        arg_types[] = code.find_inst_type_token(arg)!!
+        let opt = code.find_inst_type_token(arg)
+        if opt.is_none() {
+            crash("Could not find type token for argument $arg in function call ${kind.name}, code: $code")
+        }
+        arg_types[] = opt!!
     }
 
     let first_arg: TypeToken = if arg_types.is_not_empty() { arg_types.first()!! } else { type_cache["Nothing"]!!.to_token() }
@@ -98,9 +100,8 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     let arg_types: List<Type> = []
 
     if receiver_type.is_some() && header.parameters.len == args.len + 1 {
-        let index = code.index_of(inst.id)!!
-        let load_this = add_load_this_var(code, index)
-        inst = code.inst_list[index.current]!!
+        let load_this = add_load_this_var(code, inst.id)
+        inst = code.next_inst(load_this)!!
         kind = inst.kind as NInstKind::FunCall
 
         kind.arguments.add_first(load_this)
