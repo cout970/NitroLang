@@ -7,6 +7,8 @@ struct NCode {
     parent_inst: Optional<NInstId>
     parent_block: Optional<NBlockId>
     parent_span: Optional<Span>
+    // Indicate that this block belong to the same context as the parent, for example, for code reordering, will be false for lambdas, defer, etc.
+    is_transparent_child: Boolean
     // Any nested code, lambdas or deferred code
     children: List<NCode>
     // Span of the start of the block
@@ -53,6 +55,7 @@ fun NCode::new(span: Span, name: String): NCode {
         parent_inst: None(),
         parent_block: None(),
         parent_span: None(),
+        is_transparent_child: false,
         children: [],
         span,
         generics: NGenericParams::new(),
@@ -84,14 +87,16 @@ fun NCode::new(span: Span, name: String): NCode {
     ret code
 }
 
-fun NCode.new_child(span: Span): NCode {
+fun NCode.new_child_code(span: Span, is_transparent_child: Boolean): NCode {
     let subcode = NCode::new(span, "$name::child")
+    subcode.is_transparent_child = is_transparent_child
     subcode.parent_code = Some(this)
     subcode.parent_inst = Some(inst_id_provider.previous())
     subcode.parent_block = Some(current_block)
     subcode.parent_span = Some(span)
     subcode.variable_id_provider.seek_to(variable_id_provider)
     children[] = subcode
+
     ret subcode
 }
 
@@ -162,6 +167,10 @@ fun NCode.find_block(id: NBlockId): NBlock {
         ret opt!!
     }
 
+    if is_transparent_child {
+        ret parent_code!!.find_block(id)
+    }
+
     crash("Block not found: #$id at $this")
 }
 
@@ -213,6 +222,10 @@ fun NCode.execute_deferred_actions(block_id: NBlockId, is_return: Boolean) {
             this.merge(subcode)
             this.last_expression = prev_last_expression
         }
+    }
+
+    if block.parent_id.is_none() && is_transparent_child && parent_code.is_some() {
+        execute_deferred_actions(parent_block!!, is_return)
     }
 
     if block.parent_id.is_some() && (is_return || !block.is_jump_target) {

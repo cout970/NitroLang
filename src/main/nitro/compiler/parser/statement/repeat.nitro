@@ -43,7 +43,7 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(false)
     let continue_block = code.current_block
 
-    let start = code.add_loop_start(span, continue_block, break_block)
+    let start = code.add_loop_start(span, break_block, continue_block)
     start.block = prev_block
 
     //     if (it < limit) {
@@ -55,7 +55,7 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(false)
 
     //       defer { it = it + 1 }
-    let subcode = code.new_child(span)
+    let subcode = code.new_child_code(span, false)
     subcode.add_comment(span, "defer-start")
 
     let load_it = subcode.add_load_var(span, "", "it", Some(var_it.id))

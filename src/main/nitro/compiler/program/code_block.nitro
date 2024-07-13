@@ -22,5 +22,5 @@ fun NBlock.get_parent(): Optional<NBlock> {
 }
 
 fun NBlock.to_string(): String {
-    ret "NBlock @[id: $id, parent_id: $parent_id, is_jump_target: $is_jump_target, depth: $depth]"
+    ret "NBlock @[id: $id, parent_id: $parent_id, is_jump_target: $is_jump_target, depth: $depth, deferred_code: ${deferred_code.len}]"
 }

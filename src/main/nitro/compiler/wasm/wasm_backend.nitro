@@ -127,14 +127,19 @@ fun WasmBackend.compile_program() {
     ]
 
     // Init the memory management struct
-    // capacity: total size - allocated size
     // len: 0
     // data: start of not-yet-allocated memory
+    // capacity: total size - allocated size
     let heap_start = WasmBackend::pad(wasm_program.memory.offset + 4)
+    let capacity = wasm_program.memory.size - heap_start - 4 /* capacity of Array 'data' */
     memory.clear()
-    memory.add_int_le(wasm_program.memory.size - heap_start)
     memory.add_int_le(0)
     memory.add_int_le(heap_start)
+    memory.add_int_le(capacity)
+
+    let capacity_section = []
+    capacity_section.add_int_le(capacity)
+    wasm_program.memory.add_section(capacity_section, "Memory capacity")
 
     // Functions must in be ordered by index in the wasm binary
     wasm_program.functions.sort_in_place()

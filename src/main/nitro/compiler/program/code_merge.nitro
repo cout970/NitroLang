@@ -31,7 +31,7 @@ fun NCodeMapping.copy_blocks(src: NCode, dst: NCode) {
         let deferred_code = []
 
         for c in src_block.deferred_code {
-            let child = src.new_child(c.span)
+            let child = src.new_child_code(c.span, c.is_transparent_child)
             child.merge(c)
             deferred_code[] = child
         }
@@ -81,7 +81,7 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
         // Relocate lambda to be able to find variables outside the scope of the lambda
         if new_kind is NInstKind::Lambda {
             let lambda = (new_kind as NInstKind::Lambda).instance
-            let child = dst.new_child(new_inst.span)
+            let child = dst.new_child_code(new_inst.span, false)
             child.merge(lambda.code)
             lambda.code = child
         }

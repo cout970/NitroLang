@@ -27,7 +27,7 @@ fun Parser.read_while_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(false)
     let continue_block = code.current_block
 
-    let start = code.add_loop_start(span, continue_block, break_block)
+    let start = code.add_loop_start(span, break_block, continue_block)
     start.block = prev_block
 
     //     if (<condition>) {

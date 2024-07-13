@@ -431,11 +431,15 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
         }
+        inst.kind is NInstKind::SizeOf -> {
+            let size_of_type = (inst.kind as NInstKind::SizeOf).type_token!!.find_type()
+            wasm_func.inst_final_types[inst.id] = ctx.convert_type(size_of_type)
+        }
     }
 }
 
 fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
-    let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
+    let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
     ret add_task_visit_function(ctx, alloc_func)
 }
 
