@@ -23,7 +23,7 @@ fun null_ptr<#Value>(): Ptr<#Value> {
 fun ptr_from_address<#Value>(address: Int): Ptr<#Value> {}
 
 // Checks if the pointer is null, i.e. created by null_ptr()
-fun Ptr<#Value>.is_null(): Boolean = get_address() == 0
+fun Ptr<#Value>.is_null(): Boolean = get_address().is_equal(0)
 
 // Converts the pointer into a reference
 // if the pointer is null, the program will crash
@@ -47,7 +47,16 @@ fun Ptr<#Value>.offset_in_bytes(num_bytes: Int): Ptr<#Value> {
     ret ptr_from_address(this.get_address() + num_bytes)
 }
 
+// Aligns the pointer to the next multiple of 4
+fun Ptr::align(value: Int): Int = (value + 3) & 3.bitwise_not()
+
 // Debug representation of the pointer
 fun Ptr<#Value>.to_string(): String {
-    ret "0x".concat(this.get_address().to_string_in_base(16))
+    let str = StringBuilder::new()
+    str[] = "0x"
+    str.add_int_in_base(16, get_address())
+    str[] = " ("
+    str.add_int_in_base(10, get_address())
+    str[] = ")"
+    ret str.to_string()
 }

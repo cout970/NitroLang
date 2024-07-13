@@ -1,12 +1,12 @@
 
 // Represents and area on the heap where the user can allocate instances
 struct MemoryArena {
-    // Total bytes available in the arena
-    capacity: Int
     // Number of bytes used in the arena
     len: Int
     // Pointer to the start of the arena
     bytes: Array<Byte>
+    // Total bytes available in the arena
+    capacity: Int
 }
 
 // Allocates a number of bytes, returning a pointer to the start of the allocation
@@ -17,7 +17,7 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     len = next + amount
 
     // Translate to address
-    let base_start = ptr_of(bytes).address
+    let base_start = ptr_of(bytes).address + size_of<Int>()
     let base_end = base_start + capacity
 
     let start = base_start + next
@@ -35,6 +35,18 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
 // Allocates a value on the heap, using the size of the value to determine the number of bytes to allocate
 fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
     ret this.alloc_bytes(size_of<#Value>).unsafe_cast()
+}
+
+// Allocates a new arena inside this arena, with the given capacity
+fun MemoryArena.new_child(capacity: Int): MemoryArena {
+    let arena: MemoryArena = alloc_bytes(size_of<MemoryArena>() + 4 + capacity).unsafe_cast().unsafe_as_ref()
+    // The capacity of the array and the capacity of the arena are stored in the same memory location
+    let bytes_array: Ptr<Byte> = ptr_of(arena).offset_in_bytes(8).unsafe_cast()
+
+    arena.len = 0
+    arena.bytes = bytes_array.unsafe_cast().unsafe_as_ref()
+    arena.capacity = capacity
+    ret arena
 }
 
 // Returns the number of used bytes of the arena
