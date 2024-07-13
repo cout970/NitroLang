@@ -118,21 +118,22 @@ export function alloc(bytes: number): number {
 
   // Port of: `fun MemoryArena.alloc_bytes(bytes: Int): Ptr<Byte> {}`
   // from memory_arena.nitro
-  // Memory: capacity = getInt(4), len = getInt(8), bytes = getInt(12)
+  // Memory: len = getInt(mem_base), bytes = getInt(mem_base + 4), capacity = getInt(mem_base + 8)
   //
   const ptr_size = PTR;
-  let next = getInt(8);
+  const mem_base = 4;
+  let next = getInt(mem_base);
 
   const pad = (ptr_size - next) % ptr_size;
   next = next + (pad < 0 ? pad + ptr_size : pad);
 
   let inUse = next + bytes;
-  setInt(8, inUse);
-  const start = getInt(12);
+  setInt(mem_base, inUse);
+  const start = getInt(mem_base + 4) + 4;
   const result = start + next;
 
   const end = result + bytes;
-  const capacity = getInt(4);
+  const capacity = getInt(mem_base + 8);
 
   if (end > start + capacity) {
     throw new Error(`Out of memory while trying to allocate ${bytes} bytes, current usage is ${inUse} bytes`);

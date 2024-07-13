@@ -137,8 +137,6 @@ export function memory_copy_internal(target: number, source: number, len: number
 // @Extern [lib="core", name="memory_alloc_trace"]
 // fun memory_alloc_trace(Int, Int): Nothing
 export function memory_alloc_trace(amount: number, ptr: number): void {
-    //console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}`)
-    //console.debug(`# Allocated ${amount.toString()} bytes at ${ptr.toString()} (0x${ptr.toString(16).padStart(8, '0')})`);
     trace.trace_alloc(amount);
 }
 
@@ -190,9 +188,9 @@ export function memory_write_float(_self: number, ptr: number, value: number): v
 
 // @Extern [lib="core", name="memory_dump"]
 // fun dump(MemoryArena): Nothing
-export function memory_dump(_self: number): void {
-    console.debug(`# Memory: capacity = ${getInt(4)}, len = ${getInt(8)}, bytes = ${getInt(12)}, base = ${_self}`)
-    console.debug('Memory dump:\n' + dumpMemory(getInt(12), getInt(8)));
+export function memory_dump(base_ptr: number): void {
+    console.debug(`# Memory: len = ${getInt(base_ptr)}, bytes = ${getInt(base_ptr + 4) + 4}, capacity = ${getInt(base_ptr + 8)}, base = ${base_ptr}`)
+    console.debug('Memory dump:\n' + dumpMemory(getInt(base_ptr + 4) + 4, getInt(base_ptr)));
 }
 
 // -------------------------------------------------------------------------
