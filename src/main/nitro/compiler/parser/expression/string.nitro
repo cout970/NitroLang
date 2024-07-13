@@ -53,7 +53,7 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::STRING_START)?
 
-    let result = Id::uninitialized()
+    let string_builder = code.add_fun_call(span, "StringBuilder", "new", false, [], [])
 
     loop {
         when lexer.current_token_kind {
@@ -62,41 +62,21 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
                 lexer.next_token()
 
                 let new_string = code.add_lit_string(span, text)
-
-                if result.is_uninitialized() {
-                    result = new_string.id
-                } else {
-                    let inst = code.add_fun_call(span, "", "concat", true, [result, new_string.id], [])
-                    result = inst.id
-                }
+                code.add_fun_call(span, "", "add", true, [string_builder.id, new_string.id], [])
             }
             TokenKind::STRING_VAR -> {
                 let variable_name = lexer.current_token_text
                 lexer.next_token()
 
                 let load_var = code.add_load_var(span, "", variable_name, None())
-                let to_string = code.add_fun_call(span, "", "to_string", true, [load_var.id], [])
-
-                if result.is_uninitialized() {
-                    result = to_string.id
-                } else {
-                    let inst = code.add_fun_call(span, "", "concat", true, [result, to_string.id], [])
-                    result = inst.id
-                }
+                code.add_fun_call(span, "", "add", true, [string_builder.id, load_var.id], [])
             }
             TokenKind::STRING_INTERP_START -> {
                 lexer.next_token()
                 let expr = read_expression(code)?
                 skip_token_kind(TokenKind::STRING_INTERP_END)?
 
-                let to_string = code.add_fun_call(span, "", "to_string", true, [expr], [])
-
-                if result.is_uninitialized() {
-                    result = to_string.id
-                } else {
-                    let inst = code.add_fun_call(span, "", "concat", true, [result, to_string.id], [])
-                    result = inst.id
-                }
+                code.add_fun_call(span, "", "add", true, [string_builder.id, expr], [])
             }
             TokenKind::STRING_END -> break
         }
@@ -104,12 +84,8 @@ fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {
 
     skip_token_kind(TokenKind::STRING_END)?
 
-    if result.is_uninitialized() {
-        let inst = code.add_lit_string(span, "")
-        result = inst.id
-    }
-
-    ret found(result)
+    let result = code.add_fun_call(span, "", "to_string", true, [string_builder.id], [])
+    ret found(result.id)
 }
 
 fun Parser.read_expression_string_raw(code: NCode): Parsed<NInstId> {
