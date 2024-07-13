@@ -152,6 +152,16 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
                 block: if kind.block.is_some() { Some(block_mapping[kind.block!!]!!) } else { None() },
             ]
         }
+
+        orig is NInstKind::BinaryOp -> {
+            let kind = orig as NInstKind::BinaryOp
+
+            ret NInstKind::BinaryOp @[
+                op: kind.op,
+                left: inst_mapping[kind.left]!!,
+                right: inst_mapping[kind.right]!!,
+            ]
+        }
         orig is NInstKind::FunCall -> {
             let kind = orig as NInstKind::FunCall
             let args = []

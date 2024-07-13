@@ -49,6 +49,11 @@ option NInstKind {
         explicit_type_arguments: List<NTypeUsage>
         call_site: Optional<FunCallSite>
     }
+    BinaryOp {
+        op: BinaryOperator
+        left: NInstId
+        right: NInstId
+    }
     Literal {
         value: NConstExpr
     }
@@ -409,6 +414,15 @@ fun NCode.add_fun_call(
     ])
 }
 
+fun NCode.add_binary_op(
+    span: Span,
+    op: BinaryOperator,
+    left: NInstId,
+    right: NInstId,
+): NInst {
+    ret add_inst(span, NInstKind::BinaryOp @[op, left, right])
+}
+
 fun NCode.add_when_start(span: Span): NInst {
     ret add_inst(span, NInstKind::WhenStart @[])
 }
@@ -493,6 +507,7 @@ fun NInstKind.get_name(): String {
         this is NInstKind::LoopEnd -> "loop-end"
         this is NInstKind::BlockJump -> "block-jump"
         this is NInstKind::FunCall -> "fun-call"
+        this is NInstKind::BinaryOp -> "binary-op"
         this is NInstKind::WhenStart -> "when-start"
         this is NInstKind::WhenEnd -> "when-end"
         this is NInstKind::Literal -> "literal"
@@ -554,6 +569,11 @@ fun NInst.to_string(): String {
             let kind = t as NInstKind::BlockJump
 
             "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
+        }
+        t is NInstKind::BinaryOp -> {
+            let kind = t as NInstKind::BinaryOp
+
+            "binary-opt op: ${kind.op}, left: #${kind.left}, right: #${kind.right}"
         }
         t is NInstKind::FunCall -> {
             let kind = t as NInstKind::FunCall
@@ -760,6 +780,11 @@ fun NInst.to_string(code: NCode): String {
             let kind = t as NInstKind::BlockJump
 
             "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
+        }
+        t is NInstKind::BinaryOp -> {
+            let kind = t as NInstKind::BinaryOp
+
+            "binary-opt op: ${kind.op}, left: #${kind.left}, right: #${kind.right}"
         }
         t is NInstKind::FunCall -> {
             let kind = t as NInstKind::FunCall

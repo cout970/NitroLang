@@ -234,6 +234,54 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         ret
     }
 
+    if inst.kind is NInstKind::BinaryOp {
+        let kind = inst.kind as NInstKind::BinaryOp
+
+        let left_type = code.find_inst_type_token(kind.left)
+        let key = left_type!!.find_type().to_string()
+        let opt = kind.op.optimization[key]
+
+        if opt.is_some() {
+            let function_name: String = opt!!
+
+            inst.type_token = None()
+            inst.kind = NInstKind::FunCall @[
+                path: "",
+                name: function_name,
+                explicit_receiver: true,
+                arguments: [kind.left, kind.right],
+                explicit_type_arguments: [],
+                call_site: None(),
+            ]
+        } else {
+            // Replace with get_ordering(left, right).<method>()
+            let index = code.index_of_inst(inst.id)!!
+            code.duplicate_inst(index)
+            let get_ordering = code.inst_list[index]!!
+            let fun_call = code.inst_list[index + 1]!!
+
+            get_ordering.type_token = None()
+            get_ordering.kind = NInstKind::FunCall @[
+                path: "",
+                name: "get_ordering",
+                explicit_receiver: true,
+                arguments: [kind.left, kind.right],
+                explicit_type_arguments: [],
+                call_site: None(),
+            ]
+
+            fun_call.type_token = None()
+            fun_call.kind = NInstKind::FunCall @[
+                path: "",
+                name: kind.op.method,
+                explicit_receiver: true,
+                arguments: [get_ordering.id],
+                explicit_type_arguments: [],
+                call_site: None(),
+            ]
+        }
+    }
+
     if inst.kind is NInstKind::FunCall {
         check_inst_fun_call(inst.kind as NInstKind::FunCall, inst, code)
         ret
