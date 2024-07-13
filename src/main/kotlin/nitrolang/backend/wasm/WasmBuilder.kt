@@ -82,13 +82,15 @@ open class WasmBuilder(
         // Override section with address where the heap starts
         // @formatter:off
         module.sectionOffset = pad(module.sectionOffset)
+        val capacity = (module.memoryCapacity - module.sectionOffset.toUInt() - 4u).toInt()
         val memoryInstance = byteArrayOf(
-            /* capacity */ *intToWasm(module.memoryCapacity - module.sectionOffset),
             /* len      */ *intToWasm(0),
-            /* bytes    */ *intToWasm(module.sectionOffset)
+            /* bytes    */ *intToWasm(module.sectionOffset),
+            /* capacity */ *intToWasm(capacity),
         )
         // @formatter:on
         module.sections[1].data = memoryInstance
+        module.addSection(WasmDataSection(module.sectionOffset, intToWasm(capacity), "Memory capacity"))
     }
 
     override fun compileImport(func: LstFunction, mono: MonoFunction, name: ConstString, lib: ConstString) {

@@ -5,7 +5,7 @@ import nitrolang.backend.pad
 
 // Represent a WebAssembly module
 class WasmModule {
-    var memoryCapacity = 1024 * 16 * (64 * 1024) // Each page is 64 KiB
+    var memoryCapacity: UInt = 1024u * 16u * (64u * 1024u) // Each page is 64 KiB
     val imports = mutableListOf<WasmImport>()
     val sections = mutableListOf<WasmDataSection>()
     val functions = mutableListOf<WasmFunction>()
