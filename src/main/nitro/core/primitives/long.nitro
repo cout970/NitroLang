@@ -2,7 +2,7 @@
 // This type is used to represent signed integers in the range of -2^63 to 2^63 - 1
 @Extern [lib: "core", name: "Long"]
 @ValueType
-@Intrinsic
+@Intrinsic [size: 8]
 struct Long {}
 
 // Adds two long values
@@ -195,11 +195,11 @@ fun Long.to_float(): Float {}
 
 // Converts this long (64 bit) into a byte (8 bit) by keeping the least significant 8 bits
 @Extern [lib: "core", name: "long_to_int"]
+@WasmInline [opcode: "i32.wrap_i64"]
 fun Long.to_int(): Int {}
 
 // Converts this long (64 bit) into a byte (8 bit) by keeping the least significant 8 bits
-@Extern [lib: "core", name: "long_to_byte"]
-fun Long.to_byte(): Byte {}
+fun Long.to_byte(): Byte = to_int().to_byte()
 
 // Converts this long value to a string
 @Extern [lib: "core", name: "long_to_string"]
@@ -240,4 +240,4 @@ fun min(a: Long, b: Long): Long {
 
 // This function is used to calculate the hash value of a long
 // to be used in hash tables and similar data structures
-fun Long.get_hash(): Long = this
+fun Long.get_hash(): Int = (this >> 32L).to_int() ^ this.to_int()

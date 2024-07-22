@@ -12,6 +12,7 @@ import {
   setFloat,
   alloc,
   PTR,
+  STRUCT_HEADER,
   setLong,
   getLong,
   fs
@@ -434,8 +435,8 @@ export function instant_now(): number {
     let nanos = decimals * 1_000_000;
 
     let ptr = alloc(PTR * 3);
-    setLong(ptr, seconds);
-    setInt(ptr + 2 * PTR, nanos);
+    setLong(STRUCT_HEADER + ptr, seconds);
+    setInt(STRUCT_HEADER + ptr + 2 * PTR, nanos);
     return ptr;
 }
 //
@@ -500,7 +501,7 @@ export function file_path_write_text(self: number, text: number): number {
         return mem.program.io_error_result_ok(0);
     } catch(e) {
         console.error(e);
-        return mem.program.io_error_result_error(createString(e.message), "Exception while writing file");
+        return mem.program.io_error_result_error(createString(e.message), createString("Exception while writing file"));
     }
 }
 
@@ -508,8 +509,89 @@ export function file_path_write_text(self: number, text: number): number {
 // @Extern [lib="core", name="file_path_exists"]
 // fun exists(FilePath): Result<Boolean, IoError>
 export function file_path_exists(self: number): boolean {
-    return fs.fileExistsSync(getString(self));
+    try {
+        const path = getString(getInt(self));
+        const exits = fs.fileExistsSync(path);
+        return mem.program.io_error_result_ok(exits ? 1 : 0);
+    } catch(e) {
+        console.error(e);
+        return mem.program.io_error_result_error(createString(e.message), createString("Exception while writing file"));
+    }
 }
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:33)
+// @Extern [lib="core", name="file_path_last_modified"]
+// fun FilePath.last_modified(): Result<Instant, IoError> {}
+export function file_path_last_modified(self: number): boolean {
+    try {
+        const path = getString(getInt(self));
+        // Float representing the last modified time in seconds
+        const unix_time = fs.getLastModifiedTime(path);
+
+        const seconds = BigInt(unix_time - (unix_time % 1.0));
+        const nanos = (unix_time % 1.0) * 1000000000;
+
+        let instant = alloc(PTR * 3);
+        setLong(STRUCT_HEADER + instant, seconds);
+        setInt(STRUCT_HEADER + instant + 2 * PTR, nanos);
+
+        return mem.program.io_error_result_ok(instant);
+    } catch(e) {
+        console.error(e);
+        return mem.program.io_error_result_error(createString(e.message), createString("Exception while writing file"));
+    }
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:33)
+// @Extern [lib="core", name="file_path_unsafe_debug_last_modified"]
+// fun FilePath.unsafe_debug_last_modified(): Int {}
+export function file_path_unsafe_debug_last_modified(self: number): number {
+    try {
+        const path = getString(getInt(self));
+        // Float representing the last modified time in seconds
+        const unix_time = fs.getLastModifiedTime(path);
+        return unix_time | 0;
+    } catch(e) {
+        console.error(e);
+        return 0;
+    }
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:36)
+// @Extern [lib: "core", name: "file_path_unsafe_debug_read_bytes"]
+// fun FilePath.unsafe_debug_read_bytes(): Array<Byte> {}
+export function file_path_unsafe_debug_read_bytes(self: number): boolean {
+    try {
+        const path = getString(getInt(self));
+        const data = fs.readFileSync(path);
+        const wasm_array = alloc(PTR + data.length);
+        setInt(wasm_array, data.length);
+        mem.u8.set(data, PTR + wasm_array);
+
+        return wasm_array;
+    } catch(e) {
+        console.error(e);
+        return false;
+    }
+}
+
+// At src/main/nitro/core/fs/file_path.nitro(file_path.nitro:40)
+// @Extern [lib="core", name="file_path_unsafe_debug_write_bytes"]
+// fun FilePath.unsafe_debug_write_bytes(bytes: Array<Byte>, len: Int): Boolean {}
+export function file_path_unsafe_debug_write_bytes(self: number, bytes: number, len: number): boolean {
+    try {
+        const path = getString(getInt(self))
+        const offset = bytes + 4
+        const array = mem.u8.subarray(offset, offset + len)
+
+        fs.writeFileSync(path, array)
+        return true;
+    } catch(e) {
+        console.error(e);
+        return false;
+    }
+}
+
 
 // -------------------------------------------------------------------------
 // From debug.nitro

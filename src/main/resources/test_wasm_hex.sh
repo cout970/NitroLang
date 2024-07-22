@@ -5,10 +5,10 @@ set -e
 cd "$(dirname "$0")"
 
 # Wait for code initialization
-sleep 1
+#sleep 1
 
 # Decode hex to wasm
-cat output.wasm.hex | xxd -r -p > output.wasm
+#cat output.wasm.hex | xxd -r -p > output.wasm
 
 # Create wat version for debugging
 wasm2wat --no-check -o output.wat output.wasm
@@ -16,7 +16,7 @@ wasm2wat --no-check -o output.wat output.wasm
 wasm2wat -o output.wat output.wasm
 
 # Print the wat version
-cat output.wat
+#cat output.wat
 
 # Run the wasm file
 echo "--- Running wasm file ---"

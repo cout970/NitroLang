@@ -1,5 +1,6 @@
 // deno-lint-ignore no-inferrable-types
 export const PTR: number = 4;
+export const STRUCT_HEADER: number = 0;
 
 export const mem = {
   i32: new Int32Array(),
@@ -20,6 +21,15 @@ export const fs = {
     },
     fileExistsSync: (path: string): boolean => {
         throw new Error('fs.fileExistsSync not implemented');
+    },
+    readFileSync: (path: string): Uint8Array => {
+       throw new Error('fs.readFileSync not implemented');
+    },
+    writeFileSync: (filename: string, data: Uint8Array) => {
+        throw new Error('fs.writeFileSync not implemented');
+    },
+    getLastModifiedTime: (filename: string): number => {
+        throw new Error('fs.getLastModifiedTime not implemented');
     }
 }
 
@@ -180,7 +190,7 @@ export function getString(ptr: number): string {
 
   const contents = mem.u8.subarray(bytes + PTR, bytes + PTR + len);
 
-  const textDecoder = new TextDecoder('utf-8', {fatal: true});
+  const textDecoder = new TextDecoder('utf-8', {fatal: false});
   return textDecoder.decode(contents);
 }
 

@@ -1,0 +1,124 @@
+
+// Global stack instance
+let global_stack: MemoryStack = MemoryStack::new(get_memory(), 320 * 1024 /* 320 kB */)
+
+// Fixed size memory area that allows contiguous allocations, memory is automatically freed when exiting a stack frame
+struct MemoryStack {
+    arena: MemoryArena
+    total_size: Int
+    free_size: Int
+    top: Int
+    start: Ptr<Byte>
+}
+
+// Stack frame header
+struct MemoryStackFrame {
+    size: Int
+    prev: Int
+}
+
+// Create a new memory stack inside the given arena with the given total size
+fun MemoryStack::new(arena: MemoryArena, total_size: Int): MemoryStack {
+    let stack = MemoryStack @[
+        arena,
+        total_size,
+        free_size: total_size
+        top: 0,
+        start: arena.alloc_bytes(total_size)
+    ]
+
+    let frame: MemoryStackFrame = stack.start.offset_in_bytes(stack.top).unsafe_cast_as_ref()
+    frame.size = 0
+    frame.prev = -1
+
+    ret stack
+}
+
+// Enter a new stack frame
+// `exit()` must be called to revert to the previous frame
+fun MemoryStack.enter() {
+    // Current frame
+    let frame: MemoryStackFrame = start.offset_in_bytes(top).unsafe_cast_as_ref()
+
+    // Setup next frame
+    let next_top = top + size_of<MemoryStackFrame>() + frame.size
+    let next_frame: MemoryStackFrame = start.offset_in_bytes(next_top).unsafe_cast_as_ref()
+    next_frame.prev = top
+    next_frame.size = 0
+
+    // Update stack
+    top = next_top
+    free_size -= size_of<MemoryStackFrame>()
+}
+
+// Exit the current stack frame
+fun MemoryStack.exit() {
+    // Current frame
+    let frame: MemoryStackFrame = start.offset_in_bytes(top).unsafe_cast_as_ref()
+
+    if frame.prev == -1 {
+        crash("Stack underflow")
+    }
+
+    // Revert to previous frame
+    top = frame.prev
+    free_size += size_of<MemoryStackFrame>() + frame.size
+}
+
+// Allocate memory for a value, will be automatically freed when calling `exit()`
+fun MemoryStack.alloc<#Value>(): Ptr<#Value> {
+    ret this.zero_alloc_bytes(size_of<#Value>).unsafe_cast()
+}
+
+// Allocate memory for a value and zero it, will be automatically freed when calling `exit()`
+fun MemoryStack.zero_alloc_bytes(requested_size: Int): Ptr<Byte> {
+    let ptr = alloc_bytes(requested_size)
+    memory_fill_internal(ptr.address, 0.to_byte(), requested_size)
+    ret ptr
+}
+
+// Allocate memory with at least the requested size, will be automatically freed when calling `exit()`
+fun MemoryStack.alloc_bytes(size: Int): Ptr<Byte> {
+    // Current frame
+    let frame: MemoryStackFrame = start.offset_in_bytes(top).unsafe_cast_as_ref()
+
+    // Allocate memory
+    let alloc_size = Ptr::align(size)
+    let alloc_offset = top + size_of<MemoryStackFrame>() + frame.size
+
+    if alloc_offset + alloc_size > total_size {
+        crash("Stack overflow")
+    }
+
+    // Update frame
+    frame.size += alloc_size
+    free_size -= alloc_size
+
+    ret start.offset_in_bytes(alloc_offset)
+}
+
+
+// Print the internal state of the stack
+fun MemoryStack.debug() {
+    println("MemoryStack {")
+    println("  total_size: $total_size")
+    println("  free_size: $free_size")
+    println("  top: $top")
+    println("  start: $start")
+    println("  frames:")
+    let tmp_top = top
+    loop {
+        if tmp_top == -1 {
+            break
+        }
+
+        let frame: MemoryStackFrame = start.offset_in_bytes(tmp_top).unsafe_cast_as_ref()
+        let name = ""
+        if frame.prev == -1 { name = " (bottom)" }
+        if tmp_top == top { name = " (top)" }
+
+        println("   - frame: size=${frame.size}, prev=${frame.prev}$name")
+        tmp_top = frame.prev
+    }
+    println("}")
+}

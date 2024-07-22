@@ -1,5 +1,6 @@
 .idea/
-output/*
+output/
+cache/
 *.map
 *.js
 output.wasm

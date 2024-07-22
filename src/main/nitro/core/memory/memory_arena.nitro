@@ -38,7 +38,7 @@ fun MemoryArena.alloc<#Value>(): Ptr<#Value> {
 }
 
 // Allocates a new arena inside this arena, with the given capacity
-fun MemoryArena.new_child(capacity: Int): MemoryArena {
+fun MemoryArena.alloc_memory_arena(capacity: Int): MemoryArena {
     let arena: MemoryArena = alloc_bytes(size_of<MemoryArena>() + 4 + capacity).unsafe_cast().unsafe_as_ref()
     // The capacity of the array and the capacity of the arena are stored in the same memory location
     let bytes_array: Ptr<Byte> = ptr_of(arena).offset_in_bytes(8).unsafe_cast()

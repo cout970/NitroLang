@@ -24,6 +24,34 @@ internals.fs.writeTextFileSync = (path: string, data: string) => {
 internals.fs.fileExistsSync = (path: string) => {
     return window.localStorage.getItem('file://' + path) !== null;
 };
+internals.fs.readFileSync = (path: string) => {
+    function dataURItoUint8Array(dataURI) {
+        // convert base64 to raw binary data held in a string
+        var byteString = atob(dataURI.split(',')[1]);
+
+        // separate out the mime component
+        var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+        // write the bytes of the string to an ArrayBuffer
+        var array = new Uint8Array(byteString.length);
+        for (var i = 0; i < byteString.length; i++) {
+            array[i] = byteString.charCodeAt(i);
+        }
+
+        return array;
+    }
+
+    return dataURItoUint8Array(localStorage.getItem('file://' + path));
+};
+internals.fs.writeFileSync = (path: string, data: Uint8Array) => {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      localStorage.setItem('file://' + path, event.target.result);
+    }
+
+    reader.readAsDataURL(data);
+};
 internals.fs.join = (a: string, b: string) => {
     // Dumb implementation for now
     return a + '/' + b;

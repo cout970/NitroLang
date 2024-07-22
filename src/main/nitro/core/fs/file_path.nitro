@@ -30,6 +30,18 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {}
 @Extern [lib: "core", name: "file_path_exists"]
 fun FilePath.exists(): Result<Boolean, IoError> {}
 
+@Extern [lib: "core", name: "file_path_last_modified"]
+fun FilePath.get_last_modified_time(): Result<Instant, IoError> {}
+
+@Extern [lib: "core", name: "file_path_unsafe_debug_last_modified"]
+fun FilePath.unsafe_debug_last_modified(): Int {}
+
+@Extern [lib: "core", name: "file_path_unsafe_debug_read_bytes"]
+fun FilePath.unsafe_debug_read_bytes(): Array<Byte> {}
+
+@Extern [lib: "core", name: "file_path_unsafe_debug_write_bytes"]
+fun FilePath.unsafe_debug_write_bytes(bytes: Array<Byte>, len: Int): Boolean {}
+
 //
 //@Extern [lib: "core", name: "file_path_read_bytes"]
 //fun FilePath.read_bytes(): Result<List<Byte>, IoError> {}

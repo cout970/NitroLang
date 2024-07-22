@@ -50,7 +50,7 @@ fun List<#Item>.ensure_capacity(required_capacity: Int) {
         new_capacity *= 2
     }
 
-    let new_items = Array::new<#Item>(new_capacity)
+    let new_items: Array<#Item> = Array::new<#Item>(new_capacity)
 
     repeat count {
         new_items[it] = items[it]
@@ -90,7 +90,19 @@ fun List<#Item>.add_all(other: List<#Item>) {
 
     // Copy the items from the other list
     repeat other.count {
-        this[] = other[it]!!
+        items[count] = other[it]!!
+        count += 1
+    }
+}
+
+fun List<#Item>.add_all(other: Array<#Item>) {
+    // Expand list if needed
+    ensure_capacity(this.count + other.len)
+
+    // Copy the items from the other list
+    repeat other.len {
+        items[count] = other[it]
+        count += 1
     }
 }
 
@@ -432,6 +444,24 @@ fun <#Item: ToString> List<#Item>.to_string(): String {
         let item = this[it]!!.to_string()
         if it != 0 {
             str[] = ", "
+        }
+
+        str[] = item
+    }
+
+    str[] = "]"
+    ret str.to_string()
+}
+
+// Converts the list to a string
+fun <#Item: ToString> List<#Item>.to_pretty_string(): String {
+    let str = StringBuilder::new()
+    str[] = "["
+
+    repeat count {
+        let item = this[it]!!.to_string()
+        if it != 0 {
+            str[] = ",\n"
         }
 
         str[] = item

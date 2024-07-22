@@ -382,16 +382,45 @@ fun <#Key: MapKey> Map<#Key, #Value>.to_map(): Map<#Key, #Value> {
 // Converts the map to a string
 fun <#Key: MapKey | ToString, #Value: ToString> Map<#Key, #Value>.to_string(): String {
     let str = StringBuilder::new()
+    let index = 0
+    str[] = "#["
+
 
     for_each_entry @{ key: #Key, value: #Value ->
-        if str.is_not_empty() {
-            str[] = ",\n"
+        if index != 0 {
+            str[] = ", "
         }
-        str[] = "  "
-        str[] = key.to_string()
-        str[] = " => "
-        str[] = value.to_string()
+        str[] = key
+        str[] = ": "
+        str[] = value
+        index += 1
     }
 
-    ret if str.is_empty() { "#[]" } else { "#[\n$str\n]" }
+    str[] = "]"
+    ret str.to_string()
+}
+
+// Converts the map to a string
+fun <#Key: MapKey | ToString, #Value: ToString> Map<#Key, #Value>.to_pretty_string(): String {
+    let str = StringBuilder::new()
+    let index = 0
+    str[] = "#["
+
+    for_each_entry @{ key: #Key, value: #Value ->
+        if index != 0 {
+            str[] = ","
+        }
+        str[] = "\n  "
+        str[] = key
+        str[] = ": "
+        str[] = value
+        index += 1
+    }
+
+    if index != 0 {
+        str[] = "\n"
+    }
+
+    str[] = "]"
+    ret str.to_string()
 }

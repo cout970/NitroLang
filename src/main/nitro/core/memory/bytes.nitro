@@ -1,57 +1,291 @@
 
-// Add a boolean value as a single byte to the list
-fun List<Byte>.add_boolean(value: Boolean) {
-    this[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }
+struct ByteWriter {
+    bytes: List<Byte>
 }
 
-// Add a 16-bit integer to the list in little-endian order
-fun List<Byte>.add_short_le(value: Int) {
-    this[] = value.to_byte()
-    this[] = (value >> 8).to_byte()
+struct ByteReader {
+    bytes: List<Byte>
+    pos: Int
 }
 
-// Add a 16-bit integer to the list in big-endian order
-fun List<Byte>.add_short_be(value: Int) {
-    this[] = (value >> 8).to_byte()
-    this[] = value.to_byte()
+fun ByteWriter::new(): ByteWriter {
+    ret ByteWriter @[
+        bytes: [],
+    ]
 }
 
-// Add a 32-bit integer to the list in little-endian order
-fun List<Byte>.add_int_le(value: Int) {
-    this[] = value.to_byte()
-    this[] = (value >> 8).to_byte()
-    this[] = (value >> 16).to_byte()
-    this[] = (value >> 24).to_byte()
+fun ByteWriter::wrap(bytes: List<Byte>): ByteWriter {
+    ret ByteWriter @[bytes]
 }
 
-// Add a 32-bit integer to the list in big-endian order
-fun List<Byte>.add_int_be(value: Int) {
-    this[] = (value >> 24).to_byte()
-    this[] = (value >> 16).to_byte()
-    this[] = (value >> 8).to_byte()
-    this[] = value.to_byte()
+fun ByteReader::new(source: List<Byte>): ByteReader {
+    ret ByteReader @[
+        bytes: source,
+        pos: 0
+    ]
 }
 
-// Add a 64-bit integer to the list in little-endian order
-fun List<Byte>.add_long_le(value: Long) {
-    this[] = value.to_byte()
-    this[] = (value >> 8L).to_byte()
-    this[] = (value >> 16L).to_byte()
-    this[] = (value >> 24L).to_byte()
-    this[] = (value >> 32L).to_byte()
-    this[] = (value >> 40L).to_byte()
-    this[] = (value >> 48L).to_byte()
-    this[] = (value >> 56L).to_byte()
+fun ByteReader.seek(new_pos: Int) {
+    pos = new_pos
 }
 
-// Add a 64-bit integer to the list of bytes in big-endian order
-fun List<Byte>.add_long_be(value: Long) {
-    this[] = (value >> 56L).to_byte()
-    this[] = (value >> 48L).to_byte()
-    this[] = (value >> 40L).to_byte()
-    this[] = (value >> 32L).to_byte()
-    this[] = (value >> 24L).to_byte()
-    this[] = (value >> 16L).to_byte()
-    this[] = (value >> 8L).to_byte()
-    this[] = value.to_byte()
+// Add a boolean value as a single byte to the buffer
+fun ByteWriter.add_boolean(value: Boolean) {
+    bytes[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }
+}
+
+// Read a boolean value from the buffer as a single byte
+fun ByteReader.read_boolean(): Boolean {
+    let value = bytes[pos]!!.to_int()
+    pos += 1
+    return value != 0
+}
+
+// Add a 16-bit integer to the buffer in little-endian order
+fun ByteWriter.add_short_le(value: Int) {
+    bytes[] = value.to_byte()
+    bytes[] = (value >> 8).to_byte()
+}
+
+// Read a 16-bit integer from the buffer in little-endian order
+fun ByteReader.read_short_le(): Int {
+    let value = bytes[pos]!!.to_int() | (bytes[pos + 1]!!.to_int() << 8)
+    pos += 2
+    return value
+}
+
+// Add a 16-bit integer to the buffer in big-endian order
+fun ByteWriter.add_short_be(value: Int) {
+    bytes[] = (value >> 8).to_byte()
+    bytes[] = value.to_byte()
+}
+
+// Read a 16-bit integer from the buffer in big-endian order
+fun ByteReader.read_short_be(): Int {
+    let value = (bytes[pos]!!.to_int() << 8) | bytes[pos + 1]!!.to_int()
+    pos += 2
+    return value
+}
+
+// Add a 32-bit integer to the buffer in little-endian order
+fun ByteWriter.add_int_le(value: Int) {
+    bytes[] = value.to_byte()
+    bytes[] = (value >> 8).to_byte()
+    bytes[] = (value >> 16).to_byte()
+    bytes[] = (value >> 24).to_byte()
+}
+
+// Read a 32-bit integer from the buffer in little-endian order
+fun ByteReader.read_int_le(): Int {
+    let value = bytes[pos]!!.to_int() | (bytes[pos + 1]!!.to_int() << 8) | (bytes[pos + 2]!!.to_int() << 16) | (bytes[pos + 3]!!.to_int() << 24)
+    pos += 4
+    return value
+}
+
+// Add a 32-bit integer to the buffer in big-endian order
+fun ByteWriter.add_int_be(value: Int) {
+    bytes[] = (value >> 24).to_byte()
+    bytes[] = (value >> 16).to_byte()
+    bytes[] = (value >> 8).to_byte()
+    bytes[] = value.to_byte()
+}
+
+// Read a 32-bit integer from the buffer in big-endian order
+fun ByteReader.read_int_be(): Int {
+    let value = (bytes[pos]!!.to_int() << 24) | (bytes[pos + 1]!!.to_int() << 16) | (bytes[pos + 2]!!.to_int() << 8) | bytes[pos + 3]!!.to_int()
+    pos += 4
+    return value
+}
+
+// Add a 64-bit integer to the buffer in little-endian order
+fun ByteWriter.add_long_le(value: Long) {
+    bytes[] = value.to_byte()
+    bytes[] = (value >> 8L).to_byte()
+    bytes[] = (value >> 16L).to_byte()
+    bytes[] = (value >> 24L).to_byte()
+    bytes[] = (value >> 32L).to_byte()
+    bytes[] = (value >> 40L).to_byte()
+    bytes[] = (value >> 48L).to_byte()
+    bytes[] = (value >> 56L).to_byte()
+}
+
+// Read a 64-bit integer from the buffer in little-endian order
+fun ByteReader.read_long_le(): Long {
+    let value = bytes[pos]!!.to_long() | (bytes[pos + 1]!!.to_long() << 8L) | (bytes[pos + 2]!!.to_long() << 16L) | (bytes[pos + 3]!!.to_long() << 24L) | (bytes[pos + 4]!!.to_long() << 32L) | (bytes[pos + 5]!!.to_long() << 40L) | (bytes[pos + 6]!!.to_long() << 48L) | (bytes[pos + 7]!!.to_long() << 56L)
+    pos += 8
+    return value
+}
+
+// Add a 64-bit integer to the buffer in big-endian order
+fun ByteWriter.add_long_be(value: Long) {
+    bytes[] = (value >> 56L).to_byte()
+    bytes[] = (value >> 48L).to_byte()
+    bytes[] = (value >> 40L).to_byte()
+    bytes[] = (value >> 32L).to_byte()
+    bytes[] = (value >> 24L).to_byte()
+    bytes[] = (value >> 16L).to_byte()
+    bytes[] = (value >> 8L).to_byte()
+    bytes[] = value.to_byte()
+}
+
+// Read a 64-bit integer from the buffer in big-endian order
+fun ByteReader.read_long_be(): Long {
+    let value = (bytes[pos]!!.to_long() << 56L) | (bytes[pos + 1]!!.to_long() << 48L) | (bytes[pos + 2]!!.to_long() << 40L) | (bytes[pos + 3]!!.to_long() << 32L) | (bytes[pos + 4]!!.to_long() << 24L) | (bytes[pos + 5]!!.to_long() << 16L) | (bytes[pos + 6]!!.to_long() << 8L) | bytes[pos + 7]!!.to_long()
+    pos += 8
+    return value
+}
+
+// Add a 32-bit unsigned int encoded as a LEB128 to the buffer
+fun ByteWriter.add_uint_leb128(value: Int) {
+    loop {
+        let byte = value & 0x7F
+        value = value >>> 7
+
+        if value != 0 {
+            bytes[] = (byte | 0x80).to_byte()
+        } else {
+            bytes[] = byte.to_byte()
+        }
+
+        if value == 0 {
+            break
+        }
+    }
+}
+
+// Read a 32-bit unsigned int encoded as a LEB128 from the buffer
+fun ByteReader.read_uint_leb128(): Int {
+    let result = 0
+    let shift = 0
+    loop {
+        let byte = bytes[pos]!!.to_int()
+        pos += 1
+        result = result | ((byte & 0x7F) << shift)
+        shift += 7
+        if (byte & 0x80) == 0 {
+            break
+        }
+    }
+    return result
+}
+
+// Add a 32-bit signed int encoded as a LEB128 to the buffer
+fun ByteWriter.add_int_leb128(value: Int) {
+    loop {
+        let byte = value & 0x7F
+        value = value >> 7
+
+        let end = (value == 0 && (byte & 0x40) == 0) || (value == -1 && (byte & 0x40) != 0)
+
+        bytes[] = (if end { byte } else { byte | 0x80 }).to_byte()
+
+        if end {
+            break
+        }
+    }
+}
+
+// Read a 32-bit signed int encoded as a LEB128 from the buffer
+fun ByteReader.read_int_leb128(): Int {
+    let result = 0
+    let shift = 0
+    loop {
+        let byte = bytes[pos]!!.to_int()
+        pos += 1
+        result = result | ((byte & 0x7F) << shift)
+        shift += 7
+        if (byte & 0x80) == 0 {
+            if shift < 32 && (byte & 0x40) != 0 {
+                result = result | (-1 << shift)
+            }
+            break
+        }
+    }
+    return result
+}
+
+// Add a 64-bit signed int encoded as a LEB128 to the buffer
+fun ByteWriter.add_long_leb128(value: Long) {
+    loop {
+        let byte = (value & 0x7FL).to_int()
+        value = value >> 7L
+
+        let more = (byte & 0x40) != 0
+        let end = (value == 0L && !more) || (value == -1L && more)
+
+        bytes[] = (if end { byte } else { byte | 0x80 }).to_byte()
+
+        if end {
+            break
+        }
+    }
+}
+
+// Read a 64-bit signed int encoded as a LEB128 from the buffer
+fun ByteReader.read_long_leb128(): Long {
+    let result = 0L
+    let shift = 0
+    loop {
+        let byte = bytes[pos]!!.to_int()
+        pos += 1
+        result = result | ((byte & 0x7F).to_long() << shift.to_long())
+        shift += 7
+        if (byte & 0x80) == 0 {
+            if shift < 64 && (byte & 0x40) != 0 {
+                result = result | (-1L << shift.to_long())
+            }
+            break
+        }
+    }
+    return result
+}
+
+// Write a 32bit float in IEEE754 format
+fun ByteWriter.add_float_ieee754_32(value: Float) {
+    let bits = value.reinterpret_as_int()
+    add_int_le(bits)
+}
+
+// Read a 32bit float in IEEE754 format
+fun ByteReader.read_float_ieee754_32(): Float {
+    let bits = read_int_le()
+    return bits.reinterpret_as_float()
+}
+
+// Write a string content as UTF-8 without size
+fun ByteWriter.add_string_utf8_without_size(value: String) {
+    repeat value.bytes_len {
+        bytes[] = value.utf8_data[it]
+    }
+}
+
+// Read a string content as UTF-8 with the given size
+fun ByteReader.read_string_utf8_without_size(len: Int): String {
+    let result = StringBuilder::new()
+
+    repeat len {
+        result.unsafe_add_utf8_byte(bytes[pos]!!)
+        pos += 1
+    }
+
+    return result.to_string()
+}
+
+// Write a string content as UTF-8 with size encoded as LEB128
+fun ByteWriter.add_string_utf8_with_size_leb128(value: String) {
+    add_int_leb128(value.bytes_len)
+    add_string_utf8_without_size(value)
+}
+
+// Read a string content as UTF-8 with size encoded as LEB128
+fun ByteReader.read_string_utf8_with_size_leb128(): String {
+    let len = read_int_leb128()
+    return read_string_utf8_without_size(len)
+}
+
+// Add multiple copies of a byte to the buffer
+fun ByteWriter.add_pad(pad_value: Byte, amount: Int) {
+    repeat amount {
+        bytes[] = pad_value
+    }
 }

@@ -115,6 +115,14 @@ fun StringBuilder.add(str: String) {
     bytes_len += str.bytes_len
 }
 
+// Adds a byte to the internal buffer, this may create an invalid state,
+// this functions should be used only to append a stream of bytes that are known to be valid UTF-8
+fun StringBuilder.unsafe_add_utf8_byte(byte: Byte) {
+    ensure_capacity(bytes_len + 1)
+    bytes[bytes_len] = byte
+    bytes_len += 1
+}
+
 // Adds a substring of a string to the internal buffer
 fun StringBuilder.add_substring(str: String, offset: Int, substring_len: Int) {
     offset = offset.clamp(0, str.bytes_len)

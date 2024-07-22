@@ -10,9 +10,19 @@ fun memory_alloc_internal(bytes: Int): Int {
     ret get_memory().alloc_bytes(bytes).get_address()
 }
 
+@WasmName [name: "memory_free_internal"]
+fun memory_free_internal(bytes: Int) {
+    // No-op
+}
+
 // Intrinsic function that copies a chunk of memory to another location
 @Extern [lib: "core", name: "memory_copy_internal"]
+@WasmInline [opcode: "memory.copy"]
 fun memory_copy_internal(target: Int, source: Int, len: Int) {}
+
+@Extern [lib: "core", name: "memory_fill_internal"]
+@WasmInline [opcode: "memory.fill"]
+fun memory_fill_internal(target: Int, value: Byte, len: Int) {}
 
 // Intrinsic function that tracks the memory allocated
 @Extern [lib: "core", name: "memory_alloc_trace"]

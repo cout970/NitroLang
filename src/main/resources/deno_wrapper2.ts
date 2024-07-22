@@ -21,6 +21,19 @@ internals.fs.writeTextFileSync = (path: string, data: string) => {
 internals.fs.fileExistsSync = (path: string) => {
     return existsSync(join(__dirname, path));
 };
+internals.fs.readFileSync = (path: string) => {
+    return Deno.readFileSync(join(__dirname, path));
+};
+internals.fs.writeFileSync = (path: string, data: Uint8Array) => {
+    Deno.writeFileSync(join(__dirname, path), data);
+};
+internals.fs.getLastModifiedTime = (path: string) => {
+    const info = Deno.statSync(join(__dirname, path));
+    if (info.mtime === null) {
+        throw new Error(`Unable to get last modified time for file: ${path}`);
+    }
+    return info.mtime.getTime() / 1000;
+};
 internals.fs.join = (a: string, b: string) => {
     return join(a, b);
 };

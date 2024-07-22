@@ -6,6 +6,13 @@
 @Intrinsic
 struct Ptr<#Value> {}
 
+// Pointer to a single value stored in heap
+struct IntPtr { value: Int }
+struct LongPtr { value: Long }
+struct FloatPtr { value: Float }
+struct BytePtr { value: Byte }
+struct UnknownPtr { }
+
 // Converts a reference to a value into a Pointer to the value
 // References are guaranteed to be valid, while pointers are just addresses to memory that can be manipulated
 @Extern [lib: "core", name: "ptr_ptr_of"]
@@ -23,7 +30,7 @@ fun null_ptr<#Value>(): Ptr<#Value> {
 fun ptr_from_address<#Value>(address: Int): Ptr<#Value> {}
 
 // Checks if the pointer is null, i.e. created by null_ptr()
-fun Ptr<#Value>.is_null(): Boolean = get_address().is_equal(0)
+fun Ptr<#Value>.is_null(): Boolean = this.get_address().is_equal(0)
 
 // Converts the pointer into a reference
 // if the pointer is null, the program will crash
@@ -41,6 +48,11 @@ fun Ptr<#Value>.get_address(): Int {}
 @Extern [lib: "core", name: "ptr_unsafe_cast"]
 @WasmInline [opcode: "nop"]
 fun <#Value, #Target> Ptr<#Value>.unsafe_cast(): Ptr<#Target> {}
+
+// Mix of unsafe_cast() and unsafe_as_ref()
+@Extern [lib: "core", name: "ptr_unsafe_cast_as_ref"]
+@WasmInline [opcode: "nop"]
+fun <#Value, #Target> Ptr<#Value>.unsafe_cast_as_ref(): #Target {}
 
 // Creates a new pointer that is [num_bytes] ahead of this
 fun Ptr<#Value>.offset_in_bytes(num_bytes: Int): Ptr<#Value> {
