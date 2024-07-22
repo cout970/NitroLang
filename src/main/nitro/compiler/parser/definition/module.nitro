@@ -3,13 +3,6 @@
 //    moduleDefinition
 //        : MODULE modulePath? anyName NL* LBRACE NL* definition* RBRACE ;
 
-struct NModule {
-    span: Span,
-    annotations: List<NAnnotation>,
-    path: String,
-    name: String
-}
-
 fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::MODULE)?
     let span = lexer.current_token_span
@@ -17,15 +10,7 @@ fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothin
     let name = read_name()?
     skip_nl()
 
-    let def = NModule @[
-        span,
-        annotations,
-        path,
-        name
-    ]
-
-    program.modules[] = def
-    module_path_stack[] = Path::join(def.path, def.name)
+    module_path_stack[] = Path::join(path, name)
     defer { module_path_stack.remove_last()!! }
 
     skip_token_kind(TokenKind::LBRACE)?
@@ -44,16 +29,4 @@ fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothin
     skip_nl()
 
     ret found(nothing)
-}
-
-fun NModule.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    let full_name = Path::join(path, name)
-
-    ret "${prefix}mod $full_name // $span"
 }

@@ -161,3 +161,49 @@ fun NConstExpr.to_string(): String {
         else -> unreachable()
     }
 }
+
+fun ByteBuffer.serialize_const_expr(value: NConstExpr) {
+    let frame = start_frame(true)
+    when {
+        value is NConstExpr::NConstInt -> {
+            write_int(0)
+            write_int((value as NConstExpr::NConstInt).value)
+        }
+        value is NConstExpr::NConstLong -> {
+            write_int(1)
+            write_long((value as NConstExpr::NConstLong).value)
+        }
+        value is NConstExpr::NConstFloat -> {
+            write_int(2)
+            write_float((value as NConstExpr::NConstFloat).value)
+        }
+        value is NConstExpr::NConstString -> {
+            write_int(3)
+            write_string((value as NConstExpr::NConstString).value)
+        }
+        value is NConstExpr::NConstBoolean -> {
+            write_int(4)
+            write_boolean((value as NConstExpr::NConstBoolean).value)
+        }
+        value is NConstExpr::NConstNothing -> {
+            write_int(5)
+        }
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_const_expr(): NConstExpr {
+    let frame = start_frame(false)
+    let variant = read_int()
+    let value = when variant {
+        0 -> NConstExpr::NConstInt @[value: read_int()]
+        1 -> NConstExpr::NConstLong @[value: read_long()]
+        2 -> NConstExpr::NConstFloat @[value: read_float()]
+        3 -> NConstExpr::NConstString @[value: read_string()]
+        4 -> NConstExpr::NConstBoolean @[value: read_boolean()]
+        5 -> NConstExpr::NConstNothing @[]
+        else -> unreachable()
+    }
+    end_frame(frame)
+    ret value
+}

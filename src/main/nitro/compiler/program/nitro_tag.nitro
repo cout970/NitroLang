@@ -5,7 +5,7 @@ struct NTag {
     annotations: List<NAnnotation>
     path: String
     name: String
-    full_path: String
+    full_name: String
     functions: List<NTagFunction>
     impl_patterns: List<ResolvedTypePattern>
 }
@@ -21,22 +21,78 @@ struct NTagFunction {
 fun NTagFunction.to_string(): String = "$id: $header"
 
 fun NTag.to_string() -> String {
-    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-    let full_name = Path::join(path, name)
-    let str = ""
+    let str = StringBuilder::new()
+
+    repeat annotations.len {
+        str[] = annotations[it]!!
+        str[] = "\n"
+    }
+
+    str[] = "tag "
+    str[] = full_name
+    str[] = " {\n"
 
     for f in functions {
-        if str.is_not_empty() {
-            str += "\n"
-        }
-        str += f.to_string()
+        str[] = "  "
+        str[] = f
+        str[] = "\n"
     }
 
-    if str.is_not_empty() {
-        str += "\n"
-    }
-
-    return "${prefix}tag $full_name {$str} // $span"
+    str[] = "} // "
+    str[] = span
+    return str.to_string()
 }
 
-fun NTag.get_ordering(other: NTag): Ordering = this.full_path <=> other.full_path
+fun NTag.get_ordering(other: NTag): Ordering = this.full_name <=> other.full_name
+
+fun ByteBuffer.serialize_tag(value: NTag) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_int(value.annotations.len)
+    for a in value.annotations {
+        serialize_annotation(a)
+    }
+    write_string(value.path)
+    write_string(value.name)
+    write_int(value.functions.len)
+    for a in value.functions {
+        serialize_tag_function(a)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_tag(): NTag {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let annotations = []
+    repeat read_int() {
+        annotations[] = deserialize_annotation()
+    }
+    let path = read_string()
+    let name = read_string()
+
+    let value = NTag @[id, span, annotations, path, name, full_name: Path::join(path, name), functions: [], impl_patterns: []]
+    repeat read_int() {
+        value.functions[] = deserialize_tag_function(value)
+    }
+
+    end_frame(frame)
+    ret value
+}
+
+fun ByteBuffer.serialize_tag_function(value: NTagFunction) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_function_header(value.header)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_tag_function(parent_tag: NTag): NTagFunction {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let header = deserialize_function_header()
+    end_frame(frame)
+    ret NTagFunction @[id, header, parent_tag, possible_implementors: #[], final_implementors: #[]]
+}

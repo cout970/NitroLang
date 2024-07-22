@@ -11,52 +11,6 @@
 // typeParameter
 //       : HASH anyName ;
 
-struct NGeneric {
-    id: Id
-    span: Span
-    name: String
-    source: NGenericSource
-    bounds: List<NGenericBounds>
-}
-
-enum NGenericSource {
-    Struct,
-    Option,
-    Function,
-    Lambda,
-    TypeAlias,
-    Tag,
-    Invalid,
-}
-
-struct NGenericParams {
-    definitions: List<NGeneric>
-    type_tokens: List<TypeToken>
-    source: NGenericSource
-}
-
-struct NGenericBounds {
-    name: String
-    tag_instance: Optional<NTag>
-}
-
-fun NGenericParams::new(): NGenericParams {
-    ret NGenericParams @[
-        definitions: [],
-        type_tokens: [],
-        source: NGenericSource::Invalid
-    ]
-}
-
-fun NGenericParams.get(name: String): Optional<NGeneric> {
-    for def in definitions {
-        if def.name == name {
-            ret Some(def)
-        }
-    }
-    ret None()
-}
-
 // <#T, #A>
 fun Parser.read_type_params_def(): Parsed<Nothing> {
     if lexer.current_token_kind != TokenKind::LTH {
@@ -126,38 +80,3 @@ fun Parser.read_type_parameter(): Parsed<String> {
 
     ret read_name()
 }
-
-fun NGeneric.get_hash(): Int = id.get_hash()
-fun NGeneric.get_ordering(other: NGeneric): Ordering = id.get_ordering(other.id)
-
-fun NGeneric.to_string(): String {
-    if bounds.is_empty() {
-        ret "#$name"
-    }
-    let s = bounds.join_to_string(", ") @{ i -> i.name }
-
-    ret "#$name: $s"
-}
-
-fun NGenericParams.to_string(): String {
-    if definitions.is_empty() {
-        ret ""
-    }
-
-    let s = ""
-
-    for def in definitions {
-        if s.is_not_empty() {
-            s += ", "
-        }
-        s += def.to_string()
-    }
-
-    ret "<$s>"
-}
-
-fun NGenericBounds.get_ordering(other: NGenericBounds): Ordering = name.get_ordering(other.name)
-
-fun NGenericBounds.get_hash(): Int = name.get_hash()
-
-fun NGenericBounds.to_string(): String = name

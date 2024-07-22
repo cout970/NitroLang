@@ -3,6 +3,7 @@ struct CompilationUnit {
     reporter: Reporter
     included_paths: List<String>
     program: Program
+    use_cache: Boolean
 }
 
 fun CompilationUnit::new(): CompilationUnit {
@@ -10,6 +11,7 @@ fun CompilationUnit::new(): CompilationUnit {
         reporter: Reporter::new(),
         included_paths: [],
         program: Program::new(),
+        use_cache: true
     ]
 }
 
@@ -19,12 +21,111 @@ fun CompilationUnit.include_file(path: String) {
     }
     included_paths[] = path
 
-    let source = FilePath::new(path).read_text()!!
+    let last_modified: Int = FilePath::new(path).unsafe_debug_last_modified()
+    let source: Optional<String> = None()
 
-    include_source(source, path)
+    // Load from cache
+    if false /*use_cache*/ {
+        let start = Instant::now()
+        let file_path = get_cache_file_path(path)
+
+        if file_path.exists()!! {
+            let bytes: Array<Byte> = file_path.unsafe_debug_read_bytes()
+            let bytes_list = List @[
+                capacity: bytes.len,
+                count: bytes.len,
+                items: bytes
+            ]
+            let buffer = ByteBuffer::new(bytes_list)
+            buffer.start_read()
+
+            // Header
+            let cache_version = buffer.reader.read_int_be()
+            let cache_time = buffer.reader.read_int_be()
+            let cache_crc = buffer.reader.read_int_be()
+            let cache_last_modified = buffer.reader.read_int_be()
+            let valid = true
+
+            if cache_version != 0x01 {
+                println("Ignoring cache file: $path, invalid version: $cache_version")
+                valid = false
+            }
+
+            if valid && last_modified != cache_last_modified {
+                println("Ignoring cache file: $path, last modified mismatch: $last_modified != $cache_last_modified")
+                valid = false
+            }
+
+            // No way to check if the file was modified, other than comparing the hash of contents
+            if valid && (last_modified == 0 || cache_last_modified == 0) {
+                let source = Some(FilePath::new(path).read_text()!!)
+
+                if CRC32::from_string(source!!) != cache_crc {
+                    println("Ignoring cache file: $path, CRC mismatch")
+                    valid = false
+                }
+            }
+
+            if valid {
+                let sub_program = buffer.deserialize_program()
+//                program.extend_with(sub_program)
+                let end = Instant::now()
+//                Log::debug("Included file (cached): $path in ${(end - start).to_milliseconds()} ms")
+            }
+        }
+    }
+
+
+
+    if source.is_none() {
+        source = Some(FilePath::new(path).read_text()!!)
+    }
+
+    let sub_program = include_source(source!!, path)
+
+    // Save to cache
+    if use_cache {
+        let buffer = ByteBuffer::new()
+
+        // Header
+        buffer.writer.add_int_be(0x01)
+        buffer.writer.add_int_be(Instant::now().unix_timestamp.to_int())
+        buffer.writer.add_int_be(CRC32::from_string(source!!))
+        buffer.writer.add_int_be(last_modified)
+        // Content
+        buffer.serialize_program(sub_program)
+        let bytes = buffer.finish_write()
+        let file_path = get_cache_file_path(path)
+        file_path.unsafe_debug_write_bytes(bytes.items, bytes.len)
+    }
 }
 
-fun CompilationUnit.include_source(source: String, path: String) {
+fun CompilationUnit.get_cache_file_path(path: String): FilePath {
+    let invalid_chars = [".", "/", "\\", ":", "*", "?", "\"", "<", ">", "|", " "]
+    let safe_path = path
+
+    if safe_path.starts_with("..") {
+        safe_path = safe_path.substring(2, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("/") {
+        safe_path = safe_path.substring(1, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("../") {
+        safe_path = safe_path.substring(3, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("./") {
+        safe_path = safe_path.substring(2, safe_path.bytes_len)
+    }
+    if safe_path.ends_with(".nitro") {
+        safe_path = safe_path.substring(0, safe_path.bytes_len - 6)
+    }
+    for c in invalid_chars {
+        safe_path = safe_path.replace(c, "_")
+    }
+    return FilePath::new("cache/$safe_path.bin")
+}
+
+fun CompilationUnit.include_source(source: String, path: String): Program {
     let start = Instant::now()
     let sub_program = Program::new()
 
@@ -42,6 +143,7 @@ fun CompilationUnit.include_source(source: String, path: String) {
     program.extend_with(sub_program)
     let end = Instant::now()
 //    Log::debug("Included file: $path in ${(end - start).to_milliseconds()} ms")
+    ret sub_program
 }
 
 fun CompilationUnit::process_path(path: String, current_path: String): String {
@@ -62,10 +164,14 @@ fun CompilationUnit.compile() {
     let backend = WasmBackend::new(reporter, program)
     backend.compile_program()
 
-    println(backend.emitter.debug_buffer.to_string())
+    let buffer = backend.emitter.buffer
 
     // Temporary for debugging
-    let buffer = backend.emitter.buffer
+    if backend.emitter.debug_print {
+        println(backend.emitter.debug_buffer.to_string())
+    }
+
+    /*
     let sb = StringBuilder::new()
 
     repeat buffer.len {
@@ -85,4 +191,9 @@ fun CompilationUnit.compile() {
 
     // Use `cat output.wasm.hex | xxd -r -p > output.wasm ; wasm2wat -o output.wat output.wasm` to get the wat file
     FilePath::new("output.wasm.hex").write_text(sb.to_string())!!
+    */
+
+    if !FilePath::new("output.wasm").unsafe_debug_write_bytes(buffer.items, buffer.len) {
+        crash("Unable to write output.wasm")
+    }
 }

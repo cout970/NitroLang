@@ -288,13 +288,13 @@ fun WasmBackend.autogenerate_function_start_main() {
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
         ctx: root_ctx,
-        locals_provider: IdProvider::new(),
         locals: [],
-        bytecode: WasmEmitter::new(),
+        bytecode: emitter.new_child_emitter(),
     ]
     wasm_program.functions[] = func
 }

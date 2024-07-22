@@ -10,6 +10,7 @@ struct WasmEmitter {
     debug_suffix: String
     debug_indent: Int
     debug_print: Boolean
+    backend: Optional<WasmBackend>
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
@@ -38,7 +39,14 @@ fun WasmEmitter::new(): WasmEmitter {
         debug_indent: 1,
         // DEBUG
         debug_print: false,
+        backend: None(),
     ]
+}
+
+fun WasmEmitter.new_child_emitter(): WasmEmitter {
+    let child = WasmEmitter::new()
+    child.backend = backend
+    ret child
 }
 
 // Emit a single byte with the given opcode
@@ -140,7 +148,7 @@ fun WasmEmitter.emit_section_header(section: SectionType, size: Int) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#type-section
 fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunction>, lambdas: List<WFunctionHeader>) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit type section: ${imports.len} imports, ${functions.len} functions")
     }
@@ -162,7 +170,7 @@ fun WasmEmitter.emit_type_section(imports: List<WImport>, functions: List<WFunct
 
 // https://webassembly.github.io/spec/core/binary/modules.html#import-section
 fun WasmEmitter.emit_import_section(imports: List<WImport>) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit import section, ${imports.len} imports")
     }
@@ -186,7 +194,7 @@ fun WasmEmitter.emit_import_section(imports: List<WImport>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#function-section
 fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit function section: ${functions.len} functions")
     }
@@ -202,7 +210,7 @@ fun WasmEmitter.emit_function_section(functions: List<WFunction>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#table-section
 fun WasmEmitter.emit_table_section(program: WasmProgram) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit table section: len = ${program.lambda_table.len}")
     }
@@ -219,7 +227,7 @@ fun WasmEmitter.emit_table_section(program: WasmProgram) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#memory-section
 fun WasmEmitter.emit_memory_section(memory: WMemory) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit memory section: 1 memory section, ${memory.size} Bytes")
     }
@@ -236,7 +244,7 @@ fun WasmEmitter.emit_memory_section(memory: WMemory) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#export-section
 fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, memory: WMemory) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit export section: ${function_exports.len} function exports, 1 memory export")
     }
@@ -261,7 +269,7 @@ fun WasmEmitter.emit_export_section(function_exports: List<WFunctionExport>, mem
 
 // https://webassembly.github.io/spec/core/binary/modules.html#start-section
 fun WasmEmitter.emit_start_section(start: Id) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit start section: ${start}")
     }
@@ -274,7 +282,7 @@ fun WasmEmitter.emit_start_section(start: Id) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#element-section
 fun WasmEmitter.emit_elements_section(program: WasmProgram) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit elements section: ${program.lambda_table.len} elements")
     }
@@ -301,7 +309,7 @@ fun WasmEmitter.emit_elements_section(program: WasmProgram) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#data-count-section
 fun WasmEmitter.emit_data_count_section(memory: WMemory) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit data count section: ${memory.sections.len} data sections")
     }
@@ -315,7 +323,7 @@ fun WasmEmitter.emit_data_count_section(memory: WMemory) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#code-section
 fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit code section: ${functions.len} functions")
     }
@@ -331,7 +339,7 @@ fun WasmEmitter.emit_code_section(functions: List<WFunction>) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#code-section
 fun WasmEmitter.emit_code(func: WFunction) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit code for function ${func.header.index}: ${func.locals.len} locals, offset = ${buffer.len}")
     }
@@ -369,7 +377,7 @@ fun WasmEmitter.emit_expr(func: WFunction) {
 
 // https://webassembly.github.io/spec/core/binary/modules.html#data-section
 fun WasmEmitter.emit_data_section(memory: WMemory) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit data section: ${memory.sections.len} data sections")
     }
@@ -392,7 +400,7 @@ fun WasmEmitter.emit_data_section(memory: WMemory) {
 
 // https://webassembly.github.io/spec/core/appendix/custom.html#name-section
 fun WasmEmitter.emit_custom_section_names(program: WasmProgram) {
-    let tmp = WasmEmitter::new()
+    let tmp = new_child_emitter()
     if debug_print {
         tmp.debug_print_line("Emit custom section: names")
     }
@@ -400,9 +408,9 @@ fun WasmEmitter.emit_custom_section_names(program: WasmProgram) {
     tmp.emit_name("name")
 
     // vec(nameassoc)
-    let func = WasmEmitter::new()
+    let func = new_child_emitter()
     // vec(indirectnameassoc)
-    let locals = WasmEmitter::new()
+    let locals = new_child_emitter()
 
     // namemap
     func.emit_u32(program.functions.len)
@@ -492,12 +500,14 @@ fun WasmEmitter.emit_u32(value: Int) {
 
 // https://webassembly.github.io/spec/core/binary/values.html#integers
 fun WasmEmitter.emit_i32(value: Int) {
+
     // signed LEB128 encoding
     loop {
         let byte = value & 0x7F
         value = value >> 7
 
-        let end = (value == 0 && (byte & 0x40) == 0) || (value == -1 && (byte & 0x40) != 0)
+        let more = (byte & 0x40) != 0
+        let end = (value == 0 && !more) || (value == -1 && more)
 
         emit_byte(if end { byte } else { byte | 0x80 })
 
@@ -549,13 +559,11 @@ fun WasmEmitter.emit_i64(value: Long) {
         value = value >> 7L
 
         let more = (byte & 0x40) != 0
-        if value != 0L || more {
-            emit_byte(byte | 0x80)
-        } else {
-            emit_byte(byte)
-        }
+        let end = (value == 0L && !more) || (value == -1L && more)
 
-        if value == 0L && !more {
+        emit_byte(if end { byte } else { byte | 0x80 })
+
+        if end {
             break
         }
     }

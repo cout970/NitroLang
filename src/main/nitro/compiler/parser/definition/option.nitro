@@ -9,24 +9,6 @@
 // optionDefinitionItem
 //     : anyName structBody?;
 
-struct NOption {
-    id: Id
-    span: Span
-    annotations: List<NAnnotation>
-    path: String
-    name: String
-    generics: NGenericParams
-    items: List<NOptionItem>
-    full_name_cache: Optional<String>
-}
-
-struct NOptionItem {
-    span: Span
-    index: Int
-    parent: NOption
-    def: NStruct
-}
-
 fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::OPTION)?
     let span = lexer.current_token_span
@@ -107,61 +89,4 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         parent,
         def,
     ])
-}
-
-fun NOption.get_full_name(): String {
-    if full_name_cache.is_some() {
-        ret full_name_cache!!
-    }
-
-    let full_name = Path::join(path, name)
-    full_name_cache = Some(full_name)
-    ret full_name
-}
-
-fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
-    for item in items {
-        if item.def.id == str.id {
-            ret Some(item.index)
-        }
-    }
-    ret None()
-}
-
-fun NOption.get_ordering(other: NOption): Ordering = this.id <=> other.id
-
-fun NOption.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    let items_str = if items.len > 0 { "{\n" } else { "{" }
-
-    for item in items {
-        let line = item.to_string().indent(2)
-        items_str += "$line\n"
-    }
-    items_str = items_str + "}"
-    let full_name = Path::join(path, name)
-
-    ret "${prefix}option $full_name $items_str // $span"
-}
-
-fun NOptionItem.to_string(): String {
-    let prefix = ""
-
-    for a in def.annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    let fields_str = if def.fields.len > 0 { "{\n" } else { "{" }
-
-    for field in def.fields {
-        fields_str += "  ${field.name}: ${field.type_usage}\n"
-    }
-    fields_str = fields_str + "}"
-
-    ret "${prefix}${def.name} $fields_str // $span"
 }

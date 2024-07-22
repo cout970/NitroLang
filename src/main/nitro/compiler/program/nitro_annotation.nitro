@@ -1,0 +1,78 @@
+
+struct NAnnotation {
+    span: Span
+    name: String
+    args: List<NAnnotationArg>
+}
+
+struct NAnnotationArg {
+    span: Span
+    key: String
+    value: NConstExpr
+}
+
+fun NAnnotation.get_arg(name: String): Optional<NConstExpr> {
+    for arg in args {
+        if arg.key == name {
+            ret Some(arg.value)
+        }
+    }
+
+    ret None()
+}
+
+fun NAnnotation.to_string(): String {
+    let s = "@$name"
+
+    if args.len > 0 {
+        s += " @[\n"
+
+        for arg in args {
+            s += "  ${arg.key}: ${arg.value},\n"
+        }
+        s += "]"
+    }
+
+    ret s
+}
+
+fun ByteBuffer.serialize_annotation(value: NAnnotation) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_string(value.name)
+    write_int(value.args.len)
+
+    for arg in value.args {
+        serialize_annotation_arg(arg)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_annotation(): NAnnotation {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let name = read_string()
+    let args = []
+
+    repeat read_int() {
+        args[] = deserialize_annotation_arg()
+    }
+
+    end_frame(frame)
+
+    ret NAnnotation @[span, name, args]
+}
+
+fun ByteBuffer.serialize_annotation_arg(value: NAnnotationArg) {
+    serialize_span(value.span)
+    write_string(value.key)
+    serialize_const_expr(value.value)
+}
+
+fun ByteBuffer.deserialize_annotation_arg(): NAnnotationArg {
+    let span = deserialize_span()
+    let key = read_string()
+    let value = deserialize_const_expr()
+
+    ret NAnnotationArg @[span, key, value]
+}

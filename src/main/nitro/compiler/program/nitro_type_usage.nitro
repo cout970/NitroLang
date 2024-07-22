@@ -1,0 +1,132 @@
+
+struct NTypeUsage {
+    span: Span
+    kind: TypeUsageKind
+    name: String
+    path: String
+    params: List<NTypeUsage>
+    type_token: Optional<TypeToken>
+    generic_definition: Optional<NGeneric>
+}
+
+enum TypeUsageKind {
+    TYPE_SIMPLE,
+    TYPE_PARAM,
+    TYPE_UNRESOLVED,
+}
+
+// FIXME: temporary fix for a bug with the compiler not generating this function for enums automatically
+fun TypeUsageKind.is_equal(other: TypeUsageKind): Boolean {
+    ret this.variant == other.variant
+}
+
+fun NTypeUsage::unresolved(span: Span): NTypeUsage {
+    ret NTypeUsage @[
+        span,
+        kind: TypeUsageKind::TYPE_UNRESOLVED,
+        name: "[unresolved]",
+        path: "",
+        params: [],
+        type_token: None(),
+        generic_definition: None(),
+    ]
+}
+
+fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
+    ret NTypeUsage @[
+        span,
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        path: "",
+        params: [],
+        type_token: None(),
+        generic_definition: None(),
+    ]
+}
+
+fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeUsage {
+    ret NTypeUsage @[
+        span,
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        path: path,
+        params: [],
+        type_token: None(),
+        generic_definition: None(),
+    ]
+}
+
+fun NTypeUsage::simple_with_params(span: Span, name: String, params: List<NTypeUsage>): NTypeUsage {
+    ret NTypeUsage @[
+        span,
+        kind: TypeUsageKind::TYPE_SIMPLE,
+        name,
+        path: "",
+        params,
+        type_token: None(),
+        generic_definition: None(),
+    ]
+}
+
+
+fun NTypeUsage.to_string(): String {
+    if kind == TypeUsageKind::TYPE_PARAM {
+        ret "#$name"
+    }
+
+    if kind == TypeUsageKind::TYPE_UNRESOLVED {
+        ret this.name
+    }
+
+    let s = StringBuilder::new()
+
+    if path != "" {
+        s[] = path + "::"
+    }
+
+    s[] = name
+
+    if params.len > 0 {
+        s[] = "<"
+        repeat params.len {
+            if it != 0 {
+                s[] = ", "
+            }
+            s[] = params[it]!!
+        }
+        s[] = ">"
+    }
+
+    ret s.to_string()
+}
+
+fun ByteBuffer.serialize_type_usage(type_usage: NTypeUsage) {
+    let frame = start_frame(true)
+    serialize_span(type_usage.span)
+    write_int(type_usage.kind.variant)
+    write_string(type_usage.name)
+    write_string(type_usage.path)
+    write_int(type_usage.params.len)
+    for param in type_usage.params {
+        serialize_type_usage(param)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_type_usage(): NTypeUsage {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let kind = TypeUsageKind::from_variant(read_int())!!
+    let name = read_string()
+    let path = read_string()
+    let params = []
+    repeat read_int() {
+        params[] = deserialize_type_usage()
+    }
+    let type_token = None()
+    let generic_definition = None()
+
+    end_frame(frame)
+
+    ret NTypeUsage @[span, kind, name, path, params, type_token, generic_definition]
+}

@@ -1,0 +1,139 @@
+
+
+struct NGeneric {
+    id: Id
+    span: Span
+    name: String
+    source: NGenericSource
+    bounds: List<NGenericBounds>
+}
+
+enum NGenericSource {
+    Struct,
+    Option,
+    Function,
+    Lambda,
+    TypeAlias,
+    Tag,
+    Invalid,
+}
+
+struct NGenericParams {
+    definitions: List<NGeneric>
+    type_tokens: List<TypeToken>
+    source: NGenericSource
+}
+
+struct NGenericBounds {
+    name: String
+    tag_instance: Optional<NTag>
+}
+
+fun NGenericParams::new(): NGenericParams {
+    ret NGenericParams @[
+        definitions: [],
+        type_tokens: [],
+        source: NGenericSource::Invalid
+    ]
+}
+
+fun NGenericParams.get(name: String): Optional<NGeneric> {
+    for def in definitions {
+        if def.name == name {
+            ret Some(def)
+        }
+    }
+    ret None()
+}
+
+
+fun NGeneric.get_hash(): Int = id.get_hash()
+fun NGeneric.get_ordering(other: NGeneric): Ordering = id.get_ordering(other.id)
+
+fun NGeneric.to_string(): String {
+    if bounds.is_empty() {
+        ret "#$name"
+    }
+    let s = bounds.join_to_string(", ") @{ i -> i.name }
+
+    ret "#$name: $s"
+}
+
+fun NGenericParams.to_string(): String {
+    if definitions.is_empty() {
+        ret ""
+    }
+
+    let s = ""
+
+    for def in definitions {
+        if s.is_not_empty() {
+            s += ", "
+        }
+        s += def.to_string()
+    }
+
+    ret "<$s>"
+}
+
+fun NGenericBounds.get_ordering(other: NGenericBounds): Ordering = name.get_ordering(other.name)
+
+fun NGenericBounds.get_hash(): Int = name.get_hash()
+
+fun NGenericBounds.to_string(): String = name
+
+fun ByteBuffer.serialize_generic(value: NGeneric) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_string(value.name)
+    write_int(value.source.variant)
+
+    write_int(value.bounds.len)
+    for bound in value.bounds {
+        write_string(bound.name)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_generic(): NGeneric {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let name = read_string()
+    let source = NGenericSource::from_variant(read_int())!!
+    let bounds = []
+
+    repeat read_int() {
+        bounds[] = NGenericBounds @[
+            name: read_string(),
+            tag_instance: None()
+        ]
+    }
+
+    end_frame(frame)
+
+    ret NGeneric @[id, span, name, source, bounds]
+}
+
+fun ByteBuffer.serialize_generic_params(value: NGenericParams) {
+    write_int(value.definitions.len)
+
+    for def in value.definitions {
+        serialize_generic(def)
+    }
+
+    write_int(value.source.variant)
+}
+
+fun ByteBuffer.deserialize_generic_params(): NGenericParams {
+    let definitions = []
+    repeat read_int() {
+        definitions[] = deserialize_generic()
+    }
+
+    let type_tokens = []
+    let source = NGenericSource::from_variant(read_int())!!
+
+    ret NGenericParams @[definitions, type_tokens, source]
+}

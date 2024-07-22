@@ -4,6 +4,10 @@ option InstResultAction {
     Drop,
     // Keep the result on the stack
     Keep,
+    // Add a constant to the stack
+    Const {
+        value: NConstExpr
+    },
     // Save in a var for multiple uses or a use later
     Save {
         variable: WVar
@@ -14,6 +18,7 @@ fun InstResultAction.to_string(): String {
     ret when {
         this is InstResultAction::Drop -> "Drop"
         this is InstResultAction::Keep -> "Keep"
+        this is InstResultAction::Const -> "Const"
         this is InstResultAction::Save -> "Save"
         else -> unreachable()
     }
@@ -28,6 +33,13 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
     for inst in code.inst_list {
         if debug_print {
             debug_suffix = ";; #${inst.id} $inst"
+        }
+
+        // From visit_instruction()
+        let opt = func.compile_operation[inst.id]
+        if opt.is_some() {
+            opt!!.call(this, func, backend)
+            continue
         }
 
         if inst.kind is NInstKind::Let {
@@ -144,7 +156,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::Literal {
-            compile_inst_literal(inst, func, backend, map, code)
+//            compile_inst_literal(inst, func, backend, map, code)
             continue
         }
 
@@ -518,6 +530,18 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
     let opt = func.function_calls[inst.id]!!
 
     for arg in kind.arguments {
+
+        // Special case, call to extern function must pass something to the zero size arguments
+        if opt is WFuncCall::WImport {
+            let arg_type = func.inst_final_types[arg]!!
+            let size = backend.get_size_of(arg_type)
+
+            if size == 0 {
+                add_i32_const(0)
+                continue
+            }
+        }
+
         push(arg, map)
     }
 
@@ -595,6 +619,46 @@ fun WasmEmitter.compile_inst_literal(inst: NInst, func: WFunction, backend: Wasm
         let const_value = expr as NConstExpr::NConstBoolean
         add_i32_const(if const_value.value {1} else {0})
         pop(inst.id, map)
+        ret
+    }
+    if expr is NConstExpr::NConstNothing {
+        // Nothing has 0 size
+        ret
+    }
+    crash("Unknown literal type: ${expr}")
+}
+
+fun WasmEmitter.push_literal(expr: NConstExpr) {
+    if expr is NConstExpr::NConstInt {
+        let const_value = expr as NConstExpr::NConstInt
+        add_i32_const(const_value.value)
+        ret
+    }
+    if expr is NConstExpr::NConstLong {
+        let const_value = expr as NConstExpr::NConstLong
+        add_i64_const(const_value.value)
+        ret
+    }
+    if expr is NConstExpr::NConstFloat {
+        let const_value = expr as NConstExpr::NConstFloat
+        add_f32_const(const_value.value)
+        ret
+    }
+// No new features until the new compiler is functional
+//  if expr is NConstExpr::NConstDouble {
+//      let value = expr as NConstExpr::NConstDouble
+//      add_f64_const(value.value)
+//      ret
+//  }
+    if expr is NConstExpr::NConstString {
+        let const_value = expr as NConstExpr::NConstString
+        let ptr = backend!!.push_string(const_value.value)
+        add_i32_const(ptr)
+        ret
+    }
+    if expr is NConstExpr::NConstBoolean {
+        let const_value = expr as NConstExpr::NConstBoolean
+        add_i32_const(if const_value.value {1} else {0})
         ret
     }
     if expr is NConstExpr::NConstNothing {
@@ -717,6 +781,13 @@ fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, Ins
             continue
         }
 
+        if inst.kind is NInstKind::Literal {
+            map[inst.id] = InstResultAction::Const @[
+                value: (inst.kind as NInstKind::Literal).value
+            ]
+            continue
+        }
+
         if size == 0 || inst.back_references.is_empty() {
             map[inst.id] = InstResultAction::Drop @[]
             continue
@@ -740,12 +811,20 @@ fun WFunction.check_stack_allocation(backend: WasmBackend, map: Map<NInstId, Ins
     }
 }
 
+
 // Generate the required code to push the result of an instruction to the stack
 fun WasmEmitter.push(id: NInstId, map: Map<NInstId, InstResultAction>) {
     let remote_action: InstResultAction = map[id]!!
 
     // Original instruction did not save its result
     if remote_action is InstResultAction::Drop {
+        ret
+    }
+
+    // Original instruction did not save its result
+    if remote_action is InstResultAction::Const {
+        let value = (remote_action as InstResultAction::Const).value
+        push_literal(value)
         ret
     }
 
@@ -760,7 +839,8 @@ fun WasmEmitter.push(id: NInstId, map: Map<NInstId, InstResultAction>) {
         add_local_get(variable.index.to_int())
         ret
     }
-    unreachable()
+
+    crash("Unknown action: ${remote_action}")
 }
 
 // Generate the required code to save a value from the stack to a local, or keep the value, or discard it

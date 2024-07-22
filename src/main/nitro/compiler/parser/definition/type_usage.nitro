@@ -27,75 +27,6 @@
 // typeParamArg
 //       : LTH NL* typeUsage (commaOrNl typeUsage)* COMMA? NL* GTH ;
 
-struct NTypeUsage {
-    span: Span
-    kind: TypeUsageKind
-    name: String
-    path: String
-    params: List<NTypeUsage>
-    type_token: Optional<TypeToken>
-    generic_definition: Optional<NGeneric>
-}
-
-enum TypeUsageKind {
-    TYPE_SIMPLE,
-    TYPE_PARAM,
-    TYPE_UNRESOLVED,
-}
-
-// FIXME: temporary fix for a bug with the compiler not generating this function for enums automatically
-fun TypeUsageKind.is_equal(other: TypeUsageKind): Boolean {
-    ret this.variant == other.variant
-}
-
-fun NTypeUsage::unresolved(span: Span): NTypeUsage {
-    ret NTypeUsage @[
-        span,
-        kind: TypeUsageKind::TYPE_UNRESOLVED,
-        name: "[unresolved]",
-        path: "",
-        params: [],
-        type_token: None(),
-        generic_definition: None(),
-    ]
-}
-
-fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
-    ret NTypeUsage @[
-        span,
-        kind: TypeUsageKind::TYPE_SIMPLE,
-        name,
-        path: "",
-        params: [],
-        type_token: None(),
-        generic_definition: None(),
-    ]
-}
-
-fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeUsage {
-    ret NTypeUsage @[
-        span,
-        kind: TypeUsageKind::TYPE_SIMPLE,
-        name,
-        path: path,
-        params: [],
-        type_token: None(),
-        generic_definition: None(),
-    ]
-}
-
-fun NTypeUsage::simple_with_params(span: Span, name: String, params: List<NTypeUsage>): NTypeUsage {
-    ret NTypeUsage @[
-        span,
-        kind: TypeUsageKind::TYPE_SIMPLE,
-        name,
-        path: "",
-        params,
-        type_token: None(),
-        generic_definition: None(),
-    ]
-}
-
 fun Parser.read_type_usage(): Parsed<NTypeUsage> {
     let span = lexer.current_token_span
 
@@ -261,35 +192,4 @@ fun Parser.read_function_type_usage_param(): Parsed<NTypeUsage> {
     }
 
     ret read_type_usage()
-}
-
-fun NTypeUsage.to_string(): String {
-    let s = ""
-
-    if kind == TypeUsageKind::TYPE_PARAM {
-        ret "#$name"
-    }
-
-    if kind == TypeUsageKind::TYPE_UNRESOLVED {
-        ret this.name
-    }
-
-    if path != "" {
-        s = path + "::"
-    }
-
-    s = s + name
-
-    if params.len > 0 {
-        s = s + "<"
-        repeat params.len {
-            s += params[it]!!.to_string()
-            if it < limit - 1 {
-                s += ", "
-            }
-        }
-        s = s + ">"
-    }
-
-    ret s
 }

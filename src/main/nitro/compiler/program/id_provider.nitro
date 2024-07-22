@@ -61,6 +61,35 @@ fun IdProvider::merge_into(from: IdProvider, to: IdProvider) {
     to.last_id = last
 }
 
+fun IdProvider.to_string(): String {
+    ret "IdProvider { last_id: $last_id, all_wrappers: ${all_wrappers.len} }"
+}
+
+fun ByteBuffer.serialize_id_provider(value: IdProvider) {
+    let frame = start_frame(true)
+    write_int(value.last_id)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_id_provider(): IdProvider {
+    let frame = start_frame(false)
+    let last_id = read_int()
+    end_frame(frame)
+
+    ret IdProvider @[
+        all_wrappers: [],
+        last_id,
+    ]
+}
+
+fun ByteBuffer.serialize_id(value: Id) {
+    write_int(value.current_value)
+}
+
+fun ByteBuffer.deserialize_id(): Id {
+    ret Id @[current_value: read_int()]
+}
+
 fun Id::uninitialized(): Id = Id @[current_value: -1]
 
 fun Id.is_uninitialized(): Boolean = current_value == -1

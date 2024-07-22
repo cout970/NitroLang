@@ -116,3 +116,82 @@ fun NStruct.to_string(): String {
 
     ret "${prefix}struct $full_name $fields_str  // $span"
 }
+
+fun ByteBuffer.serialize_struct(value: NStruct) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_int(value.annotations.len)
+    for a in value.annotations {
+        serialize_annotation(a)
+    }
+    write_string(value.path)
+    write_string(value.name)
+//    serialize_generics(value.generics)
+    write_boolean(value.is_enum)
+
+    write_int(value.fields.len)
+    for f in value.fields {
+        serialize_struct_field(f)
+    }
+
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_struct(): NStruct {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+
+    let annotations = []
+    repeat read_int() {
+        annotations[] = deserialize_annotation()
+    }
+
+    let path = read_string()
+    let name = read_string()
+
+    let generics = NGenericParams::new()
+    let fields = []
+
+
+    let is_enum = read_boolean()
+    let parent = None()
+    let full_name_cache = None()
+
+    let instance = NStruct @[id, span, annotations, path, name, generics, fields, parent, is_enum, full_name_cache]
+
+    repeat read_int() {
+        fields[] = deserialize_struct_field(instance)
+    }
+
+    end_frame(frame)
+    ret instance
+}
+
+fun ByteBuffer.serialize_struct_field(value: NStructField) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_string(value.name)
+    write_int(value.offset)
+    serialize_type_usage(value.type_usage)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_struct_field(parent_struct: NStruct): NStructField {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let name = read_string()
+    let offset = read_int()
+    let type_usage = deserialize_type_usage()
+    end_frame(frame)
+
+    ret NStructField @[
+        span,
+        name,
+        parent_struct,
+        offset,
+        type_usage,
+        field_type: None(),
+    ]
+}

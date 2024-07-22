@@ -1,0 +1,87 @@
+
+struct NTypePattern {
+    span: Span
+    kind: TypePatternKind
+    name: String
+    path: String
+    params: List<NTypePattern>
+    resolved: Optional<ResolvedTypePattern>
+}
+
+enum TypePatternKind {
+    TYPE_SIMPLE,
+    TYPE_PARAM,
+    TYPE_ANY,
+}
+
+fun NTypePattern.get_ordering(other: NTypePattern): Ordering {
+    ret (kind <=> other.kind).with(name <=> other.name).with(path <=> other.path)
+}
+
+fun NTypePattern.get_hash(): Int {
+    let hash = kind.variant
+    hash = (hash * 31) + name.get_hash()
+    hash = (hash * 31) + path.get_hash()
+    ret hash
+}
+
+fun TypePatternKind.is_equal(other: TypePatternKind): Boolean = this.variant == other.variant
+
+fun NTypePattern.to_string(): String {
+    if kind == TypePatternKind::TYPE_PARAM {
+        ret "#$name"
+    }
+
+    if kind == TypePatternKind::TYPE_ANY {
+        ret this.name
+    }
+
+    let s = StringBuilder::new()
+
+    if path != "" {
+        s[] = path + "::"
+    }
+
+    s[] = name
+
+    if params.len > 0 {
+        s[] = "<"
+        repeat params.len {
+            if it != 0 {
+                s[] = ", "
+            }
+            s[] = params[it]!!
+        }
+        s[] = ">"
+    }
+
+    ret s.to_string()
+}
+
+fun ByteBuffer.serialize_type_pattern(value: NTypePattern) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_int(value.kind.variant)
+    write_string(value.name)
+    write_string(value.path)
+    write_int(value.params.len)
+    for p in value.params {
+        serialize_type_pattern(p)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_type_pattern(): NTypePattern {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let kind = TypePatternKind::from_variant(read_int())!!
+    let name = read_string()
+    let path = read_string()
+    let params = []
+    repeat read_int() {
+        params[] = deserialize_type_pattern()
+    }
+    let value =  NTypePattern @[span, kind, name, path, params, resolved: None()]
+    end_frame(frame)
+    ret value
+}

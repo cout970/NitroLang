@@ -49,11 +49,11 @@ struct WFunction {
     let_declarations: Map<NVarId, WVar>
     let_final_types: Map<NVarId, FinalType>
     inst_final_types: Map<NInstId, FinalType>
+    compile_operation: Map<NInstId, (WasmEmitter, WFunction, WasmBackend) -> Nothing>
     function_calls: Map<NInstId, WFuncCall>
     lambda_instances: Map<NInstId, Id>
     constants: Map<NInstId, Id>
     ctx: TypeMappingCtx
-    locals_provider: IdProvider
     locals: List<WVar>
     bytecode: WasmEmitter
 }
@@ -134,9 +134,8 @@ fun WMemory.add_section(data: List<Byte>, comment: String): WMemSection {
 }
 
 fun WFunction.add_local(name: String, wasm_type: WType): WVar {
-    let index = locals_provider.next()
     let wvar = WVar @[
-        index,
+        index: Id @[current_value: locals.len],
         kind: WVarKind::Local,
         name,
         wasm_type,
@@ -146,14 +145,27 @@ fun WFunction.add_local(name: String, wasm_type: WType): WVar {
 }
 
 fun WFunction.add_param(name: String, wasm_type: WType): WVar {
-    let index = locals_provider.next()
     let wvar = WVar @[
-        index,
+        index: Id @[current_value: -1],
         kind: WVarKind::Param,
         name,
         wasm_type,
     ]
-    locals[] = wvar
+
+    // Params must come before locals
+    let index = 0
+    repeat locals.len {
+        if locals[it]!!.kind == WVarKind::Param {
+            index += 1
+        }
+    }
+    locals.insert(index, wvar)
+
+    // Reset the index of all locals
+    repeat locals.len {
+        locals[it]!!.index.current_value = it
+    }
+
     ret wvar
 }
 
@@ -225,4 +237,8 @@ fun WFunctionHeader.get_ordering(other: WFunctionHeader): Ordering {
         ret Ordering::Equals
     }
     ret Ordering::Less
+}
+
+fun WVar.to_string(): String {
+    ret "Local @[index=${index} name=${name} wasm_type=${wasm_type} kind=${kind}]"
 }

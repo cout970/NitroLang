@@ -82,7 +82,7 @@ fun WasmBackend.add_task_visit_const(instance: NConst): Id {
 
 fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NFunction, index: Id) {
 //    Log::debug("Visiting function $key")
-    let header = get_function_header(key, index)
+    let header = get_function_header(key, index, false)
 
     // Wasm Function
     let wasm_func = WFunction @[
@@ -94,13 +94,13 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
         ctx,
-        locals_provider: IdProvider::new(),
         locals: [],
-        bytecode: WasmEmitter::new(),
+        bytecode: emitter.new_child_emitter(),
     ]
     wasm_program.functions[] = wasm_func
 
@@ -114,7 +114,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
 
 fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, instance: NLambda, index: Id, lambda_index: Id) {
 //    Log::debug("Visiting function $key")
-    let header = get_function_header(key, index)
+    let header = get_function_header(key, index, false)
     // First argument is the lambda itself, this is implicit
     header.params.add_first(WType::I32)
 
@@ -128,13 +128,13 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
         ctx,
-        locals_provider: IdProvider::new(),
         locals: [],
-        bytecode: WasmEmitter::new(),
+        bytecode: emitter.new_child_emitter(),
     ]
     wasm_program.functions[] = wasm_func
 
@@ -152,11 +152,23 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
     let const_type = key.final_type
     let const_size = get_size_of(const_type)
     let const_init = false
-    let data: List<Byte> = List::new(const_size)
+    let data = ByteWriter::new()
+
+    let inst_opt: Optional<NInst> = None()
+
+    // Implicit return
+    if instance.code.inst_list.len == 1 {
+        inst_opt = Some(instance.code.inst_list.first()!!)
+    }
+
+    // Explicit return
+    if instance.code.inst_list.len == 2 && instance.code.inst_list[1]!!.kind is NInstKind::Return {
+        inst_opt = Some(instance.code.inst_list.first()!!)
+    }
 
     // Constant values that don't need to be initialized
-    if instance.code.inst_list.len == 1 {
-        let inst = instance.code.inst_list.first()!!
+    if inst_opt.is_some() {
+        let inst = inst_opt!!
 
         if inst.kind is NInstKind::Literal {
             let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
@@ -182,7 +194,7 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
                 }
                 expr is NConstExpr::NConstBoolean -> {
                     let value: Boolean = (expr as NConstExpr::NConstBoolean).value
-                    data[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }
+                    data.add_boolean(value)
                 }
                 expr is NConstExpr::NConstNothing -> {
                     // Nothing has 0 size
@@ -194,11 +206,11 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
 
     // Initialize data with 0x00
     if !const_init {
-        data.add_multiple_times(0x00.to_byte(), const_size)
+        data.add_pad(0x00.to_byte(), const_size)
     }
 
     // Allocate a memory section
-    let section = wasm_program.memory.add_section(data, "const ${instance.full_name}")
+    let section = wasm_program.memory.add_section(data.bytes, "const ${instance.full_name}")
 
     // Store the header for later use
     let wconst = WConst @[
@@ -235,13 +247,13 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
         constants: #[],
         ctx: root_ctx,
-        locals_provider: IdProvider::new(),
         locals: [],
-        bytecode: WasmEmitter::new(),
+        bytecode: emitter.new_child_emitter(),
     ]
     wasm_program.functions[] = wasm_func
 
@@ -258,7 +270,7 @@ fun WasmBackend.visit_import(ctx: TypeMappingCtx, instance: NFunction, lib: Stri
     }
 
     let index = import_indices.next()
-    let header = get_function_header(key, index)
+    let header = get_function_header(key, index, true)
 
     wasm_program.imports[] = WImport @[
         module_name: lib,
@@ -305,7 +317,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
                 wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: nvar_type]
             }
 
-            let wvar = if nvar.is_parameter {
+            let wvar = if nvar.is_parameter && !nvar.is_upvalue {
                 wasm_func.add_param(nvar.name, wasm_type)
             } else {
                 wasm_func.add_local(nvar.name, wasm_type)
@@ -439,7 +451,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 }
 
 fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
-    let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal2" }!!
+    let alloc_func = program.functions.find @{ it -> it.full_name == "memory_alloc_internal" }!!
     ret add_task_visit_function(ctx, alloc_func)
 }
 

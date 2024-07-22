@@ -1,0 +1,149 @@
+
+struct NOption {
+    id: Id
+    span: Span
+    annotations: List<NAnnotation>
+    path: String
+    name: String
+    generics: NGenericParams
+    items: List<NOptionItem>
+    full_name_cache: Optional<String>
+}
+
+struct NOptionItem {
+    span: Span
+    index: Int
+    parent: NOption
+    def: NStruct
+}
+
+
+fun NOption.get_full_name(): String {
+    if full_name_cache.is_some() {
+        ret full_name_cache!!
+    }
+
+    let full_name = Path::join(path, name)
+    full_name_cache = Some(full_name)
+    ret full_name
+}
+
+fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
+    for item in items {
+        if item.def.id == str.id {
+            ret Some(item.index)
+        }
+    }
+    ret None()
+}
+
+fun NOption.get_ordering(other: NOption): Ordering = this.id <=> other.id
+
+fun NOption.to_string(): String {
+    let prefix = ""
+
+    for a in annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let items_str = if items.len > 0 { "{\n" } else { "{" }
+
+    for item in items {
+        let line = item.to_string().indent(2)
+        items_str += "$line\n"
+    }
+    items_str = items_str + "}"
+    let full_name = Path::join(path, name)
+
+    ret "${prefix}option $full_name $items_str // $span"
+}
+
+fun NOptionItem.to_string(): String {
+    let prefix = ""
+
+    for a in def.annotations {
+        prefix = "$prefix$a\n"
+    }
+
+    let fields_str = if def.fields.len > 0 { "{\n" } else { "{" }
+
+    for field in def.fields {
+        fields_str += "  ${field.name}: ${field.type_usage}\n"
+    }
+    fields_str = fields_str + "}"
+
+    ret "${prefix}${def.name} $fields_str // $span"
+}
+
+fun ByteBuffer.serialize_option(value: NOption) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_int(value.annotations.len)
+    for a in value.annotations {
+        serialize_annotation(a)
+    }
+    write_string(value.path)
+    write_string(value.name)
+    serialize_generic_params(value.generics)
+    write_int(value.items.len)
+    for item in value.items {
+        serialize_option_item(item)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_option(program: Program): NOption {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+
+    let annotations = []
+    repeat read_int() {
+        annotations[] = deserialize_annotation()
+    }
+
+    let path = read_string()
+    let name = read_string()
+    let generics = deserialize_generic_params()
+
+    let opt = NOption @[id, span, annotations, path, name, generics, items: [], full_name_cache: None()]
+
+    repeat read_int() {
+        opt.items[] = deserialize_option_item(program, opt)
+    }
+
+    end_frame(frame)
+    ret opt
+}
+
+fun ByteBuffer.serialize_option_item(value: NOptionItem) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_int(value.index)
+    serialize_id(value.def.id)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_option_item(program: Program, parent: NOption): NOptionItem {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let index = read_int()
+    let struct_id = deserialize_id()
+    let def: Optional<NStruct> = None()
+
+    for s in program.structs {
+        if s.id == struct_id {
+            def = Some(s)
+            break
+        }
+    }
+
+    end_frame(frame)
+    ret NOptionItem @[
+        span,
+        index,
+        parent,
+        def: def!!,
+    ]
+}

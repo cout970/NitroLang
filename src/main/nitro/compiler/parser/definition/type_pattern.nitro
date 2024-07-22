@@ -26,21 +26,6 @@
 //     : LTH NL* typePattern (commaOrNl typePattern)* COMMA? NL* GTH ;
 //
 
-struct NTypePattern {
-    span: Span
-    kind: TypePatternKind
-    name: String
-    path: String
-    params: List<NTypePattern>
-    resolved: Optional<ResolvedTypePattern>
-}
-
-enum TypePatternKind {
-    TYPE_SIMPLE,
-    TYPE_PARAM,
-    TYPE_ANY,
-}
-
 fun Parser.read_type_pattern(): Parsed<NTypePattern> {
     let span = lexer.current_token_span
 
@@ -183,48 +168,4 @@ fun Parser.read_function_type_pattern_param(): Parsed<NTypePattern> {
     }
 
     ret read_type_pattern()
-}
-
-fun NTypePattern.get_ordering(other: NTypePattern): Ordering {
-    ret (kind <=> other.kind).with(name <=> other.name).with(path <=> other.path)
-}
-
-fun NTypePattern.get_hash(): Int {
-    let hash = kind.variant
-    hash = (hash * 31) + name.get_hash()
-    hash = (hash * 31) + path.get_hash()
-    ret hash
-}
-
-fun TypePatternKind.is_equal(other: TypePatternKind): Boolean = this.variant == other.variant
-
-fun NTypePattern.to_string(): String {
-    let s = ""
-
-    if kind == TypePatternKind::TYPE_PARAM {
-        ret "#$name"
-    }
-
-    if kind == TypePatternKind::TYPE_ANY {
-        ret this.name
-    }
-
-    if path != "" {
-        s = path + "::"
-    }
-
-    s = s + name
-
-    if params.len > 0 {
-        s = s + "<"
-        repeat params.len {
-            s += params[it]!!.to_string()
-            if it < limit - 1 {
-                s += ", "
-            }
-        }
-        s = s + ">"
-    }
-
-    ret s
 }

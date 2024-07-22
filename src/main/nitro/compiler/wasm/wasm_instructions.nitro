@@ -278,20 +278,29 @@ fun WasmEmitter.emit_opcode(op: WOpcode) {
 // Given a string, emit the opcode with the corresponding name,
 // this is used by functions annotated with WasmInline, i.e. `@WasmInline [opcode: "i32.add"]`
 fun WasmEmitter.emit_opcode_by_name(name: String) {
+    // Special cases
+    when name {
+        "memory.copy" -> {
+            add_memory_copy()
+            ret
+        }
+        "memory.fill" -> {
+            add_memory_fill()
+            ret
+        }
+        "i32.load" -> {
+            add_i32_load(0)
+            ret
+        }
+        "i32.store" -> {
+            add_i32_store(0)
+            ret
+        }
+    }
+
     for op in WOpcode::values() {
         if op.wat == name {
-
-            when op.variant {
-                WOpcode::I32Load.variant -> {
-                    add_i32_load(0)
-                }
-                WOpcode::I32Store.variant -> {
-                    add_i32_store(0)
-                }
-                else -> {
-                    emit_opcode(op)
-                }
-            }
+            emit_opcode(op)
 
             if debug_print {
                 debug_print_line("$name")

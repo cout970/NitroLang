@@ -3,17 +3,6 @@
 // constDefinition
 //     : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
 
-struct NConst {
-    id: Id
-    span: Span
-    path: String
-    name: String
-    type_usage: NTypeUsage
-    const_type: Optional<Type>
-    code: NCode
-    full_name_cache: Optional<String>
-}
-
 fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::LET)?
     let span = lexer.current_token_span
@@ -31,6 +20,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     let def = NConst @[
         id: id_provider.next(),
         span,
+        annotations,
         path,
         name,
         type_usage,
@@ -48,23 +38,4 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
     def.code.add_return(span, expr)
 
     ret found(nothing)
-}
-
-fun NConst.get_full_name(): String {
-    if full_name_cache.is_some() {
-        ret full_name_cache!!
-    }
-
-    let full_name = Path::join(path, name)
-    full_name_cache = Some(full_name)
-    ret full_name
-}
-
-
-fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
-
-fun NConst.to_string(): String {
-    let full_name = Path::join(path, name)
-
-    return "const $full_name: $type_usage = $code // $span"
 }

@@ -1,258 +1,45 @@
-// Example to test code generation and execution
 
-//struct Example {
-//    a: Int,
-//    b: Int,
-//}
-//
-//option AB {
-//    A {}
-//    B {}
-//}
+include "./includes.nitro"
+//include "./main.nitro"
 
-@Extern [lib: "core", name: "i32_store"]
-@WasmInline [opcode: "i32.store"]
-fun i32_store(ptr: Int, value: Int) {}
+type_alias Weight = Float
+type_alias Px = Int
+type_alias Em = Int
+type_alias Rem = Int
 
-@Extern [lib: "core", name: "i32_load"]
-@WasmInline [opcode: "i32.load"]
-fun i32_load(ptr: Int): Int {}
+let total_weight: Weight = 100.0
+let size: Px = 16
 
-fun main() {
-//    if false {
-//        println(1)
-//    } else {
-//        println(0)
-//    }
-//
-//    if true {
-//        println(2)
-//    }
-//
-//    println(if true { 1 } else { 0 })
-//
-//    let a = 5
-//    loop {
-//        if 0.is_equal(a) {
-//            break
-//        }
-//
-//        println(a)
-//        a -= 1
-//    }
-//
-//    when true {
-//        true -> println(1)
-//        false -> println(0)
-//    }
-//    when {
-//        true -> println(1)
-//        else -> println(0)
-//    }
-//
-//    println(when {
-//        false -> 1
-//        else -> 0
-//    })
-//
-//    let example = Example @[a: 1, b: 2]
-//    println(example.a)
-//    println(example.b)
-//
-//    println("Hello world!")
-//
-//    println(second_function(3))
-//
-//    println("---")
-//    println(1)
-//    println(1L)
-//    println(true)
-//    println(false)
-//    println(3.14f)
-//    println(nothing)
-//
-//    println(size_of<Nothing>())
-//    println(size_of<Boolean>())
-//    println(size_of<Int>())
-//    println(size_of<Long>())
-//
-//    let ab = AB::A @[]
-//
-//    println(ab is AB::A)
-//    println(ab is AB::B)
-//    println(ab is AB)
-//
-//    println(is_int(42))
-//    println(is_int(42f))
-//    println(is_int("42"))
-//    println(two_args(42, 69L))
-//
-//    let res = give_me_lambda @{ it: Int ->
-//        println("Hello from lambda!")
-//        println(it)
-//        ret it + 27
-//    }
-//
-//    println(res)
-//
-//    let a = 0
-//    let b = 1
-//
-//    repeat 3 {
-//        update_upvalue @{ c: Float, d: Long ->
-//            println(a)
-//            println(b)
-//            a += c.to_int()
-//            b += d.to_int()
-//            println(a)
-//            println(b)
-//        }
-//
-//        println(a)
-//        println(b)
-//    }
-//
-//    let array = Array::new<Long>(10)
-//
-//    repeat 10 {
-//        array[it] = (5 * it * it * it * it * it * 2).to_long()
-//    }
-//
-//    repeat array.len {
-//        println(array[it])
-//    }
-//
-//    println("---")
-//
-//    array.fill(-1L)
-//
-//    repeat array.len {
-//        println(array[it])
-//    }
-//
-//    memory_alloc_internal(0)
-//    println(2 * 3 * 4 * 5 * 6 * 7)
-//    println(1.get_ordering(2))
-
-//    println("test")
-//    println("test".bytes_len)
-//    println(a)
-//    println(Ordering::Less.to_string())
-//    println(Ordering::Equals.to_string())
-//    println(Ordering::Greater.to_string())
-
-//    println(a > 1)
-//    println(a == 42)
-//    println(a < 50)
-//    List::new<Int>().test()
-//    List::new<Float>().test2()
-//
-
-//    let list: List<List<Int>> = [
-//        [1, 2, 3]
-//        [4, 5, 6]
-//        [7, 8, 9]
-//    ]
-//
-//    println(list)
-//
-//    let map: Map<String, Int> = #[
-//        "0": 0,
-//        "1": 1,
-//        "2": 2,
-//    ]
-//
-//    println(map)
-
-//    println([
-//        #[test: 1890],
-//        #[test2: 2890],
-//        #[test3: 3890],
-//        #[test4: 1234],
-//    ])
-
-//    let map: Map<String, Int> = #["test3": 1, "list": 2]
-//    for entry in map {
-//        println(entry.first)
-//        println(entry.second)
-//    }
-
-    let a = 0
-    println("main: $a")
-    a = 42
-    println("main: $a")
-
-    let lambda1: () -> Nothing = @{
-        println("lambda1: $a")
-        a = 69
-        println("lambda1: $a")
-//        println("Hello from lambda1!")
-
-        let lambda2: () -> Nothing = @{
-            println("lambda2: $a")
-            a = 420
-            println("lambda2: $a")
-//            println("Hello from lambda2!")
-        }
-
-        lambda2()
-        println("lambda1: $a")
-    }
-
-//    println("Hello from main!")
-
-    lambda1()
-    println("main: $a")
-
-
-//    println(a)
+tag Test {
+    fun do_test1(): Int
+    fun do_test2(): Int
 }
 
-//tag HasTestFunctions2 {
-//    fun List<This>.test(): List<This>
-//    fun List<This>.test2(): List<This>
-//    fun List<This>.test3(): List<This>
-//}
-//
-//fun List<#T>.test(): List<#T> = this
-//fun List<#T>.test2(): List<#T> = this
-//fun List<Int>.test3(): List<Int> = this
-//
-//fun <#T: tag HasTestFunctions2> passes_the_test(arg: List<#T>): Boolean = arg is List<List<Int>>
-//
-//fun main() {
-//    println(passes_the_test(List::new<List<Int>>()))      // -> true
-////    println(passes_the_test(List::new<List<Float>>()))    // -> Error: Type List<Float> does not implement tag HasTestFunctions2
-//}
+fun main() {
+    println("Start")
+    test_serialization()
+    println("End")
+}
 
-//let a: Int = 42
+fun test_serialization() {
+    let file_path = FilePath::new("cache/nitro_compiler_example.bin")
+    let bytes: Array<Byte> = file_path.unsafe_debug_read_bytes()
+    let bytes_list = List @[
+        capacity: bytes.len,
+        count: bytes.len,
+        items: bytes
+    ]
+    let buffer = ByteBuffer::new(bytes_list)
+    buffer.start_read()
 
-//tag MapKey2 {
-//    fun This.get_hash(): Int
-//    fun This.get_ordering(other: This): Ordering
-//}
-//
-//tag ToString2 {
-//    fun This.to_string(): String
-//}
+    // Header
+    let cache_version = buffer.reader.read_int_be()
+    let cache_time = buffer.reader.read_int_be()
+    let cache_crc = buffer.reader.read_int_be()
+    let cache_last_modified = buffer.reader.read_int_be()
 
-//fun update_upvalue(l: (Float, Long) -> Nothing) {
-//    l.call(100f, 1000L)
-//}
+    // Contenido
+    let sub_program = buffer.deserialize_program()
 
-//fun give_me_lambda(l: (Int) -> Int): Int {
-//    ret l.call(42)
-//}
-//
-//fun two_args(a: Int, b: Long): Float {
-//    ret 1f
-//}
-//
-//fun <#T> is_int(a: #T): Boolean {
-//    ret a is Int
-//}
-//
-//fun second_function(arg: Float): Int {
-//    ret arg.to_int()
-//}
-//
+    println(sub_program)
+}

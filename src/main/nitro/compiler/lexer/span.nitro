@@ -12,8 +12,8 @@ fun Span::new(start: Int, len: Int, source: String, file: String): Span {
     ret Span @[
         start, len,
         source, file,
-        lazy_line: None<Int>(),
-        lazy_column: None<Int>(),
+        lazy_line: None(),
+        lazy_column: None(),
     ]
 }
 
@@ -113,3 +113,25 @@ fun Span.get_ordering(other: Span): Ordering {
 }
 
 fun Span.get_hash(): Int = start ^ file.get_hash()
+
+fun ByteBuffer.serialize_span(value: Span) {
+    write_int(3)
+    write_int(value.start)
+    write_int(value.len)
+    write_string(value.file)
+}
+
+fun ByteBuffer.deserialize_span(): Span {
+    if read_int() != 3 {
+        crash("Invalid version")
+    }
+
+    ret Span @[
+        start: read_int(),
+        len: read_int(),
+        source: ""
+        file: read_string(),
+        lazy_line: None(),
+        lazy_column: None(),
+    ]
+}

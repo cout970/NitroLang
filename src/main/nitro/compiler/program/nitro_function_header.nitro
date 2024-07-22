@@ -24,8 +24,8 @@ option NFunCallTarget {
 
 fun NFunCallTarget.get_header(): NFunctionHeader {
     ret when {
-        this is NFunCallTarget::Func -> ret (this as NFunCallTarget::Func).header
-        this is NFunCallTarget::Tag -> ret (this as NFunCallTarget::Tag).header
+        this is NFunCallTarget::Func -> (this as NFunCallTarget::Func).header
+        this is NFunCallTarget::Tag -> (this as NFunCallTarget::Tag).header
         else -> unreachable()
     }
 }
@@ -124,3 +124,50 @@ fun NTypeUsage::get_key(type_usage: NTypeUsage, generics: NGenericParams): Strin
 }
 
 fun NFunctionHeader.to_string(): String = key
+
+fun ByteBuffer.serialize_function_header(value: NFunctionHeader) {
+    let frame = start_frame(true)
+    write_string(value.key)
+    serialize_span(value.span)
+    serialize_generic_params(value.generics)
+    write_boolean(value.has_receiver)
+    write_string(value.path)
+    write_string(value.name)
+    write_int(value.parameters.len)
+    for p in value.parameters {
+        serialize_function_parameter(p)
+    }
+    serialize_type_usage(value.return_type_usage)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_function_header(): NFunctionHeader {
+    let frame = start_frame(false)
+    let key = read_string()
+    let span = deserialize_span()
+    let generics = deserialize_generic_params()
+    let has_receiver = read_boolean()
+    let path = read_string()
+    let name = read_string()
+    let parameters = []
+    repeat read_int() {
+        parameters[] = deserialize_function_parameter()
+    }
+    let return_type_usage = deserialize_type_usage()
+    let return_type = None()
+
+    let value = NFunctionHeader @[
+        key,
+        span,
+        generics,
+        has_receiver,
+        path,
+        name,
+        parameters,
+        return_type_usage,
+        return_type,
+    ]
+
+    end_frame(frame)
+    ret value
+}

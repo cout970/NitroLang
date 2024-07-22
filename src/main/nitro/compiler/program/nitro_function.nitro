@@ -78,7 +78,30 @@ fun NFunction.to_string(): String {
         args += "${p.name}: ${p.type_usage}"
     }
 
-    return "${prefix}fun $full_name($args): ${header.return_type_usage} $code // $span"
+    return "${prefix}${header.to_pretty_string()} $code // $span"
+}
+
+fun NFunctionHeader.to_pretty_string(): String {
+    let str = StringBuilder::new()
+    let full_name = Path::join(path, name)
+
+    str[] = "fun "
+    str[] = full_name
+    str[] = "("
+
+    let args = ""
+    for p in parameters {
+        if !args.is_empty() {
+            str[] = ", "
+        }
+        str[] = p.name
+        str[] = ": "
+        str[] = p.type_usage
+    }
+    str[] = "): "
+    str[] = return_type_usage
+
+    return str.to_string()
 }
 
 struct ExternAnnotation {
@@ -86,6 +109,8 @@ struct ExternAnnotation {
     name: String
     autogenerate: Boolean
 }
+
+fun NFunction.is_extern(): Boolean = get_extern_annotation().is_some()
 
 fun NFunction.get_extern_annotation(): Optional<ExternAnnotation> {
     let extern_annotation = get_annotation("Extern")
@@ -120,4 +145,67 @@ fun NFunction.get_extern_annotation(): Optional<ExternAnnotation> {
         name: name_str!!,
         autogenerate,
     ])
+}
+
+fun ByteBuffer.serialize_function(value: NFunction) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_int(value.annotations.len)
+    for a in value.annotations {
+        serialize_annotation(a)
+    }
+    serialize_function_header(value.header)
+//    serialize_code(value.code)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_function(): NFunction {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let annotations = []
+    repeat read_int() {
+        annotations[] = deserialize_annotation()
+    }
+    let header = deserialize_function_header()
+
+    let full_name = header.full_name
+    let value = NFunction @[
+        id,
+        span,
+        annotations,
+        header,
+        code: NCode::new(span, full_name),
+        full_name,
+    ]
+
+    end_frame(frame)
+    ret value
+}
+
+fun ByteBuffer.serialize_function_parameter(value: NFunctionParameter) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_string(value.name)
+    serialize_type_usage(value.type_usage)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_function_parameter(): NFunctionParameter {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let name = read_string()
+    let type_usage = deserialize_type_usage()
+    let param_type = None()
+
+    let value = NFunctionParameter @[
+        span,
+        name,
+        type_usage,
+        param_type,
+    ]
+
+    end_frame(frame)
+    ret value
 }

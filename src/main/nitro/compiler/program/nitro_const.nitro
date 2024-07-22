@@ -1,0 +1,66 @@
+
+struct NConst {
+    id: Id
+    span: Span
+    annotations: List<NAnnotation>
+    path: String
+    name: String
+    type_usage: NTypeUsage
+    const_type: Optional<Type>
+    code: NCode
+    full_name_cache: Optional<String>
+}
+
+fun NConst.get_full_name(): String {
+    if full_name_cache.is_some() {
+        ret full_name_cache!!
+    }
+
+    let full_name = Path::join(path, name)
+    full_name_cache = Some(full_name)
+    ret full_name
+}
+
+
+fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
+
+fun NConst.to_string(): String {
+    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
+    let full_name = Path::join(path, name)
+
+    return "${prefix}const $full_name: $type_usage = $code // $span"
+}
+
+fun ByteBuffer.serialize_const(value: NConst) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    write_string(value.path)
+    write_string(value.name)
+    serialize_type_usage(value.type_usage)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_const(): NConst {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let path = read_string()
+    let name = read_string()
+    let type_usage = deserialize_type_usage()
+
+    let value = NConst @[
+        id,
+        span,
+        annotations: [],
+        path,
+        name,
+        type_usage,
+        const_type: None(),
+        code: NCode::new(span, Path::join(path, name)),
+        full_name_cache: None()
+    ]
+
+    end_frame(frame)
+    ret value
+}

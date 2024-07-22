@@ -3,16 +3,6 @@
 // aliasDefinition
 //     : ALIAS anyName typeParamsDef? ASSIGN typeUsage;
 
-struct NTypeAlias {
-    span: Span
-    annotations: List<NAnnotation>
-    path: String
-    name: String
-    type_usage: NTypeUsage
-    alias_type: Optional<Type>
-    generics: NGenericParams
-}
-
 fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
     skip_token_kind(TokenKind::TYPE_ALIAS)?
     let span = lexer.current_token_span
@@ -35,18 +25,12 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
         annotations,
         path,
         name,
-        type_usage,
         generics,
+        type_usage,
         alias_type: None(),
     ]
 
     program.type_aliases[] = def
 
     ret found(nothing)
-}
-
-fun NTypeAlias.to_string() -> String {
-    let full_name = Path::join(path, name)
-
-    return "typealias $full_name$generics = $type_usage // $span"
 }

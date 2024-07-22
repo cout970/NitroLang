@@ -10,15 +10,10 @@ struct Program {
     options: List<NOption>
     includes: List<NInclude>
     type_aliases: List<NTypeAlias>
-    modules: List<NModule>
     tags: List<NTag>
     consts: List<NConst>
     functions: List<NFunction>
-    lambda_functions: List<NLambda>
-    all_function_signatures: List<NFunctionSignature>
 }
-
-struct NFunctionSignature {}
 
 fun Program::new(): Program {
     ret Program @[
@@ -29,12 +24,9 @@ fun Program::new(): Program {
         options: [],
         includes: [],
         type_aliases: [],
-        modules: [],
         tags: [],
         consts: [],
         functions: [],
-        lambda_functions: [],
-        all_function_signatures: [],
     ]
 }
 
@@ -45,10 +37,166 @@ fun Program.extend_with(other: Program) {
     this.options.add_all(other.options)
     this.includes.add_all(other.includes)
     this.type_aliases.add_all(other.type_aliases)
-    this.modules.add_all(other.modules)
     this.tags.add_all(other.tags)
     this.consts.add_all(other.consts)
     this.functions.add_all(other.functions)
-    this.lambda_functions.add_all(other.lambda_functions)
-    this.all_function_signatures.add_all(other.all_function_signatures)
+}
+
+fun Program.to_string(): String {
+    let sb = StringBuilder::new()
+    sb[] = "Program {\n"
+    sb[] = "  id_provider: ${id_provider}\n"
+    sb[] = "  test_id_provider: ${test_id_provider}\n"
+    sb[] = "  declared_names: ${declared_names}\n"
+    sb[] = "  structs:\n"
+    for s in structs {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  options:\n"
+    for s in options {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  includes:\n"
+    for s in includes {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  type_aliases:\n"
+    for s in type_aliases {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  tags:\n"
+    for s in tags {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  consts:\n"
+    for s in consts {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  functions:\n"
+    for s in functions {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "}"
+    ret sb.to_string()
+}
+
+fun ByteBuffer.serialize_program(program: Program) {
+    let frame = start_frame(true)
+    serialize_id_provider(program.id_provider)
+    serialize_id_provider(program.test_id_provider)
+
+    write_int(program.declared_names.len)
+    for entry in program.declared_names {
+        write_string(entry.first)
+        serialize_span(entry.second)
+    }
+
+    write_int(program.structs.len)
+    for s in program.structs {
+        serialize_struct(s)
+    }
+
+    write_int(program.options.len)
+    for s in program.options {
+        serialize_option(s)
+    }
+
+    write_int(program.includes.len)
+    for s in program.includes {
+        serialize_include(s)
+    }
+
+    write_int(program.type_aliases.len)
+    for s in program.type_aliases {
+        serialize_type_alias(s)
+    }
+
+    write_int(program.tags.len)
+    for s in program.tags {
+        serialize_tag(s)
+    }
+
+    write_int(program.consts.len)
+    for s in program.consts {
+        serialize_const(s)
+    }
+
+    write_int(program.functions.len)
+    for s in program.functions {
+        serialize_function(s)
+    }
+
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_program(): Program {
+    let frame = start_frame(false)
+
+    let id_provider = deserialize_id_provider()
+    let test_id_provider = deserialize_id_provider()
+
+    let declared_names = #[]
+    repeat read_int() {
+        let key = read_string()
+        let value = deserialize_span()
+        declared_names[key] = value
+    }
+
+    let program =  Program @[
+        id_provider,
+        test_id_provider,
+        declared_names,
+        structs: [],
+        options: [],
+        includes: [],
+        type_aliases: [],
+        tags: [],
+        consts: [],
+        functions: [],
+    ]
+
+    repeat read_int() {
+        program.structs[] = deserialize_struct()
+    }
+
+    repeat read_int() {
+        program.options[] = deserialize_option(program)
+    }
+
+    repeat read_int() {
+        program.includes[] = deserialize_include()
+    }
+
+    repeat read_int() {
+        program.type_aliases[] = deserialize_type_alias()
+    }
+
+    repeat read_int() {
+        program.tags[] = deserialize_tag()
+    }
+
+    repeat read_int() {
+        program.consts[] = deserialize_const()
+    }
+
+    repeat read_int() {
+        program.functions[] = deserialize_function()
+    }
+
+    end_frame(frame)
+    ret program
 }

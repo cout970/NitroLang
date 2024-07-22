@@ -59,8 +59,6 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
         ctx: None(),
     ]
 
-    program.lambda_functions[] = lambda
-
     // Parameter definition
     read_lambda_header(lambda)?
 

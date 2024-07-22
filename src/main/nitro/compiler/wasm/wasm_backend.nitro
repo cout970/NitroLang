@@ -39,7 +39,7 @@ option CompilationTask {
 
 fun WasmBackend::new(reporter: Reporter, program: Program): WasmBackend {
     let final_types = FinalTypeContainer::new()
-    ret WasmBackend @[
+    let back =  WasmBackend @[
         reporter,
         program,
         wasm_program: WasmProgram::new(),
@@ -55,6 +55,8 @@ fun WasmBackend::new(reporter: Reporter, program: Program): WasmBackend {
         already_visited: #[],
         root_ctx: TypeMappingCtx::new(final_types, Span::none())
     ]
+    back.emitter.backend = Some(back)
+    ret back
 }
 
 fun WasmBackend.compile_program() {
@@ -72,15 +74,14 @@ fun WasmBackend.compile_program() {
     }
 
     // Init memory
-    let null_value: List<Byte> = []
-    null_value.add_int_le(0)
+    let null_value: List<Byte> = [0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte()]
     wasm_program.memory.add_section(null_value, "Null value")
 
     // Allocate space for the memory management struct
     // capacity: Int, len: Int, data: Ptr<Byte>
-    let memory: List<Byte> = []
-    memory.add_multiple_times(0x00.to_byte(), 12)
-    let memory_management_section = wasm_program.memory.add_section(memory, "Memory instance")
+    let memory = ByteWriter::new()
+    memory.add_pad(0x00.to_byte(), 12)
+    let memory_management_section = wasm_program.memory.add_section(memory.bytes, "Memory instance")
 
     // Do dead code elimination and monomorphization by traversing the program from the main function
     wasm_program.start = Some(visit_program(main!!))
@@ -132,14 +133,14 @@ fun WasmBackend.compile_program() {
     // capacity: total size - allocated size
     let heap_start = WasmBackend::pad(wasm_program.memory.offset + 4)
     let capacity = wasm_program.memory.size - heap_start - 4 /* capacity of Array 'data' */
-    memory.clear()
+    memory.bytes.clear()
     memory.add_int_le(0)
     memory.add_int_le(heap_start)
     memory.add_int_le(capacity)
 
-    let capacity_section = []
+    let capacity_section = ByteWriter::new()
     capacity_section.add_int_le(capacity)
-    wasm_program.memory.add_section(capacity_section, "Memory capacity")
+    wasm_program.memory.add_section(capacity_section.bytes, "Memory capacity")
 
     // Functions must in be ordered by index in the wasm binary
     wasm_program.functions.sort_in_place()
@@ -176,7 +177,7 @@ fun WasmBackend.get_key_for_const(instance: NConst): MonomorphizationKey {
     ]
 }
 
-fun WasmBackend.get_function_header(key: MonomorphizationKey, index: Id): WFunctionHeader {
+fun WasmBackend.get_function_header(key: MonomorphizationKey, index: Id, is_import: Boolean): WFunctionHeader {
     // Function header
     let header = WFunctionHeader @[
         index,
@@ -190,18 +191,18 @@ fun WasmBackend.get_function_header(key: MonomorphizationKey, index: Id): WFunct
 
     // Params
     repeat params.len - 1 {
-        encode_final_type(params[it]!!, header.params)
+        encode_final_type(params[it]!!, header.params, is_import)
     }
 
     // Results
-    encode_final_type(params.last()!!, header.results)
+    encode_final_type(params.last()!!, header.results, false)
 
     ret header
 }
 
 fun WasmBackend.get_indirect_function_header(final_type: FinalType): WFunctionHeader{
     let key = MonomorphizationKey @[name: "Function", final_type]
-    let header = get_function_header(key, Id::uninitialized())
+    let header = get_function_header(key, Id::uninitialized(), false)
 
     // Implicit `self` argument, used to store the indirect function pointer and upvalues
     header.params.add_first(WType::I32)
@@ -212,11 +213,14 @@ fun WasmBackend.get_indirect_function_header(final_type: FinalType): WFunctionHe
 
 // Given a final type, i.e. List<Int>, store in [list] the wasm type (i32, f32, etc.) that
 // will store a pointer to the value, for Int/Float/Long, store the type itself
-fun WasmBackend.encode_final_type(final_type: FinalType, list: List<WType>) {
+fun WasmBackend.encode_final_type(final_type: FinalType, list: List<WType>, is_import: Boolean) {
     let size = get_size_of(final_type)
 
     // Zero size types
     if size == 0 {
+        if is_import {
+            list[] = WType::I32
+        }
         ret
     }
 
@@ -238,7 +242,7 @@ fun WasmBackend.encode_final_type(final_type: FinalType, list: List<WType>) {
 
 fun WasmBackend.encode_to_wasm_type(final_type: FinalType): WType {
     let result = []
-    encode_final_type(final_type, result)
+    encode_final_type(final_type, result, false)
 
     if result.is_empty() {
         ret WType::I32
@@ -455,23 +459,21 @@ fun WasmBackend.push_string(value: String): Int {
     //     hash_cache: Int
     // }
     let struct_size = STRUCT_HEADER_SIZE + INT_SIZE + PTR_SIZE + INT_SIZE
-    let instance = List::new<Byte>(struct_size)
-    instance.add_multiple_times(0x00.to_byte(), STRUCT_HEADER_SIZE)
+    let instance = ByteWriter::new()
+    instance.add_pad(0x00.to_byte(), STRUCT_HEADER_SIZE)
     instance.add_int_le(value.bytes_len)
     instance.add_int_le(wasm_program.memory.offset + struct_size)
     instance.add_int_le(-1)
 
-    let instance_sec = wasm_program.memory.add_section(instance, "String instance")
+    let instance_sec = wasm_program.memory.add_section(instance.bytes, "String instance")
 
-    let contents = List::new<Byte>(value.bytes_len)
+    let contents = ByteWriter::new()
     // Array length
     contents.add_int_le(value.bytes_len)
     // Array contents
-    repeat value.bytes_len {
-        contents[] = value.get_byte(it)
-    }
+    contents.add_string_utf8_without_size(value)
 
-    wasm_program.memory.add_section(contents, "String contents")
+    wasm_program.memory.add_section(contents.bytes, "String contents")
 
     // Return the pointer to the string
     ret instance_sec.offset

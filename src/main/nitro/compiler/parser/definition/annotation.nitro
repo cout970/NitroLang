@@ -13,18 +13,6 @@
 //        | PLAIN_STRING
 //        ;
 
-struct NAnnotation {
-    span: Span
-    name: String
-    args: List<NAnnotationArg>
-}
-
-struct NAnnotationArg {
-    span: Span
-    key: String
-    value: NConstExpr
-}
-
 // Parse a single annotation
 fun Parser.read_annotation(): Parsed<NAnnotation> {
     let span = lexer.current_token_span
@@ -78,29 +66,4 @@ fun Parser.read_const_string(): Parsed<String> {
         TokenKind::IDENTIFIER -> read_name()
         else -> parse_error(ParseError::ExpectedConstName, lexer.current_token)
     }
-}
-
-fun NAnnotation.get_arg(name: String): Optional<NConstExpr> {
-    for arg in args {
-        if arg.key == name {
-            ret Some(arg.value)
-        }
-    }
-
-    ret None()
-}
-
-fun NAnnotation.to_string(): String {
-    let s = "@$name"
-
-    if args.len > 0 {
-        s += " @[\n"
-
-        for arg in args {
-            s += "  ${arg.key}: ${arg.value},\n"
-        }
-        s += "]"
-    }
-
-    ret s
 }
