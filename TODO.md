@@ -53,6 +53,10 @@ Intended for the developers
 - Add reference-count garbage collector
 - Add option to disable GC on specific instances
 - Implement merge sort
+- Prefix 'B'/'b' for byte literals
+- Add Short and prefix 'S'/'s' for short literals
+- Change Some/None to Ok/Err to lowercase
+- Check nested ret if ... { ret if ... { ret if ... {} } }
 
 ### Known Bugs
 
