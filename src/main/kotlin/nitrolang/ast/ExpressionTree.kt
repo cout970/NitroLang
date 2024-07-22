@@ -83,24 +83,28 @@ sealed class ExpressionTree {
         LESS_THAN(
             "<", 10, "get_ordering", "is_less", mapOf(
                 "Int" to "less_than_signed",
+                "Long" to "less_than_signed",
                 "Float" to "less_than",
             )
         ),
         GREATER_THAN(
             ">", 10, "get_ordering", "is_greater", mapOf(
                 "Int" to "greater_than_signed",
+                "Long" to "greater_than_signed",
                 "Float" to "greater_than",
             )
         ),
         LESS_EQUAL(
             "<=", 10, "get_ordering", "is_less_or_equals", mapOf(
                 "Int" to "less_equal_signed",
+                "Long" to "less_equal_signed",
                 "Float" to "less_equal",
             )
         ),
         GREATER_EQUAL(
             ">=", 10, "get_ordering", "is_greater_or_equals", mapOf(
                 "Int" to "greater_equal_signed",
+                "Long" to "greater_equal_signed",
                 "Float" to "greater_equal",
             )
         ),
@@ -108,6 +112,7 @@ sealed class ExpressionTree {
         EQUAL(
             "==", 12, "get_ordering", "is_equals", mapOf(
                 "Int" to "is_equal",
+                "Long" to "is_equal",
                 "Float" to "is_equal",
                 "String" to "is_equal",
             )
@@ -115,6 +120,7 @@ sealed class ExpressionTree {
         NOT_EQUAL(
             "!=", 12, "get_ordering", "is_not_equals", mapOf(
                 "Int" to "is_not_equal",
+                "Long" to "is_not_equal",
                 "Float" to "is_not_equal",
                 "String" to "is_not_equal",
             )

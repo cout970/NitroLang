@@ -136,11 +136,7 @@ data class CompilerOptions(
                         }
 
                         args[i].split(',').map { it.trim() }.forEach { path ->
-                            if (File(path).exists()) {
-                                opt.listenChangesToExecute.add(path)
-                            } else {
-                                println("Watch path does not exist: $path")
-                            }
+                            opt.listenChangesToExecute.add(path)
                         }
                         i++
                     }
@@ -228,17 +224,18 @@ data class CompilerOptions(
         fun showUsage() {
             println("Usage: nitro [options] main.nitro")
             println("Options:")
-            println("  -o, --output <file>          Output file")
-            println("  -i, --include <file>         Includes a file to the compilation unit")
-            println("  -n, --namespace <ns>:<file>  Add an alias to a folder to use in includes")
-            println("  -t, --test                   Run tests")
-            println("  -w, --watch <dir>[,<dir2>]   Watch directories for changes")
-            println("  -e, --execute                Execute the compiled program")
-            println("  -s, --server                 Start a server at <ip>:<port> (or just <port>)")
-            println("  --profile                    Show profiling information")
-            println("  --dump-ir                    Dump IR")
-            println("  --dump-wasm                  Dump WASM")
-            println("  -h, --help                   Show this help")
+            println("  -o, --output <file>         Output file")
+            println("  -i, --include <file>        Includes a file to the compilation unit")
+            println("  -n, --namespace <ns>:<file> Add an alias to a folder to use in includes")
+            println("  -t, --test                  Run tests")
+            println("  -w, --watch <dir>[,<dir2>]  Watch directories/files for changes")
+            println("  -x, --exec-watch <patterns> Just rerun if the change matches the pattern")
+            println("  -e, --execute               Execute the compiled program")
+            println("  -s, --server                Start a server at <ip>:<port> (or just <port>)")
+            println("  --profile                   Show profiling information")
+            println("  --dump-ir                   Dump IR")
+            println("  --dump-wasm                 Dump WASM")
+            println("  -h, --help                  Show this help")
         }
     }
 }

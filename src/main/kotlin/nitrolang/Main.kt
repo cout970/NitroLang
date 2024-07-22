@@ -41,7 +41,7 @@ fun main(args: Array<String>) {
     }
 
     // Listen to changes
-    val allPaths = opts.listenChangesToCompile + opts.listenChangesToExecute
+    val allPaths = opts.listenChangesToCompile
     if (allPaths.isNotEmpty()) {
         val paths: MutableList<Path> = mutableListOf(
             File(opts.source).absoluteFile.parentFile.toPath()
@@ -52,7 +52,7 @@ fun main(args: Array<String>) {
 
         watchFolderForChanges(paths) { path ->
             val fileName = path.fileName.toString()
-            val exec = opts.listenChangesToExecute.any { path.absolutePathString().endsWith(it) }
+            val exec = opts.listenChangesToExecute.any { path.absolutePathString().matches(Regex(it)) }
 
             if (exec && opts.execute && File(opts.output).exists()) {
                 println("Executing $fileName")
@@ -359,11 +359,11 @@ fun watchFolderForChanges(dirs: List<Path>, callback: (Path) -> Unit) {
 
             @Suppress("UNCHECKED_CAST")
             val ev = event as WatchEvent<Path>
-            val filename = ev.context()
             val parentDirectory = watchKey.watchable() as Path
-            val fullPath = parentDirectory.resolve(filename)
+            val fullPath = parentDirectory.resolve(ev.context())
+            val filename = ev.context().toString()
 
-            if (filename.name.endsWith('~')) {
+            if (filename.endsWith(".bin") || filename.endsWith(".wasm") || filename.endsWith(".wat") || filename.endsWith(".json") || filename.endsWith("~")) {
                 return@forEach
             }
 

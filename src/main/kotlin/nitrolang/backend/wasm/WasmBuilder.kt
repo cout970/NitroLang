@@ -56,8 +56,7 @@ open class WasmBuilder(
                 start.instructions += WasmInst("i32.store")
             } else {
                 start.instructions += WasmInst("i32.const ${mono.size}")
-                start.instructions += WasmInst("call \$memory_copy_internal")
-                start.instructions += WasmInst("drop")
+                start.instructions += WasmInst("memory.copy")
             }
         }
 
@@ -247,8 +246,19 @@ open class WasmBuilder(
 
         // Just a wasm opcode
         if (opcode != null) {
+            if (inst.usesImplicitThis != null) {
+                val thisVar = mono.variableMap[inst.usesImplicitThis!!.ref]!!
+                mono.instructions += MonoLoadVar(mono.nextId(), inst.span, thisVar)
+            }
+
             inst.arguments.forEach { ref -> root!!.consumer(inst.span, ref) }
             mono.instructions += MonoInline(mono.nextId(), inst.span, opcode.value)
+
+            // Special case, no drop needed
+            if (opcode.value == "memory.copy") {
+                return true
+            }
+
             root!!.provider(inst.span, inst.ref, finalType)
             return true
         }
@@ -324,7 +334,13 @@ open class WasmBuilder(
             }
 
             is MonoFunCall -> {
-                wasmFunc.instructions += WasmInst("call ${inst.function.finalName}")
+                if (inst.function.name == "memory_copy_internal") {
+                    wasmFunc.instructions += WasmInst("memory.copy")
+                    // Avoid error with the following instruction, which is a `drop`
+                    wasmFunc.instructions += WasmInst("i32.const 0")
+                } else {
+                    wasmFunc.instructions += WasmInst("call ${inst.function.finalName}")
+                }
             }
 
             is MonoInline -> {
