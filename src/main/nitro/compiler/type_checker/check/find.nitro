@@ -1,5 +1,5 @@
 
-fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, inst_id: NInstId): Optional<NVar> {
+fun TypeChecker.find_variable(name: String, code: NCode, block_id: NBlockId, inst_id: NInstId): Optional<NVar> {
     let block = code.find_block(block_id)
     let depth = block.depth
     let index_opt = code.index_of_inst(inst_id)
@@ -45,7 +45,7 @@ fun TypeChecker.find_variable(code: NCode, name: String, block_id: NBlockId, ins
         let parent_block = code.parent_block!!
         let parent_inst = code.parent_inst!!
 
-        let opt = find_variable(parent_code, name, parent_block, parent_inst)
+        let opt = find_variable(name, parent_code, parent_block, parent_inst)
 
         if opt.is_some() {
             check_upvalue(opt!!, code)

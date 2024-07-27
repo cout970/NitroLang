@@ -1,9 +1,13 @@
+
+fun TypeChecker.check_tag_pre(tag_instance: NTag) {
+    tag_instances[tag_instance.name] = tag_instance
+}
+
 fun TypeChecker.check_tag(tag_instance: NTag) {
     let all_set = Set::new<ResolvedTypePattern>()
 
     for tag_func in tag_instance.functions {
         let targets: List<NFunCallTarget> = function_lookup[tag_func.header.full_name]
-
         for target in targets {
             if target !is NFunCallTarget::Func {
                 continue
@@ -129,13 +133,9 @@ fun TypeChecker.tag_matches_type(left: Type, right: Type, tag_instance: NTag): O
         ret None()
     }
 
-    let right_tag_instance = generic.bounds.first()!!.tag_instance
+    let right_tag = tag_instances[generic.bounds.first()!!.name]!!
 
-    if right_tag_instance.is_none() {
-        ret None()
-    }
-
-    if right_tag_instance!! != tag_instance {
+    if right_tag != tag_instance {
         ret None()
     }
 

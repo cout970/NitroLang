@@ -33,6 +33,10 @@ fun Span.calculate_line_number() {
     let column = 1
     let i = 0
 
+    if source == "" {
+        source = FilePath::new(file).read_text()!!
+    }
+
     while i < start {
         if source.get_byte(i).to_int() == a"\n" {
             line += 1
@@ -115,18 +119,16 @@ fun Span.get_ordering(other: Span): Ordering {
 fun Span.get_hash(): Int = start ^ file.get_hash()
 
 fun ByteBuffer.serialize_span(value: Span) {
-    write_int(3)
+    let frame = start_frame(true)
     write_int(value.start)
     write_int(value.len)
     write_string(value.file)
+    end_frame(frame)
 }
 
 fun ByteBuffer.deserialize_span(): Span {
-    if read_int() != 3 {
-        crash("Invalid version")
-    }
-
-    ret Span @[
+    let frame = start_frame(false)
+    let value = Span @[
         start: read_int(),
         len: read_int(),
         source: ""
@@ -134,4 +136,6 @@ fun ByteBuffer.deserialize_span(): Span {
         lazy_line: None(),
         lazy_column: None(),
     ]
+    end_frame(frame)
+    ret value
 }

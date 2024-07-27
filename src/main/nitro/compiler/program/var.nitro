@@ -8,12 +8,36 @@ struct NVar {
     name: String
     type_usage: NTypeUsage
     type_token: Optional<TypeToken>
-    defined_in: NCode
     is_parameter: Boolean
     is_upvalue: Boolean
-    code_depth: Int
 }
 
 fun NVar.to_string(): String {
     ret "[var: $name $type_token${span.link}]"
+}
+
+fun ByteBuffer.serialize_var(value: NVar) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    serialize_span(value.span)
+    serialize_id(value.block)
+    write_string(value.name)
+    serialize_type_usage(value.type_usage)
+    write_boolean(value.is_parameter)
+    write_boolean(value.is_upvalue)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_var(): NVar {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let block = deserialize_id()
+    let name = read_string()
+    let type_usage = deserialize_type_usage()
+    let is_parameter = read_boolean()
+    let is_upvalue = read_boolean()
+    end_frame(frame)
+
+    ret NVar @[id, span, block, name, type_usage, type_token: None(), is_parameter, is_upvalue]
 }

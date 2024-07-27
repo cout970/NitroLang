@@ -3,10 +3,10 @@ fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NC
     let inst_type: TypeToken = create_unresolved_function_type(inst.span).to_token()
     inst.type_token = Some(inst_type)
 
-    let lambda = kind.instance
+    let lambda = code.lambda_map[kind.lambda_id]!!
 
     if lambda.return_type_usage.is_some() {
-        lambda.return_type_token = Some(check_local_type_usage(lambda.return_type_usage!!, code))
+        lambda.return_type_token = Some(check_type_usage_with(code.generics, lambda.return_type_usage!!).to_token())
     } else {
         lambda.return_type_token = Some(create_unresolved_type(inst.span).to_token())
     }
@@ -29,19 +29,31 @@ fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, cod
         ret
     }
 
-    let type_kind = TypeKind::Lambda @[instance: kind.instance]
+    let lambda = code.lambda_map[kind.lambda_id]!!
+    let type_kind = TypeKind::Lambda @[instance: lambda]
 
     // Resolve lambda body
-    let lambda = kind.instance
-
     repeat lambda.parameters.len {
         let param = lambda.parameters[it]!!
-        let tt = check_local_type_usage(param.type_usage, code)
-        param.param_type = Some(tt.find_type())
-        cons.add_unify(tt, types.create_type_token(inst_ty.params[it]!!), param.span, TypeConstraintSource::Lambda)
+        let tt = check_type_usage_with(code.generics, param.type_usage)
+        param.param_type = Some(tt)
+
+        let expected_param_tt = types.create_type_token(inst_ty.params[it]!!)
+        cons.add_unify(tt.to_token(), expected_param_tt, param.span, TypeConstraintSource::Lambda)
+
+        // Also update "param" variables inside the lambda code
+        for entry in lambda.code.vars_map {
+            if entry.second.is_parameter && entry.second.name == param.name {
+                if entry.second.type_token.is_none() {
+                    entry.second.type_token = Some(check_type_usage_with(code.generics, entry.second.type_usage).to_token())
+                }
+                cons.add_unify(entry.second.type_token!!, expected_param_tt, param.span, TypeConstraintSource::Lambda)
+            }
+        }
     }
 
-    cons.add_unify(lambda.return_type_token!!, types.create_type_token(inst_ty.params.last()!!), inst.span, TypeConstraintSource::Lambda)
+    let expected_return_tt = types.create_type_token(inst_ty.params.last()!!)
+    cons.add_unify(lambda.return_type_token!!, expected_return_tt, inst.span, TypeConstraintSource::Lambda)
 
     let real_type_id = types.create_type_id_by_ids(type_kind, inst_ty.params)
     lambda.type_token = Some(types.create_type_token(real_type_id))

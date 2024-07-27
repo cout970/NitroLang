@@ -1,10 +1,16 @@
 
-fun TypeChecker.check_local_type_usage(tu: NTypeUsage, code: NCode): TypeToken {
-    ret check_type_usage(tu).to_token()
+// Transforms a NTypeUsage (type written in the source code) into a Type (internal representation linked with the type declaration)
+fun TypeChecker.check_type_usage_with(generics: NGenericParams, tu: NTypeUsage): Type {
+    if tu.type_token.is_some() {
+        ret tu.type_token!!.find_type()
+    }
+
+    let ty = check_type_usage_with_aux(generics, tu)
+    tu.type_token = Some(ty.to_token())
+    ret ty
 }
 
-// Transforms a NTypeUsage (type written in the source code) into a Type (internal representation linked with the type declaration)
-fun TypeChecker.check_type_usage(tu: NTypeUsage): Type {
+fun TypeChecker.check_type_usage_with_aux(generics: NGenericParams, tu: NTypeUsage): Type {
     if tu.type_token.is_some() {
         ret tu.type_token!!.find_type()
     }
@@ -12,53 +18,41 @@ fun TypeChecker.check_type_usage(tu: NTypeUsage): Type {
     let params: List<Type> = []
 
     for tp in tu.params {
-        params[] = check_type_usage(tp)
+        params[] = check_type_usage_with(generics, tp)
     }
 
-    when tu.kind {
-        TypeUsageKind::TYPE_SIMPLE -> {
-            ret check_type_usage_simple(tu, params)
-        }
-        TypeUsageKind::TYPE_PARAM -> {
-            let generic: Optional<NGeneric> = tu.generic_definition
+    if tu.kind == TypeUsageKind::TYPE_SIMPLE {
+        let full_name = Path::join(tu.path, tu.name)
+        ret find_type_by_name(full_name, params, tu.span)
+    }
 
-            // Usage in definition
-            if generic.is_some() {
-                let ty = create_generic_type(generic!!)
-                tu.type_token = Some(ty.to_token())
-                ret ty
+    if tu.kind == TypeUsageKind::TYPE_UNRESOLVED {
+        ret create_unresolved_type(tu.span)
+    }
+
+    if tu.kind == TypeUsageKind::TYPE_PARAM {
+        let generic_def_index: Optional<Int> = tu.generic_def_index
+
+        if generic_def_index.is_some() {
+            let index = generic_def_index!!
+
+            let generic = generics.definitions[index]!!
+            ret create_generic_type(generic)
+        }
+
+        repeat generics.definitions.len {
+            let def: NGeneric = generics.definitions[it]!!
+
+            if def.name == tu.name {
+                ret create_generic_type(def)
             }
+       }
 
-            // Usage in code
-            if current_code.is_some() {
-                let opt = find_generic_by_name(current_code!!, tu.name)
-
-                if opt.is_some() {
-                    tu.type_token = opt.to_token()
-                    ret opt!!
-                }
-            }
-
-            // Not found
-            let ty = create_error_type("Generic not found: ${tu.name}", tu.span)
-            tu.type_token = Some(ty.to_token())
-            ret ty
-        }
-        TypeUsageKind::TYPE_UNRESOLVED -> {
-            let ty = create_unresolved_type(tu.span)
-            tu.type_token = Some(ty.to_token())
-            ret ty
-        }
+        // Not found
+        ret create_error_type("Generic not found '${tu.name}' not found", tu.span)
     }
 
     unreachable()
-}
-
-fun TypeChecker.check_type_usage_simple(tu: NTypeUsage, params: List<Type>): Type {
-    let full_name = Path::join(tu.path, tu.name)
-    let ty = find_type_by_name(full_name, params, tu.span)
-    tu.type_token = Some(ty.to_token())
-    ret ty
 }
 
 fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: Span): Type {
@@ -76,10 +70,10 @@ fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: S
 
         // Type alias
         for i in program.type_aliases {
-            if Path::join(i.path, i.name) != segment {
+            if i.full_name != segment {
                 continue
             }
-            let alias_type = check_type_usage(i.type_usage)
+            let alias_type = check_type_usage_with(i.generics, i.type_usage)
             let ty = types.replace_generics(alias_type, i.generics.definitions, params)
 
             if params.is_empty() {
@@ -144,25 +138,4 @@ fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: S
 
     // Not found
     ret create_error_type("Type '$full_name' not found", span)
-}
-
-fun TypeChecker.find_generic_by_name(code: NCode, name: String): Optional<Type> {
-    repeat code.generics.definitions.len {
-        let def: NGeneric = code.generics.definitions[it]!!
-
-        // Safety check
-        check_not(def.source != NGenericSource::Function && def.source != NGenericSource::Lambda) @{
-            "Invalid generic source $def"
-        }
-
-        if def.name == name {
-            ret Some(code.generics.type_tokens[it]!!.find_type())
-        }
-   }
-
-   if code.parent_code.is_some() {
-       ret find_generic_by_name(code.parent_code!!, name)
-   }
-
-   ret None()
 }

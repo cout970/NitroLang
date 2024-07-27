@@ -1,6 +1,6 @@
 
 fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCode) {
-    let ty = check_type_usage(kind.type_usage)
+    let ty = check_type_usage_with(code.generics, kind.type_usage)
     kind.type_token = Some(ty.to_token())
 
     let unresolved: TypeToken = create_unresolved_type(inst.span).to_token()

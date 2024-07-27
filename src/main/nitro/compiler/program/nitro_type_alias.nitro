@@ -4,6 +4,7 @@ struct NTypeAlias {
     annotations: List<NAnnotation>
     path: String
     name: String
+    full_name: String
     generics: NGenericParams
     type_usage: NTypeUsage
     alias_type: Optional<Type>
@@ -53,6 +54,7 @@ fun ByteBuffer.deserialize_type_alias(): NTypeAlias {
         annotations,
         path,
         name,
+        full_name: Path::join(path, name),
         generics,
         type_usage,
         alias_type: None(),

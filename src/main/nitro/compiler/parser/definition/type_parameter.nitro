@@ -21,14 +21,14 @@ fun Parser.read_type_params_def(): Parsed<Nothing> {
     lexer.next_token()
 
     read_until_delimited(TokenKind::GTH) @{
-        current_generics.definitions[] = read_type_param_def()?
+        read_type_param_def(current_generics)?
         ret found(nothing)
     }?
 
     ret found(nothing)
 }
 
-fun Parser.read_type_param_def(): Parsed<NGeneric> {
+fun Parser.read_type_param_def(generics: NGenericParams): Parsed<Nothing> {
     // `#A: Type1 | Type2` or just `#B`
     // Also `#A: tag Type1 | tag Type2` is valid
     let span = lexer.current_token_span
@@ -36,14 +36,17 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
 
     let def = NGeneric @[
         id: id_provider.next(),
+        index: generics.definitions.len,
         span,
         name,
-        source: current_generics.source,
+        source: generics.source,
         bounds: []
     ]
 
+    generics.definitions[] = def
+
     if lexer.current_token_kind != TokenKind::COLON {
-        ret found(def)
+        ret found(nothing)
     }
 
     // Skip `:`
@@ -56,7 +59,8 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
             lexer.next_token()
         }
 
-        def.bounds[] = NGenericBounds @[name: read_name()?, tag_instance: None()]
+        let requited_tag = read_name()?
+        def.bounds[] = NGenericBounds @[name: requited_tag]
 
         // End of the list
         if lexer.current_token_kind != TokenKind::OR {
@@ -67,7 +71,7 @@ fun Parser.read_type_param_def(): Parsed<NGeneric> {
         lexer.next_token()
     }
 
-    ret found(def)
+    ret found(nothing)
 }
 
 fun Parser.read_type_parameter(): Parsed<String> {

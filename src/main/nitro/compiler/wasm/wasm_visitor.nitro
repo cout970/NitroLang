@@ -86,7 +86,6 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
 
     // Wasm Function
     let wasm_func = WFunction @[
-        index,
         name: instance.full_name,
         source: WFunctionSource::Function @[instance],
         code: instance.code,
@@ -120,7 +119,6 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
 
     // Wasm Function
     let wasm_func = WFunction @[
-        index,
         name: header.name
         source: WFunctionSource::Lambda @[instance],
         code: instance.code,
@@ -239,7 +237,6 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
 
     // Wasm Function
     let wasm_func = WFunction @[
-        index: func_index,
         name: header.name,
         source: WFunctionSource::Const @[instance, wconst],
         code: instance.code,
@@ -417,12 +414,13 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: index, return_final_type]
         }
         inst.kind is NInstKind::LoadVar -> {
-            let constant = (inst.kind as NInstKind::LoadVar).constant
-            if constant.is_none() {
+            let opt_constant_id: Optional<Id> = (inst.kind as NInstKind::LoadVar).constant
+            if opt_constant_id.is_none() {
                 ret
             }
-
-            wasm_func.constants[inst.id] = add_task_visit_const(constant!!)
+            let constant_id: Id = opt_constant_id!!
+            let constant = program.consts.find @{ it -> it.id == constant_id }!!
+            wasm_func.constants[inst.id] = add_task_visit_const(constant)
         }
         inst.kind is NInstKind::Alloc -> {
             let alloc_index = get_alloc_function(ctx)
@@ -430,7 +428,8 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
         }
         inst.kind is NInstKind::Lambda -> {
-            let lambda = (inst.kind as NInstKind::Lambda).instance
+            let lambda_id = (inst.kind as NInstKind::Lambda).lambda_id
+            let lambda = code.lambda_map[lambda_id]!!
             let sub_ctx = ctx.new_child(inst.span)
             lambda.ctx = Some(sub_ctx)
 

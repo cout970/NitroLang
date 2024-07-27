@@ -110,8 +110,7 @@ fun NTypeUsage::get_key(type_usage: NTypeUsage, generics: NGenericParams): Strin
             }
         }
         TypeUsageKind::TYPE_PARAM -> {
-            let def = type_usage.generic_definition!!
-            let index = generics.definitions.find_index @{ n -> n == def }!!
+            let index = type_usage.generic_def_index!!
             builder[] = "#"
             builder[] = index
         }
@@ -124,6 +123,14 @@ fun NTypeUsage::get_key(type_usage: NTypeUsage, generics: NGenericParams): Strin
 }
 
 fun NFunctionHeader.to_string(): String = key
+
+fun NFunCallTarget.to_string(): String {
+    ret when {
+        this is NFunCallTarget::Func -> "Func ${(this as NFunCallTarget::Func).header}"
+        this is NFunCallTarget::Tag -> "Tag ${(this as NFunCallTarget::Tag).header}"
+        else -> unreachable()
+    }
+}
 
 fun ByteBuffer.serialize_function_header(value: NFunctionHeader) {
     let frame = start_frame(true)

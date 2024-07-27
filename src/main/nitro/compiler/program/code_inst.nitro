@@ -72,7 +72,7 @@ option NInstKind {
         path: String
         name: String
         variable: Optional<NVarId>
-        constant: Optional<NConst>
+        constant: Optional<Id>
     }
     StoreVar {
         path: String
@@ -105,7 +105,7 @@ option NInstKind {
         is_enum: Boolean
     }
     Lambda {
-        instance: NLambda
+        lambda_id: Id
     }
     Link {
         linked_id: NInstId
@@ -162,13 +162,6 @@ fun NCode.add_let(
     name: String,
     type_usage: Optional<NTypeUsage>
 ): NVar {
-    let code_depth = 0
-    let curr = this.parent_code
-    while curr.is_some() {
-        code_depth += 1
-        curr = curr!!.parent_code
-    }
-
     let variable = NVar @[
         id: variable_id_provider.next(),
         span,
@@ -176,10 +169,8 @@ fun NCode.add_let(
         name,
         type_usage: if type_usage.is_some() { type_usage!! } else { NTypeUsage::unresolved(span) },
         type_token: None(),
-        defined_in: this,
         is_parameter: false,
         is_upvalue: false,
-        code_depth,
     ]
     vars_map[variable.id] = variable
 
@@ -321,7 +312,7 @@ fun NCode.add_load_const(
     span: Span,
     path: String,
     name: String,
-    constant: Optional<NConst>
+    constant: Optional<Id>
 ): NInst {
     ret add_inst(span, NInstKind::LoadVar @[
         path,
@@ -451,9 +442,9 @@ fun NCode.add_alloc(
 
 fun NCode.add_lambda(
     span: Span,
-    instance: NLambda,
+    lambda_id: Id,
 ): NInst {
-    ret add_inst(span, NInstKind::Lambda @[instance])
+    ret add_inst(span, NInstKind::Lambda @[lambda_id])
 }
 
 fun NCode.add_link(
@@ -529,54 +520,57 @@ fun NInstKind.get_name(): String {
 }
 
 fun NInst.to_string(): String {
-    let t = this.kind
+    ret "#${id} ${kind.to_string()} [$type_token]"
+}
+
+fun NInstKind.to_string(): String {
     ret when {
-        t is NInstKind::Let -> {
-            let kind = t as NInstKind::Let
+        this is NInstKind::Let -> {
+            let kind = this as NInstKind::Let
 
             "let var:${kind.variable}"
         }
-        t is NInstKind::LetUpvalue -> {
-            let kind = t as NInstKind::LetUpvalue
+        this is NInstKind::LetUpvalue -> {
+            let kind = this as NInstKind::LetUpvalue
 
             "let-upvalue var:${kind.variable}"
         }
-        t is NInstKind::IfStart -> {
-            let kind = t as NInstKind::IfStart
+        this is NInstKind::IfStart -> {
+            let kind = this as NInstKind::IfStart
 
             "if-start #${kind.condition}"
         }
-        t is NInstKind::IfElse -> {
+        this is NInstKind::IfElse -> {
             "if-else"
         }
-        t is NInstKind::IfEnd -> {
+        this is NInstKind::IfEnd -> {
             "if-end"
         }
-        t is NInstKind::IfChoose -> {
-            let kind = t as NInstKind::IfChoose
+        this is NInstKind::IfChoose -> {
+            let kind = this as NInstKind::IfChoose
 
             "if-choose #${kind.condition} -> #${kind.if_true} | #${kind.if_false}"
         }
-        t is NInstKind::LoopStart -> {
-            let kind = t as NInstKind::LoopStart
+        this is NInstKind::LoopStart -> {
+            let kind = this as NInstKind::LoopStart
 
             "loop-start break_block: ${kind.break_block}, continue_block: ${kind.continue_block}"
         }
-        t is NInstKind::LoopEnd -> {
+        this is NInstKind::LoopEnd -> {
             "loop-end"
         }
-        t is NInstKind::BlockJump -> {
-            let kind = t as NInstKind::BlockJump
+        this is NInstKind::BlockJump -> {
+            let kind = this as NInstKind::BlockJump
 
             "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
         }
-        t is NInstKind::BinaryOp -> {
-            let kind = t as NInstKind::BinaryOp
+        this is NInstKind::BinaryOp -> {
+            let kind = this as NInstKind::BinaryOp
 
             "binary-opt op: ${kind.op}, left: #${kind.left}, right: #${kind.right}"
         }
-        t is NInstKind::FunCall -> {
-            let kind = t as NInstKind::FunCall
+        this is NInstKind::FunCall -> {
+            let kind = this as NInstKind::FunCall
 
             if kind.call_site.is_some() {
                 let call_site = kind.call_site!!
@@ -625,34 +619,34 @@ fun NInst.to_string(): String {
 
             "fun-call $full_name$type_args$args"
         }
-        t is NInstKind::WhenStart -> {
+        this is NInstKind::WhenStart -> {
             "when-start"
         }
-        t is NInstKind::WhenEnd -> {
+        this is NInstKind::WhenEnd -> {
             "when-end"
         }
-        t is NInstKind::Literal -> {
-            let kind = t as NInstKind::Literal
+        this is NInstKind::Literal -> {
+            let kind = this as NInstKind::Literal
 
             "literal ${kind.value}"
         }
-        t is NInstKind::Return -> {
-            let kind = t as NInstKind::Return
+        this is NInstKind::Return -> {
+            let kind = this as NInstKind::Return
 
             "return #${kind.value}"
         }
-        t is NInstKind::IsType -> {
-            let kind = t as NInstKind::IsType
+        this is NInstKind::IsType -> {
+            let kind = this as NInstKind::IsType
 
             "is-type #${kind.value} ${kind.type_pattern}"
         }
-        t is NInstKind::AsType -> {
-            let kind = t as NInstKind::AsType
+        this is NInstKind::AsType -> {
+            let kind = this as NInstKind::AsType
 
             "as-type #${kind.value} ${kind.type_usage}"
         }
-        t is NInstKind::LoadVar -> {
-            let kind = t as NInstKind::LoadVar
+        this is NInstKind::LoadVar -> {
+            let kind = this as NInstKind::LoadVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
             let extra = "$full_name [unlinked]"
 
@@ -660,13 +654,13 @@ fun NInst.to_string(): String {
                 extra = "var:${kind.variable!!}"
             }
             if kind.constant.is_some() {
-                extra = "[const: ${kind.constant!!.full_name} ${kind.constant!!.span.link}]"
+                extra = "[const: #${kind.constant!!}]"
             }
 
             "load-var $extra"
         }
-        t is NInstKind::StoreVar -> {
-            let kind = t as NInstKind::StoreVar
+        this is NInstKind::StoreVar -> {
+            let kind = this as NInstKind::StoreVar
             let full_name = if kind.path.is_not_empty() { "${kind.path}::${kind.name}" } else { kind.name }
             let extra = "$full_name = #${kind.value} [unlinked]"
 
@@ -676,8 +670,8 @@ fun NInst.to_string(): String {
 
             "store-var $extra"
         }
-        t is NInstKind::LoadField -> {
-            let kind = t as NInstKind::LoadField
+        this is NInstKind::LoadField -> {
+            let kind = this as NInstKind::LoadField
 
             if kind.field_type_token.is_some() {
                 ret "load-field #${kind.instance} -> [${kind.name}: ${kind.field_type_token!!}]"
@@ -685,8 +679,8 @@ fun NInst.to_string(): String {
 
             "load-field #${kind.instance} -> ${kind.name}"
         }
-        t is NInstKind::StoreField -> {
-            let kind = t as NInstKind::StoreField
+        this is NInstKind::StoreField -> {
+            let kind = this as NInstKind::StoreField
 
             if kind.field_type_token.is_some() {
                 ret "store-field #${kind.instance} -> [${kind.name}: ${kind.field_type_token!!}] = #${kind.value}"
@@ -694,31 +688,31 @@ fun NInst.to_string(): String {
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
         }
-        t is NInstKind::SizeOf -> {
-            let kind = t as NInstKind::SizeOf
+        this is NInstKind::SizeOf -> {
+            let kind = this as NInstKind::SizeOf
 
             "size_of ${kind.type_usage}"
         }
-        t is NInstKind::Alloc -> {
-            let kind = t as NInstKind::Alloc
+        this is NInstKind::Alloc -> {
+            let kind = this as NInstKind::Alloc
 
             "alloc ${kind.type_usage}"
         }
-        t is NInstKind::Lambda -> {
-            let kind = t as NInstKind::Lambda
+        this is NInstKind::Lambda -> {
+            let kind = this as NInstKind::Lambda
 
-            "lambda ${kind.instance}"
+            "lambda ${kind.lambda_id}"
         }
-        t is NInstKind::Link -> {
-            let kind = t as NInstKind::Link
+        this is NInstKind::Link -> {
+            let kind = this as NInstKind::Link
 
             "link #${kind.linked_id}"
         }
-        t is NInstKind::Noop -> {
+        this is NInstKind::Noop -> {
             "noop"
         }
-        t is NInstKind::Comment -> {
-            let kind = t as NInstKind::Comment
+        this is NInstKind::Comment -> {
+            let kind = this as NInstKind::Comment
             let line = kind.text.replace("\n", "\\n").trim()
 
             "// $line"
@@ -884,7 +878,7 @@ fun NInst.to_string(code: NCode): String {
                 extra = code.var_to_string(kind.variable!!)
             }
             if kind.constant.is_some() {
-                extra = "[const: ${kind.constant!!.full_name} ${kind.constant!!.span.link}]"
+                extra = "[const: #${kind.constant!!}]"
             }
 
             "load-var $extra"
@@ -931,7 +925,7 @@ fun NInst.to_string(code: NCode): String {
         t is NInstKind::Lambda -> {
             let kind = t as NInstKind::Lambda
 
-            "lambda ${kind.instance}"
+            "lambda ${kind.lambda_id}"
         }
         t is NInstKind::Link -> {
             let kind = t as NInstKind::Link
@@ -949,4 +943,345 @@ fun NInst.to_string(code: NCode): String {
         }
         else -> crash("Unknown NInstKind variant")
     }
+}
+
+fun ByteBuffer.serialize_inst(inst: NInst) {
+    serialize_id(inst.id)
+    serialize_span(inst.span)
+    serialize_id(inst.block)
+    let t = inst.kind
+    ret when {
+        t is NInstKind::Let -> {
+            write_int(0)
+            let kind = t as NInstKind::Let
+            serialize_id(kind.variable)
+        }
+        t is NInstKind::LetUpvalue -> {
+            write_int(1)
+            let kind = t as NInstKind::LetUpvalue
+            serialize_id(kind.variable)
+        }
+        t is NInstKind::IfStart -> {
+            write_int(2)
+            let kind = t as NInstKind::IfStart
+            serialize_id(kind.condition)
+        }
+        t is NInstKind::IfElse -> {
+            write_int(3)
+        }
+        t is NInstKind::IfEnd -> {
+            write_int(4)
+        }
+        t is NInstKind::IfChoose -> {
+            write_int(5)
+            let kind = t as NInstKind::IfChoose
+            serialize_id(kind.condition)
+            serialize_id(kind.if_true)
+            serialize_id(kind.if_false)
+        }
+        t is NInstKind::LoopStart -> {
+            write_int(6)
+            let kind = t as NInstKind::LoopStart
+            serialize_id(kind.break_block)
+            serialize_id(kind.continue_block)
+        }
+        t is NInstKind::LoopEnd -> {
+            write_int(7)
+        }
+        t is NInstKind::BlockJump -> {
+            write_int(8)
+            let kind = t as NInstKind::BlockJump
+            write_boolean(kind.backwards)
+            write_boolean(kind.block.is_some())
+            if kind.block.is_some() {
+                serialize_id(kind.block!!)
+            }
+        }
+        t is NInstKind::BinaryOp -> {
+            write_int(9)
+            let kind = t as NInstKind::BinaryOp
+            write_int(kind.op.variant)
+            serialize_id(kind.left)
+            serialize_id(kind.right)
+        }
+        t is NInstKind::FunCall -> {
+            write_int(10)
+            let kind = t as NInstKind::FunCall
+            write_string(kind.path)
+            write_string(kind.name)
+            write_boolean(kind.explicit_receiver)
+            write_int(kind.arguments.len)
+            for arg in kind.arguments {
+                serialize_id(arg)
+            }
+            write_int(kind.explicit_type_arguments.len)
+            for arg in kind.explicit_type_arguments {
+                serialize_type_usage(arg)
+            }
+        }
+        t is NInstKind::WhenStart -> {
+            write_int(11)
+        }
+        t is NInstKind::WhenEnd -> {
+            write_int(12)
+            let kind = t as NInstKind::WhenEnd
+            write_int(kind.branches.len)
+            for branch in kind.branches {
+                serialize_id(branch)
+            }
+            write_boolean(kind.variable.is_some())
+            if kind.variable.is_some() {
+                serialize_id(kind.variable!!)
+            }
+        }
+        t is NInstKind::Literal -> {
+            write_int(13)
+            let kind = t as NInstKind::Literal
+            serialize_const_expr(kind.value)
+        }
+        t is NInstKind::Return -> {
+            write_int(14)
+            let kind = t as NInstKind::Return
+            serialize_id(kind.value)
+        }
+        t is NInstKind::IsType -> {
+            write_int(15)
+            let kind = t as NInstKind::IsType
+            serialize_id(kind.value)
+            serialize_type_pattern(kind.type_pattern)
+        }
+        t is NInstKind::AsType -> {
+            write_int(16)
+            let kind = t as NInstKind::AsType
+            serialize_id(kind.value)
+            serialize_type_usage(kind.type_usage)
+        }
+        t is NInstKind::LoadVar -> {
+            write_int(17)
+            let kind = t as NInstKind::LoadVar
+            write_string(kind.path)
+            write_string(kind.name)
+            write_boolean(kind.variable.is_some())
+            if kind.variable.is_some() {
+                serialize_id(kind.variable!!)
+            }
+            write_boolean(kind.constant.is_some())
+            if kind.constant.is_some() {
+                serialize_id(kind.constant!!)
+            }
+        }
+        t is NInstKind::StoreVar -> {
+            write_int(18)
+            let kind = t as NInstKind::StoreVar
+            write_string(kind.path)
+            write_string(kind.name)
+            write_boolean(kind.variable.is_some())
+            if kind.variable.is_some() {
+                serialize_id(kind.variable!!)
+            }
+            serialize_id(kind.value)
+        }
+        t is NInstKind::LoadField -> {
+            write_int(19)
+            let kind = t as NInstKind::LoadField
+            serialize_id(kind.instance)
+            write_string(kind.name)
+        }
+        t is NInstKind::StoreField -> {
+            write_int(20)
+            let kind = t as NInstKind::StoreField
+            serialize_id(kind.instance)
+            write_string(kind.name)
+            serialize_id(kind.value)
+        }
+        t is NInstKind::SizeOf -> {
+            write_int(21)
+            let kind = t as NInstKind::SizeOf
+            serialize_type_usage(kind.type_usage)
+        }
+        t is NInstKind::Alloc -> {
+            write_int(22)
+            let kind = t as NInstKind::Alloc
+            serialize_type_usage(kind.type_usage)
+            write_boolean(kind.is_enum)
+        }
+        t is NInstKind::Lambda -> {
+            write_int(23)
+            let kind = t as NInstKind::Lambda
+            serialize_id(kind.lambda_id)
+        }
+        t is NInstKind::Link -> {
+            write_int(24)
+            let kind = t as NInstKind::Link
+            serialize_id(kind.linked_id)
+        }
+        t is NInstKind::Noop -> {
+            write_int(25)
+        }
+        t is NInstKind::Comment -> {
+            write_int(26)
+            let kind = t as NInstKind::Comment
+            write_string(kind.text)
+        }
+        else -> crash("Unknown NInstKind variant")
+    }
+}
+
+fun ByteBuffer.deserialize_inst(code: NCode): NInst {
+    let id = deserialize_id()
+    let span = deserialize_span()
+    let block = deserialize_id()
+    let variant = read_int()
+
+    let kind = when variant {
+        0 -> {
+            let variable = deserialize_id()
+            NInstKind::Let @[variable]
+        }
+        1 -> {
+            let variable = deserialize_id()
+            NInstKind::LetUpvalue @[variable]
+        }
+        2 -> {
+            let condition = deserialize_id()
+            NInstKind::IfStart @[condition]
+        }
+        3 -> {
+            NInstKind::IfElse @[]
+        }
+        4 -> {
+            NInstKind::IfEnd @[]
+        }
+        5 -> {
+            let condition = deserialize_id()
+            let if_true = deserialize_id()
+            let if_false = deserialize_id()
+            NInstKind::IfChoose @[condition, if_true, if_false]
+        }
+        6 -> {
+            let break_block = deserialize_id()
+            let continue_block = deserialize_id()
+            NInstKind::LoopStart @[break_block, continue_block]
+        }
+        7 -> {
+            NInstKind::LoopEnd @[]
+        }
+        8 -> {
+            let backwards = read_boolean()
+            let block = if read_boolean() { Some(deserialize_id()) } else { None() }
+            NInstKind::BlockJump @[backwards, block]
+        }
+        9 -> {
+            let op = BinaryOperator::from_variant(read_int())!!
+            let left = deserialize_id()
+            let right = deserialize_id()
+            NInstKind::BinaryOp @[op, left, right]
+        }
+        10 -> {
+            let path = read_string()
+            let name = read_string()
+            let explicit_receiver = read_boolean()
+            let arguments = []
+            repeat read_int() {
+                arguments[] = deserialize_id()
+            }
+            let explicit_type_arguments = []
+            repeat read_int() {
+                explicit_type_arguments[] = deserialize_type_usage()
+            }
+            NInstKind::FunCall @[path, name, explicit_receiver, arguments, explicit_type_arguments, call_site: None()]
+        }
+        11 -> {
+            NInstKind::WhenStart @[]
+        }
+        12 -> {
+            let branches = []
+            repeat read_int() {
+                branches[] = deserialize_id()
+            }
+            let variable = if read_boolean() { Some(deserialize_id()) } else { None() }
+            NInstKind::WhenEnd @[branches, variable]
+        }
+        13 -> {
+            let value = deserialize_const_expr()
+            NInstKind::Literal @[value]
+        }
+        14 -> {
+            let value = deserialize_id()
+            NInstKind::Return @[value]
+        }
+        15 -> {
+            let value = deserialize_id()
+            let type_pattern = deserialize_type_pattern()
+            NInstKind::IsType @[value, type_pattern]
+        }
+        16 -> {
+            let value = deserialize_id()
+            let type_usage = deserialize_type_usage()
+            NInstKind::AsType @[value, type_usage]
+        }
+        17 -> {
+            let path = read_string()
+            let name = read_string()
+            let variable = if read_boolean() { Some(deserialize_id()) } else { None() }
+            let constant = if read_boolean() { Some(deserialize_id()) } else { None() }
+            NInstKind::LoadVar @[path, name, variable, constant]
+        }
+        18 -> {
+            let path = read_string()
+            let name = read_string()
+            let variable = if read_boolean() { Some(deserialize_id()) } else { None() }
+            let value = deserialize_id()
+            NInstKind::StoreVar @[path, name, variable, value]
+        }
+        19 -> {
+            let instance = deserialize_id()
+            let name = read_string()
+            NInstKind::LoadField @[instance, name, field: None(), field_type_token: None(), call_site_generics: None()]
+        }
+        20 -> {
+            let instance = deserialize_id()
+            let name = read_string()
+            let value = deserialize_id()
+            NInstKind::StoreField @[instance, name, field: None(), field_type_token: None(), call_site_generics: None(), value]
+        }
+        21 -> {
+            let type_usage = deserialize_type_usage()
+            NInstKind::SizeOf @[type_usage, type_token: None()]
+        }
+        22 -> {
+            let type_usage = deserialize_type_usage()
+            let is_enum = read_boolean()
+            NInstKind::Alloc @[
+                type_usage,
+                type_token: None(),
+                is_enum: is_enum,
+            ]
+        }
+        23 -> {
+            let lambda_id = deserialize_id()
+            NInstKind::Lambda @[lambda_id]
+        }
+        24 -> {
+            let linked_id = deserialize_id()
+            NInstKind::Link @[linked_id]
+        }
+        25 -> {
+            NInstKind::Noop @[]
+        }
+        26 -> {
+            let text = read_string()
+            NInstKind::Comment @[text]
+        }
+        else -> crash("Unknown NInstKind variant")
+    }
+
+    ret NInst @[
+        id,
+        span,
+        block,
+        kind,
+        type_token: None(),
+        back_references: [],
+    ]
 }

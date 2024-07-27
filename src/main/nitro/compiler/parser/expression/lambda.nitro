@@ -31,24 +31,12 @@
 //     | UNDERSCORE (COLON typeUsage)?
 //     ;
 
-struct NLambda {
-    id: Id,
-    span: Span
-    receiver_type: Optional<NTypeUsage>
-    return_type_usage: Optional<NTypeUsage>
-    return_type_token: Optional<TypeToken>
-    type_token: Optional<TypeToken>
-    parameters: List<NFunctionParameter>
-    code: NCode
-    ctx: Optional<TypeMappingCtx>
-}
-
 fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::LAMBDA_START)
 
     let lambda = NLambda @[
-        id: id_provider.next(),
+        id: code.lambda_id_provider.next(),
         span,
         receiver_type: None(),
         return_type_usage: None(),
@@ -59,21 +47,37 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
         ctx: None(),
     ]
 
+    code.lambda_map[lambda.id] = lambda
+    let lambda_code = lambda.code
+
     // Parameter definition
     read_lambda_header(lambda)?
 
     // Create a local variable per parameter
     // TODO implicit 'it' or 'this'
     for param in lambda.parameters {
-        let variable = lambda.code.add_let(param.span, param.name, Some(param.type_usage))
+        let variable = lambda_code.add_let(param.span, param.name, Some(param.type_usage))
         variable.is_parameter = true
     }
 
     // Code of the lambda
     skip_nl()
-    read_statement_block_end(lambda.code)
+    read_statement_block_end(lambda_code)
 
-    let inst = code.add_lambda(span, lambda)
+    // Make sure the last expression is a return
+    if lambda_code.last_expression.is_some() {
+        let inst = lambda_code.find_inst(lambda_code.last_expression!!)
+
+        if inst.kind !is NInstKind::Return {
+            let inst = lambda_code.add_return(span, lambda_code.last_expression!!)
+            lambda_code.last_expression = Some(inst.id)
+        }
+    } else {
+        let inst = lambda_code.add_lit_nothing(span)
+        lambda_code.last_expression = Some(inst.id)
+    }
+
+    let inst = code.add_lambda(span, lambda.id)
     ret found(inst.id)
 }
 
@@ -135,37 +139,4 @@ fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
     ]
 
     ret found(def)
-}
-
-fun NLambda.to_string(): String {
-    let s = ""
-
-    if receiver_type.is_some() {
-        s += "rec " + receiver_type!!.to_string()
-    }
-
-    for param in parameters {
-        if s.is_not_empty() {
-            s += ", "
-        }
-        s += param.name
-        s += ": "
-        s += param.type_usage.to_string()
-    }
-
-    if return_type_usage.is_some() {
-        if s.is_not_empty() {
-            s += ", "
-        }
-        s += "ret " + return_type_usage!!.to_string()
-    }
-
-    if s.is_not_empty() {
-        s += " -> "
-    }
-
-    let i = code.to_string()
-    let rest = i.slice(1, i.bytes_len)
-
-    ret "@{$s$rest"
 }

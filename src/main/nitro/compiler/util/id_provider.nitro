@@ -1,6 +1,5 @@
 
 struct IdProvider {
-    all_wrappers: List<Id>
     last_id: Int
 }
 
@@ -10,7 +9,6 @@ struct Id {
 
 fun IdProvider::new(): IdProvider {
     ret IdProvider @[
-        all_wrappers: [],
         last_id: -1,
     ]
 }
@@ -21,48 +19,19 @@ fun IdProvider.previous(): Id {
 
 fun IdProvider.next(): Id {
     last_id += 1
-    let wrapper = Id @[current_value: last_id]
-    all_wrappers[] = wrapper
-    ret wrapper
+    ret Id @[current_value: last_id]
 }
 
 fun IdProvider.seek_to(other: IdProvider) {
     last_id = other.last_id
 }
 
-fun IdProvider.increment_all_existing_ids(amount: Int) {
-    for wrapper in all_wrappers {
-        wrapper.current_value += amount
-    }
-}
-
 fun IdProvider.get_max_id(): Int {
-    let max_id = -1
-    for wrapper in all_wrappers {
-        max_id = max(max_id, wrapper.current_value)
-    }
-    ret max_id
-}
-
-fun IdProvider::merge_into(from: IdProvider, to: IdProvider) {
-    if from.all_wrappers.is_empty() {
-        ret
-    }
-
-    let offset = to.last_id + 1
-    let last = to.last_id
-
-    for wrapper in from.all_wrappers {
-        wrapper.current_value += offset
-        last = max(last, wrapper.current_value)
-    }
-
-    to.all_wrappers += from.all_wrappers
-    to.last_id = last
+    ret last_id
 }
 
 fun IdProvider.to_string(): String {
-    ret "IdProvider { last_id: $last_id, all_wrappers: ${all_wrappers.len} }"
+    ret "IdProvider { last_id: $last_id }"
 }
 
 fun ByteBuffer.serialize_id_provider(value: IdProvider) {
@@ -76,10 +45,7 @@ fun ByteBuffer.deserialize_id_provider(): IdProvider {
     let last_id = read_int()
     end_frame(frame)
 
-    ret IdProvider @[
-        all_wrappers: [],
-        last_id,
-    ]
+    ret IdProvider @[last_id]
 }
 
 fun ByteBuffer.serialize_id(value: Id) {

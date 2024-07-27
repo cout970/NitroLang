@@ -4,7 +4,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, inst: NInst, code:
 
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
     if kind.path.is_empty() {
-        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, inst.id)
+        let variable: Optional<NVar> = find_variable(var_name, code, inst.block, inst.id)
 
         // Is variable?
         if variable.is_some() {
@@ -30,7 +30,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, inst: NInst, code:
     // Is a constant?
     if constant.is_some() {
         inst.type_token = constant!!.const_type.to_token()
-        kind.constant = constant
+        kind.constant = Some(constant!!.id)
         ret
     }
 
@@ -102,7 +102,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, inst: NInst, cod
 
     // Local variables cannot have a path, if a path is present, it must be a constant in the global namespace
     if kind.path.is_empty() {
-        let variable: Optional<NVar> = find_variable(code, var_name, inst.block, inst.id)
+        let variable: Optional<NVar> = find_variable(var_name, code, inst.block, inst.id)
 
         // Is variable?
         if variable.is_some() {

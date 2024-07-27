@@ -189,11 +189,9 @@ fun TypeChecker.type_diff_score(param: Type, arg: Type): Float {
 }
 
 fun TypeChecker.matches_generic_bounds(bounds: NGenericBounds, arg: Type): Boolean {
-    if bounds.tag_instance.is_none() {
-        return false
-    }
+    let instance: NTag = tag_instances[bounds.name]!!
 
-    for pattern in bounds.tag_instance!!.impl_patterns {
+    for pattern in instance.impl_patterns {
         if types.matches_pattern(arg, pattern) {
             return true
         }

@@ -91,15 +91,16 @@ fun WasmBackend.compile_program() {
 
     // Rewrite indices so imports come before regular functions
     // So `call` instructions use the correct index
-    let function_ids_start = import_indices.last_id + 1
-    function_indices.increment_all_existing_ids(function_ids_start)
-    let last_function_id = function_indices.get_max_id()
+    let aux = import_indices.last_id + 1
+    for f in wasm_program.functions {
+        f.header.index.update(aux)
+        aux += 1
+    }
 
     // Place lambda types at the end
-    let next_type_id = last_function_id + 1
     for header in wasm_program.indirect_function_types {
-        header.index.update(next_type_id)
-        next_type_id += 1
+        header.index.update(aux)
+        aux += 1
     }
 
     // Generate code for functions

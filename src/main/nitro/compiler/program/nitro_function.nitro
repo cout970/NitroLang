@@ -26,7 +26,7 @@ fun Parser.create_function(header: NFunctionHeader, annotations: List<NAnnotatio
         full_name,
     ]
 
-    func.code.generics = header.generics
+    func.code.link_generics(header.generics)
     ret func
 }
 
@@ -156,7 +156,7 @@ fun ByteBuffer.serialize_function(value: NFunction) {
         serialize_annotation(a)
     }
     serialize_function_header(value.header)
-//    serialize_code(value.code)
+    serialize_code(value.code)
     end_frame(frame)
 }
 
@@ -169,6 +169,7 @@ fun ByteBuffer.deserialize_function(): NFunction {
         annotations[] = deserialize_annotation()
     }
     let header = deserialize_function_header()
+    let code = deserialize_code(None(), header.generics)
 
     let full_name = header.full_name
     let value = NFunction @[
@@ -176,7 +177,7 @@ fun ByteBuffer.deserialize_function(): NFunction {
         span,
         annotations,
         header,
-        code: NCode::new(span, full_name),
+        code,
         full_name,
     ]
 

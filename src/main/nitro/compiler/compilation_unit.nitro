@@ -1,0 +1,221 @@
+
+struct CompilationUnit {
+    reporter: Reporter
+    included_paths: List<String>
+    included_files: List<IncludedFile>
+    include_queue: ArrayDeque<IncludedQueueItem>
+    enqueued_paths: Set<String>
+    program: Program
+    types: TypeContainer
+    type_checker: TypeChecker
+    backend: WasmBackend
+    use_cache: Boolean
+}
+
+struct IncludedQueueItem {
+    path: String
+    base: String
+}
+
+fun CompilationUnit::new(): CompilationUnit {
+    let reporter = Reporter::new()
+    let program = Program::new()
+    let types = TypeContainer::new()
+
+    ret CompilationUnit @[
+        reporter,
+        included_paths: [],
+        included_files: [],
+        include_queue: ArrayDeque::new(),
+        enqueued_paths: %[],
+        program,
+        types,
+        type_checker: TypeChecker::new(reporter, program, types),
+        backend: WasmBackend::new(reporter, program),
+        use_cache: true
+    ]
+}
+
+fun CompilationUnit.add_file(path: String, base: String) {
+    if path in enqueued_paths {
+        ret
+    }
+    enqueued_paths[] = path
+    include_queue[] = IncludedQueueItem @[path, base]
+}
+
+fun CompilationUnit.parse() {
+    while include_queue.is_not_empty() {
+        let item = include_queue.remove_last()!!
+        let file = IncludedFile::new(item.path)
+
+        let opt = parse_file_from_cache(file)
+        let sub_program = if opt.is_some() { opt!! } else {
+            let p = parse_file(file)
+            save_parse_cache(file, p)
+            p
+        }
+
+        included_files[] = file
+
+        for inc in sub_program.includes {
+            let include_path = CompilationUnit::process_path(inc.path, item.path)
+            add_file(include_path, item.base)
+        }
+
+        program.extend_with(sub_program)
+    }
+}
+
+fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program> {
+    if !use_cache {
+        ret None()
+    }
+
+    let file_path = get_cache_file_path(file.file_path.path)
+    if !file_path.exists()!! {
+        ret None()
+    }
+
+    let bytes: Array<Byte> = file_path.unsafe_debug_read_bytes()
+    let bytes_list = List @[
+        capacity: bytes.len,
+        count: bytes.len,
+        items: bytes
+    ]
+
+    let buffer = ByteBuffer::new(bytes_list)
+    buffer.start_read()
+
+    // Header
+    let cache_version = buffer.reader.read_int_be()
+    let cache_time = buffer.reader.read_int_be()
+    let cache_crc = buffer.reader.read_int_be()
+    let cache_last_modified = buffer.reader.read_int_be()
+
+    if cache_version != 0x01 {
+        println("Ignoring cache file: ${file.file_path.path}, invalid version: $cache_version")
+        ret None()
+    }
+
+    if cache_last_modified != file.last_modified {
+        println("Ignoring cache file: ${file.file_path.path}, last modified mismatch: ${file.last_modified} != $cache_last_modified")
+        ret None()
+    }
+
+    // If the last_modified is 0, it means it is not supported, so wee to check the CRC
+    if file.last_modified == 0 && CRC32::from_string(file.source) != cache_crc {
+        println("Ignoring cache file: ${file.file_path.path}, CRC mismatch")
+        ret None()
+    }
+
+    // Content
+    let deserialized_sub_program = buffer.deserialize_program()
+
+//    // DEBUG ------------------------------------------------------------------------------------------
+//    let parsed_sub_program = parse_file(file)
+//    let collector = ChangeCollector::new()
+//    collector.diff(deserialized_sub_program, parsed_sub_program)
+//
+//    if collector.changes.is_not_empty() {
+//        println("Changes: ${collector.changes.len} at file ${file.path}")
+//        for c in collector.changes {
+//            println(c)
+//        }
+//        println("-" * 80)
+//    }
+//
+//    ret Some(parsed_sub_program)
+//    // END DEBUG --------------------------------------------------------------------------------------
+
+    ret Some(deserialized_sub_program)
+}
+
+fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
+    if !use_cache {
+        ret
+    }
+
+    let buffer = ByteBuffer::new()
+
+    // Header
+    buffer.writer.add_int_be(0x01)
+    buffer.writer.add_int_be(Instant::now().unix_timestamp.to_int())
+    buffer.writer.add_int_be(CRC32::from_string(file.source))
+    buffer.writer.add_int_be(file.last_modified)
+    // Content
+    buffer.serialize_program(sub_program)
+
+
+    let bytes = buffer.finish_write()
+    let file_path = get_cache_file_path(file.file_path.path)
+
+    file_path.unsafe_debug_write_bytes(bytes.items, bytes.len)
+}
+
+fun CompilationUnit.parse_file(file: IncludedFile): Program {
+    let start = Instant::now()
+    let sub_program = Program::new()
+
+    let lexer = Lexer::new(file.source, file.path)
+    lexer.read_all()
+
+    let parser = Parser::new(lexer, reporter, sub_program)
+    parser.read_file()
+
+    let end = Instant::now()
+    ret sub_program
+}
+
+fun CompilationUnit.get_cache_file_path(path: String): FilePath {
+    let invalid_chars = [".", "/", "\\", ":", "*", "?", "\"", "<", ">", "|", " "]
+    let safe_path = path
+
+    if safe_path.starts_with("..") {
+        safe_path = safe_path.substring(2, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("/") {
+        safe_path = safe_path.substring(1, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("../") {
+        safe_path = safe_path.substring(3, safe_path.bytes_len)
+    }
+    if safe_path.starts_with("./") {
+        safe_path = safe_path.substring(2, safe_path.bytes_len)
+    }
+    if safe_path.ends_with(".nitro") {
+        safe_path = safe_path.substring(0, safe_path.bytes_len - 6)
+    }
+    for c in invalid_chars {
+        safe_path = safe_path.replace(c, "_")
+    }
+    return FilePath::new("cache/$safe_path.bin")
+}
+
+fun CompilationUnit::process_path(path: String, current_path: String): String {
+    if ":" in path {
+        path = path.split(":")[1]!!
+    }
+
+    let dir = FilePath::directory_name(current_path)
+    ret FilePath::join(dir, path)
+}
+
+fun CompilationUnit.check_types() {
+    type_checker.check_all()
+}
+
+fun CompilationUnit.compile() {
+    backend.compile_program()
+
+    let buffer = backend.emitter.buffer
+
+    // Temporary for debugging
+    if backend.emitter.debug_print {
+        println(backend.emitter.debug_buffer.to_string())
+    }
+
+    if !FilePath::new("output.wasm").unsafe_debug_write_bytes(buffer.items, buffer.len) {
+        crash("Unable to write output.wasm")
+    }
+}

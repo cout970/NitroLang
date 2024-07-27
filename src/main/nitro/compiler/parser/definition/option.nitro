@@ -21,9 +21,9 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
         annotations,
         path,
         name,
+        full_name: Path::join(path, name),
         generics: NGenericParams::new(),
         items: [],
-        full_name_cache: None(),
     ]
     program.options[] = def
     declare_name(Path::join(def.path, def.name), def.span)
@@ -48,18 +48,19 @@ fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothin
 fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     let span = lexer.current_token_span
     let name = read_name()?
+    let path = Path::join(parent.path, parent.name)
 
     let def = NStruct @[
         id: id_provider.next(),
         span,
         annotations: [],
-        path: Path::join(parent.path, parent.name),
+        path,
         name,
+        full_name: Path::join(path, name),
         generics: parent.generics,
         fields: [],
         parent: Some(parent),
         is_enum: false,
-        full_name_cache: None(),
     ]
     program.structs[] = def
     declare_name(Path::join(def.path, def.name), def.span)

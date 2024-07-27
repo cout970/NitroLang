@@ -1,7 +1,7 @@
 
-
 struct NGeneric {
     id: Id
+    index: Int
     span: Span
     name: String
     source: NGenericSource
@@ -19,21 +19,20 @@ enum NGenericSource {
 }
 
 struct NGenericParams {
+    source: NGenericSource
     definitions: List<NGeneric>
     type_tokens: List<TypeToken>
-    source: NGenericSource
 }
 
 struct NGenericBounds {
     name: String
-    tag_instance: Optional<NTag>
 }
 
 fun NGenericParams::new(): NGenericParams {
     ret NGenericParams @[
+        source: NGenericSource::Invalid
         definitions: [],
         type_tokens: [],
-        source: NGenericSource::Invalid
     ]
 }
 
@@ -54,7 +53,7 @@ fun NGeneric.to_string(): String {
     if bounds.is_empty() {
         ret "#$name"
     }
-    let s = bounds.join_to_string(", ") @{ i -> i.name }
+    let s = bounds.join_to_string(" | ") @{ i -> i.name }
 
     ret "#$name: $s"
 }
@@ -85,10 +84,10 @@ fun NGenericBounds.to_string(): String = name
 fun ByteBuffer.serialize_generic(value: NGeneric) {
     let frame = start_frame(true)
     serialize_id(value.id)
+    write_int(value.index)
     serialize_span(value.span)
     write_string(value.name)
     write_int(value.source.variant)
-
     write_int(value.bounds.len)
     for bound in value.bounds {
         write_string(bound.name)
@@ -99,41 +98,40 @@ fun ByteBuffer.serialize_generic(value: NGeneric) {
 fun ByteBuffer.deserialize_generic(): NGeneric {
     let frame = start_frame(false)
     let id = deserialize_id()
+    let index = read_int()
     let span = deserialize_span()
     let name = read_string()
     let source = NGenericSource::from_variant(read_int())!!
     let bounds = []
 
     repeat read_int() {
-        bounds[] = NGenericBounds @[
-            name: read_string(),
-            tag_instance: None()
-        ]
+        bounds[] = NGenericBounds @[name: read_string()]
     }
 
     end_frame(frame)
 
-    ret NGeneric @[id, span, name, source, bounds]
+    ret NGeneric @[id, index, span, name, source, bounds]
 }
 
 fun ByteBuffer.serialize_generic_params(value: NGenericParams) {
+    write_int(value.source.variant)
     write_int(value.definitions.len)
 
     for def in value.definitions {
         serialize_generic(def)
     }
 
-    write_int(value.source.variant)
 }
 
 fun ByteBuffer.deserialize_generic_params(): NGenericParams {
+    let source = NGenericSource::from_variant(read_int())!!
+
     let definitions = []
     repeat read_int() {
         definitions[] = deserialize_generic()
     }
 
     let type_tokens = []
-    let source = NGenericSource::from_variant(read_int())!!
 
     ret NGenericParams @[definitions, type_tokens, source]
 }

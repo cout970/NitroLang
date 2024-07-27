@@ -17,6 +17,7 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         read_type_usage()?
     }
 
+    let full_name = Path::join(path, name)
     let def = NConst @[
         id: id_provider.next(),
         span,
@@ -25,8 +26,8 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         name,
         type_usage,
         const_type: None(),
-        code: NCode::new(span, Path::join(path, name)),
-        full_name_cache: None(),
+        code: NCode::new(span, full_name),
+        full_name,
     ]
     program.consts[] = def
     declare_name(Path::join(def.path, def.name), def.span)

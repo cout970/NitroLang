@@ -5,22 +5,43 @@ struct NBlock {
     id: NBlockId
     parent_id: Optional<NBlockId>
     is_jump_target: Boolean
+    depth: Int
     deferred_code: List<NCode>
-    code: NCode
-}
-
-fun NBlock.get_depth(): Int {
-    let parent = get_parent()
-    ret if parent.is_none() { 0 } else { 1 + parent!!.get_depth() }
-}
-
-fun NBlock.get_parent(): Optional<NBlock> {
-    if parent_id.is_none() {
-        ret None()
-    }
-    ret Some(code.find_block(parent_id!!))
 }
 
 fun NBlock.to_string(): String {
     ret "NBlock @[id: $id, parent_id: $parent_id, is_jump_target: $is_jump_target, depth: $depth, deferred_code: ${deferred_code.len}]"
+}
+
+fun ByteBuffer.serialize_block(value: NBlock) {
+    let frame = start_frame(true)
+    serialize_id(value.id)
+    write_boolean(value.parent_id.is_some())
+    if value.parent_id.is_some() {
+        serialize_id(value.parent_id!!)
+    }
+    write_boolean(value.is_jump_target)
+    write_int(value.depth)
+    write_int(value.deferred_code.len)
+    for code in value.deferred_code {
+        serialize_code(code)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_block(code: NCode): NBlock {
+    let frame = start_frame(false)
+    let id = deserialize_id()
+    let has_parent = read_boolean()
+    let parent_id = if has_parent { Some(deserialize_id()) } else { None() }
+    let is_jump_target = read_boolean()
+    let depth = read_int()
+    let deferred_code = []
+    let deferred_code_len = read_int()
+    repeat deferred_code_len {
+        deferred_code[] = deserialize_code(Some(code), code.generics)
+    }
+    end_frame(frame)
+
+    ret NBlock @[id, parent_id, is_jump_target, depth, deferred_code]
 }

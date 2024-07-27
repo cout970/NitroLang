@@ -39,6 +39,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             report_error("'This' type can only be used in a Tag definition", span)
             ret found(NTypeUsage::unresolved(span))
         }
+        let index = current_tag_this!!.index
 
         ret found(NTypeUsage @[
             span,
@@ -47,7 +48,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             path: "",
             params: [],
             type_token: None(),
-            generic_definition: current_tag_this,
+            generic_def_index: Some(index),
         ])
     }
 
@@ -60,6 +61,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         if def.is_none() && allow_generics_collection {
             let instance = NGeneric @[
                id: id_provider.next(),
+               index: current_generics.definitions.len,
                span,
                name,
                source: current_generics.source,
@@ -76,7 +78,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
             path: "",
             params: [],
             type_token: None(),
-            generic_definition: def,
+            generic_def_index: if def.is_some() { Some(def!!.index) } else { None() },
         ])
     }
 
@@ -114,7 +116,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         path,
         params,
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ]
 
     // If `.(` is found after the name, it is a function type like `Int.() -> Nothing`
@@ -174,7 +176,7 @@ fun Parser.read_function_type_usage(span: Span, arg1: Optional<NTypeUsage>): Par
         path: "",
         params,
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ])
 }
 

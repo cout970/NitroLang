@@ -1,0 +1,662 @@
+
+struct ChangeCollector {
+    path: String
+    changes: List<Change>
+}
+
+struct Change {
+    path: String
+    left: String
+    right: String
+}
+
+fun ChangeCollector::new(): ChangeCollector {
+    ret ChangeCollector @[
+        path: "",
+        changes: [],
+    ]
+}
+
+fun ChangeCollector.register(left: String, right: String) {
+    changes[] = Change @[path, left, right]
+}
+
+fun ChangeCollector.field(field: String): ChangeCollector {
+    return ChangeCollector @[path: Path::join(path, field), changes]
+}
+
+tag Differentiable {
+    fun ChangeCollector.diff(left: This, right: This)
+}
+
+fun ChangeCollector.diff(left: Program, right: Program) {
+    field("id_provider").diff(left.id_provider, right.id_provider)
+    field("test_id_provider").diff(left.test_id_provider, right.test_id_provider)
+    field("declared_names").diff(left.declared_names, right.declared_names)
+    field("structs").diff(left.structs, right.structs)
+    field("options").diff(left.options, right.options)
+    field("includes").diff(left.includes, right.includes)
+    field("type_aliases").diff(left.type_aliases, right.type_aliases)
+    field("tags").diff(left.tags, right.tags)
+    field("consts").diff(left.consts, right.consts)
+    field("functions").diff(left.functions, right.functions)
+}
+
+fun ChangeCollector.diff(left: IdProvider, right: IdProvider) {
+    field("last_id").diff(left.last_id, right.last_id)
+//    field("all_wrappers").diff(left.all_wrappers, right.all_wrappers)
+}
+
+fun ChangeCollector.diff(left: Span, right: Span) {
+    field("start").diff(left.start, right.start)
+    field("len").diff(left.len, right.len)
+//    field("source").diff(left.source, right.source)
+    field("file").diff(left.file, right.file)
+//    field("lazy_line").diff(left.lazy_line, right.lazy_line)
+//    field("lazy_column").diff(left.lazy_column, right.lazy_column)
+}
+
+fun ChangeCollector.diff(left: Id, right: Id) {
+    field("current_value").diff(left.current_value, right.current_value)
+}
+
+fun ChangeCollector.diff(left: NStruct, right: NStruct) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("fields").diff(left.fields, right.fields)
+    field("generics").diff(left.generics, right.generics)
+    field("is_enum").diff(left.is_enum, right.is_enum)
+}
+
+fun ChangeCollector.diff(left: NOption, right: NOption) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("generics").diff(left.generics, right.generics)
+    field("items").diff(left.items, right.items)
+}
+
+fun ChangeCollector.diff(left: NAnnotation, right: NAnnotation) {
+    field("span").diff(left.span, right.span)
+    field("name").diff(left.name, right.name)
+    field("args").diff(left.args, right.args)
+}
+
+fun ChangeCollector.diff(left: NAnnotationArg, right: NAnnotationArg) {
+    field("span").diff(left.span, right.span)
+    field("key").diff(left.key, right.key)
+    field("value").diff(left.value, right.value)
+}
+
+fun ChangeCollector.diff(left: NConstExpr, right: NConstExpr) {
+    field("value").diff(left.to_string(), right.to_string())
+}
+
+fun ChangeCollector.diff(left: NStructField, right: NStructField) {
+    field("span").diff(left.span, right.span)
+    field("name").diff(left.name, right.name)
+    field("offset").diff(left.offset, right.offset)
+    field("type_usage").diff(left.type_usage, right.type_usage)
+}
+
+fun ChangeCollector.diff(left: NOptionItem, right: NOptionItem) {
+    field("span").diff(left.span, right.span)
+    field("index").diff(left.index, right.index)
+    field("parent").diff(left.parent.id, right.parent.id)
+    field("def").diff(left.def, right.def)
+}
+
+fun ChangeCollector.diff(left: NGenericParams, right: NGenericParams) {
+    field("definitions").diff(left.definitions, right.definitions)
+    field("type_tokens").diff(left.type_tokens, right.type_tokens)
+    field("source").diff(left.source, right.source)
+}
+
+fun ChangeCollector.diff(left: NTypeUsage, right: NTypeUsage) {
+    field("span").diff(left.span, right.span)
+    field("kind").diff(left.kind, right.kind)
+    field("name").diff(left.name, right.name)
+    field("path").diff(left.path, right.path)
+    field("params").diff(left.params, right.params)
+    field("type_token").diff(left.type_token, right.type_token)
+    field("generic_def_index").diff(left.generic_def_index, right.generic_def_index)
+}
+
+fun ChangeCollector.diff(left: NGeneric, right: NGeneric) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("name").diff(left.name, right.name)
+    field("source").diff(left.source, right.source)
+    field("bounds").diff(left.bounds, right.bounds)
+}
+
+fun ChangeCollector.diff(left: NGenericBounds, right: NGenericBounds) {
+    field("name").diff(left.name, right.name)
+}
+
+fun ChangeCollector.diff(left: NTag, right: NTag) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("full_name").diff(left.full_name, right.full_name)
+    field("functions").diff(left.functions, right.functions)
+}
+
+fun ChangeCollector.diff(left: NTagFunction, right: NTagFunction) {
+    field("id").diff(left.id, right.id)
+    field("header").diff(left.header, right.header)
+}
+
+fun ChangeCollector.diff(left: NFunction, right: NFunction) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("header").diff(left.header, right.header)
+    field("code").diff(left.code, right.code)
+    field("full_name").diff(left.full_name, right.full_name)
+}
+
+fun ChangeCollector.diff(left: NFunctionHeader, right: NFunctionHeader) {
+    field("key").diff(left.key, right.key)
+    field("span").diff(left.span, right.span)
+    field("generics").diff(left.generics, right.generics)
+    field("has_receiver").diff(left.has_receiver, right.has_receiver)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("parameters").diff(left.parameters, right.parameters)
+    field("return_type_usage").diff(left.return_type_usage, right.return_type_usage)
+}
+
+fun ChangeCollector.diff(left: NInclude, right: NInclude) {
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+}
+
+fun ChangeCollector.diff(left: NTypeAlias, right: NTypeAlias) {
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("generics").diff(left.generics, right.generics)
+    field("type_usage").diff(left.type_usage, right.type_usage)
+}
+
+fun ChangeCollector.diff(left: NConst, right: NConst) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("annotations").diff(left.annotations, right.annotations)
+    field("path").diff(left.path, right.path)
+    field("name").diff(left.name, right.name)
+    field("type_usage").diff(left.type_usage, right.type_usage)
+    field("code").diff(left.code, right.code)
+    field("full_name").diff(left.full_name, right.full_name)
+}
+
+fun ChangeCollector.diff(left: TypeToken, right: TypeToken) {
+    field("type_id").diff(left.type_id, right.type_id)
+}
+
+fun ChangeCollector.diff(left: NCode, right: NCode) {
+    field("name").diff(left.name, right.name)
+    field("span").diff(left.span, right.span)
+    field("generics").diff(left.generics, right.generics)
+    field("is_transparent_child").diff(left.is_transparent_child, right.is_transparent_child)
+    field("lambda_id_provider").diff(left.lambda_id_provider, right.lambda_id_provider)
+    field("lambda_map").diff(left.lambda_map, right.lambda_map)
+    field("inst_id_provider").diff(left.inst_id_provider, right.inst_id_provider)
+    field("inst_list").diff(left.inst_list, right.inst_list)
+    field("variable_id_provider").diff(left.variable_id_provider, right.variable_id_provider)
+    field("vars_map").diff(left.vars_map, right.vars_map)
+    field("block_id_provider").diff(left.block_id_provider, right.block_id_provider)
+    field("block_map").diff(left.block_map, right.block_map)
+    field("current_block").diff(left.current_block, right.current_block)
+    field("jumped_out_of_block").diff(left.jumped_out_of_block, right.jumped_out_of_block)
+    field("break_jumps").diff(left.break_jumps, right.break_jumps)
+    field("continue_jumps").diff(left.continue_jumps, right.continue_jumps)
+    field("last_expression").diff(left.last_expression, right.last_expression)
+    field("receiver_type_token").diff(left.receiver_type_token, right.receiver_type_token)
+    field("return_type_token").diff(left.return_type_token, right.return_type_token)
+    field("const_cache").diff(left.const_cache, right.const_cache)
+    field("parent_code").diff(left.parent_code.map @{ it -> it.name }, right.parent_code.map @{ it -> it.name })
+    field("parent_inst").diff(left.parent_inst, right.parent_inst)
+    field("parent_block").diff(left.parent_block, right.parent_block)
+    field("parent_span").diff(left.parent_span, right.parent_span)
+}
+
+fun ChangeCollector.diff(left: NLambda, right: NLambda) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("receiver_type").diff(left.receiver_type, right.receiver_type)
+    field("return_type_usage").diff(left.return_type_usage, right.return_type_usage)
+    field("return_type_token").diff(left.return_type_token, right.return_type_token)
+    field("type_token").diff(left.type_token, right.type_token)
+    field("parameters").diff(left.parameters, right.parameters)
+    field("code").diff(left.code, right.code)
+}
+
+fun ChangeCollector.diff(left: NInst, right: NInst) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("block").diff(left.block, right.block)
+    field("kind").diff(left.kind, right.kind)
+    field("type_token").diff(left.type_token, right.type_token)
+    field("back_references").diff(left.back_references, right.back_references)
+}
+
+fun ChangeCollector.diff(left: NInstKind, right: NInstKind) {
+    if left is NInstKind::Let && right is NInstKind::Let {
+        let leftKind = left as NInstKind::Let
+        let rightKind = right as NInstKind::Let
+        field("variable").diff(leftKind.variable, rightKind.variable)
+        ret
+    }
+
+    if left is NInstKind::LetUpvalue && right is NInstKind::LetUpvalue {
+        let leftKind = left as NInstKind::LetUpvalue
+        let rightKind = right as NInstKind::LetUpvalue
+        field("variable").diff(leftKind.variable, rightKind.variable)
+        ret
+    }
+
+    if left is NInstKind::IfStart && right is NInstKind::IfStart {
+        let leftKind = left as NInstKind::IfStart
+        let rightKind = right as NInstKind::IfStart
+        field("condition").diff(leftKind.condition, rightKind.condition)
+        ret
+    }
+
+    if left is NInstKind::IfElse && right is NInstKind::IfElse {
+        ret
+    }
+
+    if left is NInstKind::IfEnd && right is NInstKind::IfEnd {
+        ret
+    }
+
+    if left is NInstKind::IfChoose && right is NInstKind::IfChoose {
+        let leftKind = left as NInstKind::IfChoose
+        let rightKind = right as NInstKind::IfChoose
+        field("condition").diff(leftKind.condition, rightKind.condition)
+        field("if_true").diff(leftKind.if_true, rightKind.if_true)
+        field("if_false").diff(leftKind.if_false, rightKind.if_false)
+        ret
+    }
+
+    if left is NInstKind::LoopStart && right is NInstKind::LoopStart {
+        let leftKind = left as NInstKind::LoopStart
+        let rightKind = right as NInstKind::LoopStart
+        field("break_block").diff(leftKind.break_block, rightKind.break_block)
+        field("continue_block").diff(leftKind.continue_block, rightKind.continue_block)
+        ret
+    }
+
+    if left is NInstKind::LoopEnd && right is NInstKind::LoopEnd {
+        ret
+    }
+
+    if left is NInstKind::BlockJump && right is NInstKind::BlockJump {
+        let leftKind = left as NInstKind::BlockJump
+        let rightKind = right as NInstKind::BlockJump
+        field("backwards").diff(leftKind.backwards, rightKind.backwards)
+        field("block").diff(leftKind.block, rightKind.block)
+        ret
+    }
+
+    if left is NInstKind::WhenStart && right is NInstKind::WhenStart {
+        ret
+    }
+
+    if left is NInstKind::WhenEnd && right is NInstKind::WhenEnd {
+        let leftKind = left as NInstKind::WhenEnd
+        let rightKind = right as NInstKind::WhenEnd
+        field("branches").diff(leftKind.branches, rightKind.branches)
+        field("variable").diff(leftKind.variable, rightKind.variable)
+        ret
+    }
+
+    if left is NInstKind::FunCall && right is NInstKind::FunCall {
+        let leftKind = left as NInstKind::FunCall
+        let rightKind = right as NInstKind::FunCall
+        field("path").diff(leftKind.path, rightKind.path)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("explicit_receiver").diff(leftKind.explicit_receiver, rightKind.explicit_receiver)
+        field("arguments").diff(leftKind.arguments, rightKind.arguments)
+        field("explicit_type_arguments").diff(leftKind.explicit_type_arguments, rightKind.explicit_type_arguments)
+        field("call_site").diff(leftKind.call_site, rightKind.call_site)
+        ret
+    }
+
+    if left is NInstKind::BinaryOp && right is NInstKind::BinaryOp {
+        let leftKind = left as NInstKind::BinaryOp
+        let rightKind = right as NInstKind::BinaryOp
+        field("op").diff(leftKind.op.variant, rightKind.op.variant)
+        field("left").diff(leftKind.left, rightKind.left)
+        field("right").diff(leftKind.right, rightKind.right)
+        ret
+    }
+
+    if left is NInstKind::Literal && right is NInstKind::Literal {
+        let leftKind = left as NInstKind::Literal
+        let rightKind = right as NInstKind::Literal
+        field("value").diff(leftKind.value, rightKind.value)
+        ret
+    }
+
+    if left is NInstKind::Return && right is NInstKind::Return {
+        let leftKind = left as NInstKind::Return
+        let rightKind = right as NInstKind::Return
+        field("value").diff(leftKind.value, rightKind.value)
+        ret
+    }
+
+    if left is NInstKind::IsType && right is NInstKind::IsType {
+        let leftKind = left as NInstKind::IsType
+        let rightKind = right as NInstKind::IsType
+        field("value").diff(leftKind.value, rightKind.value)
+        field("type_pattern").diff(leftKind.type_pattern, rightKind.type_pattern)
+        ret
+    }
+
+    if left is NInstKind::AsType && right is NInstKind::AsType {
+        let leftKind = left as NInstKind::AsType
+        let rightKind = right as NInstKind::AsType
+        field("value").diff(leftKind.value, rightKind.value)
+        field("type_usage").diff(leftKind.type_usage, rightKind.type_usage)
+        ret
+    }
+
+    if left is NInstKind::LoadVar && right is NInstKind::LoadVar {
+        let leftKind = left as NInstKind::LoadVar
+        let rightKind = right as NInstKind::LoadVar
+        field("path").diff(leftKind.path, rightKind.path)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("variable").diff(leftKind.variable, rightKind.variable)
+        field("constant").diff(leftKind.constant, rightKind.constant)
+        ret
+    }
+
+    if left is NInstKind::StoreVar && right is NInstKind::StoreVar {
+        let leftKind = left as NInstKind::StoreVar
+        let rightKind = right as NInstKind::StoreVar
+        field("path").diff(leftKind.path, rightKind.path)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("value").diff(leftKind.value, rightKind.value)
+        field("variable").diff(leftKind.variable, rightKind.variable)
+        ret
+    }
+
+    if left is NInstKind::LoadField && right is NInstKind::LoadField {
+        let leftKind = left as NInstKind::LoadField
+        let rightKind = right as NInstKind::LoadField
+        field("instance").diff(leftKind.instance, rightKind.instance)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("field").diff(leftKind.field, rightKind.field)
+        field("field_type_token").diff(leftKind.field_type_token, rightKind.field_type_token)
+        field("call_site_generics").diff(leftKind.call_site_generics, rightKind.call_site_generics)
+        ret
+    }
+
+    if left is NInstKind::StoreField && right is NInstKind::StoreField {
+        let leftKind = left as NInstKind::StoreField
+        let rightKind = right as NInstKind::StoreField
+        field("instance").diff(leftKind.instance, rightKind.instance)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("field").diff(leftKind.field, rightKind.field)
+        field("field_type_token").diff(leftKind.field_type_token, rightKind.field_type_token)
+        field("call_site_generics").diff(leftKind.call_site_generics, rightKind.call_site_generics)
+        field("value").diff(leftKind.value, rightKind.value)
+        ret
+    }
+
+    if left is NInstKind::SizeOf && right is NInstKind::SizeOf {
+        let leftKind = left as NInstKind::SizeOf
+        let rightKind = right as NInstKind::SizeOf
+        field("type_usage").diff(leftKind.type_usage, rightKind.type_usage)
+        field("type_token").diff(leftKind.type_token, rightKind.type_token)
+        ret
+    }
+
+    if left is NInstKind::Alloc && right is NInstKind::Alloc {
+        let leftKind = left as NInstKind::Alloc
+        let rightKind = right as NInstKind::Alloc
+        field("type_usage").diff(leftKind.type_usage, rightKind.type_usage)
+        field("type_token").diff(leftKind.type_token, rightKind.type_token)
+        field("is_enum").diff(leftKind.is_enum, rightKind.is_enum)
+        ret
+    }
+
+    if left is NInstKind::Lambda && right is NInstKind::Lambda {
+        let leftKind = left as NInstKind::Lambda
+        let rightKind = right as NInstKind::Lambda
+        field("lambda_id").diff(leftKind.lambda_id, rightKind.lambda_id)
+        ret
+    }
+
+    if left is NInstKind::Link && right is NInstKind::Link {
+        let leftKind = left as NInstKind::Link
+        let rightKind = right as NInstKind::Link
+        field("linked_id").diff(leftKind.linked_id, rightKind.linked_id)
+        ret
+    }
+
+    if left is NInstKind::Comment && right is NInstKind::Comment {
+        let leftKind = left as NInstKind::Comment
+        let rightKind = right as NInstKind::Comment
+        field("text").diff(leftKind.text, rightKind.text)
+        ret
+    }
+
+    if left is NInstKind::Noop && right is NInstKind::Noop {
+        ret
+    }
+
+    crash("Unhandled NInstKind diff")
+}
+
+fun ChangeCollector.diff(left: FunCallSite, right: FunCallSite) {
+    field("target").diff(left.target, right.target)
+    field("uses_implicit_this").diff(left.uses_implicit_this, right.uses_implicit_this)
+    field("argument_types").diff(left.argument_types, right.argument_types)
+    field("call_site_generics").diff(left.call_site_generics, right.call_site_generics)
+}
+
+fun ChangeCollector.diff(left: NFunCallTarget, right: NFunCallTarget) {
+    if left is NFunCallTarget::Func && right is NFunCallTarget::Func {
+        let leftTarget = left as NFunCallTarget::Func
+        let rightTarget = right as NFunCallTarget::Func
+        field("header").diff(leftTarget.header, rightTarget.header)
+        field("func").diff(leftTarget.func.id, rightTarget.func.id)
+        ret
+    }
+
+    if left is NFunCallTarget::Tag && right is NFunCallTarget::Tag {
+        let leftTarget = left as NFunCallTarget::Tag
+        let rightTarget = right as NFunCallTarget::Tag
+        field("header").diff(leftTarget.header, rightTarget.header)
+        field("tag_func").diff(leftTarget.tag_func.id, rightTarget.tag_func.id)
+        ret
+    }
+
+    register(left.to_string(), right.to_string())
+}
+
+fun ChangeCollector.diff(left: CallSiteGenerics, right: CallSiteGenerics) {
+    field("generic_params").diff(left.generic_params, right.generic_params)
+//    field("unresolved").diff(left.unresolved, right.unresolved)
+  field("resolved").diff(left.resolved, right.resolved)
+//  field("mapping").diff(left.mapping, right.mapping)
+}
+
+fun ChangeCollector.diff(left: Type, right: Type) {
+    field("id").diff(left.id, right.id)
+    field("kind").diff(left.kind, right.kind)
+    field("params").diff(left.params, right.params)
+}
+
+fun ChangeCollector.diff(left: TypeKind, right: TypeKind) {
+    if left is TypeKind::Struct && right is TypeKind::Struct {
+        let leftKind = left as TypeKind::Struct
+        let rightKind = right as TypeKind::Struct
+        field("Struct.instance").diff(leftKind.instance.id, rightKind.instance.id)
+        ret
+    }
+
+    if left is TypeKind::Option && right is TypeKind::Option {
+        let leftKind = left as TypeKind::Option
+        let rightKind = right as TypeKind::Option
+        field("Option.instance").diff(leftKind.instance.id, rightKind.instance.id)
+        ret
+    }
+
+    if left is TypeKind::OptionItem && right is TypeKind::OptionItem {
+        let leftKind = left as TypeKind::OptionItem
+        let rightKind = right as TypeKind::OptionItem
+        field("OptionItem.instance").diff(leftKind.instance.id, rightKind.instance.id)
+        ret
+    }
+
+    if left is TypeKind::Lambda && right is TypeKind::Lambda {
+        let leftKind = left as TypeKind::Lambda
+        let rightKind = right as TypeKind::Lambda
+        field("Lambda.instance").diff(leftKind.instance.id, rightKind.instance.id)
+        ret
+    }
+
+    if left is TypeKind::Generic && right is TypeKind::Generic {
+        let leftKind = left as TypeKind::Generic
+        let rightKind = right as TypeKind::Generic
+        field("Generic.instance").diff(leftKind.instance.id, rightKind.instance.id)
+        ret
+    }
+
+    if left is TypeKind::Union && right is TypeKind::Union {
+        let leftKind = left as TypeKind::Union
+        let rightKind = right as TypeKind::Union
+        field("Union.span").diff(leftKind.span, rightKind.span)
+        ret
+    }
+
+    if left is TypeKind::Unresolved && right is TypeKind::Unresolved {
+        let leftKind = left as TypeKind::Unresolved
+        let rightKind = right as TypeKind::Unresolved
+        field("Unresolved.id").diff(leftKind.id, rightKind.id)
+        field("Unresolved.span").diff(leftKind.span, rightKind.span)
+        ret
+    }
+
+    if left is TypeKind::UnresolvedFunction && right is TypeKind::UnresolvedFunction {
+        let leftKind = left as TypeKind::UnresolvedFunction
+        let rightKind = right as TypeKind::UnresolvedFunction
+        field("UnresolvedFunction.id").diff(leftKind.id, rightKind.id)
+        field("UnresolvedFunction.span").diff(leftKind.span, rightKind.span)
+        ret
+    }
+
+    if left is TypeKind::Invalid && right is TypeKind::Invalid {
+        let leftKind = left as TypeKind::Invalid
+        let rightKind = right as TypeKind::Invalid
+        field("Invalid.message").diff(leftKind.message, rightKind.message)
+        field("Invalid.span").diff(leftKind.span, rightKind.span)
+        ret
+    }
+
+    register(left.to_string(), right.to_string())
+}
+
+fun ChangeCollector.diff(left: NVar, right: NVar) {
+    field("id").diff(left.id, right.id)
+    field("span").diff(left.span, right.span)
+    field("block").diff(left.block, right.block)
+    field("name").diff(left.name, right.name)
+    field("type_usage").diff(left.type_usage, right.type_usage)
+    field("type_token").diff(left.type_token, right.type_token)
+    field("is_parameter").diff(left.is_parameter, right.is_parameter)
+    field("is_upvalue").diff(left.is_upvalue, right.is_upvalue)
+}
+
+fun ChangeCollector.diff(left: NBlock, right: NBlock) {
+    field("id").diff(left.id, right.id)
+    field("parent_id").diff(left.parent_id, right.parent_id)
+    field("is_jump_target").diff(left.is_jump_target, right.is_jump_target)
+    field("depth").diff(left.depth, right.depth)
+    field("deferred_code").diff(left.deferred_code, right.deferred_code)
+}
+
+fun ChangeCollector.diff(left: NFunctionParameter, right: NFunctionParameter) {
+    field("span").diff(left.span, right.span)
+    field("name").diff(left.name, right.name)
+    field("type_usage").diff(left.type_usage, right.type_usage)
+}
+
+fun ChangeCollector.diff(left: NTypePattern, right: NTypePattern) {
+    field("span").diff(left.span, right.span)
+    field("kind").diff(left.kind.variant, right.kind.variant)
+    field("name").diff(left.name, right.name)
+    field("path").diff(left.path, right.path)
+    field("params").diff(left.params, right.params)
+//    field("resolved").diff(left.resolved, right.resolved)
+}
+
+fun <#Item: Differentiable> ChangeCollector.diff(left: Optional<#Item>, right: Optional<#Item>) {
+    field("optional").diff(left.is_some(), right.is_some())
+    if left.is_some() && right.is_some() {
+        field("value").diff(left!!, right!!)
+    }
+}
+
+fun <#Item: Differentiable> ChangeCollector.diff(left: List<#Item>, right: List<#Item>) {
+    field("len").diff(left.len, right.len)
+    repeat min(left.len, right.len) {
+        field(it.to_string()).diff(left[it]!!, right[it]!!)
+    }
+}
+
+fun <#Key: Differentiable | ToString | MapKey, #Value: Differentiable> ChangeCollector.diff(left: Map<#Key, #Value>, right: Map<#Key, #Value>) {
+    field("len").diff(left.len, right.len)
+    let keys = left.keys_to_list().to_set().intersection(right.keys_to_list().to_set())
+    for key in keys {
+        field(key.to_string()).diff(left[key]!!, right[key]!!)
+    }
+}
+
+fun ChangeCollector.diff(left: TypeUsageKind, right: TypeUsageKind) {
+    if left != right {
+        register(left.to_string(), right.to_string())
+    }
+}
+
+fun ChangeCollector.diff(left: NGenericSource, right: NGenericSource) {
+    if left != right {
+        register(left.to_string(), right.to_string())
+    }
+}
+
+fun ChangeCollector.diff(left: Int, right: Int) {
+    if left != right {
+        register(left.to_string(), right.to_string())
+    }
+}
+
+fun ChangeCollector.diff(left: String, right: String) {
+    if left != right {
+        register(left, right)
+    }
+}
+
+fun ChangeCollector.diff(left: Boolean, right: Boolean) {
+    if left != right {
+        register(left.to_string(), right.to_string())
+    }
+}
+
+fun Change.to_string(): String {
+    ret "$path: left: '$left', right: '$right'"
+}

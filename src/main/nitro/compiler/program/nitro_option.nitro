@@ -5,9 +5,9 @@ struct NOption {
     annotations: List<NAnnotation>
     path: String
     name: String
+    full_name: String
     generics: NGenericParams
     items: List<NOptionItem>
-    full_name_cache: Optional<String>
 }
 
 struct NOptionItem {
@@ -17,16 +17,6 @@ struct NOptionItem {
     def: NStruct
 }
 
-
-fun NOption.get_full_name(): String {
-    if full_name_cache.is_some() {
-        ret full_name_cache!!
-    }
-
-    let full_name = Path::join(path, name)
-    full_name_cache = Some(full_name)
-    ret full_name
-}
 
 fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
     for item in items {
@@ -105,9 +95,10 @@ fun ByteBuffer.deserialize_option(program: Program): NOption {
 
     let path = read_string()
     let name = read_string()
+    let full_name = Path::join(path, name)
     let generics = deserialize_generic_params()
 
-    let opt = NOption @[id, span, annotations, path, name, generics, items: [], full_name_cache: None()]
+    let opt = NOption @[id, span, annotations, path, name, full_name, generics, items: []]
 
     repeat read_int() {
         opt.items[] = deserialize_option_item(program, opt)
@@ -140,6 +131,9 @@ fun ByteBuffer.deserialize_option_item(program: Program, parent: NOption): NOpti
     }
 
     end_frame(frame)
+    // Set struct parent to the option so it becomes an option item
+    def!!.parent = Some(parent)
+
     ret NOptionItem @[
         span,
         index,

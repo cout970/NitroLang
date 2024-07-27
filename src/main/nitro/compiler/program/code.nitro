@@ -2,19 +2,16 @@
 // NCode represents a block of code, which can be a function, a constant initialization or a lambda expression.
 struct NCode {
     name: String
-    // Parent code, ie. the code of the function containing a lambda expression represented by this code
-    parent_code: Optional<NCode>
-    parent_inst: Optional<NInstId>
-    parent_block: Optional<NBlockId>
-    parent_span: Optional<Span>
-    // Indicate that this block belong to the same context as the parent, for example, for code reordering, will be false for lambdas, defer, etc.
-    is_transparent_child: Boolean
-    // Any nested code, lambdas or deferred code
-    children: List<NCode>
     // Span of the start of the block
     span: Span
     // Generics defined for this block of code
     generics: NGenericParams
+    // Indicate that this block belong to the same context as the parent, for example, for code reordering, will be false for lambdas, defer, etc.
+    is_transparent_child: Boolean
+    // Id provider for new lambda expressions
+    lambda_id_provider: IdProvider
+    // Map of lambda expressions defined in this code (or subcode)
+    lambda_map: Map<Id, NLambda>
     // Id provider for new instructions
     inst_id_provider: IdProvider
     // List of instructions of the function/constant
@@ -44,6 +41,11 @@ struct NCode {
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
+    // Parent code, ie. the code of the function containing a lambda expression represented by this code
+    parent_code: Optional<NCode>
+    parent_inst: Optional<NInstId>
+    parent_block: Optional<NBlockId>
+    parent_span: Optional<Span>
 }
 
 fun NCode::new(span: Span, name: String): NCode {
@@ -51,14 +53,11 @@ fun NCode::new(span: Span, name: String): NCode {
 
     let code = NCode @[
         name,
-        parent_code: None(),
-        parent_inst: None(),
-        parent_block: None(),
-        parent_span: None(),
-        is_transparent_child: false,
-        children: [],
         span,
         generics: NGenericParams::new(),
+        is_transparent_child: false,
+        lambda_id_provider: IdProvider::new(),
+        lambda_map: #[],
         inst_list: [],
         vars_map: #[],
         inst_id_provider: IdProvider::new(),
@@ -73,14 +72,18 @@ fun NCode::new(span: Span, name: String): NCode {
         receiver_type_token: None(),
         return_type_token: None(),
         const_cache: #[],
+        parent_code: None(),
+        parent_inst: None(),
+        parent_block: None(),
+        parent_span: None(),
     ]
 
     let root_block = NBlock @[
         id: code.current_block,
         parent_id: None(),
         is_jump_target: false,
+        depth: 0,
         deferred_code: [],
-        code,
     ]
 
     code.block_map[root_block.id] = root_block
@@ -94,19 +97,26 @@ fun NCode.new_child_code(span: Span, is_transparent_child: Boolean): NCode {
     subcode.parent_inst = Some(inst_id_provider.previous())
     subcode.parent_block = Some(current_block)
     subcode.parent_span = Some(span)
+    subcode.link_generics(generics)
     subcode.variable_id_provider.seek_to(variable_id_provider)
-    children[] = subcode
-
     ret subcode
 }
 
+fun NCode.link_generics(external_generics: NGenericParams){
+    generics = external_generics
+    for entry in lambda_map {
+        entry.second.code.link_generics(external_generics)
+    }
+}
+
 fun NCode.enter_block(is_jump_target: Boolean) {
+    let prev = find_block(current_block)
     let new_block = NBlock @[
         id: block_id_provider.next(),
-        parent_id: Some(current_block),
+        parent_id: Some(prev.id),
         is_jump_target,
+        depth: prev.depth + 1,
         deferred_code: [],
-        code: this,
     ]
     block_map[new_block.id] = new_block
     current_block = new_block.id
@@ -358,7 +368,7 @@ fun NCode.calculate_back_references() {
 }
 
 fun NCode.to_string(): String {
-    if inst_list.is_empty() {
+    if inst_list.is_empty() && vars_map.is_empty() && block_map.is_empty() {
         ret "{}"
     }
 
@@ -410,4 +420,136 @@ fun NCode.to_string(): String {
     body_str[] = "\n}"
 
     ret body_str.to_string()
+}
+
+fun ByteBuffer.serialize_code(code: NCode) {
+    let frame = start_frame(true)
+    write_string(code.name)
+    serialize_span(code.span)
+    write_boolean(code.is_transparent_child)
+    serialize_id_provider(code.lambda_id_provider)
+    serialize_id_provider(code.inst_id_provider)
+    serialize_id_provider(code.variable_id_provider)
+    serialize_id_provider(code.block_id_provider)
+    serialize_id(code.current_block)
+    write_boolean(code.jumped_out_of_block)
+    write_int(code.break_jumps.len)
+    for jump in code.break_jumps {
+        serialize_id(jump)
+    }
+    write_int(code.continue_jumps.len)
+    for jump in code.continue_jumps {
+        serialize_id(jump)
+    }
+    write_boolean(code.last_expression.is_some())
+    if code.last_expression.is_some() {
+        serialize_id(code.last_expression!!)
+    }
+    write_int(code.vars_map.len)
+    for entry in code.vars_map {
+        serialize_var(entry.second)
+    }
+    write_int(code.block_map.len)
+    for entry in code.block_map {
+        serialize_block(entry.second)
+    }
+    write_int(code.inst_list.len)
+    for inst in code.inst_list {
+        serialize_inst(inst)
+    }
+    write_int(code.lambda_map.len)
+    for entry in code.lambda_map {
+        serialize_lambda(entry.second)
+    }
+    write_boolean(code.parent_code.is_some())
+    if code.parent_code.is_some() {
+        serialize_id(code.parent_inst!!)
+        serialize_id(code.parent_block!!)
+        serialize_span(code.parent_span!!)
+    }
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_code(parent_code: Optional<NCode>, generics: NGenericParams): NCode {
+    let frame = start_frame(false)
+    let name = read_string()
+    let span = deserialize_span()
+    let is_transparent_child = read_boolean()
+    let lambda_id_provider = deserialize_id_provider()
+    let lambda_map = #[]
+    let inst_id_provider = deserialize_id_provider()
+    let inst_list = []
+    let variable_id_provider = deserialize_id_provider()
+    let vars_map = #[]
+    let block_id_provider = deserialize_id_provider()
+    let block_map = #[]
+    let current_block = deserialize_id()
+    let jumped_out_of_block = read_boolean()
+    let break_jumps = []
+    repeat read_int() {
+        break_jumps[] = deserialize_id()
+    }
+    let continue_jumps = []
+    repeat read_int() {
+        continue_jumps[] = deserialize_id()
+    }
+    let last_expression = None()
+    if read_boolean() {
+        last_expression = Some(deserialize_id())
+    }
+
+    let value = NCode @[
+        name,
+        span,
+        generics,
+        is_transparent_child,
+        lambda_id_provider,
+        lambda_map,
+        inst_id_provider,
+        inst_list,
+        variable_id_provider,
+        vars_map,
+        block_id_provider,
+        block_map,
+        current_block,
+        jumped_out_of_block,
+        break_jumps,
+        continue_jumps,
+        last_expression,
+        const_cache: #[],
+        receiver_type_token: None(),
+        return_type_token: None(),
+        parent_code,
+        parent_inst: None(),
+        parent_block: None(),
+        parent_span: None(),
+    ]
+
+    repeat read_int() {
+        let variable = deserialize_var()
+        vars_map[variable.id] = variable
+    }
+
+    repeat read_int() {
+        let block = deserialize_block(value)
+        block_map[block.id] = block
+    }
+
+    repeat read_int() {
+        inst_list[] = deserialize_inst(value)
+    }
+
+    repeat read_int() {
+        let lambda = deserialize_lambda(value)
+        value.lambda_map[lambda.id] = lambda
+    }
+
+    if read_boolean() {
+        value.parent_inst = Some(deserialize_id())
+        value.parent_block = Some(deserialize_id())
+        value.parent_span = Some(deserialize_span())
+    }
+
+    end_frame(frame)
+    ret value
 }

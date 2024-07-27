@@ -20,40 +20,68 @@ fun TypeChecker.resolve_type_pattern(tp: NTypePattern, code: NCode): ResolvedTyp
     if tp.resolved.is_some() {
         ret tp.resolved!!
     }
+    let r = resolve_type_pattern_aux(tp, code)
+    tp.resolved = Some(r)
+    ret r
+}
 
+
+fun TypeChecker.resolve_type_pattern_aux(tp: NTypePattern, code: NCode): ResolvedTypePattern {
     let params = []
 
     for p in tp.params {
         params += resolve_type_pattern(p, code)
     }
 
-    let kind = when tp.kind {
-        TypePatternKind::TYPE_SIMPLE -> {
-            let full_name = Path::join(tp.path, tp.name)
-            let ty = find_type_by_name(full_name, [], tp.span)
+    if tp.kind == TypePatternKind::TYPE_SIMPLE {
+        let full_name = Path::join(tp.path, tp.name)
+        let ty = find_type_by_name(full_name, [], tp.span)
 
-            types.type_kind_to_pattern(ty.kind, false)
-        }
-        TypePatternKind::TYPE_PARAM -> {
-            let full_name = Path::join(tp.path, tp.name)
-            let opt = find_generic_by_name(code, full_name)
-
-            let ty = if opt.is_some() {
-                opt!!
-            } else {
-                // Not found
-                create_error_type("Generic not found: $full_name", tp.span)
-            }
-
-            types.type_kind_to_pattern(ty.kind, false)
-        }
-        TypePatternKind::TYPE_ANY -> ResolvedTypePatternKind::Any @[]
-        else -> unreachable()
+        let kind = types.type_kind_to_pattern(ty.kind, false)
+        ret ResolvedTypePattern @[
+            span: tp.span,
+            kind,
+            params,
+        ]
     }
 
-    let r = ResolvedTypePattern @[span: tp.span, kind, params]
-    tp.resolved = Some(r)
-    ret r
+    if tp.kind == TypePatternKind::TYPE_PARAM {
+        let full_name = Path::join(tp.path, tp.name)
+        let opt = None()
+
+        if code.generics.definitions.len != code.generics.type_tokens.len {
+            crash("Corrupted generics")
+        }
+
+        for def in code.generics.definitions {
+            if def.name == full_name {
+                let ty = code.generics.type_tokens[def.index]!!.find_type()
+                opt = Some(ty)
+                break
+            }
+        }
+
+        if opt.is_none() {
+            opt = Some(create_error_type("Generic not found: $full_name", tp.span))
+        }
+
+        let kind = types.type_kind_to_pattern(opt!!.kind, false)
+        ret ResolvedTypePattern @[
+            span: tp.span,
+            kind,
+            params,
+        ]
+    }
+
+    if tp.kind == TypePatternKind::TYPE_ANY {
+        ret ResolvedTypePattern @[
+            span: tp.span,
+            kind: ResolvedTypePatternKind::Any @[],
+            params,
+        ]
+    }
+
+    unreachable()
 }
 
 fun TypeContainer.type_to_pattern(ty: Type): ResolvedTypePattern {

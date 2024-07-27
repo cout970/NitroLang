@@ -120,7 +120,7 @@ fun TypeChecker.finalize_code(code: NCode) {
 
 fun TypeChecker.check_var(v: NVar, code: NCode) {
     if v.type_token.is_none() {
-        v.type_token = Some(check_local_type_usage(v.type_usage, code))
+        v.type_token = Some(check_type_usage_with(code.generics, v.type_usage)).to_token()
 
         // Store the type of `this` for later
         if v.name == "this" {
@@ -313,7 +313,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
 
     if inst.kind is NInstKind::AsType {
         let kind = inst.kind as NInstKind::AsType
-        let tt = check_local_type_usage(kind.type_usage, code)
+        let tt = check_type_usage_with(code.generics, kind.type_usage).to_token()
         inst.type_token = Some(tt)
         ret
     }
@@ -340,7 +340,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
 
     if inst.kind is NInstKind::SizeOf {
         let kind = inst.kind as NInstKind::SizeOf
-        kind.type_token = Some(check_local_type_usage(kind.type_usage, code))
+        kind.type_token = Some(check_type_usage_with(code.generics, kind.type_usage).to_token())
         inst.type_token = type_cache["Int"].to_token()
         ret
     }
@@ -388,7 +388,7 @@ fun TypeChecker.add_load_this_var(code: NCode, id: NInstId): NInstId {
     // Get the duplicated instruction (first of the two)
     let dup = code.inst_list[index]!!
 
-    let variable = find_variable(code, "this", dup.block, dup.id)
+    let variable = find_variable("this", code, dup.block, dup.id)
 
     check_not(variable.is_none()) @{
         "Unable to find variable `this`"

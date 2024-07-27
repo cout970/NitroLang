@@ -2,44 +2,11 @@
 include "./includes.nitro"
 //include "./main.nitro"
 
-type_alias Weight = Float
-type_alias Px = Int
-type_alias Em = Int
-type_alias Rem = Int
-
-let total_weight: Weight = 100.0
-let size: Px = 16
-
-tag Test {
-    fun do_test1(): Int
-    fun do_test2(): Int
-}
-
 fun main() {
-    println("Start")
-    test_serialization()
-    println("End")
-}
-
-fun test_serialization() {
-    let file_path = FilePath::new("cache/nitro_compiler_example.bin")
-    let bytes: Array<Byte> = file_path.unsafe_debug_read_bytes()
-    let bytes_list = List @[
-        capacity: bytes.len,
-        count: bytes.len,
-        items: bytes
-    ]
-    let buffer = ByteBuffer::new(bytes_list)
-    buffer.start_read()
-
-    // Header
-    let cache_version = buffer.reader.read_int_be()
-    let cache_time = buffer.reader.read_int_be()
-    let cache_crc = buffer.reader.read_int_be()
-    let cache_last_modified = buffer.reader.read_int_be()
-
-    // Contenido
-    let sub_program = buffer.deserialize_program()
-
-    println(sub_program)
+    println("Hello, world!")
+    println("Hello, world!")
+    println("Hello, world!")
+    println("Hello, world!")
+    println("Hello, world!")
+    println("Hello, world!")
 }

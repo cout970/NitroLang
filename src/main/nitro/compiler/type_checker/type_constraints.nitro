@@ -120,7 +120,7 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                     let found = false
 
                     for bound in generic.bounds {
-                        if bound.tag_instance!!.name == tag_instance.name {
+                        if bound.name == tag_instance.name {
                             found = true
                             break
                         }

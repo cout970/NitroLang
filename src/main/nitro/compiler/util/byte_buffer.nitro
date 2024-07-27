@@ -12,6 +12,7 @@ struct ByteBuffer {
     writer: ByteWriter
     reader: ByteReader
     strings: List<String>
+    extra_checks: Boolean
 }
 
 fun ByteBuffer::new(): ByteBuffer {
@@ -23,25 +24,32 @@ fun ByteBuffer::new(list: List<Byte>): ByteBuffer {
         writer: ByteWriter::wrap(list),
         reader: ByteReader::new(list),
         strings: [],
+        extra_checks: false,
     ]
 }
 
 fun ByteBuffer.write_int(value: Int) {
-    writer.add_int_leb128(ByteBufferType::Int.value)
+    if extra_checks {
+        writer.add_int_leb128(ByteBufferType::Int.value)
+    }
     writer.add_int_leb128(value)
 }
 
 fun ByteBuffer.read_int(): Int {
-    let tag_byte = reader.read_int_leb128()
-    if tag_byte != ByteBufferType::Int.value {
-        crash("Invalid tag, expecting Int (${ByteBufferType::Int.value}), found: $tag_byte")
+    if extra_checks {
+        let tag_byte = reader.read_int_leb128()
+        if tag_byte != ByteBufferType::Int.value {
+            crash("Invalid tag, expecting Int (${ByteBufferType::Int.value}), found: $tag_byte")
+        }
     }
 
     ret reader.read_int_leb128()
 }
 
 fun ByteBuffer.write_string(value: String) {
-    writer.add_int_leb128(ByteBufferType::String.value)
+    if extra_checks {
+        writer.add_int_leb128(ByteBufferType::String.value)
+    }
 
     // Duplicated string
     let index = strings.index_of(value)
@@ -56,9 +64,11 @@ fun ByteBuffer.write_string(value: String) {
 }
 
 fun ByteBuffer.read_string(): String {
-    let tag_byte = reader.read_int_leb128()
-    if tag_byte != ByteBufferType::String.value {
-        crash("Invalid tag, expecting String (${ByteBufferType::String.value}), found: $tag_byte")
+    if extra_checks {
+        let tag_byte = reader.read_int_leb128()
+        if tag_byte != ByteBufferType::String.value {
+            crash("Invalid tag, expecting String (${ByteBufferType::String.value}), found: $tag_byte")
+        }
     }
 
     let index = reader.read_int_leb128()
@@ -66,42 +76,54 @@ fun ByteBuffer.read_string(): String {
 }
 
 fun ByteBuffer.write_float(value: Float) {
-    writer.add_int_leb128(ByteBufferType::Float.value)
+    if extra_checks {
+        writer.add_int_leb128(ByteBufferType::Float.value)
+    }
     writer.add_float_ieee754_32(value)
 }
 
 fun ByteBuffer.read_float(): Float {
-    let tag_byte = reader.read_int_leb128()
-    if tag_byte != ByteBufferType::Float.value {
-        crash("Invalid tag, expecting Float (${ByteBufferType::Float.value}), found: $tag_byte")
+    if extra_checks {
+        let tag_byte = reader.read_int_leb128()
+        if tag_byte != ByteBufferType::Float.value {
+            crash("Invalid tag, expecting Float (${ByteBufferType::Float.value}), found: $tag_byte")
+        }
     }
 
     ret reader.read_float_ieee754_32()
 }
 
 fun ByteBuffer.write_long(value: Long) {
-    writer.add_int_leb128(ByteBufferType::Long.value)
+    if extra_checks {
+        writer.add_int_leb128(ByteBufferType::Long.value)
+    }
     writer.add_long_leb128(value)
 }
 
 fun ByteBuffer.read_long(): Long {
-    let tag_byte = reader.read_int_leb128()
-    if tag_byte != ByteBufferType::Long.value {
-        crash("Invalid tag, expecting Long (${ByteBufferType::Long.value}), found: $tag_byte")
+    if extra_checks {
+        let tag_byte = reader.read_int_leb128()
+        if tag_byte != ByteBufferType::Long.value {
+            crash("Invalid tag, expecting Long (${ByteBufferType::Long.value}), found: $tag_byte")
+        }
     }
 
     ret reader.read_long_leb128()
 }
 
 fun ByteBuffer.write_boolean(value: Boolean) {
-    writer.add_int_leb128(ByteBufferType::Boolean.value)
+    if extra_checks {
+        writer.add_int_leb128(ByteBufferType::Boolean.value)
+    }
     writer.add_int_leb128(if value { 1 } else { 0 })
 }
 
 fun ByteBuffer.read_boolean(): Boolean {
-    let tag_byte = reader.read_int_leb128()
-    if tag_byte != ByteBufferType::Boolean.value {
-        crash("Invalid tag, expecting Boolean (${ByteBufferType::Boolean.value}), found: $tag_byte")
+    if extra_checks {
+        let tag_byte = reader.read_int_leb128()
+        if tag_byte != ByteBufferType::Boolean.value {
+            crash("Invalid tag, expecting Boolean (${ByteBufferType::Boolean.value}), found: $tag_byte")
+        }
     }
 
     ret reader.read_int_leb128() == 1
@@ -115,6 +137,8 @@ fun ByteBuffer.finish_write(): List<Byte> {
     writer2.add_int_be(0xfeedadad)
     // Version
     writer2.add_int_be(0x00000001)
+    // Contains extra checks
+    writer2.add_int_leb128(if extra_checks { 1 } else { 0 })
 
     // String table for deduplication
     writer2.add_int_leb128(strings.len)
@@ -140,6 +164,8 @@ fun ByteBuffer.start_read() {
         crash("Invalid version, expecting 1, found: $version")
     }
 
+    extra_checks = reader.read_int_leb128() == 1
+
     // String table for deduplication
     let strings_len = reader.read_int_leb128()
     repeat strings_len {
@@ -159,13 +185,15 @@ struct ByteBufferFrame {
 }
 
 fun ByteBuffer.start_frame(write: Boolean): ByteBufferFrame {
-    if write {
-        // Marker
-        writer.add_int_leb128(0x07)
-    } else {
-        let marker_byte = reader.read_int_leb128()
-        if marker_byte != 0x07 {
-            crash("Invalid frame marker, expecting 0x07, found: $marker_byte, pos: ${reader.pos}")
+    if extra_checks {
+        if write {
+            // Marker
+            writer.add_int_leb128(0x07)
+        } else {
+            let marker_byte = reader.read_int_leb128()
+            if marker_byte != 0x07 {
+                crash("Invalid frame marker, expecting 0x07, found: $marker_byte, pos: ${reader.pos}")
+            }
         }
     }
 
@@ -176,16 +204,18 @@ fun ByteBuffer.start_frame(write: Boolean): ByteBufferFrame {
 }
 
 fun ByteBuffer.end_frame(frame: ByteBufferFrame) {
-    if frame.write {
-        let size = writer.bytes.len - frame.pos
-        writer.add_int_leb128(size)
-    } else {
-        let prev_pos = reader.pos
-        let size = reader.read_int_leb128()
-        let expected = prev_pos - frame.pos
+    if extra_checks {
+        if frame.write {
+            let size = writer.bytes.len - frame.pos
+            writer.add_int_leb128(size)
+        } else {
+            let prev_pos = reader.pos
+            let size = reader.read_int_leb128()
+            let expected = prev_pos - frame.pos
 
-        if size != expected {
-            crash("Invalid frame, size written: $size, bytes read: $expected")
+            if size != expected {
+                crash("Invalid frame, size written: $size, bytes read: $expected")
+            }
         }
     }
 }

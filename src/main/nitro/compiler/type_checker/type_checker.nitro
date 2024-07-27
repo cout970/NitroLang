@@ -9,26 +9,32 @@ struct TypeChecker {
     cons: TypeConstraints
     property_cache: PropertyCache
     current_code: Optional<NCode>
+    tag_instances: Map<String, NTag>
     function_lookup: Multimap<String, NFunCallTarget>
 }
 
-fun TypeChecker::new(reporter: Reporter, program: Program): TypeChecker {
+fun TypeChecker::new(reporter: Reporter, program: Program, types: TypeContainer): TypeChecker {
     ret TypeChecker @[
         reporter,
         program,
-        types: TypeContainer::new(),
+        types,
         type_cache: #[],
         type_kind_cache: #[],
         type_generic_cache: #[],
         cons: TypeConstraints::new(),
         property_cache: PropertyCache::new(),
         current_code: None(),
+        tag_instances: #[],
         function_lookup: Multimap::new(),
     ]
 }
 
 fun TypeChecker.check_all() {
     // Step 1: Definitions
+    for def in program.tags {
+        check_tag_pre(def)
+    }
+
     for def in program.structs {
         check_struct(def)
     }
@@ -89,7 +95,7 @@ fun TypeChecker.check_all() {
 fun TypeChecker.check_struct(s: NStruct) {
     check_generics(s.generics)
     for field in s.fields {
-        field.field_type = Some(check_type_usage(field.type_usage))
+        field.field_type = Some(check_type_usage_with(s.generics, field.type_usage))
     }
 }
 
@@ -102,11 +108,12 @@ fun TypeChecker.check_option(s: NOption) {
 
 fun TypeChecker.check_type_alias(s: NTypeAlias) {
     check_generics(s.generics)
-    s.alias_type = Some(check_type_usage(s.type_usage))
+    s.alias_type = Some(check_type_usage_with(s.generics, s.type_usage))
 }
 
 fun TypeChecker.check_const_header(s: NConst) {
-    let ty = check_type_usage(s.type_usage)
+    let generics = NGenericParams::new()
+    let ty = check_type_usage_with(generics, s.type_usage)
     s.const_type = Some(ty)
     s.code.return_type_token = Some(ty.to_token())
 }
@@ -114,9 +121,9 @@ fun TypeChecker.check_const_header(s: NConst) {
 fun TypeChecker.check_function_header(header: NFunctionHeader) {
     check_generics(header.generics)
     for param in header.parameters {
-        param.param_type = Some(check_type_usage(param.type_usage))
+        param.param_type = Some(check_type_usage_with(header.generics, param.type_usage))
     }
-    let ty = check_type_usage(header.return_type_usage)
+    let ty = check_type_usage_with(header.generics, header.return_type_usage)
     header.return_type = Some(ty)
 }
 
@@ -129,17 +136,7 @@ fun TypeChecker.check_generics(generics: NGenericParams) {
         index += 1
 
         for bounds in def.bounds {
-            let found = false
-
-            for tag_def in program.tags {
-                if tag_def.name == bounds.name {
-                    found = true
-                    bounds.tag_instance = Some(tag_def)
-                    break
-                }
-            }
-
-            if !found {
+            if bounds.name !in tag_instances {
                 reporter.report_error("Tag not found: ${bounds.name}", def.span)
             }
         }

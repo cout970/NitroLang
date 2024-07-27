@@ -25,6 +25,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
         annotations,
         path,
         name,
+        full_name: Path::join(path, name),
         generics,
         type_usage,
         alias_type: None(),

@@ -10,7 +10,8 @@ fun compile_all() {
 
     // Include core library
     let start_core = Instant::now()
-    unit.include_file("../nitro/core/core.nitro")
+    unit.add_file("../nitro/core/core.nitro", "core")
+    unit.parse()
 
     // Parse errors
     if unit.reporter.has_reports() {
@@ -26,7 +27,8 @@ fun compile_all() {
     // Include compiler
     let start_compiler = Instant::now()
 //    unit.include_file("../nitro/compiler/main.nitro")
-    unit.include_file("../nitro/compiler/example.nitro")
+    unit.add_file("../nitro/compiler/example.nitro", "compiler")
+    unit.parse()
 
     // Parse errors
     if unit.reporter.has_reports() {

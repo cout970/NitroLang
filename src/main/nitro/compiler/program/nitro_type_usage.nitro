@@ -6,7 +6,7 @@ struct NTypeUsage {
     path: String
     params: List<NTypeUsage>
     type_token: Optional<TypeToken>
-    generic_definition: Optional<NGeneric>
+    generic_def_index: Optional<Int>
 }
 
 enum TypeUsageKind {
@@ -28,7 +28,7 @@ fun NTypeUsage::unresolved(span: Span): NTypeUsage {
         path: "",
         params: [],
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ]
 }
 
@@ -40,7 +40,7 @@ fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
         path: "",
         params: [],
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ]
 }
 
@@ -52,7 +52,7 @@ fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeU
         path: path,
         params: [],
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ]
 }
 
@@ -64,7 +64,7 @@ fun NTypeUsage::simple_with_params(span: Span, name: String, params: List<NTypeU
         path: "",
         params,
         type_token: None(),
-        generic_definition: None(),
+        generic_def_index: None(),
     ]
 }
 
@@ -100,15 +100,19 @@ fun NTypeUsage.to_string(): String {
     ret s.to_string()
 }
 
-fun ByteBuffer.serialize_type_usage(type_usage: NTypeUsage) {
+fun ByteBuffer.serialize_type_usage(value: NTypeUsage) {
     let frame = start_frame(true)
-    serialize_span(type_usage.span)
-    write_int(type_usage.kind.variant)
-    write_string(type_usage.name)
-    write_string(type_usage.path)
-    write_int(type_usage.params.len)
-    for param in type_usage.params {
+    serialize_span(value.span)
+    write_int(value.kind.variant)
+    write_string(value.name)
+    write_string(value.path)
+    write_int(value.params.len)
+    for param in value.params {
         serialize_type_usage(param)
+    }
+    write_boolean(value.generic_def_index.is_some())
+    if value.generic_def_index.is_some() {
+        write_int(value.generic_def_index!!)
     }
     end_frame(frame)
 }
@@ -124,9 +128,11 @@ fun ByteBuffer.deserialize_type_usage(): NTypeUsage {
         params[] = deserialize_type_usage()
     }
     let type_token = None()
-    let generic_definition = None()
-
+    let generic_def_index = None()
+    if read_boolean() {
+        generic_def_index = Some(read_int())
+    }
     end_frame(frame)
 
-    ret NTypeUsage @[span, kind, name, path, params, type_token, generic_definition]
+    ret NTypeUsage @[span, kind, name, path, params, type_token, generic_def_index]
 }

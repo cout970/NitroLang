@@ -31,7 +31,7 @@ fun Program::new(): Program {
 }
 
 fun Program.extend_with(other: Program) {
-    IdProvider::merge_into(other.id_provider, this.id_provider)
+    this.id_provider.last_id = other.increment_all_ids(this.id_provider.last_id + 1)
     this.declared_names.add_all(other.declared_names)
     this.structs.add_all(other.structs)
     this.options.add_all(other.options)
@@ -40,6 +40,42 @@ fun Program.extend_with(other: Program) {
     this.tags.add_all(other.tags)
     this.consts.add_all(other.consts)
     this.functions.add_all(other.functions)
+}
+
+fun Program.increment_all_ids(amount: Int): Int {
+    id_provider.last_id += amount
+    test_id_provider.last_id += amount
+
+    for s in structs {
+        s.id.current_value += amount
+        for g in s.generics.definitions {
+            g.id.current_value += amount
+        }
+    }
+    for s in options {
+        s.id.current_value += amount
+        for g in s.generics.definitions {
+            g.id.current_value += amount
+        }
+    }
+    for s in tags {
+        s.id.current_value += amount
+
+        for f in s.functions {
+            f.id.current_value += amount
+        }
+    }
+    for s in consts {
+        s.id.current_value += amount
+    }
+    for s in functions {
+        s.id.current_value += amount
+        for g in s.header.generics.definitions {
+            g.id.current_value += amount
+        }
+    }
+
+    ret id_provider.last_id
 }
 
 fun Program.to_string(): String {

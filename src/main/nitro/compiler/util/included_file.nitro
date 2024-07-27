@@ -1,0 +1,37 @@
+
+struct IncludedFile {
+    file_path: FilePath
+    exists: Boolean
+    last_modified: Int
+    source_cache: Optional<String>
+}
+
+fun IncludedFile::new(path: String): IncludedFile {
+    let file_path = FilePath::new(path)
+
+    ret IncludedFile @[
+        file_path,
+        exists: file_path.exists()!!,
+        last_modified: file_path.unsafe_debug_last_modified(),
+        source_cache: None()
+    ]
+}
+
+fun IncludedFile.get_path(): String = file_path.path
+
+fun IncludedFile.get_source(): String {
+    if source_cache.is_some() {
+        ret source_cache!!
+    }
+
+    if !exists {
+        crash("File not found: ${file_path}")
+    }
+
+    source_cache = Some(file_path.read_text()!!)
+    ret source_cache!!
+}
+
+fun IncludedFile.get_ordering(other: IncludedFile): Ordering = this.path.get_ordering(other.path)
+
+fun IncludedFile.to_string(): String = path

@@ -39,10 +39,11 @@ fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> 
 
 fun Parser.read_tag_function(def: NTag): Parsed<NTagFunction> {
     let generics = NGenericParams::new()
-    let bound = NGenericBounds @[name: def.name, tag_instance: Some(def)]
+    let bound = NGenericBounds @[name: def.full_name]
 
     let this_generic = NGeneric @[
        id: id_provider.next(),
+       index: generics.definitions.len,
        span: lexer.current_token_span,
        name: "This",
        source: NGenericSource::Tag,

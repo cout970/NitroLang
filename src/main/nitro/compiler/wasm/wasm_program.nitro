@@ -41,7 +41,6 @@ struct WFunctionHeader {
 }
 
 struct WFunction {
-    index: Id
     name: String
     source: WFunctionSource
     code: NCode
@@ -169,7 +168,7 @@ fun WFunction.add_param(name: String, wasm_type: WType): WVar {
     ret wvar
 }
 
-fun WFunction.get_ordering(other: WFunction): Ordering = this.index <=> other.index
+fun WFunction.get_ordering(other: WFunction): Ordering = this.header.index <=> other.header.index
 
 fun WFunctionHeader.to_string(): String {
     let rest = StringBuilder::new()

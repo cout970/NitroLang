@@ -271,7 +271,8 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 }
 
 fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
-    let instance = (inst.kind as NInstKind::Lambda).instance
+    let lambda_id = (inst.kind as NInstKind::Lambda).lambda_id
+    let instance = code.lambda_map[lambda_id]!!
 
     // Function type ie. (i32, i32) -> i32
     let final_type = func.inst_final_types[inst.id]!!

@@ -3,7 +3,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
 
     // Support syntax `var()` instead of `var.call()` where var is local variable with type Function
     if kind.path.is_empty() && kind.explicit_type_arguments.is_empty() {
-        let variable = find_variable(code, kind.name, inst.block, inst.id)
+        let variable = find_variable(kind.name, code, inst.block, inst.id)
 
         if variable.is_some() && variable!!.type_token.is_some() && variable!!.type_token!!.find_type().is_function() {
             let index = code.index_of_inst(inst.id)!!
@@ -129,7 +129,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     // `add<Int>()` where `Int` is the explicit type argument
     repeat kind.explicit_type_arguments.len {
         let e = kind.explicit_type_arguments[it]!!
-        let tt = check_local_type_usage(e, code)
+        let tt = check_type_usage_with(code.generics, e).to_token()
 
         if it >= call_site_generics.resolved.len {
             reporter.report_error("Too many type arguments for function '$full_name'", e.span)
@@ -145,9 +145,8 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
         let def = header.generics.definitions[it]!!
 
         for bound in def.bounds {
-            let tag_instance = bound.tag_instance!!
-
-            cons.add_bounds(tt, tag_instance, inst.span)
+            let instance = tag_instances[bound.name]!!
+            cons.add_bounds(tt, instance, inst.span)
         }
     }
 
