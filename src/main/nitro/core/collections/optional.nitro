@@ -93,6 +93,22 @@ fun Optional<#Value>.get_or_else(f: () -> #Value): #Value {
     ret if this.is_some() { this!! } else { f() }
 }
 
+// Applies a function to the value of the Some variant, do nothing if the Optional is the None variant
+fun Optional<#Source>.map(func: (#Source) -> #Target): Optional<#Target> {
+    if this.is_some() {
+        ret Some(func(this!!))
+    }
+    ret None<#Target>()
+}
+
+// Applies a function to the value of the Some variant, do nothing if the Optional is the None variant
+// The function must return an Optional, and the result will be flattened into a single Optional
+fun Optional<#Source>.flat_map(func: (#Source) -> Optional<#Target>): Optional<#Target> {
+    if this.is_some() {
+        ret func(this!!)
+    }
+    ret None<#Target>()
+}
 
 // Returns the value of the Some variant, or panics if the Optional is the None variant
 fun <#Value: ToString> Optional<#Value>.to_string(): String {
