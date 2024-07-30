@@ -209,6 +209,11 @@ fun StringBuilder.is_empty(): Boolean = bytes_len == 0
 // Is the internal buffer not empty?
 fun StringBuilder.is_not_empty(): Boolean = bytes_len != 0
 
+// Clears the internal buffer
+fun StringBuilder.clear() {
+    bytes_len = 0
+}
+
 // Converts the internal buffer to a string
 fun StringBuilder.to_string(): String {
     let new_bytes = Array::new(bytes_len)
