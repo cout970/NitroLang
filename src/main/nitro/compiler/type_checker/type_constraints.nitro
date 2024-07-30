@@ -141,6 +141,8 @@ fun TypeConstraints.resolve(type_checker: TypeChecker, code: NCode, current_inst
                     }
 
                     if !found {
+                        println("tag_instance: ${tag_instance}")
+                        println("tag_instance.impl_patterns: ${tag_instance.impl_patterns}")
                         type_checker.reporter.report_error("Type ${arg_type} does not implement tag ${tag_instance.name}", ctx.span)
                     }
                 }

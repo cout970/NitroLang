@@ -40,12 +40,12 @@ fun TypeChecker.find_variable(name: String, code: NCode, block_id: NBlockId, ins
     }
 
     // Try searching in the parent code
-    if code.parent_code.is_some() {
-        let parent_code = code.parent_code!!
-        let parent_block = code.parent_block!!
-        let parent_inst = code.parent_inst!!
 
-        let opt = find_variable(name, parent_code, parent_block, parent_inst)
+    if code.container is NCodeContainer::Lambda {
+        let def: NLambda = (code.container as NCodeContainer::Lambda).def
+        let parent_code = def.container.code
+
+        let opt = find_variable(name, parent_code, def.parent_block, def.parent_inst)
 
         if opt.is_some() {
             check_upvalue(opt!!, code)

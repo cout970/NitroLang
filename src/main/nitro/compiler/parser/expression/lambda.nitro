@@ -35,19 +35,32 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::LAMBDA_START)
 
+    let new_code = code.new_child_code(NCodeContainer::None @[], false)
+    program.codes[] = new_code
+
+    let lambda_id = program.id_provider.next()
+
     let lambda = NLambda @[
-        id: code.lambda_id_provider.next(),
+        program,
+        container: code.container,
+        id: lambda_id,
+        name: "lambda#${lambda_id}",
         span,
         receiver_type: None(),
         return_type_usage: None(),
         return_type_token: None(),
         type_token: None(),
         parameters: [],
-        code: code.new_child_code(span, false),
+        code_id: new_code.id,
+        parent_inst: Id @[current_value: code.inst_id_provider.last_id + 1],
+        parent_block: code.current_block
         ctx: None(),
     ]
 
-    code.lambda_map[lambda.id] = lambda
+    program.lambdas[] = lambda
+    new_code.container = NCodeContainer::Lambda @[def: lambda]
+    code.lambdas[] = lambda.id
+
     let lambda_code = lambda.code
 
     // Parameter definition

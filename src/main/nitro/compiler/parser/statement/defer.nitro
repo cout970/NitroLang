@@ -12,7 +12,7 @@ fun Parser.read_defer_statement(code: NCode): Parsed<Nothing> {
         ret parse_error(ParseError::DeferNotAllowed, lexer.current_token)
     }
 
-    let subcode: NCode = code.new_child_code(span, false)
+    let subcode: NCode = code.new_child_code(NCodeContainer::None @[], false)
     subcode.add_comment(span, "defer-start")
 
     allow_defer = false

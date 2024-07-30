@@ -35,7 +35,7 @@
 //     ;
 
 fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
-    let generics = NGenericParams::new()
+    let generics = NGenericParams::new(NGenericSource::Function)
     let header = read_function_header(generics)?
 
     let def = create_function(header, annotations)

@@ -236,6 +236,5 @@ fun Parser.start_generics_collection(generics: NGenericParams, source: NGenericS
 
 fun Parser.stop_generics_collection() {
     allow_generics_collection = false
-    current_generics = NGenericParams::new()
-    current_generics.source = NGenericSource::Invalid
+    current_generics = NGenericParams::new(NGenericSource::Invalid)
 }

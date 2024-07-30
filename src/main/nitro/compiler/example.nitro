@@ -1,12 +1,12 @@
 
-include "./includes.nitro"
-//include "./main.nitro"
-
+//include "./includes.nitro"
+//let new_compiler: Boolean = true
+//
+//fun main() {
+//    println("New compiler: $new_compiler")
+//    CompilationUnit::compile_all("../nitro/compiler/example.nitro", "output2.wasm")
+//}
+//
 fun main() {
-    println("Hello, world!")
-    println("Hello, world!")
-    println("Hello, world!")
-    println("Hello, world!")
-    println("Hello, world!")
-    println("Hello, world!")
+    println("Not working!")
 }

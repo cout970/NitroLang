@@ -8,7 +8,7 @@ fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<No
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?
     let name = read_name()?
-    let generics = NGenericParams::new()
+    let generics = NGenericParams::new(NGenericSource::TypeAlias)
 
     start_generics_collection(generics, NGenericSource::TypeAlias)
     let err = read_type_params_def()

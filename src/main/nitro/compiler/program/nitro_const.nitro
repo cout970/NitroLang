@@ -1,53 +1,69 @@
 
 struct NConst {
+    program: Program
     id: Id
     span: Span
     annotations: List<NAnnotation>
     path: String
     name: String
+    generics: NGenericParams
     type_usage: NTypeUsage
     const_type: Optional<Type>
-    code: NCode
+    code_id: Id
     full_name: String
 }
+
+fun NConst.get_code(): NCode = program.find_code(code_id)
 
 fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
 
 fun NConst.to_string(): String {
     let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
 
-    return "${prefix}const $full_name: $type_usage = $code // $span"
+    return "${prefix}const $full_name: $type_usage = $code_id // $span"
 }
 
 fun ByteBuffer.serialize_const(value: NConst) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
+    write_int(value.annotations.len)
+    for a in value.annotations {
+        serialize_annotation(a)
+    }
     write_string(value.path)
     write_string(value.name)
+    serialize_generic_params(value.generics)
     serialize_type_usage(value.type_usage)
-    serialize_code(value.code)
+    serialize_id(value.code_id)
     end_frame(frame)
 }
 
-fun ByteBuffer.deserialize_const(): NConst {
+fun ByteBuffer.deserialize_const(program: Program): NConst {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
+    let annotations = []
+    repeat read_int() {
+        annotations[] = deserialize_annotation()
+    }
     let path = read_string()
     let name = read_string()
+    let generics = deserialize_generic_params()
     let type_usage = deserialize_type_usage()
-    let code = deserialize_code(None(), NGenericParams::new())
+    let code_id = deserialize_id()
 
     let value = NConst @[
+        program,
         id,
         span,
-        annotations: [],
+        annotations,
         path,
         name,
+        generics,
         type_usage,
         const_type: None(),
-        code,
+        code_id,
         full_name: Path::join(path, name)
     ]
 

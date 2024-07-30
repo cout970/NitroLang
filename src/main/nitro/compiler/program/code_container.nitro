@@ -1,0 +1,159 @@
+
+option NCodeContainer {
+    Function { def: NFunction },
+    Const { def: NConst},
+    Lambda { def: NLambda },
+    None {},
+}
+
+fun NCodeContainer.get_code(): NCode {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.code
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.code
+        }
+        this is NCodeContainer::Lambda -> {
+            ret (this as NCodeContainer::Lambda).def.code
+        }
+        this is NCodeContainer::None -> {
+            crash("Container is none")
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun NCodeContainer.get_generics(): NGenericParams {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.header.generics
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.generics
+        }
+        this is NCodeContainer::Lambda -> {
+            ret (this as NCodeContainer::Lambda).def.container.generics
+        }
+        this is NCodeContainer::None -> {
+            ret NGenericParams::new(NGenericSource::Invalid)
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun NCodeContainer.get_name(): String {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.full_name
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.full_name
+        }
+        this is NCodeContainer::Lambda -> {
+            ret (this as NCodeContainer::Lambda).def.name
+        }
+        this is NCodeContainer::None -> {
+            crash("Container is none")
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun NCodeContainer.get_id(): Id {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.id
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.id
+        }
+        this is NCodeContainer::Lambda -> {
+            ret (this as NCodeContainer::Lambda).def.id
+        }
+        this is NCodeContainer::None -> {
+            ret Id::uninitialized()
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun NCodeContainer.get_span(): Span {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.span
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.span
+        }
+        this is NCodeContainer::Lambda -> {
+            ret (this as NCodeContainer::Lambda).def.span
+        }
+        this is NCodeContainer::None -> {
+            ret Span::none()
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun NCodeContainer.to_string(): String {
+    when {
+        this is NCodeContainer::Function -> {
+            let def = (this as NCodeContainer::Function).def
+            ret "Func ${def.id} ${def.full_name}"
+        }
+        this is NCodeContainer::Const -> {
+            let def = (this as NCodeContainer::Const).def
+            ret "Const ${def.id} ${def.full_name}"
+        }
+        this is NCodeContainer::Lambda -> {
+            let def = (this as NCodeContainer::Lambda).def
+            ret "Lambda ${def.id} ${def.name}"
+        }
+        this is NCodeContainer::None -> {
+            ret "None"
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
+fun ByteBuffer.serialize_code_container(value: NCodeContainer) {
+    when {
+        value is NCodeContainer::Function -> {
+            let def = (value as NCodeContainer::Function).def
+            write_int(1)
+            serialize_id(def.id)
+        }
+        value is NCodeContainer::Const -> {
+            let def = (value as NCodeContainer::Const).def
+            write_int(2)
+            serialize_id(def.id)
+        }
+        value is NCodeContainer::Lambda -> {
+            let def = (value as NCodeContainer::Lambda).def
+            write_int(3)
+            serialize_id(def.id)
+        }
+        else -> {
+            write_int(0)
+        }
+    }
+}
+
+fun ByteBuffer.deserialize_code_container(program: Program): NCodeContainer {
+    ret when read_int() {
+        1 -> {
+            let def = program.find_function(deserialize_id())
+            NCodeContainer::Function @[def]
+        }
+        2 -> {
+            let def = program.find_const(deserialize_id())
+            NCodeContainer::Const @[def]
+        }
+        3 -> {
+            let def = program.find_lambda(deserialize_id())
+            NCodeContainer::Lambda @[def]
+        }
+        else -> NCodeContainer::None @[]
+    }
+}

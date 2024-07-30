@@ -1,53 +1,47 @@
 
 struct NLambda {
-    id: Id,
+    program: Program
+    id: Id
+    container: NCodeContainer
+    name: String
     span: Span
     receiver_type: Optional<NTypeUsage>
     return_type_usage: Optional<NTypeUsage>
     return_type_token: Optional<TypeToken>
     type_token: Optional<TypeToken>
     parameters: List<NFunctionParameter>
-    code: NCode
+    code_id: Id
+    parent_inst: NInstId
+    parent_block: NBlockId
     ctx: Optional<TypeMappingCtx>
 }
 
+fun NLambda.get_generics(): NGenericParams = container.generics
+
+fun NLambda.get_code(): NCode = program.find_code(code_id)
 
 fun NLambda.to_string(): String {
-    let s = ""
-
-    if receiver_type.is_some() {
-        s += "rec " + receiver_type!!.to_string()
-    }
-
-    for param in parameters {
-        if s.is_not_empty() {
-            s += ", "
-        }
-        s += param.name
-        s += ": "
-        s += param.type_usage.to_string()
-    }
-
-    if return_type_usage.is_some() {
-        if s.is_not_empty() {
-            s += ", "
-        }
-        s += "ret " + return_type_usage!!.to_string()
-    }
-
-    if s.is_not_empty() {
-        s += " -> "
-    }
-
-    let i = code.to_string()
-    let rest = i.slice(1, i.bytes_len)
-
-    ret "@{$s$rest"
+    let str = StringBuilder::new()
+    str[] = "NLambda {\n"
+    str[] = "   id: $id\n"
+    str[] = "   container: $container\n"
+    str[] = "   name: $name\n"
+    str[] = "   span: $span\n"
+    str[] = "   receiver_type: $receiver_type\n"
+    str[] = "   return_type_usage: $return_type_usage\n"
+    str[] = "   return_type_token: $return_type_token\n"
+    str[] = "   type_token: $type_token\n"
+    str[] = "   parameters: $parameters\n"
+    str[] = "   code_id: $code_id\n"
+    str[] = "}"
+    ret str.to_string()
 }
 
 fun ByteBuffer.serialize_lambda(value: NLambda) {
     let frame = start_frame(true)
     serialize_id(value.id)
+    write_string(value.name)
+    serialize_code_container(value.container)
     serialize_span(value.span)
     write_boolean(value.receiver_type.is_some())
     if value.receiver_type.is_some() {
@@ -61,13 +55,17 @@ fun ByteBuffer.serialize_lambda(value: NLambda) {
     for param in value.parameters {
         serialize_function_parameter(param)
     }
-    serialize_code(value.code)
+    serialize_id(value.code_id)
+    serialize_id(value.parent_inst)
+    serialize_id(value.parent_block)
     end_frame(frame)
 }
 
-fun ByteBuffer.deserialize_lambda(parent_code: NCode): NLambda {
+fun ByteBuffer.deserialize_lambda(program: Program): NLambda {
     let frame = start_frame(false)
     let id = deserialize_id()
+    let name = read_string()
+    let container = deserialize_code_container(program)
     let span = deserialize_span()
     let receiver_type = if read_boolean() { Some(deserialize_type_usage()) } else { None() }
     let return_type_usage = if read_boolean() { Some(deserialize_type_usage()) } else { None() }
@@ -75,18 +73,26 @@ fun ByteBuffer.deserialize_lambda(parent_code: NCode): NLambda {
     repeat read_int() {
         parameters[] = deserialize_function_parameter()
     }
-    let code = deserialize_code(Some(parent_code), parent_code.generics)
+    let code_id = deserialize_id()
+    let parent_inst = deserialize_id()
+    let parent_block = deserialize_id()
     end_frame(frame)
 
-    ret NLambda @[
+    let value = NLambda @[
+        program,
         id,
+        container,
+        name,
         span,
         receiver_type,
         return_type_usage,
         return_type_token: None(),
         type_token: None(),
         parameters,
-        code,
+        code_id,
+        parent_inst,
+        parent_block,
         ctx: None()
     ]
+    ret value
 }

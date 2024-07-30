@@ -12,6 +12,7 @@ enum NGenericSource {
     Struct,
     Option,
     Function,
+    Const,
     Lambda,
     TypeAlias,
     Tag,
@@ -28,9 +29,9 @@ struct NGenericBounds {
     name: String
 }
 
-fun NGenericParams::new(): NGenericParams {
+fun NGenericParams::new(source: NGenericSource): NGenericParams {
     ret NGenericParams @[
-        source: NGenericSource::Invalid
+        source,
         definitions: [],
         type_tokens: [],
     ]
@@ -120,7 +121,6 @@ fun ByteBuffer.serialize_generic_params(value: NGenericParams) {
     for def in value.definitions {
         serialize_generic(def)
     }
-
 }
 
 fun ByteBuffer.deserialize_generic_params(): NGenericParams {

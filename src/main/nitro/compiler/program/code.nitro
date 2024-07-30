@@ -1,17 +1,16 @@
 
 // NCode represents a block of code, which can be a function, a constant initialization or a lambda expression.
 struct NCode {
-    name: String
-    // Span of the start of the block
-    span: Span
-    // Generics defined for this block of code
-    generics: NGenericParams
+    // Ref to the program containing all the codes
+    program: Program
+    // Unique identifier of the code
+    id: Id
+    // Container of the code, ie. the function, constant or lambda expression that contains this block of code
+    container: NCodeContainer
     // Indicate that this block belong to the same context as the parent, for example, for code reordering, will be false for lambdas, defer, etc.
     is_transparent_child: Boolean
-    // Id provider for new lambda expressions
-    lambda_id_provider: IdProvider
-    // Map of lambda expressions defined in this code (or subcode)
-    lambda_map: Map<Id, NLambda>
+    // List of lambdas defined in this code
+    lambdas: List<Id>
     // Id provider for new instructions
     inst_id_provider: IdProvider
     // List of instructions of the function/constant
@@ -41,23 +40,17 @@ struct NCode {
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
-    // Parent code, ie. the code of the function containing a lambda expression represented by this code
-    parent_code: Optional<NCode>
-    parent_inst: Optional<NInstId>
-    parent_block: Optional<NBlockId>
-    parent_span: Optional<Span>
 }
 
-fun NCode::new(span: Span, name: String): NCode {
+fun NCode::new(program: Program, container: NCodeContainer): NCode {
     let block_id_provider = IdProvider::new()
 
     let code = NCode @[
-        name,
-        span,
-        generics: NGenericParams::new(),
+        program,
+        id: program.id_provider.next(),
+        container,
         is_transparent_child: false,
-        lambda_id_provider: IdProvider::new(),
-        lambda_map: #[],
+        lambdas: [],
         inst_list: [],
         vars_map: #[],
         inst_id_provider: IdProvider::new(),
@@ -72,10 +65,6 @@ fun NCode::new(span: Span, name: String): NCode {
         receiver_type_token: None(),
         return_type_token: None(),
         const_cache: #[],
-        parent_code: None(),
-        parent_inst: None(),
-        parent_block: None(),
-        parent_span: None(),
     ]
 
     let root_block = NBlock @[
@@ -90,24 +79,29 @@ fun NCode::new(span: Span, name: String): NCode {
     ret code
 }
 
-fun NCode.new_child_code(span: Span, is_transparent_child: Boolean): NCode {
-    let subcode = NCode::new(span, "$name::child")
+fun NCode.new_child_code(container: NCodeContainer, is_transparent_child: Boolean): NCode {
+    let subcode = NCode::new(program, container)
     subcode.is_transparent_child = is_transparent_child
-    subcode.parent_code = Some(this)
-    subcode.parent_inst = Some(inst_id_provider.previous())
-    subcode.parent_block = Some(current_block)
-    subcode.parent_span = Some(span)
-    subcode.link_generics(generics)
     subcode.variable_id_provider.seek_to(variable_id_provider)
     ret subcode
 }
 
-fun NCode.link_generics(external_generics: NGenericParams){
-    generics = external_generics
-    for entry in lambda_map {
-        entry.second.code.link_generics(external_generics)
+fun NCode.get_generics(): NGenericParams = container.generics
+
+fun NCode.get_parent_code(): Optional<NCode> {
+    if container is NCodeContainer::Lambda {
+        let def = (container as NCodeContainer::Lambda).def
+
+        if def.container is NCodeContainer::None {
+            crash("Cannot get parent code of a lambda without container, lambda: $def, code: $this")
+        }
+
+        ret Some(def.container.code)
     }
+    ret None()
 }
+
+fun NCode.get_span(): Span = container.span
 
 fun NCode.enter_block(is_jump_target: Boolean) {
     let prev = find_block(current_block)
@@ -234,8 +228,11 @@ fun NCode.execute_deferred_actions(block_id: NBlockId, is_return: Boolean) {
         }
     }
 
-    if block.parent_id.is_none() && is_transparent_child && parent_code.is_some() {
-        execute_deferred_actions(parent_block!!, is_return)
+    if block.parent_id.is_none() && is_transparent_child {
+        if container is NCodeContainer::Lambda {
+            let def = (container as NCodeContainer::Lambda).def
+            execute_deferred_actions(def.parent_block, is_return)
+        }
     }
 
     if block.parent_id.is_some() && (is_return || !block.is_jump_target) {
@@ -375,8 +372,10 @@ fun NCode.to_string(): String {
     let body_str = StringBuilder::new()
 
     body_str[] = "{"
-    body_str[] = "\n  span: $span"
-    body_str[] = "\n  name: $name"
+    body_str[] = "\n  id: $id"
+    body_str[] = "\n  container: $container"
+    body_str[] = "\n  span: ${this.span}"
+    body_str[] = "\n  generics: ${generics}"
     body_str[] = "\n  vars: ["
     for variable in vars_map.values_to_list() {
         body_str[] = variable.name
@@ -416,7 +415,7 @@ fun NCode.to_string(): String {
     body_str[] = "\n  last_expression: $last_expression"
     body_str[] = "\n  receiver_type_token: $receiver_type_token"
     body_str[] = "\n  return_type_token: $return_type_token"
-    body_str[] = "\n  parent_inst: $parent_inst"
+    body_str[] = "\n  lambdas: ${lambdas}"
     body_str[] = "\n}"
 
     ret body_str.to_string()
@@ -424,10 +423,9 @@ fun NCode.to_string(): String {
 
 fun ByteBuffer.serialize_code(code: NCode) {
     let frame = start_frame(true)
-    write_string(code.name)
-    serialize_span(code.span)
+    serialize_id(code.id)
+    serialize_code_container(code.container)
     write_boolean(code.is_transparent_child)
-    serialize_id_provider(code.lambda_id_provider)
     serialize_id_provider(code.inst_id_provider)
     serialize_id_provider(code.variable_id_provider)
     serialize_id_provider(code.block_id_provider)
@@ -457,26 +455,19 @@ fun ByteBuffer.serialize_code(code: NCode) {
     for inst in code.inst_list {
         serialize_inst(inst)
     }
-    write_int(code.lambda_map.len)
-    for entry in code.lambda_map {
-        serialize_lambda(entry.second)
-    }
-    write_boolean(code.parent_code.is_some())
-    if code.parent_code.is_some() {
-        serialize_id(code.parent_inst!!)
-        serialize_id(code.parent_block!!)
-        serialize_span(code.parent_span!!)
+    write_int(code.lambdas.len)
+    for lambda_id in code.lambdas {
+        serialize_id(lambda_id)
     }
     end_frame(frame)
 }
 
-fun ByteBuffer.deserialize_code(parent_code: Optional<NCode>, generics: NGenericParams): NCode {
+fun ByteBuffer.deserialize_code(program: Program): NCode {
     let frame = start_frame(false)
-    let name = read_string()
-    let span = deserialize_span()
+    let id = deserialize_id()
+    let container = deserialize_code_container(program)
     let is_transparent_child = read_boolean()
-    let lambda_id_provider = deserialize_id_provider()
-    let lambda_map = #[]
+    let lambdas = []
     let inst_id_provider = deserialize_id_provider()
     let inst_list = []
     let variable_id_provider = deserialize_id_provider()
@@ -497,14 +488,12 @@ fun ByteBuffer.deserialize_code(parent_code: Optional<NCode>, generics: NGeneric
     if read_boolean() {
         last_expression = Some(deserialize_id())
     }
-
     let value = NCode @[
-        name,
-        span,
-        generics,
+        program,
+        id,
+        container,
         is_transparent_child,
-        lambda_id_provider,
-        lambda_map,
+        lambdas,
         inst_id_provider,
         inst_list,
         variable_id_provider,
@@ -519,10 +508,6 @@ fun ByteBuffer.deserialize_code(parent_code: Optional<NCode>, generics: NGeneric
         const_cache: #[],
         receiver_type_token: None(),
         return_type_token: None(),
-        parent_code,
-        parent_inst: None(),
-        parent_block: None(),
-        parent_span: None(),
     ]
 
     repeat read_int() {
@@ -540,14 +525,7 @@ fun ByteBuffer.deserialize_code(parent_code: Optional<NCode>, generics: NGeneric
     }
 
     repeat read_int() {
-        let lambda = deserialize_lambda(value)
-        value.lambda_map[lambda.id] = lambda
-    }
-
-    if read_boolean() {
-        value.parent_inst = Some(deserialize_id())
-        value.parent_block = Some(deserialize_id())
-        value.parent_span = Some(deserialize_span())
+        lambdas[] = deserialize_id()
     }
 
     end_frame(frame)

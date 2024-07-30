@@ -60,7 +60,8 @@ fun FinalTypeKind.to_string(): String {
             ret (this as FinalTypeKind::Option).instance.full_name
         }
         this is FinalTypeKind::Lambda -> {
-            ret "Lambda${(this as FinalTypeKind::Lambda).instance.id}"
+            let instance = (this as FinalTypeKind::Lambda).instance
+            ret "Lambda(${instance.id}, ${instance.name})"
         }
         this is FinalTypeKind::Function -> {
             ret "Function"

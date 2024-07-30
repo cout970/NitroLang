@@ -62,6 +62,13 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
                 add_i32_const(size)
                 add_call(call.to_int())
                 add_local_set(wvar.index.to_int())
+
+                if wvar.copy_from.is_some() {
+                    // Copy param value from the local to the upvalue
+                    add_local_get(wvar.index.to_int())
+                    add_local_get(wvar.copy_from!!.index.to_int())
+                    add_store_by_type(final_type, backend)
+                }
             }
             if debug_print {
                 debug_print_local(wvar)
@@ -272,7 +279,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
 fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
     let lambda_id = (inst.kind as NInstKind::Lambda).lambda_id
-    let instance = code.lambda_map[lambda_id]!!
+    let instance = code.program.find_lambda(lambda_id)
 
     // Function type ie. (i32, i32) -> i32
     let final_type = func.inst_final_types[inst.id]!!

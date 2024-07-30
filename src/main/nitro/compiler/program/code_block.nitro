@@ -39,7 +39,7 @@ fun ByteBuffer.deserialize_block(code: NCode): NBlock {
     let deferred_code = []
     let deferred_code_len = read_int()
     repeat deferred_code_len {
-        deferred_code[] = deserialize_code(Some(code), code.generics)
+        deferred_code[] = deserialize_code(code.program)
     }
     end_frame(frame)
 

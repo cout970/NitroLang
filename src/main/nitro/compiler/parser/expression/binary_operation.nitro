@@ -65,7 +65,7 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
 
     loop {
         let span = lexer.current_token_span
-        let child_code = code.new_child_code(span, true)
+        let child_code = code.new_child_code(NCodeContainer::None @[], true)
         let last = read_expression_simple(child_code)?
         child_code.last_expression = Some(last)
 

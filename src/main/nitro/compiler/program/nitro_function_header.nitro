@@ -31,7 +31,7 @@ fun NFunCallTarget.get_header(): NFunctionHeader {
 }
 
 fun NFunctionHeader::new(span: Span, path: String, name: String, return_type_usage: NTypeUsage): NFunctionHeader {
-    let generics = NGenericParams::new()
+    let generics = NGenericParams::new(NGenericSource::Function)
     ret NFunctionHeader::new_full(span, path, name, return_type_usage, [], generics)
 }
 

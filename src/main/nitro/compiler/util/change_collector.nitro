@@ -40,6 +40,8 @@ fun ChangeCollector.diff(left: Program, right: Program) {
     field("tags").diff(left.tags, right.tags)
     field("consts").diff(left.consts, right.consts)
     field("functions").diff(left.functions, right.functions)
+    field("lambdas").diff(left.lambdas, right.lambdas)
+    field("codes").diff(left.codes, right.codes)
 }
 
 fun ChangeCollector.diff(left: IdProvider, right: IdProvider) {
@@ -159,7 +161,7 @@ fun ChangeCollector.diff(left: NFunction, right: NFunction) {
     field("span").diff(left.span, right.span)
     field("annotations").diff(left.annotations, right.annotations)
     field("header").diff(left.header, right.header)
-    field("code").diff(left.code, right.code)
+    field("code_id").diff(left.code_id, right.code_id)
     field("full_name").diff(left.full_name, right.full_name)
 }
 
@@ -195,8 +197,9 @@ fun ChangeCollector.diff(left: NConst, right: NConst) {
     field("annotations").diff(left.annotations, right.annotations)
     field("path").diff(left.path, right.path)
     field("name").diff(left.name, right.name)
+    field("generics").diff(left.generics, right.generics)
     field("type_usage").diff(left.type_usage, right.type_usage)
-    field("code").diff(left.code, right.code)
+    field("code_id").diff(left.code_id, right.code_id)
     field("full_name").diff(left.full_name, right.full_name)
 }
 
@@ -205,30 +208,30 @@ fun ChangeCollector.diff(left: TypeToken, right: TypeToken) {
 }
 
 fun ChangeCollector.diff(left: NCode, right: NCode) {
-    field("name").diff(left.name, right.name)
-    field("span").diff(left.span, right.span)
-    field("generics").diff(left.generics, right.generics)
-    field("is_transparent_child").diff(left.is_transparent_child, right.is_transparent_child)
-    field("lambda_id_provider").diff(left.lambda_id_provider, right.lambda_id_provider)
-    field("lambda_map").diff(left.lambda_map, right.lambda_map)
-    field("inst_id_provider").diff(left.inst_id_provider, right.inst_id_provider)
-    field("inst_list").diff(left.inst_list, right.inst_list)
-    field("variable_id_provider").diff(left.variable_id_provider, right.variable_id_provider)
-    field("vars_map").diff(left.vars_map, right.vars_map)
-    field("block_id_provider").diff(left.block_id_provider, right.block_id_provider)
-    field("block_map").diff(left.block_map, right.block_map)
-    field("current_block").diff(left.current_block, right.current_block)
-    field("jumped_out_of_block").diff(left.jumped_out_of_block, right.jumped_out_of_block)
-    field("break_jumps").diff(left.break_jumps, right.break_jumps)
-    field("continue_jumps").diff(left.continue_jumps, right.continue_jumps)
-    field("last_expression").diff(left.last_expression, right.last_expression)
-    field("receiver_type_token").diff(left.receiver_type_token, right.receiver_type_token)
-    field("return_type_token").diff(left.return_type_token, right.return_type_token)
-    field("const_cache").diff(left.const_cache, right.const_cache)
-    field("parent_code").diff(left.parent_code.map @{ it -> it.name }, right.parent_code.map @{ it -> it.name })
-    field("parent_inst").diff(left.parent_inst, right.parent_inst)
-    field("parent_block").diff(left.parent_block, right.parent_block)
-    field("parent_span").diff(left.parent_span, right.parent_span)
+    let ns = field("#${left.id}")
+    ns.field("id").diff(left.id, right.id)
+    ns.field("container").diff(left.container, right.container)
+    ns.field("is_transparent_child").diff(left.is_transparent_child, right.is_transparent_child)
+    ns.field("lambdas").diff(left.lambdas, right.lambdas)
+    ns.field("inst_id_provider").diff(left.inst_id_provider, right.inst_id_provider)
+    ns.field("inst_list").diff(left.inst_list, right.inst_list)
+    ns.field("variable_id_provider").diff(left.variable_id_provider, right.variable_id_provider)
+    ns.field("vars_map").diff(left.vars_map, right.vars_map)
+    ns.field("block_id_provider").diff(left.block_id_provider, right.block_id_provider)
+    ns.field("block_map").diff(left.block_map, right.block_map)
+    ns.field("current_block").diff(left.current_block, right.current_block)
+    ns.field("jumped_out_of_block").diff(left.jumped_out_of_block, right.jumped_out_of_block)
+    ns.field("break_jumps").diff(left.break_jumps, right.break_jumps)
+    ns.field("continue_jumps").diff(left.continue_jumps, right.continue_jumps)
+    ns.field("last_expression").diff(left.last_expression, right.last_expression)
+    ns.field("receiver_type_token").diff(left.receiver_type_token, right.receiver_type_token)
+    ns.field("return_type_token").diff(left.return_type_token, right.return_type_token)
+    ns.field("const_cache").diff(left.const_cache, right.const_cache)
+}
+
+fun ChangeCollector.diff(left: NCodeContainer, right: NCodeContainer) {
+    field("to_string").diff(left.to_string(), right.to_string())
+    field("id").diff(left.id, right.id)
 }
 
 fun ChangeCollector.diff(left: NLambda, right: NLambda) {
@@ -239,7 +242,9 @@ fun ChangeCollector.diff(left: NLambda, right: NLambda) {
     field("return_type_token").diff(left.return_type_token, right.return_type_token)
     field("type_token").diff(left.type_token, right.type_token)
     field("parameters").diff(left.parameters, right.parameters)
-    field("code").diff(left.code, right.code)
+    field("code_id").diff(left.code_id, right.code_id)
+    field("parent_inst").diff(left.parent_inst, right.parent_inst)
+    field("parent_block").diff(left.parent_block, right.parent_block)
 }
 
 fun ChangeCollector.diff(left: NInst, right: NInst) {

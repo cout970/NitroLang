@@ -3,7 +3,7 @@ fun TypeChecker.check_inst_lambda(kind: NInstKind::Lambda, inst: NInst, code: NC
     let inst_type: TypeToken = create_unresolved_function_type(inst.span).to_token()
     inst.type_token = Some(inst_type)
 
-    let lambda = code.lambda_map[kind.lambda_id]!!
+    let lambda = program.find_lambda(kind.lambda_id)
 
     if lambda.return_type_usage.is_some() {
         lambda.return_type_token = Some(check_type_usage_with(code.generics, lambda.return_type_usage!!).to_token())
@@ -29,7 +29,7 @@ fun TypeChecker.check_inst_lambda_post(kind: NInstKind::Lambda, inst: NInst, cod
         ret
     }
 
-    let lambda = code.lambda_map[kind.lambda_id]!!
+    let lambda = program.find_lambda(kind.lambda_id)
     let type_kind = TypeKind::Lambda @[instance: lambda]
 
     // Resolve lambda body

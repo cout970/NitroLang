@@ -11,10 +11,6 @@ fun TypeChecker.check_type_usage_with(generics: NGenericParams, tu: NTypeUsage):
 }
 
 fun TypeChecker.check_type_usage_with_aux(generics: NGenericParams, tu: NTypeUsage): Type {
-    if tu.type_token.is_some() {
-        ret tu.type_token!!.find_type()
-    }
-
     let params: List<Type> = []
 
     for tp in tu.params {

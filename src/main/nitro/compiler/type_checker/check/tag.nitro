@@ -133,7 +133,8 @@ fun TypeChecker.tag_matches_type(left: Type, right: Type, tag_instance: NTag): O
         ret None()
     }
 
-    let right_tag = tag_instances[generic.bounds.first()!!.name]!!
+    let bound_name = generic.bounds.first()!!.name
+    let right_tag = tag_instances[bound_name]!!
 
     if right_tag != tag_instance {
         ret None()

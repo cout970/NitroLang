@@ -63,6 +63,68 @@ fun TypeKind.get_span(): Span {
     }
 }
 
+fun StringBuilder.add(tk: TypeKind) {
+    if tk is TypeKind::Struct {
+        let kind = tk as TypeKind::Struct
+        let instance: NStruct = kind.instance
+        this[] = "S"
+        this[] = instance.id.current_value
+        ret
+    }
+    if tk is TypeKind::Option {
+        let kind = tk as TypeKind::Option
+        let instance: NOption = kind.instance
+        this[] = "O"
+        this[] = instance.id.current_value
+        ret
+    }
+    if tk is TypeKind::OptionItem {
+        let kind = tk as TypeKind::OptionItem
+        let instance: NStruct = kind.instance
+        this[] = "I"
+        this[] = instance.id.current_value
+        ret
+    }
+    if tk is TypeKind::Lambda {
+        let kind = tk as TypeKind::Lambda
+        let instance: NLambda = kind.instance
+        this[] = "L"
+        this[] = instance.id.current_value
+        ret
+    }
+    if tk is TypeKind::Generic {
+        let kind = tk as TypeKind::Generic
+        let instance: NGeneric = kind.instance
+        this[] = "G"
+        this[] = instance.id.current_value
+        ret
+    }
+    if tk is TypeKind::Union {
+        this[] = "U"
+        ret
+    }
+    if tk is TypeKind::Unresolved {
+        let kind = tk as TypeKind::Unresolved
+        this[] = "N"
+        this[] = kind.id
+        ret
+    }
+    if tk is TypeKind::UnresolvedFunction {
+        let kind = tk as TypeKind::UnresolvedFunction
+        this[] = "F"
+        this[] = kind.id
+        ret
+    }
+    if tk is TypeKind::Invalid {
+        let kind = tk as TypeKind::Invalid
+        this[] = "E'"
+        this[] = kind.message
+        this[] = "'"
+        ret
+    }
+    crash("Unknown type kind")
+}
+
 fun TypeKind.get_signature(): String {
     if this is TypeKind::Struct {
         let kind = this as TypeKind::Struct

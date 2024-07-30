@@ -112,8 +112,7 @@ fun TypeChecker.check_type_alias(s: NTypeAlias) {
 }
 
 fun TypeChecker.check_const_header(s: NConst) {
-    let generics = NGenericParams::new()
-    let ty = check_type_usage_with(generics, s.type_usage)
+    let ty = check_type_usage_with(s.generics, s.type_usage)
     s.const_type = Some(ty)
     s.code.return_type_token = Some(ty.to_token())
 }

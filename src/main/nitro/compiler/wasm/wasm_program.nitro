@@ -84,6 +84,7 @@ struct WVar {
     kind: WVarKind
     name: String
     wasm_type: WType
+    copy_from: Optional<WVar>
 }
 
 enum WVarKind { Param, Local }
@@ -138,6 +139,7 @@ fun WFunction.add_local(name: String, wasm_type: WType): WVar {
         kind: WVarKind::Local,
         name,
         wasm_type,
+        copy_from: None(),
     ]
     locals[] = wvar
     ret wvar
@@ -149,6 +151,7 @@ fun WFunction.add_param(name: String, wasm_type: WType): WVar {
         kind: WVarKind::Param,
         name,
         wasm_type,
+        copy_from: None(),
     ]
 
     // Params must come before locals

@@ -81,7 +81,7 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
         path,
         name,
         full_name: Path::join(path, name),
-        generics: NGenericParams::new(),
+        generics: NGenericParams::new(NGenericSource::Struct),
         fields: [],
         parent: None(),
         is_enum: true,
@@ -122,18 +122,26 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
     for entry in enum_entries {
 
         let full_name = Path::join(module_path, entry.name)
-        let const_code = NCode::new(entry.span, full_name)
+        let const_id = id_provider.next()
+        let const_code = NCode::new(program, NCodeContainer::None @[])
+
+        program.codes[] = const_code
+
         let const_def = NConst @[
-            id: id_provider.next(),
+            program,
+            id: const_id,
             span: entry.span,
             annotations: [],
             path: module_path,
             name: entry.name,
+            generics: NGenericParams::new(NGenericSource::Const),
             type_usage: enum_type_usage,
             const_type: None(),
-            code: const_code,
+            code_id: const_code.id,
             full_name,
         ]
+
+        const_code.container = NCodeContainer::Const @[def: const_def]
         program.consts[] = const_def
         declare_name(Path::join(const_def.path, const_def.name), const_def.span)
 
@@ -239,7 +247,7 @@ fun Parser.read_enum_entries(def: NStruct): Parsed<List<NEnumEntry>> {
                 let field_name = read_name()?
                 skip_token_kind(TokenKind::COLON)?
                 skip_nl()
-                let code = NCode::new(span, "${def.full_name}::$field_name")
+                let code = NCode::new(program, NCodeContainer::None @[])
                 read_expression(code)?
 
                 entry.value_init[] = NEnumValueInit @[

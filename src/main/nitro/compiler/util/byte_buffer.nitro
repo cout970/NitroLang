@@ -24,7 +24,7 @@ fun ByteBuffer::new(list: List<Byte>): ByteBuffer {
         writer: ByteWriter::wrap(list),
         reader: ByteReader::new(list),
         strings: [],
-        extra_checks: false,
+        extra_checks: true,
     ]
 }
 

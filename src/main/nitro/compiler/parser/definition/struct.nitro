@@ -23,7 +23,7 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
         path,
         name,
         full_name: Path::join(path, name),
-        generics: NGenericParams::new(),
+        generics: NGenericParams::new(NGenericSource::Struct),
         fields: [],
         parent: None(),
         is_enum: false,

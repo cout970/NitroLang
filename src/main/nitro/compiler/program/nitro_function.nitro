@@ -1,10 +1,11 @@
 
 struct NFunction {
+    program: Program
     id: Id
     span: Span
     annotations: List<NAnnotation>
     header: NFunctionHeader
-    code: NCode
+    code_id: Id
     full_name: String
 }
 
@@ -16,23 +17,31 @@ struct NFunctionParameter {
 }
 
 fun Parser.create_function(header: NFunctionHeader, annotations: List<NAnnotation>): NFunction {
+    let id = id_provider.next()
     let full_name = Path::join(header.path, header.name)
+    let code = NCode::new(program, NCodeContainer::None @[])
+
+    program.codes[] = code
+
     let func = NFunction @[
-        id: id_provider.next(),
+        program,
+        id,
         span: header.span,
         annotations,
         header,
-        code: NCode::new(header.span, full_name),
+        code_id: code.id,
         full_name,
     ]
 
-    func.code.link_generics(header.generics)
+    code.container = NCodeContainer::Function @[def: func]
     ret func
 }
 
 fun Parser.register_nitro_function(func: NFunction) {
     program.functions[] = func
 }
+
+fun NFunction.get_code(): NCode = program.find_code(code_id)
 
 fun NFunction.add_parameter(span: Span, name: String, type_usage: NTypeUsage) {
     header.parameters[] = NFunctionParameter @[span, name, type_usage, param_type: None()]
@@ -78,7 +87,11 @@ fun NFunction.to_string(): String {
         args += "${p.name}: ${p.type_usage}"
     }
 
-    return "${prefix}${header.to_pretty_string()} $code // $span"
+    return "${prefix}${header.to_pretty_string()} $code_id // $span"
+}
+
+fun NFunctionParameter.to_string(): String {
+    ret "$name: $type_usage"
 }
 
 fun NFunctionHeader.to_pretty_string(): String {
@@ -104,48 +117,7 @@ fun NFunctionHeader.to_pretty_string(): String {
     return str.to_string()
 }
 
-struct ExternAnnotation {
-    lib: String
-    name: String
-    autogenerate: Boolean
-}
-
 fun NFunction.is_extern(): Boolean = get_extern_annotation().is_some()
-
-fun NFunction.get_extern_annotation(): Optional<ExternAnnotation> {
-    let extern_annotation = get_annotation("Extern")
-    if extern_annotation.is_none() {
-        ret None()
-    }
-
-    let a: NAnnotation = extern_annotation!!
-    let lib: Optional<NConstExpr> = a.get_arg("lib")
-    let name: Optional<NConstExpr> = a.get_arg("name")
-
-    if lib.is_none() || name.is_none() {
-        ret None()
-    }
-
-    let lib_str: Optional<String> = lib!!.get_string()
-    let name_str: Optional<String> = name!!.get_string()
-
-    if lib_str.is_none() || name_str.is_none() {
-        ret None()
-    }
-
-    let autogenerate: Boolean = false
-    let autogenerate_arg: Optional<NConstExpr> = a.get_arg("autogenerate")
-
-    if autogenerate_arg.is_some() && autogenerate_arg!!.get_boolean().is_some() {
-        autogenerate = autogenerate_arg!!.get_boolean()!!
-    }
-
-    ret Some(ExternAnnotation @[
-        lib: lib_str!!,
-        name: name_str!!,
-        autogenerate,
-    ])
-}
 
 fun ByteBuffer.serialize_function(value: NFunction) {
     let frame = start_frame(true)
@@ -156,11 +128,11 @@ fun ByteBuffer.serialize_function(value: NFunction) {
         serialize_annotation(a)
     }
     serialize_function_header(value.header)
-    serialize_code(value.code)
+    serialize_id(value.code_id)
     end_frame(frame)
 }
 
-fun ByteBuffer.deserialize_function(): NFunction {
+fun ByteBuffer.deserialize_function(program: Program): NFunction {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
@@ -169,18 +141,18 @@ fun ByteBuffer.deserialize_function(): NFunction {
         annotations[] = deserialize_annotation()
     }
     let header = deserialize_function_header()
-    let code = deserialize_code(None(), header.generics)
+    let code_id = deserialize_id()
 
     let full_name = header.full_name
     let value = NFunction @[
+        program,
         id,
         span,
         annotations,
         header,
-        code,
+        code_id,
         full_name,
     ]
-
     end_frame(frame)
     ret value
 }

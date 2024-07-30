@@ -13,6 +13,8 @@ struct Program {
     tags: List<NTag>
     consts: List<NConst>
     functions: List<NFunction>
+    lambdas: List<NLambda>
+    codes: List<NCode>
 }
 
 fun Program::new(): Program {
@@ -27,6 +29,8 @@ fun Program::new(): Program {
         tags: [],
         consts: [],
         functions: [],
+        lambdas: [],
+        codes: [],
     ]
 }
 
@@ -40,6 +44,21 @@ fun Program.extend_with(other: Program) {
     this.tags.add_all(other.tags)
     this.consts.add_all(other.consts)
     this.functions.add_all(other.functions)
+    this.lambdas.add_all(other.lambdas)
+    this.codes.add_all(other.codes)
+
+    for c in this.consts {
+        c.program = this
+    }
+    for c in this.functions {
+        c.program = this
+    }
+    for c in this.lambdas {
+        c.program = this
+    }
+    for c in this.codes {
+        c.program = this
+    }
 }
 
 fun Program.increment_all_ids(amount: Int): Int {
@@ -63,19 +82,79 @@ fun Program.increment_all_ids(amount: Int): Int {
 
         for f in s.functions {
             f.id.current_value += amount
+            for g in f.header.generics.definitions {
+                g.id.current_value += amount
+            }
         }
     }
     for s in consts {
         s.id.current_value += amount
+        s.code_id.current_value += amount
+        for g in s.generics.definitions {
+            g.id.current_value += amount
+        }
     }
     for s in functions {
         s.id.current_value += amount
+        s.code_id.current_value += amount
         for g in s.header.generics.definitions {
             g.id.current_value += amount
         }
     }
+    for s in lambdas {
+        s.id.current_value += amount
+        s.code_id.current_value += amount
+    }
+    for s in codes {
+        s.id.current_value += amount
+
+        for inst in s.inst_list {
+            if inst.kind is NInstKind::Lambda {
+                (inst.kind as NInstKind::Lambda).lambda_id.current_value += amount
+            }
+            if inst.kind is NInstKind::LoadVar {
+                let kind = (inst.kind as NInstKind::LoadVar)
+                if kind.constant.is_some() {
+                    kind.constant!!.current_value += amount
+                }
+            }
+        }
+    }
 
     ret id_provider.last_id
+}
+
+fun Program.find_lambda(id: Id): NLambda {
+    ret lambdas.find @{ it -> it.id == id }.or_fail_with("Lambda not found")
+}
+
+fun Program.find_function(id: Id): NFunction {
+    ret functions.find @{ it -> it.id == id }.or_fail_with("Function not found")
+}
+
+fun Program.find_const(id: Id): NConst {
+    ret consts.find @{ it -> it.id == id }.or_fail_with("Const not found")
+}
+
+fun Program.find_struct(id: Id): NStruct {
+    ret structs.find @{ it -> it.id == id }.or_fail_with("Struct not found")
+}
+
+fun Program.find_option(id: Id): NOption {
+    ret options.find @{ it -> it.id == id }.or_fail_with("Option not found")
+}
+
+fun Program.find_tag(id: Id): NTag {
+    ret tags.find @{ it -> it.id == id }.or_fail_with("Tag not found")
+}
+
+fun Program.find_code(id: Id): NCode {
+    let res = codes.find @{ it -> it.id == id }
+    if res.is_some() {
+        ret res!!
+    }
+
+    crash("Code not found, id: $id")
 }
 
 fun Program.to_string(): String {
@@ -122,6 +201,18 @@ fun Program.to_string(): String {
     }
     sb[] = "  functions:\n"
     for s in functions {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  lambdas:\n"
+    for s in lambdas {
+        sb[] = "    "
+        sb[] = s.to_string().replace("\n", "\n    ")
+        sb[] = "\n"
+    }
+    sb[] = "  codes:\n"
+    for s in codes {
         sb[] = "    "
         sb[] = s.to_string().replace("\n", "\n    ")
         sb[] = "\n"
@@ -176,6 +267,16 @@ fun ByteBuffer.serialize_program(program: Program) {
         serialize_function(s)
     }
 
+    write_int(program.lambdas.len)
+    for s in program.lambdas {
+        serialize_lambda(s)
+    }
+
+    write_int(program.codes.len)
+    for s in program.codes {
+        serialize_code(s)
+    }
+
     end_frame(frame)
 }
 
@@ -192,7 +293,7 @@ fun ByteBuffer.deserialize_program(): Program {
         declared_names[key] = value
     }
 
-    let program =  Program @[
+    let program = Program @[
         id_provider,
         test_id_provider,
         declared_names,
@@ -203,6 +304,8 @@ fun ByteBuffer.deserialize_program(): Program {
         tags: [],
         consts: [],
         functions: [],
+        lambdas: [],
+        codes: [],
     ]
 
     repeat read_int() {
@@ -226,11 +329,19 @@ fun ByteBuffer.deserialize_program(): Program {
     }
 
     repeat read_int() {
-        program.consts[] = deserialize_const()
+        program.consts[] = deserialize_const(program)
     }
 
     repeat read_int() {
-        program.functions[] = deserialize_function()
+        program.functions[] = deserialize_function(program)
+    }
+
+    repeat read_int() {
+        program.lambdas[] = deserialize_lambda(program)
+    }
+
+    repeat read_int() {
+        program.codes[] = deserialize_code(program)
     }
 
     end_frame(frame)

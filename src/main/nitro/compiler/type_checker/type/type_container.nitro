@@ -5,6 +5,7 @@ struct TypeContainer {
     type_tokens: List<TypeToken>
     unresolved_index: Multimap<Int, TypeId>
     last_unresolved_id: Int
+    string_builder: StringBuilder
 }
 
 fun TypeContainer::new(): TypeContainer {
@@ -14,28 +15,35 @@ fun TypeContainer::new(): TypeContainer {
         type_tokens: [],
         unresolved_index: Multimap::new(),
         last_unresolved_id: 0,
+        string_builder: StringBuilder::new(),
     ]
 }
 
 fun TypeContainer.get_type_by_id(id: TypeId): Type {
     let opt = all_types[id]
-    check(opt.is_some()) @{ "Attempt to get type by id '$id', but it does not exist" }
+    if !opt.is_some() {
+        this.debug()
+        crash("Attempt to get type by id '$id', but it does not exist")
+    }
     ret opt!!
 }
 
 fun TypeContainer.get_type_signature(kind: TypeKind, params: List<TypeId>): String {
-    let args = StringBuilder::new()
-    for type_id in params {
-        if args.is_not_empty() {
-            args[] = ","
+    string_builder.clear()
+    string_builder[] = kind
+
+    if params.is_not_empty() {
+        string_builder[] = "<"
+        repeat params.len {
+            if it > 0 {
+                string_builder[] = ","
+            }
+            string_builder[] = params[it]!!
         }
-        args[] = type_id
+        string_builder[] = ">"
     }
 
-    if args.is_not_empty() {
-        ret "${kind.signature}<$args>"
-    }
-    ret kind.signature
+    ret string_builder.to_string()
 }
 
 fun TypeContainer.create_type_tokens(ids: List<TypeId>): List<TypeToken> {
@@ -80,6 +88,7 @@ fun TypeContainer.create_type_id_by_ids(kind: TypeKind, params: List<TypeId>): T
 
     ret type_id
 }
+
 
 fun TypeContainer.create_type_direct(kind: TypeKind, params: List<Type>): Type {
     let ids = []
@@ -130,4 +139,14 @@ fun TypeContainer.type_to_string(ty: Type): String {
     }
 
     ret result
+}
+
+fun TypeContainer.debug() {
+    println("TypeContainer {")
+    println("  all_types:")
+    for entry in all_types {
+        let ty = entry.second
+        println("    ${entry.first}: ${ty.id} ${ty.kind}<${ty.params}>")
+    }
+    println("}")
 }
