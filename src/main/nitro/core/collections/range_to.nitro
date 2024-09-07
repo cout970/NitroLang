@@ -7,7 +7,7 @@ struct IntRangeTo {
 
 // Creates a range of integers from start to end (inclusive)
 fun Int.range_to(end_inclusive: Int): IntRangeTo {
-    return IntRangeTo @[start: this, end_inclusive]
+    ret IntRangeTo @[start: this, end_inclusive]
 }
 
 // Creates a list from a range of integers, the end is included
@@ -32,16 +32,16 @@ fun IntRangeTo.to_iterator(): IntRangeIterator = IntRangeIterator @[
 
 // Checks if the range is empty, meaning, no values are contained in it
 fun IntRangeTo.is_empty(): Boolean {
-    return this.start > this.end_inclusive
+    ret this.start > this.end_inclusive
 }
 
 // Checks if a value is contained in the range
 fun IntRangeTo.contains(value: Int): Boolean {
-    return value >= this.start && value <= this.end_inclusive
+    ret value >= this.start && value <= this.end_inclusive
 }
 
 fun IntRangeTo.to_string(): String {
-    return "${this.start}..=${this.end_inclusive}"
+    ret "${this.start}..=${this.end_inclusive}"
 }
 
 mod test {

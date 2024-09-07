@@ -292,7 +292,7 @@ fun MemoryAllocator.find_available_entry(): MemoryAllocatorBlockEntryId {
 
     loop {
         if block_ptr.is_null() {
-            return 0L
+            ret 0L
         }
 
         let block: MemoryAllocatorBlock = block_ptr.unsafe_as_ref()
@@ -407,7 +407,7 @@ fun MemoryAllocator.init_new_block(block: MemoryAllocatorBlock){
     // First block
     if block_list.is_null() {
         block_list = ptr_of(block)
-        return
+        ret
     }
 
     // Append to the last block

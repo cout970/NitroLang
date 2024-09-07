@@ -19,10 +19,10 @@ fun Byte.get_ordering(other: Byte): Ordering {
     let this_int = this.to_int()
     let other_int = other.to_int()
 
-    return this_int.get_ordering(other_int)
+    ret this_int.get_ordering(other_int)
 }
 
 // Convert a byte to a string
 fun Byte.to_string(): String {
-    return this.to_int().to_string()
+    ret this.to_int().to_string()
 }

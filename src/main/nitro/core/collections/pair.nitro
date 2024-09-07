@@ -21,6 +21,16 @@ fun Pair<#A, #B>.second(): #B {
     ret this.second
 }
 
+// Return the first element of the pair
+fun Pair<#A, #B>.get_key(): #A {
+    ret this.first
+}
+
+// Return the second element of the pair
+fun Pair<#A, #B>.get_value(): #B {
+    ret this.second
+}
+
 // Swap the elements of the pair
 fun Pair<#A, #B>.swap(): Pair<#B, #A> {
     ret Pair<#B, #A> @[first: this.second, second: this.first]

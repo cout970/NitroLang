@@ -681,7 +681,7 @@ export function run_test(internal_function_name: number, test_name: number): boo
 // At src/main/nitro/core/debug/trace.nitro(trace.nitro:4)
 // @Extern [lib="core", name="trace_enter"]
 // fun Trace::trace_enter(String): Nothing
-export function trace_enter(func_info: String): Nothing {
+export function trace_enter(func_info: number): void {
     assert(func_info);
     trace.trace_enter(getString(func_info));
 }
@@ -689,18 +689,32 @@ export function trace_enter(func_info: String): Nothing {
 // At src/main/nitro/core/debug/trace.nitro(trace.nitro:7)
 // @Extern [lib="core", name="trace_exit"]
 // fun Trace::trace_exit(String): Nothing
-export function trace_exit(func_info: String): Nothing {
+export function trace_exit(func_info: number): void {
     trace.trace_exit();
 }
 
 // At src/main/nitro/core/debug/trace.nitro(trace.nitro:10)
 // @Extern [lib="core", name="trace_get_stacktrace"]
-// fun Trace::trace_get_stacktrace(): String
+// fun Trace::trace_get_stacktrace(): number
 export function trace_get_stacktrace(): String { return createString(trace.trace_get_stacktrace()); }
 
 // At src/main/nitro/core/debug/trace.nitro(trace.nitro:13)
 // @Extern [lib="core", name="trace_print_stack_trace"]
 // fun Trace::print_stack_trace(): Nothing
-export function trace_print_stack_trace(): Nothing { trace.trace_print_stack_trace(); }
+export function trace_print_stack_trace(): void { trace.trace_print_stack_trace(); }
+
+// -------------------------------------------------------------------------
+// From runtime.nitro
+// -------------------------------------------------------------------------
+
+// At src/main/nitro/core/debug/runtime.nitro(runtime.nitro:19)
+// @Extern [lib: "core", name: "runtime_program_arg_count"]
+// fun Runtime::program_arg_count(): Int
+export function runtime_program_arg_count(): number { return mem.program_args.length; }
+
+// At src/main/nitro/core/debug/runtime.nitro(runtime.nitro:22)
+// @Extern [lib: "core", name: "runtime_program_arg_get"]
+// fun Runtime::program_arg_get(Int): String
+export function runtime_program_arg_get(index: number): number { return createString(mem.program_args[index] ?? ''); }
 
 // @formatter:on

@@ -38,7 +38,7 @@ fun ByteWriter.add_boolean(value: Boolean) {
 fun ByteReader.read_boolean(): Boolean {
     let value = bytes[pos]!!.to_int()
     pos += 1
-    return value != 0
+    ret value != 0
 }
 
 // Add a 16-bit integer to the buffer in little-endian order
@@ -51,7 +51,7 @@ fun ByteWriter.add_short_le(value: Int) {
 fun ByteReader.read_short_le(): Int {
     let value = bytes[pos]!!.to_int() | (bytes[pos + 1]!!.to_int() << 8)
     pos += 2
-    return value
+    ret value
 }
 
 // Add a 16-bit integer to the buffer in big-endian order
@@ -64,7 +64,7 @@ fun ByteWriter.add_short_be(value: Int) {
 fun ByteReader.read_short_be(): Int {
     let value = (bytes[pos]!!.to_int() << 8) | bytes[pos + 1]!!.to_int()
     pos += 2
-    return value
+    ret value
 }
 
 // Add a 32-bit integer to the buffer in little-endian order
@@ -79,7 +79,7 @@ fun ByteWriter.add_int_le(value: Int) {
 fun ByteReader.read_int_le(): Int {
     let value = bytes[pos]!!.to_int() | (bytes[pos + 1]!!.to_int() << 8) | (bytes[pos + 2]!!.to_int() << 16) | (bytes[pos + 3]!!.to_int() << 24)
     pos += 4
-    return value
+    ret value
 }
 
 // Add a 32-bit integer to the buffer in big-endian order
@@ -94,7 +94,7 @@ fun ByteWriter.add_int_be(value: Int) {
 fun ByteReader.read_int_be(): Int {
     let value = (bytes[pos]!!.to_int() << 24) | (bytes[pos + 1]!!.to_int() << 16) | (bytes[pos + 2]!!.to_int() << 8) | bytes[pos + 3]!!.to_int()
     pos += 4
-    return value
+    ret value
 }
 
 // Add a 64-bit integer to the buffer in little-endian order
@@ -113,7 +113,7 @@ fun ByteWriter.add_long_le(value: Long) {
 fun ByteReader.read_long_le(): Long {
     let value = bytes[pos]!!.to_long() | (bytes[pos + 1]!!.to_long() << 8L) | (bytes[pos + 2]!!.to_long() << 16L) | (bytes[pos + 3]!!.to_long() << 24L) | (bytes[pos + 4]!!.to_long() << 32L) | (bytes[pos + 5]!!.to_long() << 40L) | (bytes[pos + 6]!!.to_long() << 48L) | (bytes[pos + 7]!!.to_long() << 56L)
     pos += 8
-    return value
+    ret value
 }
 
 // Add a 64-bit integer to the buffer in big-endian order
@@ -132,7 +132,7 @@ fun ByteWriter.add_long_be(value: Long) {
 fun ByteReader.read_long_be(): Long {
     let value = (bytes[pos]!!.to_long() << 56L) | (bytes[pos + 1]!!.to_long() << 48L) | (bytes[pos + 2]!!.to_long() << 40L) | (bytes[pos + 3]!!.to_long() << 32L) | (bytes[pos + 4]!!.to_long() << 24L) | (bytes[pos + 5]!!.to_long() << 16L) | (bytes[pos + 6]!!.to_long() << 8L) | bytes[pos + 7]!!.to_long()
     pos += 8
-    return value
+    ret value
 }
 
 // Add a 32-bit unsigned int encoded as a LEB128 to the buffer
@@ -166,7 +166,7 @@ fun ByteReader.read_uint_leb128(): Int {
             break
         }
     }
-    return result
+    ret result
 }
 
 // Add a 32-bit signed int encoded as a LEB128 to the buffer
@@ -201,7 +201,7 @@ fun ByteReader.read_int_leb128(): Int {
             break
         }
     }
-    return result
+    ret result
 }
 
 // Add a 64-bit signed int encoded as a LEB128 to the buffer
@@ -237,7 +237,7 @@ fun ByteReader.read_long_leb128(): Long {
             break
         }
     }
-    return result
+    ret result
 }
 
 // Write a 32bit float in IEEE754 format
@@ -249,7 +249,7 @@ fun ByteWriter.add_float_ieee754_32(value: Float) {
 // Read a 32bit float in IEEE754 format
 fun ByteReader.read_float_ieee754_32(): Float {
     let bits = read_int_le()
-    return bits.reinterpret_as_float()
+    ret bits.reinterpret_as_float()
 }
 
 // Write a string content as UTF-8 without size
@@ -268,7 +268,7 @@ fun ByteReader.read_string_utf8_without_size(len: Int): String {
         pos += 1
     }
 
-    return result.to_string()
+    ret result.to_string()
 }
 
 // Write a string content as UTF-8 with size encoded as LEB128
@@ -280,7 +280,7 @@ fun ByteWriter.add_string_utf8_with_size_leb128(value: String) {
 // Read a string content as UTF-8 with size encoded as LEB128
 fun ByteReader.read_string_utf8_with_size_leb128(): String {
     let len = read_int_leb128()
-    return read_string_utf8_without_size(len)
+    ret read_string_utf8_without_size(len)
 }
 
 // Add multiple copies of a byte to the buffer

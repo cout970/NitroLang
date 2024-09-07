@@ -512,13 +512,13 @@ fun String.to_ascii_uppercase(): String {}
 
 // Repeat a string a certain amount of times
 fun String.mul(amount: Int): String {
-    let result: String = ""
+    let result = StringBuilder::new()
 
     repeat amount {
-        result = result.concat(this)
+        result[] = this
     }
 
-    ret result
+    ret result.to_string()
 }
 
 // Implementation of the ToString tag for strings

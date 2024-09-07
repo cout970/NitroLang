@@ -59,6 +59,9 @@ fun Ptr<#Value>.offset_in_bytes(num_bytes: Int): Ptr<#Value> {
     ret ptr_from_address(this.get_address() + num_bytes)
 }
 
+// Compares two pointers by their numerical address
+fun Ptr<#Value>.get_ordering(other: Ptr<#Value>): Ordering = this.address <=> other.address
+
 // Aligns the pointer to the next multiple of 4
 fun Ptr::align(value: Int): Int = (value + 3) & 3.bitwise_not()
 

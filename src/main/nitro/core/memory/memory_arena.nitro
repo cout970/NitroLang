@@ -74,15 +74,24 @@ fun format_bytes(amount: Int): String {
 
     let l = 0
     let n = amount.abs()
+    let remainder = 0
 
     while n >= 1024 {
+        remainder = n % 1024
         n /= 1024
         l += 1
     }
 
-    let units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+    let units = ["Bytes", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
+    let unit_str = units[l]!!
     let prefix = if amount < 0 { "-" } else { "" }
-    ret "$prefix$n ${units[l]!!}"
+
+    let decimal = (remainder * 1000) / 1024
+    let decimal_part = decimal / 100
+    let decimal_str = if decimal_part > 0 { ".$decimal_part" } else { "" }
+    let number_str = n.to_string()
+
+    ret "$prefix$number_str$decimal_str $unit_str"
 }
 
 // Prints the contents of the heap to the console, for debugging purposes
