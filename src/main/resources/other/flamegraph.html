@@ -76,7 +76,8 @@
         .width(window.innerWidth)
         .setColorHue('aqua');
 
-    d3.json("output/flamegraph.json")
+    // This file is in src/main/resources/other, we need to go up 4 levels to reach the root of the project
+    d3.json("../../../../out/flamegraph.json")
       .then(data => {
         d3.select("#chart")
           .datum(data)

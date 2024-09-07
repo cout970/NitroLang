@@ -31,5 +31,5 @@ export async function run(url: string, args: string[]) {
         throw e;
     }
 
-    trace_save_flame_graph('./output/flamegraph.json');
+    trace_save_flame_graph('out/flamegraph.json');
 }

@@ -2,8 +2,8 @@
 
 // Wrapper to run the file output/compiled.wasm emitted by the old compiler
 
-import {run} from './run.ts';
-import * as internals from './internal.ts';
+import {run} from '../extern/run.ts';
+import * as internals from '../extern/internal.ts';
 import { init } from './deno_fs.ts';
 
 init(internals.fs);
@@ -12,7 +12,7 @@ init(internals.fs);
 try {
   let path = Deno.args.length
     ? Deno.args[0]
-    : `file://${new URL('.', import.meta.url).pathname}output/compiled.wasm`;
+    : `file://${new URL('.', import.meta.url).pathname}../output/compiled.wasm`;
 
   run(path, []);
 } catch (e) {

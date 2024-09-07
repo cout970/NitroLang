@@ -78,7 +78,7 @@ fun parse_input(code: String): Input {
             tokens[] = token
 
             // For each position of a digit, store a reference to the token, so we can find it later
-            repeat num.len() {
+            repeat num.bytes_len {
                 let pos = TokenPos @[
                     row: num_start_row,
                     col: num_start_col + it
@@ -183,7 +183,7 @@ fun part_2(input: Input) {
     let total = 0
 
     // Look only at the tokens that contain gears
-    let gears = input.tokens.filter @{ this.value == "*" }
+    let gears = input.tokens.filter @{ i -> i.value == "*" }
 
     for tk in gears {
         // List of the numbers we found around the gear
@@ -218,7 +218,7 @@ fun part_2(input: Input) {
         }
 
         // Only if we found exactly 2 numbers
-        if found_numbers.len() == 2 {
+        if found_numbers.len == 2 {
             let a = found_numbers[0]!!
             let b = found_numbers[1]!!
             let result = a * b

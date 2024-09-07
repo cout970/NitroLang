@@ -1,8 +1,8 @@
 // Update with:
 // esbuild web_wrapper.ts --bundle --outfile=output/build.js
 //
-import {run} from './run.ts'
-import * as internals from './internal.ts';
+import {run} from '../extern/run.ts'
+import * as internals from '../extern/internal.ts';
 
 // File system emulation
 internals.fs.isSupported = true;
@@ -77,7 +77,7 @@ async function main() {
         // Run compiler
         //run("./output/compiled.wasm");
         // Run compilation result
-        run("./output.wasm");
+        run("./output/output.wasm");
     } catch (e) {
         console.error(e);
         window.alert('Crashed');

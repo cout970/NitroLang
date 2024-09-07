@@ -302,7 +302,7 @@ fun execute(opt: CompilerOptions, watFile: File) = Prof.run("execute") {
 
     Prof.start("deno")
     println("--- Running output.wasm")
-    ProcessBuilder("./src/main/resources/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
+    ProcessBuilder("./src/main/resources/runtimes/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
         .inheritIO()
         .start()
         .waitFor()

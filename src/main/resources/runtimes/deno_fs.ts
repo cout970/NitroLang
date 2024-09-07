@@ -1,29 +1,31 @@
 import { join, dirname, basename } from "https://deno.land/std@0.221.0/path/mod.ts";
 import { existsSync } from "https://deno.land/std@0.221.0/fs/exists.ts";
 
-const __dirname = new URL('.', import.meta.url).pathname;
+// This file is in src/main/resources/runtimes/deno_fs.ts but we want path to be relative to the project root
+const __dirname = new URL('.', import.meta.url).pathname + '/../../../../';
+const absPath = (path: string) => path.startsWith('/') ? path : join(__dirname, path);
 
 export function init(fs) {
     // File system
     fs.isSupported = true;
 
     fs.readTextFileSync = (path: string) => {
-        return Deno.readTextFileSync(join(__dirname, path), 'utf-8');
+        return Deno.readTextFileSync(absPath(path), 'utf-8');
     };
     fs.writeTextFileSync = (path: string, data: string) => {
-        Deno.writeTextFileSync(join(__dirname, path), data, 'utf-8');
+        Deno.writeTextFileSync(absPath(path), data, 'utf-8');
     };
     fs.fileExistsSync = (path: string) => {
-        return existsSync(join(__dirname, path));
+        return existsSync(absPath(path));
     };
     fs.readFileSync = (path: string) => {
-        return Deno.readFileSync(join(__dirname, path));
+        return Deno.readFileSync(absPath(path));
     };
     fs.writeFileSync = (path: string, data: Uint8Array) => {
-        Deno.writeFileSync(join(__dirname, path), data);
+        Deno.writeFileSync(absPath(path), data);
     };
     fs.getLastModifiedTime = (path: string) => {
-        const info = Deno.statSync(join(__dirname, path));
+        const info = Deno.statSync(absPath(path));
         if (info.mtime === null) {
             throw new Error(`Unable to get last modified time for file: ${path}`);
         }

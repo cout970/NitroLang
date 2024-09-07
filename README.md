@@ -6,12 +6,11 @@ Inspired by C, Rust, Kotlin and JS, combining the best features of modern langua
 
 Right now it's in alpha state and everything is subject to change.
 
-
 ### Current task
 
-Rewrite the compiler in NitroLang itself, to prove that it's a viable language for real-world applications.
-
-You can see the progress [here](./src/main/nitro/compiler)
+- [x] [Rewrite the compiler in NitroLang itself](./src/main/nitro/compiler)
+- [ ] Improve memory management
+- [ ] Create a web editor that compiles and runs the code directly in the browser
 
 ### Syntax
 
@@ -348,7 +347,7 @@ fun main() {
                     "type": "application/json"
                 ]
                 
-                text_content = json {
+                text_content = json! {
                     settings: {
                         theme: "dark"
                         language: "en"
@@ -371,9 +370,10 @@ fun main() {
 - It's designed for simplicity and flexibility, making code easy to read and maintain.
 - The syntax is concise and intuitive, familiar for anyone with programming experience.
 - It features strong and static typing for early error detection, clearer code, and enhanced tooling and autocompletion.
-- Primarily geared towards procedural programming, it also supports functional programming with first-class functions and lambdas
+- Primarily geared towards procedural programming, it also supports functional programming with first-class functions
+  and lambdas
 - Comes equipped with essential data structures like Lists, Maps, Sets, JSON, Optionals, Results, Pairs, etc.
-- Implements a robust type system, including generics, structs, enums, sum types/options, and type aliases.
+- Implements a Hindley-Milner type system, with generic structs, enums, sum types/options, type aliases and modules.
 - Offers function overloading and receiver functions, allowing object-oriented syntax in procedural code.
 - Utilizes tags for type extensions, enabling the addition of methods to any type without disrupting existing code.
 - Features a module system for effective code organization and namespacing.

@@ -13,7 +13,9 @@ Intended for the developers
 - [x] Link types and symbols
 - [x] Type inference
 - [x] Compile to WASM
-- [ ] StdLib
+- [x] StdLib
+- [x] Self-hosted compiler
+- [ ] Better memory management
 - [ ] Intellij Language Plugin
 - [ ] Package manager for dependencies
 - [ ] Marketing
@@ -34,7 +36,6 @@ Intended for the developers
 - Implement interface for runtime function call indirection
 - Fix external functions with Floats compressed as pointers
 - Add more tests to the code library
-- Self-hosted compiler
 - Get annotations of type: type_annotation<Box>("Extern")
 - Runtime reflection of types
 - Arena allocators
@@ -60,4 +61,3 @@ Intended for the developers
 
 ### Known Bugs
 
-- 0 compressed as pointer causes null pointer exceptions

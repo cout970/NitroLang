@@ -25,7 +25,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("nitrolang.MainKt")
 }
 
 val runTests by tasks.registering(JavaExec::class) {

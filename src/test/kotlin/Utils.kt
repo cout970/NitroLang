@@ -63,7 +63,7 @@ fun assertExecutionSuccess(relPath: String): LstProgram {
     compileToWasm(opt, watFile, wasmFile)
 
     val outputFile = Files.createTempFile(null, ".txt").toFile()
-    ProcessBuilder("./src/main/resources/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
+    ProcessBuilder("./src/main/resources/runtimes/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
         .inheritIO()
         .redirectOutput(outputFile)
         .start()

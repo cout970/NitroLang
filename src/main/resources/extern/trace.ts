@@ -120,4 +120,3 @@ export function trace_save_flame_graph(path) {
         console.error("Failed to write flamegraph.json", e);
     }
 }
-

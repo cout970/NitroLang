@@ -10,7 +10,7 @@
     "outFile": "./output/build.js"
   },
   "files": [
-    "run.ts"
+    "extern/run.ts"
   ],
   "exclude": [
     "./output/*"

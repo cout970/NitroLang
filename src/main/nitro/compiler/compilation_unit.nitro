@@ -9,7 +9,7 @@ struct CompilationUnit {
     types: TypeContainer
     type_checker: TypeChecker
     backend: WasmBackend
-    use_cache: Boolean
+    cache_path: Optional<String>
     verify_cache: Boolean
 }
 
@@ -33,7 +33,7 @@ fun CompilationUnit::new(): CompilationUnit {
         types,
         type_checker: TypeChecker::new(reporter, program, types),
         backend: WasmBackend::new(reporter, program),
-        use_cache: true,
+        cache_path: None(),
         verify_cache: false,
     ]
 }
@@ -90,7 +90,7 @@ fun CompilationUnit.parse() {
 }
 
 fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program> {
-    if !use_cache {
+    if cache_path.is_none() {
         ret None()
     }
 
@@ -167,7 +167,7 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
 }
 
 fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
-    if !use_cache {
+    if cache_path.is_none() {
         ret
     }
 
@@ -224,10 +224,8 @@ fun CompilationUnit.get_cache_file_path(path: String): FilePath {
         safe_path = safe_path.replace(c, "_")
     }
 
-    if new_compiler {
-        ret FilePath::new("cache2/$safe_path.bin")
-    }
-    ret FilePath::new("cache/$safe_path.bin")
+    let base_path = cache_path!!
+    ret FilePath::new("$base_path/$safe_path.bin")
 }
 
 fun CompilationUnit::process_path(path: String, current_path: String): String {
@@ -258,12 +256,13 @@ fun CompilationUnit.compile(output_path: FilePath) {
     }
 }
 
-fun CompilationUnit::compile_all(input_path: String, output_path: String) {
+fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_path: Optional<String>) {
     let unit = CompilationUnit::new()
+    unit.cache_path = cache_path
 
     // Include core library
     let start_core = Instant::now()
-    unit.add_file("../nitro/core/core.nitro", "core")
+    unit.add_file("src/main/nitro/core/core.nitro", "core")
     unit.parse()
 
     // Parse errors

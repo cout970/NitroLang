@@ -2,19 +2,15 @@
 
 // Wrapper to run the file output.wasm that contains the compiler
 
-import {run} from './run.ts';
-import * as internals from './internal.ts';
+import {run} from '../extern/run.ts';
+import * as internals from '../extern/internal.ts';
 import { init } from './deno_fs.ts';
 
 init(internals.fs);
 
 // Run
 try {
-  let path = Deno.args.length
-    ? Deno.args[0]
-    : `file://${new URL('.', import.meta.url).pathname}output2.wasm`;
-
-  run(path, ['output3.wasm']);
+  run(Deno.args[0], Deno.args.slice(1));
 } catch (e) {
   console.error(e);
   Deno.exit(-1);
