@@ -29,7 +29,7 @@ fun Parser.create_function(header: NFunctionHeader, annotations: List<NAnnotatio
         span: header.span,
         annotations,
         header,
-        code_id: code.id,
+        code_id: code.id.new_copy(),
         full_name,
     ]
 
@@ -78,16 +78,7 @@ fun NFunction.has_annotation(name: String): Boolean {
 
 fun NFunction.to_string(): String {
     let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-
-    let args = ""
-    for p in header.parameters {
-        if !args.is_empty() {
-            args += ", "
-        }
-        args += "${p.name}: ${p.type_usage}"
-    }
-
-    return "${prefix}${header.to_pretty_string()} $code_id // $span"
+    ret "$id: ${prefix}${header.to_pretty_string()} = $code_id // $span"
 }
 
 fun NFunctionParameter.to_string(): String {
@@ -100,21 +91,23 @@ fun NFunctionHeader.to_pretty_string(): String {
 
     str[] = "fun "
     str[] = full_name
+    str[] = generics
     str[] = "("
 
-    let args = ""
+    let count = 0
     for p in parameters {
-        if !args.is_empty() {
+        if count != 0 {
             str[] = ", "
         }
         str[] = p.name
         str[] = ": "
         str[] = p.type_usage
+        count += 1
     }
     str[] = "): "
     str[] = return_type_usage
 
-    return str.to_string()
+    ret str.to_string()
 }
 
 fun NFunction.is_extern(): Boolean = get_extern_annotation().is_some()

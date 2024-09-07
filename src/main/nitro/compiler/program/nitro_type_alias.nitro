@@ -19,7 +19,7 @@ fun NTypeAlias.to_string() -> String {
 
     let full_name = Path::join(path, name)
 
-    return "${prefix}typealias $full_name$generics = $type_usage // $span"
+    ret "${prefix}typealias $full_name$generics = $type_usage // $span"
 }
 
 fun ByteBuffer.serialize_type_alias(def: NTypeAlias) {
@@ -49,7 +49,7 @@ fun ByteBuffer.deserialize_type_alias(): NTypeAlias {
     let type_usage = deserialize_type_usage()
     end_frame(frame)
 
-    return NTypeAlias @[
+    ret NTypeAlias @[
         span,
         annotations,
         path,

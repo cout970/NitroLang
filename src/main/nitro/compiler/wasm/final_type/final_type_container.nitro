@@ -14,7 +14,7 @@ fun FinalTypeContainer.create_final_type(kind: FinalTypeKind, type_params: List<
     let opt = all_types[type_id]
 
     if opt.is_some() {
-        return opt!!
+        ret opt!!
     }
 
     let final_type = FinalType @[

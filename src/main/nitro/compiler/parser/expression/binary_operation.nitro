@@ -22,8 +22,10 @@ option BinaryTree {
         span: Span
     }
     Expression {
-        code: NCode
         span: Span
+        start: Id
+        end: Id
+        last_inst: NInstId
     }
 }
 
@@ -65,11 +67,11 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
 
     loop {
         let span = lexer.current_token_span
-        let child_code = code.new_child_code(NCodeContainer::None @[], true)
-        let last = read_expression_simple(child_code)?
-        child_code.last_expression = Some(last)
+        let start = code.add_mark(span)
+        let last = read_expression_simple(code)?
+        let end = code.add_mark(span)
 
-        expressions[] = BinaryTree::Expression @[code: child_code, span]
+        expressions[] = BinaryTree::Expression @[span, start, end, last_inst: last]
 
         let opt: Optional<BinaryOperator> = read_binary_operator()
 
@@ -129,8 +131,8 @@ fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOper
             ]
 
             expressions[index] = operation
-            expressions.remove_at(index + 1)
-            operators.remove_at(index)
+            expressions.remove_at(index + 1)!!
+            operators.remove_at(index)!!
         }
 
         precedence = max(precedence + 1, min_precedence)
@@ -147,8 +149,12 @@ fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOper
 fun depth_first_traverse(tree: BinaryTree, code: NCode): NInstId {
     if tree is BinaryTree::Expression {
         let leaf = tree as BinaryTree::Expression
-        code.merge(leaf.code)
-        ret code.last_expression!!
+
+        code.move_instructions_to_end(leaf.start, leaf.end)
+        code.remove_mark(leaf.start)
+        code.remove_mark(leaf.end)
+        code.last_expression = Some(leaf.last_inst)
+        ret leaf.last_inst
     }
 
     if tree is BinaryTree::Operation {
@@ -253,7 +259,7 @@ fun Parser.check_and_warn_unary_sign(): Optional<BinaryOperator> {
 fun BinaryTree.to_string(): String {
     if this is BinaryTree::Expression {
         let leaf = this as BinaryTree::Expression
-        ret leaf.code.to_string()
+        ret "Expression: ${leaf.start} -> ${leaf.end}"
     }
 
     if this is BinaryTree::Operation {

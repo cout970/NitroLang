@@ -183,12 +183,12 @@ fun TypeChecker.remove_obsolete_constraints(): Boolean {
             let c = constraint as TypeConstraint::Unify
 
             if c.left == c.right {
-                cons.all.remove_at(index)
+                cons.all.remove_at(index)!!
                 changes = true
                 continue
             }
             if !c.left.find_type().has_unresolved() && !c.right.find_type().has_unresolved() {
-                cons.all.remove_at(index)
+                cons.all.remove_at(index)!!
                 changes = true
                 continue
             }
@@ -198,7 +198,7 @@ fun TypeChecker.remove_obsolete_constraints(): Boolean {
             let c = constraint as TypeConstraint::Bounds
 
             if c.visited {
-                cons.all.remove_at(index)
+                cons.all.remove_at(index)!!
                 changes = true
                 continue
             }
@@ -220,7 +220,7 @@ fun TypeChecker.execute_deferred_actions(): Boolean {
 
         if !ty.is_unresolved() && !ty.is_unresolved_function() {
             deferred.action.call(deferred.arg)
-            cons.actions.remove_at(index)
+            cons.actions.remove_at(index)!!
             changes = true
             continue
         }

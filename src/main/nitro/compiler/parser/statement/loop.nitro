@@ -24,7 +24,7 @@ fun Parser.read_loop_statement(code: NCode): Parsed<Nothing> {
     read_statement_block(code)?
 
     //       goto loop;
-    code.execute_deferred_actions(code.current_block, false)
+    code.active_block.add_deferred_actions(code, false)
     code.jumped_out_of_block = true
     code.add_block_jump(span, true, Some(continue_block))
 

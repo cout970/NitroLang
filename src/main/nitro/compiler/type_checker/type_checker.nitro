@@ -30,27 +30,32 @@ fun TypeChecker::new(reporter: Reporter, program: Program, types: TypeContainer)
 }
 
 fun TypeChecker.check_all() {
-    // Step 1: Definitions
+    Log::debug("Pre-checking tags ${get_memory().get_stats()}")
     for def in program.tags {
         check_tag_pre(def)
     }
 
+    Log::debug("Checking structs ${get_memory().get_stats()}")
     for def in program.structs {
         check_struct(def)
     }
 
+    Log::debug("Checking options ${get_memory().get_stats()}")
     for def in program.options {
         check_option(def)
     }
 
+    Log::debug("Checking type aliases ${get_memory().get_stats()}")
     for def in program.type_aliases {
         check_type_alias(def)
     }
 
+    Log::debug("Checking consts ${get_memory().get_stats()}")
     for def in program.consts {
         check_const_header(def)
     }
 
+    Log::debug("Checking tags ${get_memory().get_stats()}")
     for def in program.tags {
         for tag_func in def.functions {
             check_function_header(tag_func.header)
@@ -62,6 +67,7 @@ fun TypeChecker.check_all() {
         }
     }
 
+    Log::debug("Checking functions ${get_memory().get_stats()}")
     for func in program.functions {
         check_function_header(func.header)
         func.code.return_type_token = Some(func.header.return_type!!.to_token())
@@ -74,22 +80,26 @@ fun TypeChecker.check_all() {
         }
     }
 
-    // Verify tag implementors
+    Log::debug("Checking tag implementors ${get_memory().get_stats()}")
     for def in program.tags {
         check_tag(def)
     }
 
-    // Step 2: Code inside definitions
+    Log::debug("Checking const code blocks ${get_memory().get_stats()}")
     for s in program.consts {
 //        Log::debug("Checking code for const ${s.full_name}")
         cons.add_code_to_check(s.code)
         finalize()
     }
+
+    Log::debug("Checking function code blocks ${get_memory().get_stats()}")
     for s in program.functions {
-//        Log::debug("Checking code for function ${s.full_name}")
+//        Log::debug("Checking code for function ${s.full_name} ${get_memory().get_stats()}")
         cons.add_code_to_check(s.code)
         finalize()
     }
+
+    Log::debug("Type checking done ${get_memory().get_stats()}")
 }
 
 fun TypeChecker.check_struct(s: NStruct) {

@@ -17,7 +17,6 @@ struct NOptionItem {
     def: NStruct
 }
 
-
 fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
     for item in items {
         if item.def.id == str.id {
@@ -45,7 +44,7 @@ fun NOption.to_string(): String {
     items_str = items_str + "}"
     let full_name = Path::join(path, name)
 
-    ret "${prefix}option $full_name $items_str // $span"
+    ret "$id: ${prefix}option $full_name $items_str // $span"
 }
 
 fun NOptionItem.to_string(): String {
@@ -133,6 +132,8 @@ fun ByteBuffer.deserialize_option_item(program: Program, parent: NOption): NOpti
     end_frame(frame)
     // Set struct parent to the option so it becomes an option item
     def!!.parent = Some(parent)
+    // Share the generics between the option and the struct
+    def!!.generics = parent.generics
 
     ret NOptionItem @[
         span,

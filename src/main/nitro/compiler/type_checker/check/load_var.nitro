@@ -30,7 +30,7 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, inst: NInst, code:
     // Is a constant?
     if constant.is_some() {
         inst.type_token = constant!!.const_type.to_token()
-        kind.constant = Some(constant!!.id)
+        kind.constant = Some(constant!!.id.new_copy())
         ret
     }
 

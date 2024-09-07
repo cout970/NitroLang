@@ -1,8 +1,10 @@
-
 include "./includes.nitro"
+
 let new_compiler: Boolean = false
 
 fun main() {
     println("New compiler: $new_compiler")
+
     CompilationUnit::compile_all("../nitro/compiler/example.nitro", "output.wasm")
 }
+

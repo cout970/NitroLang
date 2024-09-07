@@ -46,6 +46,26 @@ fun CompilationUnit.add_file(path: String, base: String) {
     include_queue[] = IncludedQueueItem @[path, base]
 }
 
+fun CompilationUnit.add_source(source: String, path: String, base: String) {
+    let start = Instant::now()
+    let sub_program = Program::new()
+
+    let lexer = Lexer::new(source, path)
+    lexer.read_all()
+
+    let parser = Parser::new(lexer, reporter, sub_program)
+    parser.read_file()
+
+    let end = Instant::now()
+
+    for inc in sub_program.includes {
+        let include_path = CompilationUnit::process_path(inc.path, path)
+        add_file(include_path, base)
+    }
+
+    program.extend_with(sub_program)
+}
+
 fun CompilationUnit.parse() {
     while include_queue.is_not_empty() {
         let item = include_queue.remove_last()!!
@@ -161,7 +181,6 @@ fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
     // Content
     buffer.serialize_program(sub_program)
 
-
     let bytes = buffer.finish_write()
     let file_path = get_cache_file_path(file.file_path.path)
 
@@ -204,7 +223,11 @@ fun CompilationUnit.get_cache_file_path(path: String): FilePath {
     for c in invalid_chars {
         safe_path = safe_path.replace(c, "_")
     }
-    return FilePath::new("cache/$safe_path.bin")
+
+    if new_compiler {
+        ret FilePath::new("cache2/$safe_path.bin")
+    }
+    ret FilePath::new("cache/$safe_path.bin")
 }
 
 fun CompilationUnit::process_path(path: String, current_path: String): String {
@@ -299,6 +322,8 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String) {
 
     let time_compiling = start_compiling.elapsed().to_milliseconds()
     println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+
+//    FilePath::new("debug.log").write_text(unit.program.to_string())!!
 
     let total_time = start_core.elapsed().to_milliseconds()
     println("Total time: $total_time ms")

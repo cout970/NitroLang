@@ -75,7 +75,7 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
 
     // Execute deferred actions
     if !code.jumped_out_of_block {
-        code.execute_deferred_actions(code.current_block, true)
+        code.active_block.add_deferred_actions(code, true)
     }
 
     // Check there are no break/continue jumps unlinked

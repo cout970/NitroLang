@@ -62,6 +62,8 @@ fun Id.is_uninitialized(): Boolean = current_value == -1
 
 fun Id.to_int(): Int = current_value
 
+fun Id.new_copy(): Id = Id @[current_value]
+
 fun Id.update(new_value: Int) {
     this.current_value = new_value
 }

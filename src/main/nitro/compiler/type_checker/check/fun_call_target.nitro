@@ -193,9 +193,9 @@ fun TypeChecker.matches_generic_bounds(bounds: NGenericBounds, arg: Type): Boole
 
     for pattern in instance.impl_patterns {
         if types.matches_pattern(arg, pattern) {
-            return true
+            ret true
         }
     }
 
-    return false
+    ret false
 }

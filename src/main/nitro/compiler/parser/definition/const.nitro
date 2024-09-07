@@ -32,7 +32,8 @@ fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing
         generics: NGenericParams::new(NGenericSource::Const),
         type_usage,
         const_type: None(),
-        code_id: code.id,
+        code_id: code.id.new_copy(),
+        is_enum: false,
         full_name,
     ]
 

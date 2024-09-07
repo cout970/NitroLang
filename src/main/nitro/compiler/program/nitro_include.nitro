@@ -12,7 +12,7 @@ fun NInclude.to_string() -> String {
         prefix = "$prefix$a\n"
     }
 
-    return "${prefix}include \"$path\" // $span"
+    ret "${prefix}include \"$path\" // $span"
 }
 
 fun ByteBuffer.serialize_include(value: NInclude) {
@@ -36,7 +36,7 @@ fun ByteBuffer.deserialize_include(): NInclude {
     let path = read_string()
     end_frame(frame)
 
-    return NInclude @[
+    ret NInclude @[
         span,
         annotations,
         path,

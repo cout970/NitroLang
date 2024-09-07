@@ -52,11 +52,11 @@ fun NGeneric.get_ordering(other: NGeneric): Ordering = id.get_ordering(other.id)
 
 fun NGeneric.to_string(): String {
     if bounds.is_empty() {
-        ret "#$name"
+        ret "$id #$name"
     }
     let s = bounds.join_to_string(" | ") @{ i -> i.name }
 
-    ret "#$name: $s"
+    ret "$id #$name: $s"
 }
 
 fun NGenericParams.to_string(): String {

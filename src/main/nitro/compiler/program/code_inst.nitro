@@ -11,6 +11,9 @@ struct NInst {
 }
 
 option NInstKind {
+    Mark {
+        id: Id
+    }
     Let {
         variable: NVarId
     }
@@ -155,6 +158,12 @@ fun NCode.add_noop(span: Span): NInst {
 
 fun NCode.add_comment(span: Span, text: String): NInst {
     ret add_inst(span, NInstKind::Comment @[text])
+}
+
+fun NCode.add_mark(span: Span): Id {
+    let id = mark_id_provider.next()
+    add_inst(span, NInstKind::Mark @[id])
+    ret id
 }
 
 fun NCode.add_let(
@@ -318,7 +327,7 @@ fun NCode.add_load_const(
         path,
         name,
         variable: None(),
-        constant,
+        constant: if constant.is_some() { Some(constant!!.new_copy()) } else { None() },
     ])
 }
 
@@ -444,7 +453,7 @@ fun NCode.add_lambda(
     span: Span,
     lambda_id: Id,
 ): NInst {
-    ret add_inst(span, NInstKind::Lambda @[lambda_id])
+    ret add_inst(span, NInstKind::Lambda @[lambda_id: lambda_id.new_copy()])
 }
 
 fun NCode.add_link(
@@ -488,6 +497,7 @@ fun NCode.next_inst(id: NInstId): Optional<NInst> {
 
 fun NInstKind.get_name(): String {
     ret when {
+        this is NInstKind::Mark -> "mark"
         this is NInstKind::Let -> "let"
         this is NInstKind::LetUpvalue -> "let-upvalue"
         this is NInstKind::IfStart -> "if-start"
@@ -525,6 +535,11 @@ fun NInst.to_string(): String {
 
 fun NInstKind.to_string(): String {
     ret when {
+        this is NInstKind::Mark -> {
+            let kind = this as NInstKind::Mark
+
+            "mark ${kind.id}"
+        }
         this is NInstKind::Let -> {
             let kind = this as NInstKind::Let
 
@@ -736,6 +751,11 @@ fun NCode.var_to_string(variable_id: NVarId): String {
 fun NInst.to_string(code: NCode): String {
     let t = this.kind
     ret when {
+        t is NInstKind::Mark -> {
+            let kind = t as NInstKind::Mark
+
+            "mark ${kind.id}"
+        }
         t is NInstKind::Let -> {
             let kind = t as NInstKind::Let
 
@@ -1123,6 +1143,11 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             let kind = t as NInstKind::Comment
             write_string(kind.text)
         }
+        t is NInstKind::Mark -> {
+            write_int(27)
+            let kind = t as NInstKind::Mark
+            serialize_id(kind.id)
+        }
         else -> crash("Unknown NInstKind variant")
     }
 }
@@ -1272,6 +1297,10 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
         26 -> {
             let text = read_string()
             NInstKind::Comment @[text]
+        }
+        27 -> {
+            let id = deserialize_id()
+            NInstKind::Mark @[id]
         }
         else -> crash("Unknown NInstKind variant")
     }

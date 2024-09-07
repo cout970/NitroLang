@@ -6,6 +6,8 @@ fun TypeChecker.check_tag_pre(tag_instance: NTag) {
 fun TypeChecker.check_tag(tag_instance: NTag) {
     let all_set = Set::new<ResolvedTypePattern>()
 
+//    Log::debug("  Checking tag ${tag_instance.name} ${get_memory().get_stats()}")
+
     for tag_func in tag_instance.functions {
         let targets: List<NFunCallTarget> = function_lookup[tag_func.header.full_name]
         for target in targets {
@@ -14,6 +16,7 @@ fun TypeChecker.check_tag(tag_instance: NTag) {
             }
 
             let func = (target as NFunCallTarget::Func).func
+//            Log::debug("    Checking function ${func.header} to match ${tag_func.header} (${get_memory().get_stats()})")
             let tag_implementation = tag_matches_func(func.header, tag_func.header, tag_instance)
 
             if tag_implementation.is_none() {
@@ -25,6 +28,8 @@ fun TypeChecker.check_tag(tag_instance: NTag) {
             all_set[] = pattern
         }
     }
+
+//    Log::debug("    Filtering implementations ${all_set} ${get_memory().get_stats()}")
 
     // Remove from `all_set` the patterns that are not valid for all required functions
     for tag_func in tag_instance.functions {
@@ -90,6 +95,7 @@ fun TypeChecker.tag_matches_func(func: NFunctionHeader, tag_func: NFunctionHeade
 }
 
 fun TypeChecker.tag_matches_types(left_list: List<Type>, right_list: List<Type>, tag_instance: NTag): Optional<Type> {
+//    Log::debug("      Checking if type lists match ${left_list} vs ${right_list} (${get_memory().get_stats()})")
     if left_list.len != right_list.len {
         ret None()
     }
@@ -106,6 +112,7 @@ fun TypeChecker.tag_matches_types(left_list: List<Type>, right_list: List<Type>,
             if impl_type.is_some() && impl_type!! != left {
                 ret None()
             }
+
             impl_type = Some(left)
             continue
         }
@@ -119,6 +126,7 @@ fun TypeChecker.tag_matches_types(left_list: List<Type>, right_list: List<Type>,
 }
 
 fun TypeChecker.tag_matches_type(left: Type, right: Type, tag_instance: NTag): Optional<Type> {
+//    Log::debug("      Checking if types match ${left} vs ${right} (${get_memory().get_stats()})")
     if !right.is_generic() {
         if left.kind == right.kind {
             ret tag_matches_types(left.type_params, right.type_params, tag_instance)

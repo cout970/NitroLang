@@ -13,6 +13,8 @@ fun Parser.read_expression_return(code: NCode): Parsed<NInstId> {
         code.add_lit_nothing(span).id
     }
 
+    code.active_block.add_deferred_actions(code, true)
+    code.jumped_out_of_block = true
     let inst = code.add_return(span, value)
     ret found(inst.id)
 }

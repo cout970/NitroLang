@@ -109,6 +109,11 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
 
 fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
     when {
+        orig is NInstKind::Mark -> {
+            let kind = orig as NInstKind::Mark
+
+            ret NInstKind::Mark @[id: kind.id]
+        }
         orig is NInstKind::Let -> {
             let kind = orig as NInstKind::Let
 
@@ -237,7 +242,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
                 } else {
                     None()
                 }
-                constant: kind.constant,
+                constant: kind.constant.map @{ it -> it.new_copy() },
             ]
         }
         orig is NInstKind::StoreVar -> {
@@ -297,7 +302,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
         orig is NInstKind::Lambda -> {
             let kind = orig as NInstKind::Lambda
 
-            ret NInstKind::Lambda @[lambda_id: kind.lambda_id]
+            ret NInstKind::Lambda @[lambda_id: kind.lambda_id.new_copy()]
         }
         orig is NInstKind::Link -> {
             let kind = orig as NInstKind::Link

@@ -59,16 +59,121 @@ fun Program.extend_with(other: Program) {
     for c in this.codes {
         c.program = this
     }
+
+    check_for_duplicated_ids()
+}
+
+fun Program.check_for_duplicated_ids() {
+    let all: Set<Int> = %[]
+    let errors = []
+
+    for s in structs {
+        if s.id.current_value in all {
+            errors[] = "Duplicated struct id: ${s.id.current_value}"
+        }
+        all[] = s.id.current_value
+
+        if s.parent.is_none() {
+            for g in s.generics.definitions {
+                if g.id.current_value in all {
+                    errors[] = "Duplicated generic id: ${g.id.current_value}"
+                }
+                all[] = g.id.current_value
+            }
+        }
+    }
+    for s in options {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated option id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+        for g in s.generics.definitions {
+            if g.id.current_value in all {
+                errors[] = ("Duplicated generic id: ${g.id.current_value}")
+            }
+            all[] = g.id.current_value
+        }
+    }
+    for s in tags {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated tag id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+
+        for f in s.functions {
+             if f.id.current_value in all {
+                errors[] = ("Duplicated tag function id: ${f.id.current_value}")
+            }
+            all[] = f.id.current_value
+
+            for g in f.header.generics.definitions {
+                if g.id.current_value in all {
+                    errors[] = ("Duplicated generic id: ${g.id.current_value}")
+                }
+                all[] = g.id.current_value
+            }
+        }
+    }
+    for s in consts {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated const id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+
+        for g in s.generics.definitions {
+            if g.id.current_value in all {
+                errors[] = ("Duplicated generic id: ${g.id.current_value}")
+            }
+            all[] = g.id.current_value
+        }
+    }
+    for s in functions {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated function id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+
+        for g in s.header.generics.definitions {
+            if g.id.current_value in all {
+                errors[] = ("Duplicated generic id: ${g.id.current_value}")
+            }
+            all[] = g.id.current_value
+        }
+    }
+    for s in lambdas {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated lambda id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+    }
+    for s in codes {
+        if s.id.current_value in all {
+            errors[] = ("Duplicated code id: ${s.id.current_value}")
+        }
+        all[] = s.id.current_value
+    }
+
+    if errors.is_not_empty() {
+        for e in errors {
+            println(e)
+        }
+        FilePath::new("debug.log").write_text(this.to_string())!!
+        crash("Found errors")
+    }
 }
 
 fun Program.increment_all_ids(amount: Int): Int {
+    let aux = id_provider.last_id
     id_provider.last_id += amount
     test_id_provider.last_id += amount
 
     for s in structs {
         s.id.current_value += amount
-        for g in s.generics.definitions {
-            g.id.current_value += amount
+
+        if s.parent.is_none() {
+            for g in s.generics.definitions {
+                g.id.current_value += amount
+            }
         }
     }
     for s in options {
@@ -90,6 +195,7 @@ fun Program.increment_all_ids(amount: Int): Int {
     for s in consts {
         s.id.current_value += amount
         s.code_id.current_value += amount
+
         for g in s.generics.definitions {
             g.id.current_value += amount
         }
@@ -107,6 +213,12 @@ fun Program.increment_all_ids(amount: Int): Int {
     }
     for s in codes {
         s.id.current_value += amount
+
+        for entry in s.block_map {
+            for c in entry.second.deferred_code {
+                c.id.current_value += amount
+            }
+        }
 
         for inst in s.inst_list {
             if inst.kind is NInstKind::Lambda {

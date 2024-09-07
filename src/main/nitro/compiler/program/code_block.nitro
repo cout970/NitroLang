@@ -9,8 +9,43 @@ struct NBlock {
     deferred_code: List<NCode>
 }
 
+fun NBlock.add_deferred_actions(code: NCode, is_return: Boolean) {
+
+    if deferred_code.is_not_empty() {
+        for subcode in deferred_code.to_reversed() {
+            // Avoid replacing the last expression, since deferred code cannot be used for the implicit return
+            let prev_last_expression = code.last_expression
+            code.merge(subcode)
+            code.last_expression = prev_last_expression
+        }
+    }
+
+    if parent_id.is_none() && code.is_transparent_child {
+        if code.container is NCodeContainer::Lambda {
+            let def = (code.container as NCodeContainer::Lambda).def
+            let block = code.find_block(def.parent_block)
+            block.add_deferred_actions(code, is_return)
+        }
+    }
+
+    if parent_id.is_some() && (is_return || !is_jump_target) {
+        let block = code.find_block(parent_id!!)
+        block.add_deferred_actions(code, is_return)
+    }
+}
+
 fun NBlock.to_string(): String {
     ret "NBlock @[id: $id, parent_id: $parent_id, is_jump_target: $is_jump_target, depth: $depth, deferred_code: ${deferred_code.len}]"
+}
+
+fun NBlock.to_string(code: NCode): String {
+    if parent_id.is_some() {
+        let parent = code.find_block(parent_id!!)
+
+        ret "${parent.to_string(code)}\n${to_string()}"
+    }
+
+    ret to_string()
 }
 
 fun ByteBuffer.serialize_block(value: NBlock) {

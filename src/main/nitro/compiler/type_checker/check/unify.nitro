@@ -155,21 +155,21 @@ fun UnifyCtx.add_substitution(key: Type, value: Type) {
     sub_ctx.merge_into(this)
 }
 
-
 fun UnifyCtx.report_type_mismatch(a: Type, b: Type) {
     // Initial types contain the full types, while a/b contain the part of the types that caused the mismatch
     // Is best to report `List<Int> != List<String>` instead of `Int != String`
     let error_msg = ""
 
-    println("a: $a")
-    println("a.id: ${a.id}")
-    println("a.kind: ${a.kind}")
-    println("a.params: ${a.params}")
-    println("b: $b")
-    println("b.id: ${b.id}")
-    println("b.kind: ${b.kind}")
-    println("b.params: ${b.params}")
-    println("---")
+//    println("a: $a (${a.kind} ${a.params})")
+//    println("b: $b (${b.kind} ${b.params})")
+//    println(code)
+//    println(code.container)
+//    if code.container is NCodeContainer::Const {
+//        println((code.container as NCodeContainer::Const).def)
+//    }
+//    FilePath::new("debug.log").write_text(code.program.to_string())!!
+//    crash("Here")
+//    println("---")
 
     if initial_types.is_some() {
         let first = initial_types!!.first

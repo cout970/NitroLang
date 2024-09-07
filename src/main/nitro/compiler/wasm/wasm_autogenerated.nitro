@@ -302,9 +302,29 @@ fun WasmBackend.compile_function_start_main() {
     let func = wasm_program.functions.find @{ it -> it.header.name == "_start_main" }!!
     let main_func = wasm_program.functions.find @{ it -> it.header.name == "main" }!!
 
+    // First init all enums
     for init_func in wasm_program.functions {
         if init_func.source is WFunctionSource::Const {
             let wconst = (init_func.source as WFunctionSource::Const).wconst
+
+            if !wconst.instance.is_enum {
+                continue
+            }
+
+            func.bytecode.add_i32_const(wconst.section.offset)
+            func.bytecode.add_call(init_func.header.index.to_int())
+            func.bytecode.add_store_by_type(wconst.final_type, this)
+        }
+    }
+
+    // Then init all non-enums
+    for init_func in wasm_program.functions {
+        if init_func.source is WFunctionSource::Const {
+            let wconst = (init_func.source as WFunctionSource::Const).wconst
+
+            if wconst.instance.is_enum {
+                continue
+            }
 
             func.bytecode.add_i32_const(wconst.section.offset)
             func.bytecode.add_call(init_func.header.index.to_int())

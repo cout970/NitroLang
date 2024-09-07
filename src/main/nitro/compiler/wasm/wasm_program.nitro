@@ -104,7 +104,7 @@ enum WType {
 fun WasmProgram::new(): WasmProgram {
     ret WasmProgram @[
         memory: WMemory @[
-            size: 500 * 16 * (64 * 1024), // 500 pages of 64 KB
+            size: 2000 * 16 * (64 * 1024), // 2000 MB in pages of 64 KB
             offset: 0,
             sections: [],
         ],

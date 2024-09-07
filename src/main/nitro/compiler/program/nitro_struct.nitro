@@ -38,7 +38,7 @@ fun NStruct.to_string(): String {
     fields_str = fields_str + "}"
     let full_name = Path::join(path, name)
 
-    ret "${prefix}struct $full_name $fields_str  // $span"
+    ret "$id: ${prefix}struct $full_name$generics $fields_str  // $span"
 }
 
 fun NStructField.to_string(): String {

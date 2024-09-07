@@ -22,7 +22,7 @@ fun ChangeCollector.register(left: String, right: String) {
 }
 
 fun ChangeCollector.field(field: String): ChangeCollector {
-    return ChangeCollector @[path: Path::join(path, field), changes]
+    ret ChangeCollector @[path: Path::join(path, field), changes]
 }
 
 tag Differentiable {

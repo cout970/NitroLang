@@ -137,7 +137,8 @@ fun Parser.read_enum_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             generics: NGenericParams::new(NGenericSource::Const),
             type_usage: enum_type_usage,
             const_type: None(),
-            code_id: const_code.id,
+            code_id: const_code.id.new_copy(),
+            is_enum: true,
             full_name,
         ]
 

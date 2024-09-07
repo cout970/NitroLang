@@ -474,17 +474,17 @@ fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
 // Check if a type that implements a tag matches the final type that will be used at runtime
 fun WasmBackend.tag_type_matches_final_type(tag_type: Type, final_tag_type: FinalType): Boolean {
     if tag_type.is_generic() {
-        return true
+        ret true
     }
 
     let tag_type_params = tag_type.type_params
     if tag_type_params.len != final_tag_type.type_params.len {
-        return false
+        ret false
     }
 
     repeat tag_type.params.len {
         if !tag_type_matches_final_type(tag_type_params[it]!!, final_tag_type.type_params[it]!!) {
-            return false
+            ret false
         }
     }
 

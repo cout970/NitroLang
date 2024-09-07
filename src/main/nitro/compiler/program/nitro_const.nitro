@@ -10,6 +10,7 @@ struct NConst {
     type_usage: NTypeUsage
     const_type: Optional<Type>
     code_id: Id
+    is_enum: Boolean
     full_name: String
 }
 
@@ -20,7 +21,7 @@ fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
 fun NConst.to_string(): String {
     let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
 
-    return "${prefix}const $full_name: $type_usage = $code_id // $span"
+    ret "$id: ${prefix}const $full_name$generics: $type_usage = $code_id // $span"
 }
 
 fun ByteBuffer.serialize_const(value: NConst) {
@@ -36,6 +37,7 @@ fun ByteBuffer.serialize_const(value: NConst) {
     serialize_generic_params(value.generics)
     serialize_type_usage(value.type_usage)
     serialize_id(value.code_id)
+    write_boolean(value.is_enum)
     end_frame(frame)
 }
 
@@ -52,6 +54,7 @@ fun ByteBuffer.deserialize_const(program: Program): NConst {
     let generics = deserialize_generic_params()
     let type_usage = deserialize_type_usage()
     let code_id = deserialize_id()
+    let is_enum = read_boolean()
 
     let value = NConst @[
         program,
@@ -64,6 +67,7 @@ fun ByteBuffer.deserialize_const(program: Program): NConst {
         type_usage,
         const_type: None(),
         code_id,
+        is_enum,
         full_name: Path::join(path, name)
     ]
 

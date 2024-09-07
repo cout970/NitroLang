@@ -11,6 +11,8 @@ struct NCode {
     is_transparent_child: Boolean
     // List of lambdas defined in this code
     lambdas: List<Id>
+    // Id provider for marks
+    mark_id_provider: IdProvider
     // Id provider for new instructions
     inst_id_provider: IdProvider
     // List of instructions of the function/constant
@@ -53,6 +55,7 @@ fun NCode::new(program: Program, container: NCodeContainer): NCode {
         lambdas: [],
         inst_list: [],
         vars_map: #[],
+        mark_id_provider: IdProvider::new(),
         inst_id_provider: IdProvider::new(),
         variable_id_provider: IdProvider::new(),
         current_block: block_id_provider.next(),
@@ -88,6 +91,8 @@ fun NCode.new_child_code(container: NCodeContainer, is_transparent_child: Boolea
 
 fun NCode.get_generics(): NGenericParams = container.generics
 
+fun NCode.get_active_block(): NBlock = find_block(current_block)
+
 fun NCode.get_parent_code(): Optional<NCode> {
     if container is NCodeContainer::Lambda {
         let def = (container as NCodeContainer::Lambda).def
@@ -104,7 +109,7 @@ fun NCode.get_parent_code(): Optional<NCode> {
 fun NCode.get_span(): Span = container.span
 
 fun NCode.enter_block(is_jump_target: Boolean) {
-    let prev = find_block(current_block)
+    let prev = this.active_block
     let new_block = NBlock @[
         id: block_id_provider.next(),
         parent_id: Some(prev.id),
@@ -117,7 +122,8 @@ fun NCode.enter_block(is_jump_target: Boolean) {
 }
 
 fun NCode.exit_block() {
-    let block = find_block(current_block)
+    let block = this.active_block
+
     if !jumped_out_of_block && block.deferred_code.is_not_empty() {
         for subcode in block.deferred_code.to_reversed() {
             // Avoid replacing the last expression, since deferred code cannot be used for the implicit return
@@ -126,6 +132,7 @@ fun NCode.exit_block() {
             this.last_expression = prev_last_expression
         }
     }
+
     jumped_out_of_block = false
     current_block = block.parent_id!!
 }
@@ -188,7 +195,7 @@ fun NCode.find_var(id: NVarId): NVar {
         ret parent_code!!.find_var(id)
     }
 
-    crash("Variable not found: #$id at $this")
+    crash("Variable not found: #$id")
 }
 
 fun NCode.find_receiver_type(): Optional<Type> {
@@ -216,28 +223,41 @@ fun NCode.get_upvalues(): List<NVarId> {
     ret upvalues
 }
 
-fun NCode.execute_deferred_actions(block_id: NBlockId, is_return: Boolean) {
-    let block = find_block(block_id)
-
-    if block.deferred_code.is_not_empty() {
-        for subcode in block.deferred_code.to_reversed() {
-            // Avoid replacing the last expression, since deferred code cannot be used for the implicit return
-            let prev_last_expression = this.last_expression
-            this.merge(subcode)
-            this.last_expression = prev_last_expression
+fun NCode.index_of_mark(id: Id): Optional<Int> {
+    let current = 0
+    for i in inst_list {
+        if i.kind is NInstKind::Mark && (i.kind as NInstKind::Mark).id == id {
+            ret Some(current)
         }
+        current += 1
     }
 
-    if block.parent_id.is_none() && is_transparent_child {
-        if container is NCodeContainer::Lambda {
-            let def = (container as NCodeContainer::Lambda).def
-            execute_deferred_actions(def.parent_block, is_return)
+    ret None()
+}
+
+fun NCode.move_instructions_to_end(start_mark: Id, end_mark: Id) {
+    let start = index_of_mark(start_mark)!!
+    let end = index_of_mark(end_mark)!!
+    let cur = start
+
+    loop {
+        if cur > end {
+            break
         }
+
+        let inst = inst_list[cur]!!
+        inst_list[] = inst
+        cur += 1
     }
 
-    if block.parent_id.is_some() && (is_return || !block.is_jump_target) {
-        execute_deferred_actions(block.parent_id!!, is_return)
+    repeat end - start + 1 {
+        inst_list.remove_at(start)!!
     }
+}
+
+fun NCode.remove_mark(id: Id) {
+    let index = index_of_mark(id)!!
+    inst_list.remove_at(index)!!
 }
 
 struct NCodeJumps {
@@ -426,6 +446,7 @@ fun ByteBuffer.serialize_code(code: NCode) {
     serialize_id(code.id)
     serialize_code_container(code.container)
     write_boolean(code.is_transparent_child)
+    serialize_id_provider(code.mark_id_provider)
     serialize_id_provider(code.inst_id_provider)
     serialize_id_provider(code.variable_id_provider)
     serialize_id_provider(code.block_id_provider)
@@ -468,6 +489,7 @@ fun ByteBuffer.deserialize_code(program: Program): NCode {
     let container = deserialize_code_container(program)
     let is_transparent_child = read_boolean()
     let lambdas = []
+    let mark_id_provider = deserialize_id_provider()
     let inst_id_provider = deserialize_id_provider()
     let inst_list = []
     let variable_id_provider = deserialize_id_provider()
@@ -494,6 +516,7 @@ fun ByteBuffer.deserialize_code(program: Program): NCode {
         container,
         is_transparent_child,
         lambdas,
+        mark_id_provider,
         inst_id_provider,
         inst_list,
         variable_id_provider,
