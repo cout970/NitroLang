@@ -8,6 +8,7 @@ import nitrolang.backend.wasm.WasmBuilder
 import nitrolang.parsing.ANNOTATION_EXTERN
 import nitrolang.parsing.AstParser
 import nitrolang.typeinference.TType
+import nitrolang.util.ErrorCollector
 import nitrolang.util.Prof
 import nitrolang.util.SourceFile
 import java.io.File
@@ -16,7 +17,7 @@ import java.time.Instant
 import kotlin.io.path.absolute
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.isRegularFile
-import kotlin.io.path.name
+import kotlin.system.measureNanoTime
 
 const val DEBUG: Boolean = true
 
@@ -76,7 +77,15 @@ fun main(args: Array<String>) {
             Prof.start("root")
             try {
                 println("Recompiling $fileName")
-                if (compileToWat(opts).collector.isEmpty() && opts.execute) {
+                var collector: ErrorCollector
+
+                val nano = measureNanoTime {
+                    collector = compileToWat(opts).collector
+                }
+
+                println("Compiled in ${nano / 1_000_000} ms")
+
+                if (collector.isEmpty() && opts.execute) {
                     execute(opts, File(opts.output))
                 }
             } catch (e: Throwable) {
@@ -293,7 +302,7 @@ fun execute(opt: CompilerOptions, watFile: File) = Prof.run("execute") {
 
     Prof.start("deno")
     println("--- Running output.wasm")
-    ProcessBuilder("./src/main/resources/deno_wrapper.ts")
+    ProcessBuilder("./src/main/resources/deno_wrapper.ts", "file://${wasmFile.absolutePath}")
         .inheritIO()
         .start()
         .waitFor()

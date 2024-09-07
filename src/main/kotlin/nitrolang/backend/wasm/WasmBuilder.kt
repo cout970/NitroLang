@@ -81,7 +81,7 @@ open class WasmBuilder(
         // Override section with address where the heap starts
         // @formatter:off
         module.sectionOffset = pad(module.sectionOffset)
-        val capacity = (module.memoryCapacity - module.sectionOffset.toUInt() - 4u).toInt()
+        val capacity = (module.memoryCapacity - module.sectionOffset.toUInt()).toInt()
         val memoryInstance = byteArrayOf(
             /* len      */ *intToWasm(0),
             /* bytes    */ *intToWasm(module.sectionOffset),
