@@ -1,0 +1,8 @@
+/* --- BEGIN CODE --- */
+fun main() {
+    println("Hello, world!")
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Hello, world!
+--- END OUTPUT --- */

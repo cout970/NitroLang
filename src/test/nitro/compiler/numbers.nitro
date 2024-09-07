@@ -1,0 +1,47 @@
+/* --- BEGIN CODE --- */
+fun main() {
+    println(-2147483648)
+    println(-1)
+    println(0)
+    println(1)
+    println(2147483647)
+    println("-")
+
+    println(0b00010101)
+    println(0b11101010)
+    println(0b11111111)
+    println(0b00000000)
+    println("-")
+
+    println(0x0)
+    println(0xFF)
+    println(0x7FFFFFFF)
+    println(0x80000000)
+    println("-")
+
+    println(0o0)
+    println(0o777)
+    println(0o1234567)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+-2147483648
+-1
+0
+1
+2147483647
+-
+21
+234
+255
+0
+-
+0
+255
+2147483647
+-2147483648
+-
+0
+511
+342391
+--- END OUTPUT --- */

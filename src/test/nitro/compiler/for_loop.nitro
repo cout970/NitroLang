@@ -1,0 +1,17 @@
+/* --- BEGIN CODE --- */
+fun main() {
+    let list = #[1, 2, 3]
+    println("start")
+    for i in list {
+        println(i)
+    }
+    println("end")
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+start
+1
+2
+3
+end
+--- END OUTPUT --- */

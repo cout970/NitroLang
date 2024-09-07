@@ -1,0 +1,59 @@
+/* --- BEGIN CODE --- */
+enum ValidOption {
+    let correct: Boolean
+    A @[correct: false]
+    B @[correct: true]
+    C @[correct: false]
+}
+
+let option_by_name: Map<String, ValidOption> = #[
+    "A": ValidOption::A,
+    "B": ValidOption::B,
+    "C": ValidOption::C,
+]
+
+fun main() {
+    println(ValidOption::values())
+    println("-")
+    println(ValidOption::A)
+    println(ValidOption::B)
+    println(ValidOption::C)
+    println("-")
+    println(ValidOption::A.variant)
+    println(ValidOption::B.variant)
+    println(ValidOption::C.variant)
+    println("-")
+    println(ValidOption::from_variant(0))
+    println(ValidOption::from_variant(1))
+    println(ValidOption::from_variant(2))
+    println(ValidOption::from_variant(3))
+    println("-")
+    println(ValidOption::A.correct)
+    println(ValidOption::B.correct)
+    println(ValidOption::C.correct)
+    println("-")
+    println(option_by_name)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+[A, B, C]
+-
+A
+B
+C
+-
+0
+1
+2
+-
+Some(A)
+Some(B)
+Some(C)
+None
+-
+false
+true
+false
+-
+#[A: A, B: B, C: C]
+--- END OUTPUT --- */

@@ -1,0 +1,106 @@
+
+include "./includes.nitro"
+let new_compiler: Boolean = false
+
+fun main() {
+    let test = FilePath::new("tests/current_test.txt").read_text()!!.trim()
+
+    println("Compiling test: $test")
+    let file = FilePath::new("../../test/nitro/compiler/$test")
+    let src = file.read_text()!!
+
+    let start_code = src.index_of("/* --- BEGIN CODE --- */\n")
+    let end_code = src.index_of("\n/* --- END CODE --- */")
+
+    if start_code.is_none() || end_code.is_none() {
+        crash("Malformed test, must contain both 'BEGIN CODE' and 'END CODE' lines")
+    }
+
+    let code = src.substring(start_code!! + 25, end_code!!)
+
+    let start_output = src.index_of("/* --- BEGIN OUTPUT ---\n")
+    let end_output = src.index_of("--- END OUTPUT --- */")
+
+    if start_output.is_none() || end_output.is_none() {
+        crash("Malformed test, must contain both 'BEGIN OUTPUT' and 'END OUTPUT' lines")
+    }
+
+    let output = src.substring(start_output!! + 24, end_output!!)
+
+    compile_test(code, file.path, "tests/test.wasm")
+
+    // Actual vs expected output
+    FilePath::new("tests/output.txt").write_text("")!!
+    FilePath::new("tests/expected_output.txt").write_text(output)!!
+}
+
+fun compile_test(input_code: String, input_path: String, output_path: String) {
+    let unit = CompilationUnit::new()
+
+    // Include core library
+    let start_core = Instant::now()
+    unit.add_file("../nitro/core/core.nitro", "core")
+    unit.parse()
+
+    // Parse errors
+    if unit.reporter.has_reports() {
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
+        ret
+    }
+
+    let time_core = start_core.elapsed().to_milliseconds()
+    println("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+
+    // Include compiler
+    let start_compiler = Instant::now()
+    unit.add_source(input_code, input_path, "compiler")
+    unit.parse()
+
+    // Parse errors
+    if unit.reporter.has_reports() {
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
+        ret
+    }
+
+    let time_compiler = start_compiler.elapsed().to_milliseconds()
+    println("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
+
+    // Perform type checking
+    let start_checking = Instant::now()
+    unit.check_types()
+
+    // Type errors
+    if unit.reporter.has_reports() {
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
+        ret
+    }
+
+    let time_checking = start_checking.elapsed().to_milliseconds()
+    println("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+
+    // Perform code generation
+    let start_compiling = Instant::now()
+    unit.compile(FilePath::new(output_path))
+
+    // Final errors
+    if unit.reporter.has_reports() {
+        if !unit.reporter.immediate_output {
+            unit.reporter.report_errors()
+        }
+        ret
+    }
+
+    let time_compiling = start_compiling.elapsed().to_milliseconds()
+    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+
+    FilePath::new("tests/program.debug").write_text(unit.program.to_string())!!
+
+    let total_time = start_core.elapsed().to_milliseconds()
+    println("Total time: $total_time ms")
+}

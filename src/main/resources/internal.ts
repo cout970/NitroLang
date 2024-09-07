@@ -9,6 +9,7 @@ export const mem = {
   u16: new Uint16Array(),
   u8: new Uint8Array(),
   program: null as unknown as WebAssembly.Exports,
+  program_args: [] as string[],
 }
 
 export const fs = {

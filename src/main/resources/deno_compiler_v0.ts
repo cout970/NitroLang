@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
 
-// Wrapper to run the file output/compiled.wasm emitted by the old compiler
+// Wrapper to run the file output.wasm that contains the compiler
 
 import {run} from './run.ts';
 import * as internals from './internal.ts';
@@ -12,10 +12,10 @@ init(internals.fs);
 try {
   let path = Deno.args.length
     ? Deno.args[0]
-    : `file://${new URL('.', import.meta.url).pathname}output/compiled.wasm`;
+    : `file://${new URL('.', import.meta.url).pathname}output.wasm`;
 
-  run(path, []);
+  run(path, ['output2.wasm']);
 } catch (e) {
   console.error(e);
-  Deno.exit(0);
+  Deno.exit(-1);
 }

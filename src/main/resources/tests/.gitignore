@@ -1,0 +1,8 @@
+assembly.wat
+compiled.wasm
+expected_output.txt
+output.txt
+test.wasm
+test.wat
+program.debug
+runs/

@@ -1,0 +1,53 @@
+/* --- BEGIN CODE --- */
+struct Struct {
+    a: Int
+    b: Boolean
+    c: Float
+}
+
+fun main() {
+    let s = Struct @[ a: 1, b: true, c: 3.25 ]
+    println(s.a)
+    println(s.b)
+    println(s.c)
+    println("-")
+
+    let list = [1, 2, 3]
+    println(list[0])
+    println(list[1])
+    println(list[2])
+    println(list[3])
+    println(list)
+    println("-")
+
+    let map = #[ a: 1, b: 2, c: 3 ]
+    println(map["a"])
+    println(map["b"])
+    println(map["c"])
+    println(map["d"])
+    println(map)
+    println("-")
+
+    let set = %[1, 1, 2, 2, 3, 3]
+    println(set)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+1
+true
+3.25
+-
+Some(1)
+Some(2)
+Some(3)
+None
+[1, 2, 3]
+-
+Some(1)
+Some(2)
+Some(3)
+None
+#[a: 1, b: 2, c: 3]
+-
+%[1, 2, 3]
+--- END OUTPUT --- */

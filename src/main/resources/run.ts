@@ -3,7 +3,7 @@ import * as internals from './internal.ts'
 import * as core from './impl.ts'
 import { trace_print_stack_trace, trace_save_flame_graph } from './trace.ts'
 
-export async function run(url: string) {
+export async function run(url: string, args: string[]) {
     const res = await WebAssembly.instantiateStreaming(
         fetch(url),
         {core}
@@ -17,6 +17,7 @@ export async function run(url: string) {
     internals.mem.u16 = new Uint16Array(memory.buffer);
     internals.mem.u8 = new Uint8Array(memory.buffer);
     internals.mem.program = wasmExports;
+    internals.mem.program_args = args;
 
     const main = wasmExports._start_main as CallableFunction;
 
