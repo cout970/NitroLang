@@ -20,11 +20,15 @@ input2=$(realpath "src/main/nitro/debug/current_program.nitro")
 output2=$(realpath "out/tmp_program.wasm")
 cache2=$(realpath "out/cache4")
 
-function fail
-{
-    echo "$1"
-    rm -f "$output"
+function cleanup() {
+    # Clean up temporary file
+    mv "$output" "out/compiler_v0.wasm"
     rm -f "$output2"
+}
+
+function fail() {
+    echo "$1"
+    cleanup
     exit -1
 }
 
@@ -52,8 +56,5 @@ src/main/resources/runtimes/deno_compiler.ts "file://$output" "$input2" "$output
 log "Running program $output2"
 src/main/resources/runtimes/deno_compiler.ts "file://$output2" "$@" || fail "Execution failed"
 
-# Clean up temporary file
-rm "$output"
-rm "$output2"
-
+cleanup
 log "Success"
