@@ -1,9 +1,11 @@
 
+let CACHE_VERSION: Int = 0x02
+
 struct CompilationUnit {
     reporter: Reporter
     included_paths: List<String>
     included_files: List<IncludedFile>
-    include_queue: ArrayDeque<IncludedQueueItem>
+    include_queue: ArrayDeque<IncludedFile>
     enqueued_paths: Set<String>
     program: Program
     types: TypeContainer
@@ -11,11 +13,6 @@ struct CompilationUnit {
     backend: WasmBackend
     cache_path: Optional<String>
     verify_cache: Boolean
-}
-
-struct IncludedQueueItem {
-    path: String
-    base: String
 }
 
 fun CompilationUnit::new(): CompilationUnit {
@@ -38,39 +35,25 @@ fun CompilationUnit::new(): CompilationUnit {
     ]
 }
 
-fun CompilationUnit.add_file(path: String, base: String) {
-    if path in enqueued_paths {
-        ret
-    }
-    enqueued_paths[] = path
-    include_queue[] = IncludedQueueItem @[path, base]
+fun CompilationUnit.add_file(path: String, root: String) {
+    add_file(IncludedFile::new(path, root))
 }
 
-fun CompilationUnit.add_source(source: String, path: String, base: String) {
-    let start = Instant::now()
-    let sub_program = Program::new()
-
-    let lexer = Lexer::new(source, path)
-    lexer.read_all()
-
-    let parser = Parser::new(lexer, reporter, sub_program)
-    parser.current_path = base
-    parser.read_file()
-
-    let end = Instant::now()
-
-    for inc in sub_program.includes {
-        let include_path = CompilationUnit::process_path(inc.path, path)
-        add_file(include_path, base)
+fun CompilationUnit.add_file(file: IncludedFile) {
+    if file.path in enqueued_paths {
+        ret
     }
+    enqueued_paths[] = file.path
+    include_queue[] = file
+}
 
-    program.extend_with(sub_program)
+fun CompilationUnit.add_source(source: String, path: String, root: String) {
+    add_file(IncludedFile::from_string(source, path, root))
 }
 
 fun CompilationUnit.parse() {
     while include_queue.is_not_empty() {
-        let item = include_queue.remove_last()!!
-        let file = IncludedFile::new(item.path)
+        let file = include_queue.remove_last()!!
 
         let opt = parse_file_from_cache(file)
         let sub_program = if opt.is_some() { opt!! } else {
@@ -82,8 +65,8 @@ fun CompilationUnit.parse() {
         included_files[] = file
 
         for inc in sub_program.includes {
-            let include_path = CompilationUnit::process_path(inc.path, item.path)
-            add_file(include_path, item.base)
+            let include_path = CompilationUnit::process_path(inc.path, file.path)
+            add_file(include_path, file.root)
         }
 
         program.extend_with(sub_program)
@@ -116,7 +99,7 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
     let cache_crc = buffer.reader.read_int_be()
     let cache_last_modified = buffer.reader.read_int_be()
 
-    if cache_version != 0x01 {
+    if cache_version != CACHE_VERSION {
         println("Ignoring cache file: ${file.file_path.path}, invalid version: $cache_version")
         ret None()
     }
@@ -175,7 +158,7 @@ fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
     let buffer = ByteBuffer::new()
 
     // Header
-    buffer.writer.add_int_be(0x01)
+    buffer.writer.add_int_be(CACHE_VERSION)
     buffer.writer.add_int_be(Instant::now().unix_timestamp.to_int())
     buffer.writer.add_int_be(CRC32::from_string(file.source))
     buffer.writer.add_int_be(file.last_modified)
@@ -192,7 +175,7 @@ fun CompilationUnit.parse_file(file: IncludedFile): Program {
     let start = Instant::now()
     let sub_program = Program::new()
 
-    let lexer = Lexer::new(file.source, file.path)
+    let lexer = Lexer::new(file.source, file)
     lexer.read_all()
 
     let parser = Parser::new(lexer, reporter, sub_program)
@@ -258,13 +241,71 @@ fun CompilationUnit.compile(output_path: FilePath) {
     }
 }
 
+fun CompilationUnit.include_core() {
+    let root = "src/main/nitro/core/includes.nitro"
+    add_source(include_as_string!("../core/collections/array_deque.nitro"), "collections/array_deque.nitro", root)
+    add_source(include_as_string!("../core/collections/array_deque_iterator.nitro"), "collections/array_deque_iterator.nitro", root)
+    add_source(include_as_string!("../core/collections/iterator.nitro"), "collections/iterator.nitro", root)
+    add_source(include_as_string!("../core/collections/json.nitro"), "collections/json.nitro", root)
+    add_source(include_as_string!("../core/collections/list.nitro"), "collections/list.nitro", root)
+    add_source(include_as_string!("../core/collections/list_iterator.nitro"), "collections/list_iterator.nitro", root)
+    add_source(include_as_string!("../core/collections/map.nitro"), "collections/map.nitro", root)
+    add_source(include_as_string!("../core/collections/map_iterator.nitro"), "collections/map_iterator.nitro", root)
+    add_source(include_as_string!("../core/collections/multimap.nitro"), "collections/multimap.nitro", root)
+    add_source(include_as_string!("../core/collections/optional.nitro"), "collections/optional.nitro", root)
+    add_source(include_as_string!("../core/collections/pair.nitro"), "collections/pair.nitro", root)
+    add_source(include_as_string!("../core/collections/range_iterator.nitro"), "collections/range_iterator.nitro", root)
+    add_source(include_as_string!("../core/collections/range_to.nitro"), "collections/range_to.nitro", root)
+    add_source(include_as_string!("../core/collections/range_up_to.nitro"), "collections/range_up_to.nitro", root)
+    add_source(include_as_string!("../core/collections/result.nitro"), "collections/result.nitro", root)
+    add_source(include_as_string!("../core/collections/set.nitro"), "collections/set.nitro", root)
+    add_source(include_as_string!("../core/collections/slice.nitro"), "collections/slice.nitro", root)
+    add_source(include_as_string!("../core/debug/check.nitro"), "debug/check.nitro", root)
+    add_source(include_as_string!("../core/debug/crash.nitro"), "debug/crash.nitro", root)
+    add_source(include_as_string!("../core/debug/debug.nitro"), "debug/debug.nitro", root)
+    add_source(include_as_string!("../core/debug/log.nitro"), "debug/log.nitro", root)
+    add_source(include_as_string!("../core/debug/logger.nitro"), "debug/logger.nitro", root)
+    add_source(include_as_string!("../core/debug/runtime.nitro"), "debug/runtime.nitro", root)
+    add_source(include_as_string!("../core/debug/trace.nitro"), "debug/trace.nitro", root)
+    add_source(include_as_string!("../core/fs/file_path.nitro"), "fs/file_path.nitro", root)
+    add_source(include_as_string!("../core/lang/annotations.nitro"), "lang/annotations.nitro", root)
+    add_source(include_as_string!("../core/lang/intrinsic.nitro"), "lang/intrinsic.nitro", root)
+    add_source(include_as_string!("../core/math/constants.nitro"), "math/constants.nitro", root)
+    add_source(include_as_string!("../core/math/exponential_utils.nitro"), "math/exponential_utils.nitro", root)
+    add_source(include_as_string!("../core/math/random.nitro"), "math/random.nitro", root)
+    add_source(include_as_string!("../core/math/trigonometry_utils.nitro"), "math/trigonometry_utils.nitro", root)
+    add_source(include_as_string!("../core/math/hash/crc32.nitro"), "math/hash/crc32", root)
+    add_source(include_as_string!("../core/memory/array.nitro"), "memory/array.nitro", root)
+    add_source(include_as_string!("../core/memory/bytes.nitro"), "memory/bytes.nitro", root)
+    add_source(include_as_string!("../core/memory/intrinsic_memory.nitro"), "memory/intrinsic_memory.nitro", root)
+    add_source(include_as_string!("../core/memory/memory_allocator.nitro"), "memory/memory_allocator.nitro", root)
+    add_source(include_as_string!("../core/memory/memory_arena.nitro"), "memory/memory_arena.nitro", root)
+    add_source(include_as_string!("../core/memory/memory_stack.nitro"), "memory/memory_stack.nitro", root)
+    add_source(include_as_string!("../core/memory/ptr.nitro"), "memory/ptr.nitro", root)
+    add_source(include_as_string!("../core/primitives/boolean.nitro"), "primitives/boolean.nitro", root)
+    add_source(include_as_string!("../core/primitives/byte.nitro"), "primitives/byte.nitro", root)
+    add_source(include_as_string!("../core/primitives/float.nitro"), "primitives/float.nitro", root)
+    add_source(include_as_string!("../core/primitives/function.nitro"), "primitives/function.nitro", root)
+    add_source(include_as_string!("../core/primitives/int.nitro"), "primitives/int.nitro", root)
+    add_source(include_as_string!("../core/primitives/long.nitro"), "primitives/long.nitro", root)
+    add_source(include_as_string!("../core/primitives/never.nitro"), "primitives/never.nitro", root)
+    add_source(include_as_string!("../core/primitives/nothing.nitro"), "primitives/nothing.nitro", root)
+    add_source(include_as_string!("../core/sorting/ordering.nitro"), "sorting/ordering.nitro", root)
+    add_source(include_as_string!("../core/sorting/quicksort.nitro"), "sorting/quicksort.nitro", root)
+    add_source(include_as_string!("../core/string/char.nitro"), "string/char.nitro", root)
+    add_source(include_as_string!("../core/string/string.nitro"), "string/string.nitro", root)
+    add_source(include_as_string!("../core/string/string_builder.nitro"), "string/string_builder.nitro", root)
+    add_source(include_as_string!("../core/time/duration.nitro"), "time/duration.nitro", root)
+    add_source(include_as_string!("../core/time/instant.nitro"), "time/instant.nitro", root)
+}
+
 fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_path: Optional<String>) {
     let unit = CompilationUnit::new()
     unit.cache_path = cache_path
 
     // Include core library
     let start_core = Instant::now()
-    unit.add_file("src/main/nitro/core/core.nitro", "core")
+    unit.include_core()
     unit.parse()
 
     // Parse errors

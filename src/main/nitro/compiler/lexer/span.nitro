@@ -2,16 +2,14 @@
 struct Span {
     start: Int
     len: Int
-    source: String
-    file: String
+    file: IncludedFile
     lazy_line: Optional<Int>
     lazy_column: Optional<Int>
 }
 
-fun Span::new(start: Int, len: Int, source: String, file: String): Span {
+fun Span::new(start: Int, len: Int, file: IncludedFile): Span {
     ret Span @[
-        start, len,
-        source, file,
+        start, len, file,
         lazy_line: None(),
         lazy_column: None(),
     ]
@@ -21,8 +19,7 @@ fun Span::none(): Span {
     ret Span @[
         start: 0,
         len: 0,
-        source: "<internal>",
-        file: "<internal>",
+        file: IncludedFile::from_string("", "<internal>", ""),
         lazy_line: Some(0),
         lazy_column: Some(0),
     ]
@@ -33,9 +30,7 @@ fun Span.calculate_line_number() {
     let column = 1
     let i = 0
 
-    if source == "" {
-        source = FilePath::new(file).read_text()!!
-    }
+    let source = file.source
 
     while i < start {
         if source.get_byte(i).to_int() == a"\n" {
@@ -66,44 +61,47 @@ fun Span.get_column(): Int {
 }
 
 fun Span.to_string(): String {
-    let filename = if "/" in file {
-        file.split("/").last()!!
+    let path = file.path
+    let filename = if "/" in path {
+        path.split("/").last()!!
     } else {
-        file
+        path
     }
 
-    let m = max(file.bytes_len, 27)
-    let sub = if m < file.bytes_len {
-        "..." + file.slice(file.bytes_len - m, m)
+    let m = max(path.bytes_len, 27)
+    let sub = if m < path.bytes_len {
+        "..." + path.slice(path.bytes_len - m, m)
     } else {
-        file
+        path
     }
 
     ret "$sub($filename:$line)"
 }
 
 fun Span.get_link(): String {
-    let filename = if "/" in file {
-        file.split("/").last()!!
+    let path = file.path
+    let filename = if "/" in path {
+        path.split("/").last()!!
     } else {
-        file
+        path
     }
 
     ret " go.to($filename:$line)"
 }
 
 fun Span.get_link_params(): String {
-    let filename = if "/" in file {
-        file.split("/").last()!!
+    let path = file.path
+    let filename = if "/" in path {
+        path.split("/").last()!!
     } else {
-        file
+        path
     }
 
     ret "($filename:$line)"
 }
 
 fun Span.is_equal(other: Span): Boolean {
-    ret this.start == other.start && this.file == other.file
+    ret this.start == other.start && this.file.path == other.file.path
 }
 
 fun Span.get_ordering(other: Span): Ordering {
@@ -113,26 +111,35 @@ fun Span.get_ordering(other: Span): Ordering {
     if this.start > other.start {
         ret Ordering::Greater
     }
-    ret this.file.get_ordering(other.file)
+    ret this.file.path.get_ordering(other.file.path)
 }
 
-fun Span.get_hash(): Int = start ^ file.get_hash()
+fun Span.get_hash(): Int = start ^ file.path.get_hash()
 
 fun ByteBuffer.serialize_span(value: Span) {
     let frame = start_frame(true)
     write_int(value.start)
     write_int(value.len)
-    write_string(value.file)
+    write_string(value.file.path)
+    write_string(value.file.root)
+    write_string(value.file.source)
     end_frame(frame)
 }
 
 fun ByteBuffer.deserialize_span(): Span {
     let frame = start_frame(false)
+    let start = read_int()
+    let len = read_int()
+
+    let file_path = read_string()
+    let file_root = read_string()
+    let file_source = read_string()
+    let file = IncludedFile::from_string(file_source, file_path, file_root)
+
     let value = Span @[
-        start: read_int(),
-        len: read_int(),
-        source: ""
-        file: read_string(),
+        start,
+        len,
+        file,
         lazy_line: None(),
         lazy_column: None(),
     ]

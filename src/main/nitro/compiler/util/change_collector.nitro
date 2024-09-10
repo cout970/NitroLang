@@ -58,6 +58,10 @@ fun ChangeCollector.diff(left: Span, right: Span) {
 //    field("lazy_column").diff(left.lazy_column, right.lazy_column)
 }
 
+fun ChangeCollector.diff(left: IncludedFile, right: IncludedFile) {
+    field("path").diff(left.path, right.path)
+}
+
 fun ChangeCollector.diff(left: Id, right: Id) {
     field("current_value").diff(left.current_value, right.current_value)
 }

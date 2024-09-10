@@ -2,7 +2,7 @@
 struct Lexer {
     // Original source code
     src: String
-    file: String
+    file: IncludedFile
     // Current byte position in the source code
     cur: Int
     // State stack, 0 is normal mode, 1 is string mode
@@ -103,7 +103,7 @@ let keyword_map: Map<String, TokenKind> = #[
 ]
 
 // Creates a new lexer
-fun Lexer::new(src: String, file: String): Lexer {
+fun Lexer::new(src: String, file: IncludedFile): Lexer {
     ret Lexer @[
         src,
         file,
@@ -216,7 +216,7 @@ fun Lexer.restore_state(saved_state: SavedState) {
 fun Lexer.span_of(token: Token): Span {
     let len = if token.kind.len > 0 { token.kind.len } else { token.extra.bytes_len }
 
-    ret Span::new(token.offset, len, src, file)
+    ret Span::new(token.offset, len, file)
 }
 
 // Returns the current byte in the source code

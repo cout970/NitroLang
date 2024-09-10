@@ -602,8 +602,11 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
             add_call(id.to_int())
         }
         opt is WFuncCall::WOpcode -> {
-            let opcode = (opt as WFuncCall::WOpcode).value
-            emit_opcode_by_name(opcode)
+            let opcode = (opt as WFuncCall::WOpcode)
+            for arg in opcode.args {
+                emit_const_by_type(arg)
+            }
+            emit_opcode_by_name(opcode.value)
         }
         else -> unreachable()
     }

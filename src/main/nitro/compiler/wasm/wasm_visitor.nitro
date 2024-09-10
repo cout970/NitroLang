@@ -396,8 +396,19 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             let inline_annotation = func.get_annotation("WasmInline")
             if inline_annotation.is_some() {
                 let opcode = inline_annotation!!.get_arg("opcode")!!.get_string()!!
+                let args = []
+                let i = 0
 
-                wasm_func.function_calls[inst.id] = WFuncCall::WOpcode @[value: opcode]
+                loop {
+                    let arg = inline_annotation!!.get_arg("arg$i")
+                    if arg.is_none() {
+                        break
+                    }
+                    args[] = arg!!
+                    i += 1
+                }
+
+                wasm_func.function_calls[inst.id] = WFuncCall::WOpcode @[value: opcode, args]
                 ret
             }
 

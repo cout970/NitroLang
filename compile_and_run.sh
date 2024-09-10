@@ -10,10 +10,23 @@ then
     exit
 fi
 
+compiler=$(realpath "releases/$(cat releases/latest.txt)")
+
 input=$(realpath "src/main/nitro/compiler/main.nitro")
-output=$(realpath "out/tmp_program.wasm")
+output=$(realpath "out/tmp_compiler.wasm")
 cache=$(realpath "out/cache0")
-compiler=$(realpath "releases/compiler_v0.0.1-opt.wasm")
+
+input2=$(realpath "src/main/nitro/debug/current_program.nitro")
+output2=$(realpath "out/tmp_program.wasm")
+cache2=$(realpath "out/cache4")
+
+function fail
+{
+    echo "$1"
+    rm -f "$output"
+    rm -f "$output2"
+    exit -1
+}
 
 mkdir -p "$cache"
 
@@ -23,25 +36,21 @@ function log {
     printf '\e[0m';
 }
 
-log "Compiling compiler $input"
-src/main/resources/runtimes/deno_compiler.ts "file://$compiler" "$input" "$output" "$cache" || exit -1
+log "Compiling compiler $compiler"
+src/main/resources/runtimes/deno_compiler.ts "file://$compiler" "$input" "$output" "$cache" || fail "Compilation failed"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
     exit -1
 fi
 
-input2=$(realpath "src/main/nitro/debug/current_program.nitro")
-output2=$(realpath "out/tmp_program2.wasm")
-cache2=$(realpath "out/cache4")
-
 mkdir -p "$cache"
 
-log "Running compiler $input2"
-src/main/resources/runtimes/deno_compiler.ts "file://$output" "$input2" "$output2" "$cache2" || exit -1
+log "Running compiler $output"
+src/main/resources/runtimes/deno_compiler.ts "file://$output" "$input2" "$output2" "$cache2" || fail "Second compilation failed"
 
-log "Running program $input3"
-src/main/resources/runtimes/deno_compiler.ts "file://$output2" "$@" || exit -1
+log "Running program $output2"
+src/main/resources/runtimes/deno_compiler.ts "file://$output2" "$@" || fail "Execution failed"
 
 # Clean up temporary file
 rm "$output"

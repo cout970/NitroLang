@@ -61,7 +61,7 @@ option WFuncCall {
     WFunction { value: Id, return_final_type: FinalType }
     WLambda { type_id: Id, table_id: Int }
     WImport { value: Id }
-    WOpcode { value: String }
+    WOpcode { value: String, args: List<NConstExpr> }
 }
 
 option WFunctionSource {

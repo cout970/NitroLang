@@ -1,19 +1,33 @@
 
 struct IncludedFile {
     file_path: FilePath
+    root: String
     exists: Boolean
     last_modified: Int
     source_cache: Optional<String>
 }
 
-fun IncludedFile::new(path: String): IncludedFile {
+fun IncludedFile::new(path: String, root: String): IncludedFile {
     let file_path = FilePath::new(path)
 
     ret IncludedFile @[
         file_path,
+        root,
         exists: file_path.exists()!!,
         last_modified: file_path.unsafe_debug_last_modified(),
         source_cache: None()
+    ]
+}
+
+fun IncludedFile::from_string(source: String, path: String, root: String): IncludedFile {
+    let file_path = FilePath::new(path)
+
+    ret IncludedFile @[
+        file_path,
+        root,
+        exists: true,
+        last_modified: 0,
+        source_cache: Some(source)
     ]
 }
 

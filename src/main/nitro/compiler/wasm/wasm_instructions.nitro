@@ -311,6 +311,22 @@ fun WasmEmitter.emit_opcode_by_name(name: String) {
     crash("Unable to find opcode: '$name'")
 }
 
+fun WasmEmitter.emit_const_by_type(expr: NConstExpr) {
+    when {
+        expr is NConstExpr::NConstInt -> add_i32_const((expr as NConstExpr::NConstInt).value)
+        expr is NConstExpr::NConstLong -> add_i64_const((expr as NConstExpr::NConstLong).value)
+        expr is NConstExpr::NConstFloat -> add_f32_const((expr as NConstExpr::NConstFloat).value)
+        expr is NConstExpr::NConstBoolean -> add_i32_const(if (expr as NConstExpr::NConstBoolean).value { 1 } else { 0 })
+        expr is NConstExpr::NConstNothing -> {}
+        expr is NConstExpr::NConstString -> {
+            let str = (expr as NConstExpr::NConstString).value
+            let ptr = backend!!.push_string(str)
+            add_i32_const(ptr)
+        }
+        else -> crash("Unknown const type: ${expr}")
+    }
+}
+
 fun WasmEmitter.add_unreachable() {
     // 0x00 => unreachable
     emit_opcode(WOpcode::Unreachable)
