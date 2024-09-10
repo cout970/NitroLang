@@ -203,7 +203,11 @@ fun Long.to_byte(): Byte = to_int().to_byte()
 
 // Converts this long value to a string
 @Extern [lib: "core", name: "long_to_string"]
-fun Long.to_string(): String {}
+fun Long.to_string(): String {
+    let buff = StringBuilder::new()
+    buff.add(this)
+    ret buff.to_string()
+}
 
 // Converts this long value to a string in the given base,
 // the base must be in the range of 2 to 36
@@ -213,6 +217,22 @@ fun Long.to_string(): String {}
 // e.g. 0x10L.to_string_in_base(2) = "10000"
 @Extern [lib: "core", name: "long_to_string_in_base"]
 fun Long.to_string_in_base(radix: Int): String {}
+
+
+// Converts an integer value to a character in the given base
+// The value must be in the range of 0 to base - 1
+// The base must be in the range of 2 to 36
+// e.g. 255.to_digit_in_base(16) = 'f'
+fun Long.to_digit_in_base(base: Long): Char {
+    check(base >= 2L && base <= 36L, "Base must be in the range of 2 to 36")
+    check(this >= 0L && this < base, "Value must be in the range of 0 to base - 1")
+
+    ret if this < 10L {
+        (a"0" + this.to_int()).to_char()
+    } else {
+        (a"a" + this.to_int() - 10).to_char()
+    }
+}
 
 // This function compares two long values and returns an ordering value
 // that represents the sorting order of the values

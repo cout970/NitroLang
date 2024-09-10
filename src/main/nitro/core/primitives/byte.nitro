@@ -7,8 +7,10 @@
 struct Byte {}
 
 // This function converts a byte to an integer
-@Extern [lib: "core", name: "byte_to_int"]
-fun Byte.to_int(): Int {}
+fun Byte.to_int(): Int {
+    // Pointer to the byte, is just the byte itself as 32 bit integer
+    ret ptr_of(this).address & 0xFF
+}
 
 fun Byte.to_long(): Long = to_int().to_long()
 

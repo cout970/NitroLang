@@ -1,4 +1,14 @@
 
 fun main() {
+    repeat 10 {
+        let i = it.to_float() * 0.1
+        println(i % 0.25)
+        println((i % 0.25).to_string())
+    }
 
+    repeat 10 {
+        let i = 10f.pow(it.to_float() * 2f) + 0.21
+        println(i)
+        println(i.to_string())
+    }
 }

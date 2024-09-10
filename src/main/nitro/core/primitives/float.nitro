@@ -6,22 +6,28 @@
 struct Float {}
 
 // Max representable value
-let float_max: Float = 3.4028234663852886e+38
+let float_max: Float = 0b0111_1111_0111_1111_1111_1111_1111_1111.reinterpret_as_float()
 
 // Min representable value (closest to 0)
-let float_min: Float = 1.1754943508222875e-38
+let float_min: Float = 0b0000_0000_1000_0000_0000_0000_0000_0000.reinterpret_as_float()
 
 // Standard machine epsilon (the gap between 1 and the next largest floating point number).
-let float_epsilon: Float = 1.1920928955078125e-07
+let float_epsilon: Float = 0b0011_0100_0000_0000_0000_0000_0000_0000.reinterpret_as_float()
 
 // Quiet NaN (Not a Number), be careful with NaN, float_nan == float_nan will return false by IEEE 754 definition
-let float_nan: Float = 0b01111111110000000000000000000001.reinterpret_as_float()
+let float_nan: Float = 0b0111_1111_1100_0000_0000_0000_0000_0001.reinterpret_as_float()
 
 // Positive infinity, result of 1 / 0
-let float_infinity: Float = 0b01111111100000000000000000000000.reinterpret_as_float()
+let float_infinity: Float = 0b0111_1111_1000_0000_0000_0000_0000_0000.reinterpret_as_float()
 
 // Negative infinity, result of -1 / 0
-let float_negative_infinity: Float = 0b11111111100000000000000000000000.reinterpret_as_float()
+let float_negative_infinity: Float = 0b1111_1111_1000_0000_0000_0000_0000_0000.reinterpret_as_float()
+
+// Max float value that can be safely, without loosing precision, be casted into an integer (2^24)
+let float_max_safe_integer: Float = 0b0100_1011_0111_1111_1111_1111_1111_1111.reinterpret_as_float()
+
+// Same as float_max_safe_integer but negative, the smallest float that can be safely casted into an integer
+let float_negative_max_safe_integer: Float = 0b1100_1011_1000_0000_0000_0000_0000_0000.reinterpret_as_float()
 
 // Adds two floating point numbers
 @Extern [lib: "core", name: "float_plus"]
@@ -45,9 +51,8 @@ fun Float.div(other: Float): Float {}
 
 // Returns the remainder of two floating point numbers
 // Note: this is not the same as the modulo operator, the results are different for negative numbers
-// WASM does not provide f32.rem, so its implemented in an external function
-@Extern [lib: "core", name: "float_rem"]
-fun Float.rem(other: Float): Float {}
+// WASM does not provide f32.rem, so its implemented using f32.div and f32.floor
+fun Float.rem(other: Float): Float = this - (floor(this / other) * other)
 
 // Returns the smallest of two floating point numbers
 // If any of the numbers is NaN, the result will be NaN
@@ -146,27 +151,26 @@ fun Float.greater_than(other: Float): Boolean {}
 fun Float.reinterpret_as_int(): Int {}
 
 // Checks if this floating point number is NaN
-@Extern [lib: "core", name: "float_is_nan"]
-fun Float.is_nan(): Boolean {}
+// Note: NaN is not equal to itself, so NaN == NaN will return false
+fun Float.is_nan(): Boolean = this != this
 
 // Checks if this floating point number is finite, meaning it is not NaN, -Inf or +Inf
-@Extern [lib: "core", name: "float_is_finite"]
-fun Float.is_finite(): Boolean {}
+fun Float.is_finite(): Boolean = !this.is_infinite() && !this.is_nan()
 
 // Checks if this floating point number is infinite, meaning it is -Inf or +Inf
-fun Float.is_infinite(): Boolean = not (this.is_finite() || this.is_nan())
+fun Float.is_infinite(): Boolean = this == float_infinity || this == float_negative_infinity
 
 // Checks if this floating point number has no fractional digits
 @Extern [lib: "core", name: "float_is_integer"]
-fun Float.is_integer(): Boolean {}
+fun Float.is_integer(): Boolean = this.is_finite() && this.floor() == this
 
 // Determines whether the provided value is a number that is a safe integer
 // The safe integers consist of all integers from -(2^53 - 1) to 2^53 - 1, inclusive (+/- 9,007,199,254,740,991).
 // A safe integer is an integer that:
 // - can be exactly represented as an IEEE-754 double precision number, and
 // - whose IEEE-754 representation cannot be the result of rounding any other integer to fit the IEEE-754 representation
-@Extern [lib: "core", name: "float_is_safe_integer"]
-fun Float.is_safe_integer(): Boolean {}
+//@Extern [lib: "core", name: "float_is_safe_integer"]
+fun Float.is_safe_integer(): Boolean = this.is_integer() && (this >= float_negative_max_safe_integer) && (this <= float_max_safe_integer)
 
 // Function called when a unary minus is applied to a floating point number, e.g. -(1.0)
 // Note: -1.0 is parsed as a negative number, so no operation is performed
@@ -176,8 +180,11 @@ fun Float.unary_minus(): Float = this.neg()
 fun Float.unary_plus(): Float = this
 
 // Converts this floating point number into a string
-@Extern [lib: "core", name: "float_to_string"]
-fun Float.to_string(): String {}
+fun Float.to_string(): String {
+    let buff = StringBuilder::new()
+    buff.add(this)
+    ret buff.to_string()
+}
 
 // This function compares two floating point numbers and returns an ordering value
 // that represents the sorting order of the values

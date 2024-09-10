@@ -203,6 +203,140 @@ fun StringBuilder.add_int_in_base(base: Int, value: Int) {
     }
 }
 
+// Adds a long integer to the internal buffer, in base 10
+fun StringBuilder.add(value: Long) {
+    add_long_in_base(10L, value)
+}
+
+// Adds a long integer to the internal buffer, in the given base
+fun StringBuilder.add_long_in_base(base: Long, value: Long) {
+    check(base >= 2L && base <= 36L, "Base must be in the range of 2 to 36")
+
+    if value == 0L {
+        this[] = "0"
+        ret
+    }
+
+    // The maximum number of posible digits is 64 (64 bits in base 2), so we can preallocate the array
+    let digits: Array<Char> = Array::new(64)
+    let digits_len = 0
+    let aux = value
+
+    if aux > 0L {
+        while aux != 0L {
+            let digit = aux % base
+            let char = digit.to_digit_in_base(base)
+
+            digits[digits_len] = char
+            digits_len += 1
+            aux /= base
+        }
+
+        repeat digits_len {
+            this[] = digits[digits_len - it - 1]
+        }
+    } else {
+        // Negative numbers get a special case, because the min int value cannot be negated
+        while aux != 0L {
+            let digit = -(aux % base)
+            let char = digit.to_digit_in_base(base)
+
+            digits[digits_len] = char
+            digits_len += 1
+            aux /= base
+        }
+
+        this[] = "-"
+        repeat digits_len {
+            this[] = digits[digits_len - it - 1]
+        }
+    }
+}
+
+fun StringBuilder.add(value: Float) {
+    // NaN
+    if value.is_nan() {
+        this[] = "NaN"
+        ret
+    }
+
+    // +Inf or -Inf
+    if value.is_infinite() {
+        if value < 0f {
+            this[] = "-"
+        }
+        this[] = "Infinity"
+        ret
+    }
+
+    // 0.0
+    if value == 0.0f {
+        this[] = "0"
+        ret
+    }
+
+    // Negative numbers are the same as the positive ones, but with a '-' at the beginning
+    if value < 0f {
+        this[] = "-"
+        add(-value)
+        ret
+    }
+
+    // If the number is an integer, we just print the integer part
+    if value.floor().is_safe_integer() {
+        // The integer part of the number
+        let int_part = value.floor()
+        let frac_value = value - int_part
+
+        add_int_in_base(10, int_part.to_int())
+
+        // If the fractional part is 0, we just print the integer part
+        if frac_value.abs() < 0.000001f {
+            ret
+        }
+
+        this[] = "."
+
+        // The fractional part of the number
+        let max_frac_digits = 6
+        let frac_limit = 0.000001f
+
+        repeat max_frac_digits {
+            frac_value *= 10f
+            frac_limit *= 10f
+            let digit = frac_value.floor().to_int()
+            this[] = (digit + a"0").to_char()
+            frac_value -= digit.to_float()
+
+            if frac_value.abs() < frac_limit {
+                break
+            }
+        }
+
+        ret
+    }
+
+    // The number is too big to be printed as an integer, so we print it in scientific notation
+    let exp = 0
+    let mantissa = value
+
+    // Normalize the number
+    while mantissa >= 10.0f {
+        mantissa /= 10.0f
+        exp += 1
+    }
+
+    while mantissa < 1.0f {
+        mantissa *= 10.0f
+        exp -= 1
+    }
+
+
+    add(mantissa)
+    this[] = "e"
+    add_int_in_base(10, exp)
+}
+
 // Is the internal buffer empty?
 fun StringBuilder.is_empty(): Boolean = bytes_len == 0
 
