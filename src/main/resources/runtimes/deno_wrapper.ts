@@ -14,7 +14,7 @@ try {
     ? Deno.args[0]
     : `file://${new URL('.', import.meta.url).pathname}../output/compiled.wasm`;
 
-  run(path, []);
+  await run(path, []);
 } catch (e) {
   console.error(e);
   Deno.exit(0);

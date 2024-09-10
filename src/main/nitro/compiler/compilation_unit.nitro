@@ -54,6 +54,7 @@ fun CompilationUnit.add_source(source: String, path: String, base: String) {
     lexer.read_all()
 
     let parser = Parser::new(lexer, reporter, sub_program)
+    parser.current_path = base
     parser.read_file()
 
     let end = Instant::now()
@@ -195,6 +196,7 @@ fun CompilationUnit.parse_file(file: IncludedFile): Program {
     lexer.read_all()
 
     let parser = Parser::new(lexer, reporter, sub_program)
+    parser.current_path = file.path
     parser.read_file()
 
     let end = Instant::now()

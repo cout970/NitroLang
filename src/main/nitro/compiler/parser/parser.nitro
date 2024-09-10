@@ -11,6 +11,7 @@ struct Parser {
     allow_defer: Boolean
     allow_expression_assignment: Boolean
     allow_generics_collection: Boolean
+    current_path: String
 }
 
 fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
@@ -26,6 +27,7 @@ fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
         allow_defer: true,
         allow_expression_assignment: false,
         allow_generics_collection: false,
+        current_path: "",
     ]
 }
 

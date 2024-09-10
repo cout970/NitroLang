@@ -3,11 +3,14 @@ import * as internals from './internal.ts'
 import * as core from './impl.ts'
 import { trace_print_stack_trace, trace_save_flame_graph } from './trace.ts'
 
-export async function run(url: string, args: string[]) {
-    const res = await WebAssembly.instantiateStreaming(
-        fetch(url),
-        {core}
-    );
+export async function run(source: string | ArrayBuffer, args: string[]) {
+    let res: ResultObject | undefined;
+    if (typeof source === 'string') {
+        res = await WebAssembly.instantiateStreaming(fetch(source),{core});
+    } else {
+        res = await WebAssembly.instantiate(source, {core});
+    }
+
     const wasmExports = res.instance.exports;
     const memory: WebAssembly.Memory = wasmExports.memory as WebAssembly.Memory;
 

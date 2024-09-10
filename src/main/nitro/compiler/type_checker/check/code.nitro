@@ -378,8 +378,29 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         ret
     }
 
-    inst.type_token = type_cache["Nothing"].to_token()
-    ret
+    if inst.kind is NInstKind::Mark {
+        inst.type_token = type_cache["Nothing"].to_token()
+        ret
+    }
+
+    if inst.kind is NInstKind::IncludeAs {
+        let kind = inst.kind as NInstKind::IncludeAs
+
+        let res = FilePath::new(kind.path).read_text()
+        if res.is_err() {
+            reporter.report_error("Unable to read File: '${kind.path}'", inst.span)
+        }
+
+        inst.type_token = if kind.raw {
+            let ty = find_type_by_name("List", [type_cache["Byte"]!!], inst.span)
+            Some(ty.to_token())
+        } else {
+            type_cache["String"].to_token()
+        }
+        ret
+    }
+
+    crash("No type checking defined for instruction: $inst")
 }
 
 fun TypeChecker.add_load_this_var(code: NCode, id: NInstId): NInstId {

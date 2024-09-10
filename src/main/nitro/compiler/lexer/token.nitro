@@ -112,6 +112,8 @@ enum TokenKind {
     MUT @[text: "mut", len: 3]
     JSON @[text: "json!", len: 5]
     TEST @[text: "test!", len: 5]
+    INCLUDE_AS_BYTES @[text: "include_as_bytes!", len: 17]
+    INCLUDE_AS_STRING @[text: "include_as_string!", len: 18]
 //
     FOREIGN_BLOCK @[text: "foreign_block", len: 0]
     WHITE_SPACE @[text: "white_space", len: 0]

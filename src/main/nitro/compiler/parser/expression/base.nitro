@@ -104,6 +104,10 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::SIZE_OF -> read_expression_size_of(code)
         // jsonExpr
         TokenKind::JSON -> read_expression_json(code)
+        // includeAsBytes
+        TokenKind::INCLUDE_AS_BYTES -> read_expression_include_as_bytes(code)
+        // includeAsString
+        TokenKind::INCLUDE_AS_STRING -> read_expression_include_as_string(code)
         // BREAK
         TokenKind::BREAK -> read_expression_break(code)
         // CONTINUE

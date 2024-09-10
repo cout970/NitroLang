@@ -487,6 +487,34 @@ fun WasmBackend.push_string(value: String): Int {
     ret instance_sec.offset
 }
 
+// Store a List<Byte> in the wasm memory and return the pointer to it
+fun WasmBackend.push_bytes(value: List<Byte>): Int {
+    // Make sure the string instance is aligned to 4 bytes
+    wasm_program.memory.pad_to(4)
+
+    // struct List<#Item> {
+    //     capacity: Int
+    //     count: Int
+    //     items: Array<#Item>
+    // }
+    let struct_size = STRUCT_HEADER_SIZE + INT_SIZE + INT_SIZE + PTR_SIZE
+    let instance = ByteWriter::new()
+    instance.add_pad(0x00.to_byte(), STRUCT_HEADER_SIZE)
+    instance.add_int_le(value.len)
+    instance.add_int_le(value.len)
+    instance.add_int_le(wasm_program.memory.offset + struct_size)
+
+    // Array<Byte> length
+    instance.add_int_le(value.len)
+
+    let instance_sec = wasm_program.memory.add_section(instance.bytes, "List<Byte> instance")
+
+    wasm_program.memory.add_section(value, "Array<Byte> contents")
+
+    // Return the pointer to the string
+    ret instance_sec.offset
+}
+
 fun WasmBackend.find_const(id: Id): WConst {
     for c in consts {
         if c.index == id {

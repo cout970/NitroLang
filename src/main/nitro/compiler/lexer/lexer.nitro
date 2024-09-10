@@ -1116,6 +1116,20 @@ fun Lexer.read_identifier() {
             cur += 1
             ret
         }
+
+        // include_as_bytes!
+        if extra == "include_as_bytes" {
+            add_token(TokenKind::INCLUDE_AS_BYTES, start)
+            cur += 1
+            ret
+        }
+
+        // include_as_string!
+        if extra == "include_as_string" {
+            add_token(TokenKind::INCLUDE_AS_STRING, start)
+            cur += 1
+            ret
+        }
     }
 
     // Identifier

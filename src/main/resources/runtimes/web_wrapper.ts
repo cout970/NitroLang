@@ -1,56 +1,62 @@
 // Update with:
-// esbuild web_wrapper.ts --bundle --outfile=output/build.js
+// esbuild runtimes/web_wrapper.ts --bundle --outfile=output/build.js
 //
 import {run} from '../extern/run.ts'
 import * as internals from '../extern/internal.ts';
+
+const asUrl = (path: string) => {
+    let prev = path;
+    let norm = path.replace(/\/\.\//g, '/');
+
+    while (prev !== norm) {
+        prev = norm;
+        norm = norm.replace(/\/\.\//g, '/');
+    }
+
+    return `file://${norm}`;
+}
+
+function uint8ArrayToBase64(uint8Array: Uint8Array): string {
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+        binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binaryString); // Encode to base64
+}
+
+function base64ToUint8Array(base64: string): Uint8Array {
+    const binaryString = atob(base64); // Decode from base64
+    const uint8Array = new Uint8Array(binaryString.length);
+
+    for (let i = 0; i < binaryString.length; i++) {
+        uint8Array[i] = binaryString.charCodeAt(i);
+    }
+
+    return uint8Array;
+}
+
 
 // File system emulation
 internals.fs.isSupported = true;
 
 internals.fs.readTextFileSync = (path: string) => {
-    const data = window.localStorage.getItem('file://' + path);
-
-    if (data === null) {
-        fetch(path).then(r => r.text()).then(data => {
-            window.localStorage.setItem('file://' + path, data);
-        });
-    }
-
+    const data = window.localStorage.getItem(asUrl(path));
     return data;
 };
 internals.fs.writeTextFileSync = (path: string, data: string) => {
-    window.localStorage.setItem('file://' + path, data);
+    window.localStorage.setItem(asUrl(path), data);
 };
 internals.fs.fileExistsSync = (path: string) => {
-    return window.localStorage.getItem('file://' + path) !== null;
+    return window.localStorage.getItem(asUrl(path)) !== null;
 };
 internals.fs.readFileSync = (path: string) => {
-    function dataURItoUint8Array(dataURI) {
-        // convert base64 to raw binary data held in a string
-        var byteString = atob(dataURI.split(',')[1]);
-
-        // separate out the mime component
-        var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
-
-        // write the bytes of the string to an ArrayBuffer
-        var array = new Uint8Array(byteString.length);
-        for (var i = 0; i < byteString.length; i++) {
-            array[i] = byteString.charCodeAt(i);
-        }
-
-        return array;
-    }
-
-    return dataURItoUint8Array(localStorage.getItem('file://' + path));
+    return base64ToUint8Array(localStorage.getItem(asUrl(path)));
 };
 internals.fs.writeFileSync = (path: string, data: Uint8Array) => {
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      localStorage.setItem('file://' + path, event.target.result);
-    }
-
-    reader.readAsDataURL(data);
+    localStorage.setItem(asUrl(path), uint8ArrayToBase64(data));
+};
+internals.fs.getLastModifiedTime = (path: string) => {
+    return 0;
 };
 internals.fs.join = (a: string, b: string) => {
     // Dumb implementation for now
@@ -73,11 +79,23 @@ async function main() {
         return;
     }
 
+    const r = await fetch("../output/files.json");
+    const data = await r.json();
+
+    console.log('Fetched files.json');
+    for (const key in data) {
+        window.localStorage.setItem(asUrl(key), data[key]);
+    }
+    window.localStorage.setItem(asUrl("example.nitro"), 'fun main(){ println("Hello, World!"); }');
+    window.localStorage.setItem(asUrl('output.wasm'), '');
+
     try {
-        // Run compiler
-        //run("./output/compiled.wasm");
         // Run compilation result
-        run("./output/output.wasm");
+        await run("../../../../out/compiler_v0.wasm", ['example.nitro', 'output.wasm']);
+        const wasm = window.localStorage.getItem(asUrl('output.wasm'));
+        const uint8 = base64ToUint8Array(wasm);
+
+        await run(uint8.buffer, []);
     } catch (e) {
         console.error(e);
         window.alert('Crashed');

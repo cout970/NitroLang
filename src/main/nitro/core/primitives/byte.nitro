@@ -22,7 +22,14 @@ fun Byte.get_ordering(other: Byte): Ordering {
     ret this_int.get_ordering(other_int)
 }
 
-// Convert a byte to a string
+// Convert a byte to a string (2 digit hex code)
 fun Byte.to_string(): String {
-    ret this.to_int().to_string()
+    let int = this.to_int()
+    let lower_nibble = int & 0x0F
+    let upper_nibble = int >> 4
+
+    let lower_nibble_char = lower_nibble.to_string_in_base(16)
+    let upper_nibble_char = upper_nibble.to_string_in_base(16)
+
+    ret "$upper_nibble_char$lower_nibble_char"
 }

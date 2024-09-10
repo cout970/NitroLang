@@ -163,7 +163,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::Literal {
-//            compile_inst_literal(inst, func, backend, map, code)
+            // Already done by push() when needed
             continue
         }
 
@@ -229,6 +229,28 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::Comment || inst.kind is NInstKind::Noop {
+            continue
+        }
+
+        if inst.kind is NInstKind::IncludeAs {
+            let kind = inst.kind as NInstKind::IncludeAs
+
+            if kind.raw {
+                let bytes = FilePath::new(kind.path).unsafe_debug_read_bytes()
+                let bytes_list = List @[
+                    capacity: bytes.len,
+                    count: bytes.len,
+                    items: bytes
+                ]
+                let ptr = backend.push_bytes(bytes_list)
+                add_i32_const(ptr)
+            } else {
+                let text = FilePath::new(kind.path).read_text()!!
+                let ptr = backend.push_string(text)
+                add_i32_const(ptr)
+            }
+
+            pop(inst.id, map)
             continue
         }
 

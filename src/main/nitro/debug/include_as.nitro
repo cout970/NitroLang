@@ -1,0 +1,8 @@
+
+fun main() {
+    let str: String = include_as_string!("./include_as.nitro");
+    println("String: '$str'");
+
+    let bytes: List<Byte> = include_as_bytes!("./include_as.nitro");
+    println("Bytes: '$bytes'");
+}

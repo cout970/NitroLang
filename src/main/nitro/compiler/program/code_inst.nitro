@@ -102,6 +102,10 @@ option NInstKind {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
     }
+    IncludeAs {
+        path: String
+        raw: Boolean
+    }
     Alloc {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
@@ -438,6 +442,14 @@ fun NCode.add_size_of(
     ret add_inst(span, NInstKind::SizeOf @[type_usage, type_token: None()])
 }
 
+fun NCode.add_include_as(
+    span: Span,
+    path: String,
+    raw: Boolean,
+): NInst {
+    ret add_inst(span, NInstKind::IncludeAs @[path, raw])
+}
+
 fun NCode.add_alloc(
     span: Span,
     type_usage: NTypeUsage,
@@ -520,6 +532,7 @@ fun NInstKind.get_name(): String {
         this is NInstKind::LoadField -> "load-field"
         this is NInstKind::StoreField -> "store-field"
         this is NInstKind::SizeOf -> "size-of"
+        this is NInstKind::IncludeAs -> "include-as"
         this is NInstKind::Alloc -> "alloc"
         this is NInstKind::Lambda -> "lambda"
         this is NInstKind::Link -> "link"
@@ -707,6 +720,12 @@ fun NInstKind.to_string(): String {
             let kind = this as NInstKind::SizeOf
 
             "size_of ${kind.type_usage}"
+        }
+        this is NInstKind::IncludeAs -> {
+            let kind = this as NInstKind::IncludeAs
+            let ty = if kind.raw { "bytes" } else { "string" }
+
+            "include_as_$ty ${kind.path}"
         }
         this is NInstKind::Alloc -> {
             let kind = this as NInstKind::Alloc
@@ -937,6 +956,12 @@ fun NInst.to_string(code: NCode): String {
 
             "size_of ${kind.type_usage}"
         }
+        t is NInstKind::IncludeAs -> {
+            let kind = t as NInstKind::IncludeAs
+            let ty = if kind.raw { "bytes" } else { "string" }
+
+            "include_as_$ty ${kind.path}"
+        }
         t is NInstKind::Alloc -> {
             let kind = t as NInstKind::Alloc
 
@@ -1148,6 +1173,12 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             let kind = t as NInstKind::Mark
             serialize_id(kind.id)
         }
+        t is NInstKind::IncludeAs -> {
+            write_int(28)
+            let kind = t as NInstKind::IncludeAs
+            write_string(kind.path)
+            write_boolean(kind.raw)
+        }
         else -> crash("Unknown NInstKind variant")
     }
 }
@@ -1301,6 +1332,11 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
         27 -> {
             let id = deserialize_id()
             NInstKind::Mark @[id]
+        }
+        28 -> {
+            let path = read_string()
+            let raw = read_boolean()
+            NInstKind::IncludeAs @[path, raw]
         }
         else -> crash("Unknown NInstKind variant")
     }

@@ -1,0 +1,20 @@
+
+// E.g. include_as_string!("path")
+// includeAsString
+//     : INCLUDE_AS_STRING LPAREN NL* STRING_PLAIN NL* RPAREN
+//     ;
+
+fun Parser.read_expression_include_as_string(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::INCLUDE_AS_STRING)?
+    skip_token_kind(TokenKind::LPAREN)?
+    skip_nl()
+    let path = lexer.current_token_text
+    skip_token_kind(TokenKind::PLAIN_STRING)?
+    skip_nl()
+    skip_token_kind(TokenKind::RPAREN)?
+
+    let abs_path = CompilationUnit::process_path(path, current_path)
+    let inst = code.add_include_as(span, abs_path, false)
+    ret found(inst.id)
+}

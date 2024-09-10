@@ -10,7 +10,7 @@ init(internals.fs);
 
 // Run
 try {
-  run(Deno.args[0], Deno.args.slice(1));
+  await run(Deno.args[0], Deno.args.slice(1));
 } catch (e) {
   console.error(e);
   Deno.exit(-1);
