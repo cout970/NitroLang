@@ -3,6 +3,7 @@ let CACHE_VERSION: Int = 0x02
 
 struct CompilationUnit {
     reporter: Reporter
+    module_paths: Map<String, String>
     included_paths: List<String>
     included_files: List<IncludedFile>
     include_queue: ArrayDeque<IncludedFile>
@@ -22,6 +23,7 @@ fun CompilationUnit::new(): CompilationUnit {
 
     ret CompilationUnit @[
         reporter,
+        module_paths: #[],
         included_paths: [],
         included_files: [],
         include_queue: ArrayDeque::new(),
@@ -65,7 +67,8 @@ fun CompilationUnit.parse() {
         included_files[] = file
 
         for inc in sub_program.includes {
-            let include_path = CompilationUnit::process_path(inc.path, file.path)
+            let include_path = resolve_full_path(inc.path, file.path, inc.span)
+
             add_file(include_path, file.root)
         }
 
@@ -222,6 +225,23 @@ fun CompilationUnit::process_path(path: String, current_path: String): String {
     ret FilePath::join(dir, path)
 }
 
+fun CompilationUnit.resolve_full_path(path: String, current_path: String, span: Span): String {
+    if ":" in path {
+        let module_name = path.split(":")[0]!!
+        let sub_path = path.split(":")[1]!!
+
+        let opt = module_paths[module_name]
+        if opt.is_none() {
+            reporter.report_error("Unknown module: $module_name", span)
+        }
+
+        ret FilePath::join(opt!!, sub_path)
+    }
+
+    let dir = FilePath::directory_name(current_path)
+    ret FilePath::join(dir, path)
+}
+
 fun CompilationUnit.check_types() {
     type_checker.check_all()
 }
@@ -243,6 +263,7 @@ fun CompilationUnit.compile(output_path: FilePath) {
 
 fun CompilationUnit.include_core() {
     let root = "src/main/nitro/core/includes.nitro"
+    module_paths["core"] = "src/main/nitro/core"
     add_source(include_as_string!("../core/collections/array_deque.nitro"), "collections/array_deque.nitro", root)
     add_source(include_as_string!("../core/collections/array_deque_iterator.nitro"), "collections/array_deque_iterator.nitro", root)
     add_source(include_as_string!("../core/collections/iterator.nitro"), "collections/iterator.nitro", root)
@@ -267,6 +288,7 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/debug/logger.nitro"), "debug/logger.nitro", root)
     add_source(include_as_string!("../core/debug/runtime.nitro"), "debug/runtime.nitro", root)
     add_source(include_as_string!("../core/debug/trace.nitro"), "debug/trace.nitro", root)
+    add_source(include_as_string!("../core/fs/file_metadata.nitro"), "fs/file_metadata.nitro", root)
     add_source(include_as_string!("../core/fs/file_path.nitro"), "fs/file_path.nitro", root)
     add_source(include_as_string!("../core/lang/annotations.nitro"), "lang/annotations.nitro", root)
     add_source(include_as_string!("../core/lang/intrinsic.nitro"), "lang/intrinsic.nitro", root)

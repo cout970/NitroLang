@@ -817,6 +817,7 @@ fun Lexer.read_string() {
     cur += 1
     let start = cur
     let is_plain = true
+    let buff = StringBuilder::new()
 
     while cur < src.bytes_len {
         let c: Int = current_byte
@@ -825,17 +826,24 @@ fun Lexer.read_string() {
             break
         }
 
-        if c == a"\$" || c == a"\\" {
+        if c == a"\$"{
             is_plain = false
             break
         }
 
+        if c == a"\\" {
+            let value = read_string_escape_sequence()
+            buff.add(value)
+            continue
+        }
+
+        buff.unsafe_add_utf8_byte(c.to_byte())
         cur += 1
     }
 
     if is_plain {
-
-    let extra = src.substring(start, cur)
+//        let extra = src.substring(start, cur)
+        let extra = buff.to_string()
         // skip '"'
         cur += 1
         add_token_with_extra(TokenKind::PLAIN_STRING, start, extra)

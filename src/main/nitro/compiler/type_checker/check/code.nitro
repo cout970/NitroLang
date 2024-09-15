@@ -16,7 +16,7 @@ fun TypeChecker.finalize() {
                 info += "  - $i\nleft:${c.left.inspect()}\nright:${c.right.inspect()}\n"
             }
         }
-        reporter.report_error("Unresolved type constraints:\n$info\n${cons.codes}", cons.codes.first()!!.span)
+        reporter.report_error("Unresolved type constraints:\n$info", cons.codes.first()!!.span)
         cons.all.clear()
     }
 

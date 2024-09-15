@@ -51,6 +51,11 @@ fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receive
         let score = 1f
         let params = target.header.param_types
 
+        // If full name, name and path, is not exactly the same, penalize
+        if name != target.header.full_name {
+            score += 1f
+        }
+
         if receiver_tt.is_some() && target.header.has_receiver {
             let args_with_receiver = [receiver_tt!!]
             args_with_receiver.add_all(args)
