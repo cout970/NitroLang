@@ -158,6 +158,25 @@ fun StringBuilder.add(value: Int) {
     add_int_in_base(10, value)
 }
 
+// Adds an integer to the internal buffer, in base 10, with a minimum number of digits
+// If the number is negative, the '-' sign is added without affecting the count of digits
+// If the number is bigger than the number of digits, the number is **NOT** cropped
+fun StringBuilder.add_int_with_pad(value: Int, min_digits_len: Int) {
+    let buf = StringBuilder::new()
+
+    if value >= 0 {
+        buf[] = value
+    } else {
+        add("-")
+        buf[] = -value
+    }
+
+    repeat min_digits_len - buf.bytes_len {
+        this[] = "0"
+    }
+    add(value)
+}
+
 // Adds an integer to the internal buffer, in the given base
 fun StringBuilder.add_int_in_base(base: Int, value: Int) {
     check(base >= 2 && base <= 36, "Base must be in the range of 2 to 36")

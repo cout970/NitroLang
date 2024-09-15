@@ -257,10 +257,21 @@ fun List<#Item>.remove_all(predicate: (#Item) -> Boolean) {
     }
 }
 
-// Returns the index of the given item, if the item is not in the list, returns `None`
+// Returns the index of the first appearance of item, if the item is not in the list, returns `None`
 fun <#Item: GetOrdering> List<#Item>.index_of(item: #Item): Optional<Int> {
     repeat count {
         if this[it]!! == item {
+            ret Some(it)
+        }
+    }
+
+    ret None()
+}
+
+// Returns the index of the first appearance of any of the items in the list, if none of the items are in the list, returns `None`
+fun <#Item: GetOrdering> List<#Item>.index_of_any(items: List<#Item>): Optional<Int> {
+    repeat count {
+        if items.contains(this[it]!!) {
             ret Some(it)
         }
     }

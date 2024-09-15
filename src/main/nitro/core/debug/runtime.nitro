@@ -1,13 +1,13 @@
 
 // This module provides utilities to extract information about the runtime environment
-mod Runtime {
+mod runtime {
 
     // Returns the list of arguments passed to the program
     fun get_program_args(): List<String> {
         let args = []
 
-        repeat Runtime::program_arg_count() {
-            args[] = Runtime::program_arg_get(it)
+        repeat runtime::program_arg_count() {
+            args[] = runtime::program_arg_get(it)
         }
 
         ret args

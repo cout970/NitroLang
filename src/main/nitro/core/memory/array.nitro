@@ -17,3 +17,15 @@ fun Array<#Item>.get(index: Int): #Item {}
 
 @Extern [lib: "core", name: "array_set", autogenerate: true]
 fun Array<#Item>.set(index: Int, value: #Item) {}
+
+@Extern [lib: "core", name: "array_get_data_ptr", autogenerate: true]
+fun Array<#Item>.get_data_ptr(): Ptr<#Item> {}
+
+// Copy the contents of the array into a new list
+fun Array<#Item>.to_list(): List<#Item> {
+    let list = []
+    repeat len {
+        list[] = this[it]
+    }
+    ret list
+}

@@ -1,0 +1,37 @@
+
+enum FileType {
+    Unknown
+    BlockDevice
+    CharacterDevice
+    Directory
+    RegularFile
+    SocketDatagram
+    SocketStream
+    SymbolicLink
+}
+
+struct FileMetadata {
+    id: Long
+    device_id: Long
+    file_type: FileType
+    link_count: Long
+    size: Long
+    access_time: Instant
+    modification_time: Instant
+    creation_time: Instant
+}
+
+fun FileMetadata.to_string(): String {
+    let buff = StringBuilder::new()
+    buff[] = "FileMetadata @[\n"
+    buff[] = "  id: $id,\n"
+    buff[] = "  device_id: $device_id,\n"
+    buff[] = "  file_type: $file_type,\n"
+    buff[] = "  link_count: $link_count,\n"
+    buff[] = "  size: $size,\n"
+    buff[] = "  access_time: ${access_time},\n"
+    buff[] = "  modification_time: ${modification_time},\n"
+    buff[] = "  creation_time: ${creation_time}\n"
+    buff[] = "]"
+    ret buff.to_string()
+}

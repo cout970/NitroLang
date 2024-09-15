@@ -9,14 +9,19 @@ struct Instant {
 @Extern [lib: "core", name: "instant_now"]
 fun Instant::now(): Instant {}
 
-@Extern [lib: "core", name: "instant_format_to_iso8601"]
-fun Instant.format_to_iso8601(): String {}
-
 // Return the instant from the unix timestamp in seconds
 fun Instant::from_unix_timestamp(seconds: Long): Instant {
     ret Instant @[
         seconds: seconds
         nanoseconds: 0
+    ]
+}
+
+// Return the instant from the unix timestamp in nanoseconds
+fun Instant::from_nanoseconds(nanos: Long): Instant {
+    ret Instant @[
+        seconds: nanos / 1_000_000_000L,
+        nanoseconds: (nanos.modulo(1_000_000_000L)).to_int(),
     ]
 }
 
@@ -73,6 +78,270 @@ fun Instant.get_ordering(other: Instant): Ordering {
     }
 }
 
-fun Instant.to_string(): String {
-    ret "Instant @[seconds: ${this.seconds}, nanoseconds: ${this.nanoseconds}]"
+
+// Format an instant as an ISO 8601 string, with an optional timezone offset and can optionally display nanoseconds
+fun Instant.format_to_iso8601(timezone_offset_minutes: Int, show_nanoseconds: Boolean): String {
+    let timestamp: Long = this.seconds
+    let seconds_per_day = 86400L
+    let seconds_per_hour = 3600
+    let seconds_per_minute = 60
+
+    // Adjust for negative timestamps
+    let adj_timestamp: Long = timestamp
+
+    if timezone_offset_minutes != 0 {
+        adj_timestamp += timezone_offset_minutes.to_long() * 60L
+    }
+
+    if adj_timestamp < 0L {
+        adj_timestamp = -adj_timestamp
+    }
+
+    // Calculate the number of days from the Unix epoch
+    let days: Long = adj_timestamp / seconds_per_day
+    let seconds: Int = (adj_timestamp % seconds_per_day).to_int()
+
+    // Calculate the hours, minutes, and seconds
+    let hours: Int = seconds / seconds_per_hour
+    seconds %= seconds_per_hour
+    let minutes: Int = seconds / seconds_per_minute
+    seconds %= seconds_per_minute
+
+    let years: Int = 1970
+
+    // Calculate the year
+    if timestamp >= 0L {
+        while days >= 365L {
+            if is_leap_year(years) {
+                // Leap year
+                if days >= 366L {
+                    days -= 366L
+                    years += 1
+                }
+            } else {
+                // Non-leap year
+                days -= 365L
+                years += 1
+            }
+        }
+    } else {
+        // Adjust for negative timestamps
+        years = 1969
+        while days >= 365L {
+            if is_leap_year(years) {
+                // Leap year
+                if days >= 366L {
+                    days -= 366L
+                    years -= 1
+                }
+            } else {
+                // Non-leap year
+                days -= 365L
+                years -= 1
+            }
+        }
+    }
+
+    // Calculate the month and day of the month
+    let days_in_month = [31L, 28L, 31L, 30L, 31L, 30L, 31L, 31L, 30L, 31L, 30L, 31L]
+    if is_leap_year(years) {
+        // Leap year
+        days_in_month[1] = 29L
+    }
+
+    let months = 0
+    while days >= days_in_month[months]!! {
+        days -= days_in_month[months]!!
+        months += 1
+    }
+
+    // Convert 0-based to 1-based
+    let human_day: Int = days.to_int() + 1
+    let human_month: Int = months + 1
+
+    // Format the ISO 8601 string
+    let buf = StringBuilder::new()
+
+    buf.add_int_with_pad(years, 4)
+    buf[] = "-"
+    buf.add_int_with_pad(human_month, 2)
+    buf[] = "-"
+    buf.add_int_with_pad(human_day, 2)
+    buf[] = "T"
+    buf.add_int_with_pad(hours, 2)
+    buf[] = ":"
+    buf.add_int_with_pad(minutes, 2)
+    buf[] = ":"
+    buf.add_int_with_pad(seconds, 2)
+
+    if show_nanoseconds {
+        buf[] = "."
+        buf.add_int_with_pad(this.nanoseconds, 9)
+    }
+
+    if timezone_offset_minutes == 0 {
+        buf[] = "Z"
+    } else {
+        let sign = if timezone_offset_minutes < 0 { "-" } else { "+" }
+        let hours = timezone_offset_minutes / 60
+        let minutes = timezone_offset_minutes % 60
+
+        buf[] = sign
+        buf.add_int_with_pad(hours, 2)
+        buf[] = ":"
+        buf.add_int_with_pad(minutes, 2)
+    }
+
+    ret buf.to_string()
+}
+
+fun Instant.to_string(): String = format_to_iso8601(0, true)
+
+// Parse an ISO 8601 string into an Instant
+fun Instant::from_iso8601(iso8601: String): Optional<Instant> {
+    // Trim any leading or trailing whitespace
+    let str = iso8601.trim()
+
+    // Find the "T" separator between date and time
+    let t_index = str.index_of("T")?
+
+    // Split the string into date and time parts
+    let date_str = str.substring(0, t_index)
+    let time_str_with_offset = str.substring(t_index + 1, str.bytes_len)
+
+    // Parse the date components (YYYY-MM-DD)
+    let date_parts = date_str.split("-")
+    if date_parts.len != 3 {
+        ret None()
+    }
+
+    let year = date_parts[0]!!.to_int()?
+    let month = date_parts[1]!!.to_int()?
+    let day = date_parts[2]!!.to_int()?
+
+    // Parse the time components and timezone offset
+    let tz_index = time_str_with_offset.index_of_any(["Z", "+", "-"])
+
+    let time_str = ""
+    let tz_str = ""
+
+    if tz_index.is_some() {
+        time_str = time_str_with_offset.substring(0, tz_index!!)
+        tz_str = time_str_with_offset.substring(tz_index!!, time_str_with_offset.bytes_len)
+    } else {
+        time_str = time_str_with_offset
+        tz_str = ""
+    }
+
+    // Parse time and optional nanoseconds (hh:mm:ss[.nnnnnnnnn])
+    let dot_index = time_str.index_of(".")
+    let time_components = []
+    let nanoseconds = 0
+
+    if dot_index.is_some() {
+        let time_part = time_str.substring(0, dot_index!!)
+        let frac_part = time_str.substring(dot_index!! + 1, time_str.bytes_len)
+
+        time_components = time_part.split(":")
+        if time_components.len != 3 {
+            ret None()
+        }
+
+        // Parse and normalize nanoseconds to 9 digits
+        let frac_str = frac_part.pad_end(9, a"0".to_char()).substring(0, 9)
+        nanoseconds = frac_str.to_int()?
+    } else {
+        time_components = time_str.split(":")
+        if time_components.len != 3 {
+            ret None()
+        }
+    }
+
+    // Parse hours, minutes, and seconds
+    let hour = time_components[0]!!.to_int()?
+    let minute = time_components[1]!!.to_int()?
+    let second = time_components[2]!!.to_int()?
+
+    // Parse timezone offset
+    let timezone_offset_minutes = 0
+
+    if tz_str.starts_with("+") || tz_str.starts_with("-") {
+        let sign = if tz_str.starts_with("-") { -1 } else { 1 }
+        let offset_str = tz_str.substring(1, tz_str.bytes_len)
+        let offset_parts = offset_str.split(":")
+
+        if offset_parts.len != 2 {
+            ret None()
+        }
+
+        let offset_hours = offset_parts[0]!!.to_int()?
+        let offset_minutes = offset_parts[1]!!.to_int()?
+
+        timezone_offset_minutes = sign * (offset_hours * 60 + offset_minutes)
+    } else {
+        if tz_str != "Z" && tz_str != "" {
+            ret None()
+        }
+    }
+
+    // Compute the total days since the Unix epoch (1970-01-01)
+    let total_days: Long = Internal::compute_days_since_epoch(year, month, day)?
+
+    // Compute the total seconds since the Unix epoch
+    let total_seconds = total_days * 86400L + hour.to_long() * 3600L + minute.to_long() * 60L + second.to_long()
+
+    // Adjust for the timezone offset
+    let seconds = total_seconds - (timezone_offset_minutes.to_long() * 60L)
+
+    ret Some(Instant @[seconds, nanoseconds])
+}
+
+// Helper function to compute days since the Unix epoch
+fun Internal::compute_days_since_epoch(year: Int, month: Int, day: Int): Optional<Long> {
+    let days = 0L
+    let y = 1970
+
+    if year >= 1970 {
+        // Add days for each year from 1970 to the target year
+        while y < year {
+            days += if is_leap_year(y) { 366L } else { 365L }
+            y += 1
+        }
+    } else {
+        // Subtract days for each year before 1970
+        y = 1969
+        while y >= year {
+            days -= if is_leap_year(y) { 366L } else { 365L }
+            y -= 1
+        }
+    }
+
+    // Days in each month
+    let days_in_month = [31L,28L,31L,30L,31L,30L,31L,31L,30L,31L,30L,31L]
+    if is_leap_year(year) {
+        days_in_month[1] = 29L
+    }
+
+    if month < 1 || month > 12 {
+        ret None()
+    }
+
+    // Add days for each month
+    repeat month - 1 {
+        days += days_in_month[it]!!
+    }
+
+    if day < 1 || day.to_long() > days_in_month[month - 1]!! {
+        ret None()
+    }
+
+    // Add days in the current month
+    days += (day - 1).to_long()
+
+    ret Some(days)
+}
+
+// Helper function to determine if a year is a leap year
+fun is_leap_year(year: Int): Boolean {
+    ret (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }

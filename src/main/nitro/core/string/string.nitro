@@ -374,6 +374,24 @@ fun String.index_of(substring: String): Optional<Int> {
     ret None()
 }
 
+// Gets the index of the first instance of any of the substrings
+fun String.index_of_any(substrings: List<String>): Optional<Int> {
+    let current = 0
+    let total_len = bytes_len
+
+    while current < total_len {
+        for substring in substrings {
+            if contains_substring_at(current, substring) {
+                ret Some(current)
+            }
+        }
+
+        current += 1
+    }
+
+    ret None()
+}
+
 // Gets the index of the last instance of a substring
 fun String.last_index_of(substring: String): Optional<Int> {
     let current = bytes_len - substring.bytes_len
@@ -418,6 +436,9 @@ fun String.pad_start(pad_len: Int, pad_character: Char): String {
     ret padding.concat(this)
 }
 
+// Alias for pad_start
+fun String.pad_left(pad_len: Int, pad_character: Char): String = pad_start(pad_len, pad_character)
+
 // Adds padding to the end of a string until it reaches a certain length
 fun String.pad_end(pad_len: Int, pad_character: Char): String {
     let padding_len = pad_len - bytes_len
@@ -429,6 +450,9 @@ fun String.pad_end(pad_len: Int, pad_character: Char): String {
     let padding = pad_character.to_string() * padding_len
     ret concat(padding)
 }
+
+// Alias for pad_end
+fun String.pad_right(pad_len: Int, pad_character: Char): String = pad_end(pad_len, pad_character)
 
 // Splits a string into a list of strings based on a separator
 fun String.split(separator: String): List<String> {

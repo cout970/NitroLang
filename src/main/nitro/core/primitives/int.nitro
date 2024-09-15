@@ -211,8 +211,7 @@ fun Int.to_float(): Float {}
 fun Int.to_long(): Long {}
 
 // Converts this 32 bit integer into a 8 bit integer
-@Extern [lib: "core", name: "int_to_byte"]
-// @WasmInline [opcode: "i32.and" , arg0: 0xFF] // Not supported yet
+ @WasmInline [opcode: "i32.and" , arg0: 0xFF]
 fun Int.to_byte(): Byte {}
 
 // Converts this integer value to a string

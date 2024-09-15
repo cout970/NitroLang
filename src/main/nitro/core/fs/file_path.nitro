@@ -12,14 +12,44 @@ fun FilePath::new(path: String): FilePath {
     ret FilePath @[path]
 }
 
-@Extern [lib: "core", name: "file_path_join"]
-fun FilePath::join(dir: String, sub: String): String {}
+fun FilePath::join(dir: String, sub: String): String {
+    let components: List<String> = dir.split("/")
+    components.add_all(sub.split("/"))
 
-@Extern [lib: "core", name: "file_path_dirname"]
-fun FilePath::directory_name(path: String): String {}
+    // Remove empty components and "." components
+    components = components.filter @{ i -> i != "" && i != "." }
 
-@Extern [lib: "core", name: "file_path_basename"]
-fun FilePath::base_name(path: String): String {}
+    // Remove ".." components
+    let i = 0
+    while i < components.len {
+        if components[i]!! == ".." && i > 0{
+            components.remove_at(i)!!
+            components.remove_at(i - 1)!!
+            i -= 1
+            continue
+        }
+        i += 1
+    }
+
+    ret components.join("/")
+}
+
+fun FilePath::directory_name(path: String): String {
+    let components: List<String> = path.split("/")
+    if components.len <= 1 {
+        ret "."
+    }
+    components.remove_at(components.len - 1)!!
+    ret components.join("/")
+}
+
+fun FilePath::base_name(path: String): String {
+    if "/" !in path {
+        ret path
+    }
+    let components: List<String> = path.split("/")
+    ret components[components.len - 1]!!
+}
 
 @Extern [lib: "core", name: "file_path_read_text"]
 fun FilePath.read_text(): Result<String, IoError> {}
