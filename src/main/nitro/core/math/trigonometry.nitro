@@ -1,0 +1,221 @@
+
+mod math {
+
+    // τ: Tau is the ratio of a circle's circumference to its radius
+    let tau: Float = 6.283185307179586f
+    
+    // π: Pi is the ratio of a circle's circumference to its diameter
+    let pi: Float = 3.141592653589793f
+
+    // π/2: Pi over 2
+    let pi_2: Float = 1.5707963267948966f
+
+    // π/4: Pi over 4
+    let pi_4: Float = 0.7853981633974483f
+
+    // Wrap angle x to [-π, π]
+    fun wrap_angle(x: Float): Float {
+        x = x % tau
+
+        while x > pi {
+            x -= tau
+        }
+        while x < -pi {
+            x += tau
+        }
+        ret x
+    }
+
+    // Returns the sine of x (where x is in radians).
+    fun sin(x: Float): Float {
+        x = wrap_angle(x)
+        let term: Float = x
+        let sum: Float = x
+        let x_squared: Float = x * x
+        let sign: Float = -1f
+        let i = 3
+        while i <= 20 {
+            term *= x_squared / ((i.to_float() - 1f) * i.to_float())
+            sum += sign * term
+            sign = -sign
+            i += 2
+        }
+        ret sum
+    }
+    
+    // Returns the hyperbolic sine of x.
+    fun sinh(x: Float): Float {
+        let term: Float = x
+        let sum: Float = x
+        let x_squared: Float = x * x
+        let i = 3
+        while i <= 20 {
+            term *= x_squared / ((i.to_float() - 1f) * i.to_float())
+            sum += term
+            i += 2
+        }
+        ret sum
+    }
+    
+    // Returns the arcsine of x in radians.
+    fun asin(x: Float): Float {
+        if x < -1f || x > 1f {
+            // asin undefined for |x| > 1
+            ret float_nan
+        }
+        when {
+            x == 1f -> ret pi_2
+            x == -1f -> ret -pi_2
+        }
+        let term: Float = x
+        let sum: Float = x
+        let x_squared: Float = x * x
+        let numerator: Float = x
+        let denominator: Float = 1f
+        let i = 1
+        while i < 10 {
+            numerator *= x_squared * (2f * i.to_float() - 1f) * (2f * i.to_float() - 1f)
+            denominator *= (2f * i.to_float()) * (2f * i.to_float() + 1f)
+            term = numerator / denominator
+            sum += term
+            if term.abs() < 1e-8f {
+                break
+            }
+            i += 1
+        }
+        ret sum
+    }
+    
+    // Returns the hyperbolic arcsine of x.
+    fun asinh(x: Float): Float {
+        let sqrt_term: Float = sqrt(x * x + 1f)
+        ret ln(x + sqrt_term)
+    }
+    
+    // Returns the cosine of x (where x is in radians).
+    fun cos(x: Float): Float {
+        x = wrap_angle(x)
+        let term: Float = 1f
+        let sum: Float = 1f
+        let x_squared: Float = x * x
+        let sign: Float = -1f
+        let i = 2
+        while i <= 20 {
+            term *= x_squared / ((i.to_float() - 1f) * i.to_float())
+            sum += sign * term
+            sign = -sign
+            i += 2
+        }
+        ret sum
+    }
+    
+    // Returns the hyperbolic cosine of x.
+    fun cosh(x: Float): Float {
+        let term: Float = 1f
+        let sum: Float = 1f
+        let x_squared: Float = x * x
+        let i = 2
+        while i <= 20 {
+            term *= x_squared / ((i.to_float() - 1f) * i.to_float())
+            sum += term
+            i += 2
+        }
+        ret sum
+    }
+    
+    // Returns the arccosine of x in radians.
+    fun acos(x: Float): Float {
+        ret pi_2 - asin(x)
+    }
+    
+    // Returns the hyperbolic arccosine of x.
+    fun acosh(x: Float): Float {
+        if x < 1f {
+            ret float_nan
+        }
+        let sqrt_term: Float = sqrt(x * x - 1f)
+        ret ln(x + sqrt_term)
+    }
+    
+    // Returns the tangent of x (where x is in radians).
+    fun tan(x: Float): Float {
+        let cos_x: Float = cos(x)
+        if cos_x.abs() < math::epsilon {
+            // Division by zero
+            ret float_nan
+        }
+        ret sin(x) / cos_x
+    }
+    
+    // Returns the hyperbolic tangent of x.
+    fun tanh(x: Float): Float {
+        let cosh_x: Float = cosh(x)
+        if cosh_x == 0f {
+            // Division by zero
+            ret float_nan
+        }
+        ret sinh(x) / cosh_x
+    }
+    
+    // Returns the arctangent of x in radians.
+    fun atan(x: Float): Float {
+        // From: https://stackoverflow.com/a/23097989
+        /* argument reduction:
+           arctan (-x) = -arctan(x)
+           arctan (1/x) = 1/2 * pi - arctan (x), when x > 0
+        */
+        let z = x.abs()
+        let a = if z > 1.0 { 1.0 / z } else { z }
+        let s = a * a
+        let q = s * s
+        /* core approximation: approximate atan(x) on [0,1] */
+        let p =       -2.0258553044340116e-5f  // -0x1.53e1d2a258e3ap-16
+        let t =        2.2302240345710764e-4f  //  0x1.d3b63dbb6167ap-13
+        p = fma(p, q, -1.1640717779912220e-3f) // -0x1.312788ddde71dp-10
+        t = fma(t, q,  3.8559749383656407e-3f) //  0x1.f9690c824aaf1p-9
+        p = fma(p, q, -9.1845592187222193e-3f) // -0x1.2cf5aabc7dbd2p-7
+        t = fma(t, q,  1.6978035834594660e-2f) //  0x1.162b0b2a3bcdcp-6
+        p = fma(p, q, -2.5826796814492296e-2f) // -0x1.a7256feb6f841p-6
+        t = fma(t, q,  3.4067811082715810e-2f) //  0x1.171560ce4a4ecp-5
+        p = fma(p, q, -4.0926382420509999e-2f) // -0x1.4f44d841450e8p-5
+        t = fma(t, q,  4.6739496199158334e-2f) //  0x1.7ee3d3f36bbc6p-5
+        p = fma(p, q, -5.2392330054601366e-2f) // -0x1.ad32ae04a9fd8p-5
+        t = fma(t, q,  5.8773077721790683e-2f) //  0x1.e17813d669537p-5
+        p = fma(p, q, -6.6658603633512892e-2f) // -0x1.11089ca9a5be4p-4
+        t = fma(t, q,  7.6922129305867892e-2f) //  0x1.3b12b2db5173cp-4
+        p = fma(p, s, t)
+        p = fma(p, s, -9.0909012354005267e-2f) // -0x1.745d022f8dc5fp-4
+        p = fma(p, s,  1.1111110678749421e-1f) //  0x1.c71c709dfe925p-4
+        p = fma(p, s, -1.4285714271334810e-1f) // -0x1.2492491fa1742p-3
+        p = fma(p, s,  1.9999999999755005e-1f) //  0x1.99999999840cdp-3
+        p = fma(p, s, -3.3333333333331838e-1f) // -0x1.5555555555448p-2
+        p = fma(p * s, a, a)
+        /* back substitution in accordance with argument reduction */
+        /* double-precision factorization of PI/2 courtesy of Tor Myklebust */
+        let r = if z > 1f { fma(0.93282184640716537f, 1.6839188885261840f, -p) } else { p }
+        ret r.copy_sign(x)
+    }
+    
+    // Returns the hyperbolic arctangent of x.
+    fun atanh(x: Float): Float {
+        if x <= -1f || x >= 1f {
+            // atanh undefined for |x| >= 1
+            ret float_nan
+        }
+        ret 0.5f * ln((1f + x) / (1f - x))
+    }
+    
+    // Returns the arctangent of the quotient of its arguments.
+    fun atan2(y: Float, x: Float): Float {
+        ret when {
+            x > 0f -> atan(y / x)
+            x < 0f && y >= 0f -> atan(y / x) + pi
+            x < 0f && y < 0f -> atan(y / x) - pi
+            x == 0f && y > 0f -> pi_2
+            x == 0f && y < 0f -> -pi_2
+            // Undefined for x == 0 and y == 0
+            else -> float_nan
+        }
+    }
+
+}

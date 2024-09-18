@@ -236,12 +236,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             let kind = inst.kind as NInstKind::IncludeAs
 
             if kind.raw {
-                let bytes = FilePath::new(kind.path).unsafe_debug_read_bytes()
-                let bytes_list = List @[
-                    capacity: bytes.len,
-                    count: bytes.len,
-                    items: bytes
-                ]
+                let bytes_list = FilePath::new(kind.path).read_bytes()!!
                 let ptr = backend.push_bytes(bytes_list)
                 add_i32_const(ptr)
             } else {

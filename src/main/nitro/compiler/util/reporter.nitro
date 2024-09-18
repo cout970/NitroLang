@@ -79,7 +79,7 @@ fun Reporter.report_error(message: String, location: Span) {
         kind: ReportKind::Error,
         message,
         location,
-        stack_trace: Trace::get_stack_trace()
+        stack_trace: [] // TODO
     ]
     errors[] = error
     deduplication[] = key
@@ -95,7 +95,7 @@ fun Reporter.report_warning(message: String, location: Span) {
         kind: ReportKind::Warning,
         message,
         location,
-        stack_trace: Trace::get_stack_trace()
+        stack_trace: [] // TODO
     ]
     warnings[] = warn
     deduplication[] = key
@@ -111,7 +111,7 @@ fun Reporter.report_suggestion(message: String, location: Span) {
         kind: ReportKind::Suggestion,
         message,
         location,
-        stack_trace: Trace::get_stack_trace()
+        stack_trace: [] // TODO
     ]
     suggestions[] = suggestion
     deduplication[] = key

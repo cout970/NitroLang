@@ -9,12 +9,18 @@ struct IncludedFile {
 
 fun IncludedFile::new(path: String, root: String): IncludedFile {
     let file_path = FilePath::new(path)
+    let last_modified_res = file_path.get_last_modified_time()
+
+    if last_modified_res.is_err() {
+        crash("Failed to get last modified time for file '${file_path}': ${last_modified_res.err}")
+    }
+    let last_modified = last_modified_res!!
 
     ret IncludedFile @[
         file_path,
         root,
         exists: file_path.exists()!!,
-        last_modified: file_path.unsafe_debug_last_modified(),
+        last_modified: last_modified.get_unix_timestamp().to_int(),
         source_cache: None()
     ]
 }

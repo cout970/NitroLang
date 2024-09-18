@@ -51,54 +51,467 @@ fun FilePath::base_name(path: String): String {
     ret components[components.len - 1]!!
 }
 
-@Extern [lib: "core", name: "file_path_read_text"]
-fun FilePath.read_text(): Result<String, IoError> {}
+// Returns a list of all files in the directory and all subdirectories
+fun FilePath.read_directory_files_recursive(): Result<List<String>, IoError> {
 
-@Extern [lib: "core", name: "file_path_write_text"]
-fun FilePath.write_text(text: String): Result<Nothing, IoError> {}
+    let files = read_directory_files()?
+    let all_files = []
 
-@Extern [lib: "core", name: "file_path_exists"]
-fun FilePath.exists(): Result<Boolean, IoError> {}
+    for filename in files {
+        all_files[] = filename
 
-@Extern [lib: "core", name: "file_path_last_modified"]
-fun FilePath.get_last_modified_time(): Result<Instant, IoError> {}
+        let sub_path = FilePath::new(FilePath::join(path, filename))
+        let res = sub_path.is_directory()
+        // ignore errors, probably a permission issue
+        if res.is_ok() && res!! {
+            let names = sub_path.read_directory_files_recursive()?
+            for name in names {
+                all_files[] = FilePath::join(sub_path.path, name)
+            }
+        }
+    }
 
-@Extern [lib: "core", name: "file_path_unsafe_debug_last_modified"]
-fun FilePath.unsafe_debug_last_modified(): Int {}
+    ret Ok(all_files)
+}
 
-@Extern [lib: "core", name: "file_path_unsafe_debug_read_bytes"]
-fun FilePath.unsafe_debug_read_bytes(): Array<Byte> {}
+// Returns a list of files in the directory
+fun FilePath.read_directory_files(): Result<List<String>, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
 
-@Extern [lib: "core", name: "file_path_unsafe_debug_write_bytes"]
-fun FilePath.unsafe_debug_write_bytes(bytes: Array<Byte>, len: Int): Boolean {}
+    let dir_fd = IntPtr@[value: 0]
 
-//
-//@Extern [lib: "core", name: "file_path_read_bytes"]
-//fun FilePath.read_bytes(): Result<List<Byte>, IoError> {}
-//
-//@Extern [lib: "core", name: "file_path_write_bytes"]
-//fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {}
-//
-//@Extern [lib: "core", name: "file_path_delete"]
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
+        wasi::FDFLAGS_NONE, dir_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "read_directory_files: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let entries: List<String> = []
+    let mem_buff = Array::new<Byte>(1024 * 4)
+    let cookie = 0L
+
+    loop {
+        let nread = IntPtr@[value: 0]
+
+        let rc = wasi::fd_readdir(dir_fd.value, mem_buff.data_ptr, mem_buff.len, cookie, nread)
+        if rc != 0 {
+            ret Err(IoError @[
+                message: "wasi::fd_readdir failed",
+                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+            ])
+        }
+
+        if nread.value == 0 {
+            break
+        }
+
+        let offset = 0
+        while offset < nread.value {
+            let entry: wasi::Dirent = mem_buff.data_ptr.offset_in_bytes(offset).unsafe_cast_as_ref()
+            let entry_size = size_of<wasi::Dirent>() + entry.d_namlen
+
+            // If the last entry is incomplete, break the loop
+            if offset + entry_size > nread.value {
+                break
+            }
+
+            let name_ptr: Ptr<Byte> = mem_buff.data_ptr.offset_in_bytes(offset + size_of<wasi::Dirent>()).unsafe_cast_as_ref()
+
+            let name = ffi::cslice_to_string(name_ptr, entry.d_namlen)
+            if name != "." && name != ".." {
+                entries[] = name
+            }
+
+            offset += entry_size
+            cookie = entry.d_next
+        }
+    }
+
+    let rc = wasi::fd_close(dir_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "wasi::fd_close failed",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    ret Ok(entries)
+}
+
+// Returns true if the path is a directory
+fun FilePath.is_directory(): Result<Boolean, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.file_type == FileType::Directory)
+}
+
+// Returns the metadata of the file
+fun FilePath.get_metadata(): Result<FileMetadata, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let dir_fd = IntPtr@[value: 0]
+
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
+        wasi::FDFLAGS_NONE, dir_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "get_metadata: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let buff = ffi::malloc(size_of<wasi::FileStat>())
+    defer ffi::free(buff)
+
+    let rc = wasi::fd_filestat_get(dir_fd.value, buff.unsafe_cast())
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "wasi::fd_filestat_get failed",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let rc = wasi::fd_close(dir_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "wasi::fd_close failed",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let stat: wasi::FileStat = buff.unsafe_cast_as_ref()
+
+    ret Ok(FileMetadata @[
+        id: stat.ino,
+        device_id: stat.dev,
+        file_type: FileType::from_variant(stat.filetype.to_int())!!,
+        link_count: stat.nlink,
+        size: stat.size,
+        access_time: Instant::from_nanoseconds(stat.atim),
+        modification_time: Instant::from_nanoseconds(stat.mtim),
+        creation_time: Instant::from_nanoseconds(stat.ctim),
+    ])
+}
+
+// Reads the text from the file, all at once
+fun FilePath.read_text(): Result<String, IoError> {
+    let buff = StringBuilder::new()
+
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let file_fd = IntPtr@[value: 0]
+
+    let rights = wasi::RIGHTS_FD_READ | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_NONE, rights, rights,
+        wasi::FDFLAGS_APPEND, file_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "read_text: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let mem_buff = Array::new<Byte>(4096)
+    let nread = IntPtr@[value: 0]
+
+    let iovec = wasi::IOVec @[
+        buf: mem_buff.data_ptr,
+        buf_len: mem_buff.len,
+    ]
+
+    loop {
+        let rc = wasi::fd_read(file_fd.value, ptr_of(iovec), 1, nread)
+        if rc != 0 {
+            ret Err(IoError @[
+                message: "read_text: wasi::fd_read failed '$path'",
+                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+            ])
+        }
+
+        if nread.value == 0 {
+            break
+        }
+
+        repeat nread.value {
+            buff.unsafe_add_utf8_byte(mem_buff[it])
+        }
+    }
+
+    let rc = wasi::fd_close(file_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "read_text: wasi::fd_close failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    ret Ok(buff.to_string())
+}
+
+// Writes the given text to the file, all at once, if the file does not exist it will be created
+fun FilePath.write_text(text: String): Result<Nothing, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let file_fd = IntPtr@[value: 0]
+
+    let rights = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
+    let rights_inherited = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
+
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_CREATE | wasi::OFLAGS_TRUNCATE,
+        rights, rights_inherited,
+        wasi::FDFLAGS_NONE, file_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "write_text: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let mem_buff = Array::new<Byte>(4096)
+    let nwritten = IntPtr@[value: 0]
+    let offset = 0
+
+    let iovec = wasi::IOVec @[
+        buf: mem_buff.data_ptr,
+        buf_len: mem_buff.len,
+    ]
+
+    loop {
+        let chunk_len = min(text.bytes_len - offset, mem_buff.len)
+        repeat chunk_len {
+            mem_buff[it] = text.utf8_data[offset + it]
+        }
+        iovec.buf_len = chunk_len
+
+        let rc = wasi::fd_write(file_fd.value, ptr_of(iovec), 1, nwritten)
+        if rc != 0 {
+            ret Err(IoError @[
+                message: "write_text: wasi::fd_write failed '$path'",
+                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+            ])
+        }
+
+        offset += nwritten.value
+
+        if offset >= text.bytes_len {
+            break
+        }
+    }
+
+    let rc = wasi::fd_close(file_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "write_text: wasi::fd_close failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    ret Ok(nothing)
+}
+
+// Reads the bytes from the file, all at once
+fun FilePath.read_bytes(): Result<List<Byte>, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let file_fd = IntPtr@[value: 0]
+
+    let rights = wasi::RIGHTS_FD_READ | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_NONE, rights, rights,
+        wasi::FDFLAGS_NONE, file_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "read_bytes: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let mem_buff = Array::new<Byte>(4096)
+    let nread = IntPtr@[value: 0]
+
+    let iovec = wasi::IOVec @[
+        buf: mem_buff.data_ptr,
+        buf_len: mem_buff.len,
+    ]
+
+    let bytes = []
+
+    loop {
+        let rc = wasi::fd_read(file_fd.value, ptr_of(iovec), 1, nread)
+        if rc != 0 {
+            ret Err(IoError @[
+                message: "read_bytes: wasi::fd_read failed '$path'",
+                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+            ])
+        }
+
+        if nread.value == 0 {
+            break
+        }
+
+        repeat nread.value {
+            bytes[] = mem_buff[it]
+        }
+    }
+
+    let rc = wasi::fd_close(file_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "read_bytes: wasi::fd_close failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string(),
+        ])
+    }
+
+    ret Ok(bytes)
+}
+
+// Writes the given bytes to the file, all at once, if the file does not exist it will be created
+fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let file_fd = IntPtr@[value: 0]
+
+    let rights = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
+    let rights_inherited = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
+
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_CREATE | wasi::OFLAGS_TRUNCATE,
+        rights, rights_inherited,
+        wasi::FDFLAGS_NONE, file_fd
+    )
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "write_bytes: wasi::path_open failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    let mem_buff = Array::new<Byte>(4096)
+    let nwritten = IntPtr@[value: 0]
+    let offset = 0
+
+    let iovec = wasi::IOVec @[
+        buf: mem_buff.data_ptr,
+        buf_len: mem_buff.len,
+    ]
+
+    loop {
+        let chunk_len = min(bytes.len - offset, mem_buff.len)
+        repeat chunk_len {
+            mem_buff[it] = bytes[offset + it]!!
+        }
+        iovec.buf_len = chunk_len
+
+        let rc = wasi::fd_write(file_fd.value, ptr_of(iovec), 1, nwritten)
+        if rc != 0 {
+            ret Err(IoError @[
+                message: "write_bytes: wasi::fd_write failed '$path'",
+                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+            ])
+        }
+
+        offset += nwritten.value
+
+        if offset >= bytes.len {
+            break
+        }
+    }
+
+    let rc = wasi::fd_close(file_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "write_bytes: wasi::fd_close failed '$path'",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string(),
+        ])
+    }
+
+    ret Ok(nothing)
+}
+
+// Returns true if the file exists
+fun FilePath.exists(): Result<Boolean, IoError> {
+    let cpath = ffi::string_to_cstring(path)
+    defer ffi::free(cpath)
+
+    let dir_fd = IntPtr@[value: 0]
+
+    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
+        cpath, path.bytes_len,
+        wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
+        wasi::FDFLAGS_NONE, dir_fd
+    )
+    if rc != 0 {
+        ret Ok(false)
+    }
+
+    let rc = wasi::fd_close(dir_fd.value)
+    if rc != 0 {
+        ret Err(IoError @[
+            message: "wasi::fd_close failed",
+            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
+        ])
+    }
+
+    ret Ok(true)
+}
+
+// Returns the access time of the file
+fun FilePath.get_access_time(): Result<Instant, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.access_time)
+}
+
+// Returns the last modified time of the file
+fun FilePath.get_last_modified_time(): Result<Instant, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.modification_time)
+}
+
+// Returns the creation time of the file
+fun FilePath.get_creation_time(): Result<Instant, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.creation_time)
+}
+
+// Returns the size of the file
+fun FilePath.get_size(): Result<Long, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.size)
+}
+
+// Returns the file type of the file
+fun FilePath.get_file_type(): Result<FileType, IoError> {
+    let meta = get_metadata()?
+    ret Ok(meta.file_type)
+}
+
 //fun FilePath.delete(): Result<Nothing, IoError> {}
 //
-//@Extern [lib: "core", name: "file_path_delete_recursive"]
 //fun FilePath.delete_recursive(): Result<Nothing, IoError> {}
 
 fun FilePath.to_string(): String = path
 
 fun IoError.to_string(): String = "$message ($code)"
-
-// Utilities to create Result<#Any, IoError> instances from JS
-
-@WasmName [name: "io_error_result_ok"]
-@Required
-fun IoError::result_ok(value: Int): Result<Int, IoError> {
-    ret Ok(value)
-}
-
-@WasmName [name: "io_error_result_error"]
-@Required
-fun IoError::result_error(message: String, code: String): Result<Int, IoError> {
-    ret Err(IoError @[message, code])
-}

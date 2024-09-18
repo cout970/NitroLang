@@ -1,0 +1,139 @@
+
+mod math {
+    // E is Euler's number, the base of natural logarithms
+    let e: Float = 2.7182818284f
+
+    // sqrt(1/2) is the square root of 1/2
+    let sqrt1_2: Float = 0.7071067811f
+
+    // sqrt(2) is the square root of 2
+    let sqrt2: Float = 1.4142135623f
+
+    // Epsilon value for math functions
+    // This value is used to determine when to stop the series expansion
+    let epsilon: Float = 1e-7f
+
+    // Returns the base x raised to the power y.
+    fun pow(x: Float, y: Float): Float {
+        if x == 0f {
+            if y == 0f {
+                // Undefined 0^0
+                ret float_nan
+            }
+            if y > 0f {
+                ret 0f
+            }
+
+            // x == 0 and y < 0, division by zero
+            ret float_infinity
+        }
+
+        if x < 0f {
+            if y.is_integer() {
+                let y_int = y.to_int()
+                let result = math::exp(y * math::ln(-x))
+                if y_int % 2 == 0 {
+                    // Even exponent, result is positive
+                    ret result
+                } else {
+                    // Odd exponent, result is negative
+                    ret -result
+                }
+            }
+            // Negative base and non-integer exponent, undefined in real numbers
+            ret float_nan
+        }
+
+        ret math::exp(y * math::ln(x))
+    }
+
+    // Returns the square root of x
+    fun sqrt(x: Float): Float {
+        if x == 0f {
+            ret 0f
+        }
+        if x < 0f {
+            ret float_nan
+        }
+
+        let guess = x / 2.0f
+        repeat 100 {
+            let new_guess = 0.5f * (guess + x / guess)
+            if (new_guess - guess).abs() < math::epsilon {
+                break
+            }
+            guess = new_guess
+        }
+        ret guess
+    }
+
+    // Returns the cube root of x.
+    fun cbrt(x: Float): Float {
+        if x == 0f {
+            ret 0f
+        }
+
+        let guess = x / 3f
+        repeat 100 {
+            let new_guess = (2f * guess + x / (guess * guess)) / 3f
+            if (new_guess - guess).abs() < math::epsilon {
+                break
+            }
+            guess = new_guess
+        }
+        ret guess
+    }
+
+    // Returns e raised to the power x.
+    fun exp(x: Float): Float {
+        if x == 0f {
+            ret 1f
+        }
+        if x < 0f {
+            ret 1f / math::exp(-x)
+        }
+        if x > 1f {
+            let half_exp = math::exp(x / 2f)
+            ret half_exp * half_exp
+        }
+        // Series expansion for x in [0, 1]
+        let term = 1f
+        let sum = 1f
+        let i = 1f
+
+        while i < 20f {
+            term *= x / i
+            sum += term
+            if term.abs() < math::epsilon {
+                break
+            }
+            i += 1f
+        }
+        ret sum
+    }
+
+    // Returns e raised to the power x minus 1.
+    fun expm1(x: Float): Float {
+        if x.abs() > 1e-4f {
+            // For larger x, use math_exp(x) - 1
+            ret math::exp(x) - 1f
+        }
+        // For small x, use series expansion
+        let term = x
+        let sum = x
+        let x_power = x
+        let n = 2f
+
+        while n < 100f {
+            x_power *= x / n
+            term = x_power
+            sum += term
+            if term.abs() < math::epsilon {
+                break
+            }
+            n += 1f
+        }
+        ret sum
+    }
+
+}

@@ -527,12 +527,40 @@ fun String.trim_end(): String {
 }
 
 // Converts a string to lowercase but only for ASCII characters
-@Extern [lib: "core", name: "string_to_ascii_lowercase"]
-fun String.to_ascii_lowercase(): String {}
+fun String.to_ascii_lowercase(): String {
+    let buff = StringBuilder::new()
+
+    repeat bytes_len {
+        let byte = get_byte(it)
+        let value = byte.to_int()
+
+        if value >= 65 && value <= 90 {
+            buff.unsafe_add_utf8_byte((value + 32).to_byte())
+        } else {
+            buff.unsafe_add_utf8_byte(byte)
+        }
+    }
+
+    ret buff.to_string()
+}
 
 // Converts a string to uppercase but only for ASCII characters
-@Extern [lib: "core", name: "string_to_ascii_uppercase"]
-fun String.to_ascii_uppercase(): String {}
+fun String.to_ascii_uppercase(): String {
+    let buff = StringBuilder::new()
+
+    repeat bytes_len {
+        let byte = get_byte(it)
+        let value = byte.to_int()
+
+        if value >= 97 && value <= 122 {
+            buff.unsafe_add_utf8_byte((value - 32).to_byte())
+        } else {
+            buff.unsafe_add_utf8_byte(byte)
+        }
+    }
+
+    ret buff.to_string()
+}
 
 // Repeat a string a certain amount of times
 fun String.mul(amount: Int): String {
@@ -954,7 +982,7 @@ fun String.to_float(): Optional<Float> {
             cursor += 1
         }
 
-        result = result * Math::pow(10f, exponent * exponent_sign)
+        result = result * math::pow(10f, exponent * exponent_sign)
     }
 
     // End of the string: f or F

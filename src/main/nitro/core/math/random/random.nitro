@@ -1,7 +1,13 @@
 
 // Intrinsics function to ask the system for a random value to use as seed for the Random Number Generators
-@Extern [lib: "core", name: "random_get_initial_seed"]
-fun random_get_initial_seed(): Int {}
+fun random_get_initial_seed(): Int {
+    let bytes = runtime::get_random_bytes(4)
+    let a = bytes[0]!!.to_int()
+    let b = bytes[1]!!.to_int()
+    let c = bytes[2]!!.to_int()
+    let d = bytes[3]!!.to_int()
+    ret (a << 24) | (b << 16) | (c << 8) | d
+}
 
 // Random Number Generator based on a Permuted congruential generator (PCG) with 32-bit output
 struct RngPcg32 {

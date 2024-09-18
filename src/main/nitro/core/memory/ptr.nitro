@@ -1,7 +1,6 @@
 
 // Pointer to a single value stored in heap,
 // if the value is a @ValueType, the pointer itself will be the value
-@Extern [lib: "core", name: "Ptr"]
 @ValueType
 @Intrinsic
 struct Ptr<#Value> {}
@@ -15,7 +14,6 @@ struct UnknownPtr { }
 
 // Converts a reference to a value into a Pointer to the value
 // References are guaranteed to be valid, while pointers are just addresses to memory that can be manipulated
-@Extern [lib: "core", name: "ptr_ptr_of"]
 @WasmInline [opcode: "nop"]
 fun ptr_of(value: #Value): Ptr<#Value> {}
 
@@ -25,7 +23,6 @@ fun null_ptr<#Value>(): Ptr<#Value> {
 }
 
 // Create a pointer given a numerical address of memory
-@Extern [lib: "core", name: "ptr_ptr_from_address"]
 @WasmInline [opcode: "nop"]
 fun ptr_from_address<#Value>(address: Int): Ptr<#Value> {}
 
@@ -34,23 +31,19 @@ fun Ptr<#Value>.is_null(): Boolean = this.get_address().is_equal(0)
 
 // Converts the pointer into a reference
 // if the pointer is null, the program will crash
-@Extern [lib: "core", name: "ptr_as_ref"]
 @WasmInline [opcode: "nop"]
 fun Ptr<#Value>.unsafe_as_ref(): #Value {}
 
 // Convert the pointer to a numerical address of memory
-@Extern [lib: "core", name: "ptr_get_address"]
 @WasmInline [opcode: "nop"]
 fun Ptr<#Value>.get_address(): Int {}
 
 // Cast a pointer of one type to the pointer of another type
 // This operation is inherently unsafe and must be avoided as much as possible
-@Extern [lib: "core", name: "ptr_unsafe_cast"]
 @WasmInline [opcode: "nop"]
 fun <#Value, #Target> Ptr<#Value>.unsafe_cast(): Ptr<#Target> {}
 
 // Mix of unsafe_cast() and unsafe_as_ref()
-@Extern [lib: "core", name: "ptr_unsafe_cast_as_ref"]
 @WasmInline [opcode: "nop"]
 fun <#Value, #Target> Ptr<#Value>.unsafe_cast_as_ref(): #Target {}
 

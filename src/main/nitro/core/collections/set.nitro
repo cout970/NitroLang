@@ -11,7 +11,6 @@
 //     2 // The 2 will not be added to the set twice, since it already exists
 // ]
 // ```
-@Extern [lib: "core", name: "Set"]
 struct Set<#Item> {
     map: Map<#Item, Boolean>
 }

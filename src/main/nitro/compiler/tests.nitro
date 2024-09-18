@@ -5,7 +5,7 @@ let new_compiler: Boolean = false
 fun main() {
     let test = FilePath::new("tests/current_test.txt").read_text()!!.trim()
 
-    println("Compiling test: $test")
+    Log::info("Compiling test: $test")
     let file = FilePath::new("../../test/nitro/compiler/$test")
     let src = file.read_text()!!
 
@@ -51,7 +51,7 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     }
 
     let time_core = start_core.elapsed().to_milliseconds()
-    println("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+    Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
 
     // Include compiler
     let start_compiler = Instant::now()
@@ -67,7 +67,7 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     }
 
     let time_compiler = start_compiler.elapsed().to_milliseconds()
-    println("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
+    Log::info("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
 
     // Perform type checking
     let start_checking = Instant::now()
@@ -82,7 +82,7 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     }
 
     let time_checking = start_checking.elapsed().to_milliseconds()
-    println("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+    Log::info("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
 
     // Perform code generation
     let start_compiling = Instant::now()
@@ -97,10 +97,10 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     }
 
     let time_compiling = start_compiling.elapsed().to_milliseconds()
-    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+    Log::info("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
 
     FilePath::new("tests/program.debug").write_text(unit.program.to_string())!!
 
     let total_time = start_core.elapsed().to_milliseconds()
-    println("Total time: $total_time ms")
+    Log::info("Total time: $total_time ms")
 }

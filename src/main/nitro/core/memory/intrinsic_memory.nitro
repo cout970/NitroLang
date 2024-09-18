@@ -1,7 +1,6 @@
 
 // Gets a reference to the global memory used as a heap, located after the data section on the wasm memory
-@Extern [lib: "core", name: "memory_get_memory"]
-fun get_memory(): MemoryArena {}
+fun get_memory(): MemoryArena = ptr_from_address<MemoryArena>(4).unsafe_as_ref()
 
 // Intrinsic function that allocates a block of memory of the given size in bytes
 // used by the compiler to allocate memory when a struct instance is created
@@ -15,19 +14,10 @@ fun memory_free_internal(bytes: Int) {
     // No-op
 }
 
-// Intrinsic function that copies a chunk of memory to another location
-@Extern [lib: "core", name: "memory_copy_internal"]
+// Copies a chunk of memory to another location
 @WasmInline [opcode: "memory.copy"]
 fun memory_copy_internal(target: Int, source: Int, len: Int) {}
 
-@Extern [lib: "core", name: "memory_fill_internal"]
+// Fills a chunk of memory with a given value
 @WasmInline [opcode: "memory.fill"]
 fun memory_fill_internal(target: Int, value: Byte, len: Int) {}
-
-// Intrinsic function that tracks the memory allocated
-@Extern [lib: "core", name: "memory_alloc_trace"]
-fun memory_alloc_trace(amount: Int, ptr: Int) {}
-
-// Intrinsic function that handles out of memory errors
-@Extern [lib: "core", name: "memory_alloc_error"]
-fun memory_alloc_error(amount: Int, return_ptr: Int, capacity: Int, len: Int, bytes_ptr: Int) {}

@@ -86,13 +86,7 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
         ret None()
     }
 
-    let bytes: Array<Byte> = file_path.unsafe_debug_read_bytes()
-    let bytes_list = List @[
-        capacity: bytes.len,
-        count: bytes.len,
-        items: bytes
-    ]
-
+    let bytes_list: List<Byte> = file_path.read_bytes2()!!
     let buffer = ByteBuffer::new(bytes_list)
     buffer.start_read()
 
@@ -103,18 +97,18 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
     let cache_last_modified = buffer.reader.read_int_be()
 
     if cache_version != CACHE_VERSION {
-        println("Ignoring cache file: ${file.file_path.path}, invalid version: $cache_version")
+        Log::info("Ignoring cache file: ${file.file_path.path}, invalid version: $cache_version")
         ret None()
     }
 
     if cache_last_modified != file.last_modified {
-        println("Ignoring cache file: ${file.file_path.path}, last modified mismatch: ${file.last_modified} != $cache_last_modified")
+        Log::info("Ignoring cache file: ${file.file_path.path}, last modified mismatch: ${file.last_modified} != $cache_last_modified")
         ret None()
     }
 
     // If the last_modified is 0, it means it is not supported, so wee to check the CRC
     if file.last_modified == 0 && CRC32::from_string(file.source) != cache_crc {
-        println("Ignoring cache file: ${file.file_path.path}, CRC mismatch")
+        Log::info("Ignoring cache file: ${file.file_path.path}, CRC mismatch")
         ret None()
     }
 
@@ -127,11 +121,11 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
         let b = parsed_sub_program.to_string()
 
         if a != b {
-            println("Cache mismatch: ${file.file_path.path}")
-            println("Deserialized: $a")
-            println("-" * 80)
-            println("Parsed: $b")
-            println("-" * 80)
+            Log::info("Cache mismatch: ${file.file_path.path}")
+            Log::info("Deserialized: $a")
+            Log::info("-" * 80)
+            Log::info("Parsed: $b")
+            Log::info("-" * 80)
         }
 
         // More expensive cache checks
@@ -139,14 +133,14 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
 //        collector.diff(deserialized_sub_program, parsed_sub_program)
 //
 //        if collector.changes.is_not_empty() {
-//            println("Changes: ${collector.changes.len} at file ${file.path}")
+//            Log::info("Changes: ${collector.changes.len} at file ${file.path}")
 //            for c in collector.changes {
-//                println(c)
+//                Log::info(c)
 //            }
-//            println("-" * 80)
-//            println(deserialized_sub_program)
-//            println("-" * 80)
-//            println(parsed_sub_program)
+//            Log::info("-" * 80)
+//            Log::info(deserialized_sub_program)
+//            Log::info("-" * 80)
+//            Log::info(parsed_sub_program)
 //        }
     }
 
@@ -171,7 +165,10 @@ fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
     let bytes = buffer.finish_write()
     let file_path = get_cache_file_path(file.file_path.path)
 
-    file_path.unsafe_debug_write_bytes(bytes.items, bytes.len)
+    let res = file_path.write_bytes(bytes)
+    if res.is_err() {
+        crash("Failed to write cache file: ${file_path.path}: ${res.err}")
+    }
 }
 
 fun CompilationUnit.parse_file(file: IncludedFile): Program {
@@ -253,12 +250,10 @@ fun CompilationUnit.compile(output_path: FilePath) {
 
     // Temporary for debugging
     if backend.emitter.debug_print {
-        println(backend.emitter.debug_buffer.to_string())
+        Log::info(backend.emitter.debug_buffer.to_string())
     }
 
-    if !output_path.unsafe_debug_write_bytes(buffer.items, buffer.len) {
-        crash("Unable to write output.wasm")
-    }
+    output_path.write_bytes(buffer)!!
 }
 
 fun CompilationUnit.include_core() {
@@ -286,19 +281,19 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/debug/debug.nitro"), "debug/debug.nitro", root)
     add_source(include_as_string!("../core/debug/log.nitro"), "debug/log.nitro", root)
     add_source(include_as_string!("../core/debug/logger.nitro"), "debug/logger.nitro", root)
-    add_source(include_as_string!("../core/debug/runtime.nitro"), "debug/runtime.nitro", root)
     add_source(include_as_string!("../core/debug/trace.nitro"), "debug/trace.nitro", root)
     add_source(include_as_string!("../core/fs/file_metadata.nitro"), "fs/file_metadata.nitro", root)
     add_source(include_as_string!("../core/fs/file_path.nitro"), "fs/file_path.nitro", root)
     add_source(include_as_string!("../core/lang/annotations.nitro"), "lang/annotations.nitro", root)
     add_source(include_as_string!("../core/lang/intrinsic.nitro"), "lang/intrinsic.nitro", root)
-    add_source(include_as_string!("../core/math/constants.nitro"), "math/constants.nitro", root)
-    add_source(include_as_string!("../core/math/exponential_utils.nitro"), "math/exponential_utils.nitro", root)
-    add_source(include_as_string!("../core/math/random.nitro"), "math/random.nitro", root)
-    add_source(include_as_string!("../core/math/trigonometry_utils.nitro"), "math/trigonometry_utils.nitro", root)
-    add_source(include_as_string!("../core/math/hash/crc32.nitro"), "math/hash/crc32", root)
+    add_source(include_as_string!("../core/math/hash/crc32.nitro"), "math/hash/crc32.nitro", root)
+    add_source(include_as_string!("../core/math/random/random.nitro"), "math/random/random.nitro", root)
+    add_source(include_as_string!("../core/math/exponentiation.nitro"), "math/exponentiation.nitro", root)
+    add_source(include_as_string!("../core/math/logarithms.nitro"), "math/logarithms.nitro", root)
+    add_source(include_as_string!("../core/math/trigonometry.nitro"), "math/trigonometry.nitro", root)
     add_source(include_as_string!("../core/memory/array.nitro"), "memory/array.nitro", root)
     add_source(include_as_string!("../core/memory/bytes.nitro"), "memory/bytes.nitro", root)
+    add_source(include_as_string!("../core/memory/ffi.nitro"), "memory/ffi.nitro", root)
     add_source(include_as_string!("../core/memory/intrinsic_memory.nitro"), "memory/intrinsic_memory.nitro", root)
     add_source(include_as_string!("../core/memory/memory_allocator.nitro"), "memory/memory_allocator.nitro", root)
     add_source(include_as_string!("../core/memory/memory_arena.nitro"), "memory/memory_arena.nitro", root)
@@ -319,6 +314,8 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/string/string_builder.nitro"), "string/string_builder.nitro", root)
     add_source(include_as_string!("../core/time/duration.nitro"), "time/duration.nitro", root)
     add_source(include_as_string!("../core/time/instant.nitro"), "time/instant.nitro", root)
+    add_source(include_as_string!("../core/wasi/runtime.nitro"), "wasi/runtime.nitro", root)
+    add_source(include_as_string!("../core/wasi/wasi.nitro"), "wasi/wasi.nitro", root)
 }
 
 fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_path: Optional<String>) {
@@ -339,7 +336,7 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
     }
 
     let time_core = start_core.elapsed().to_milliseconds()
-    println("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+    Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
 
     // Include compiler
     let start_compiler = Instant::now()
@@ -355,7 +352,7 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
     }
 
    let time_compiler = start_compiler.elapsed().to_milliseconds()
-    println("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
+    Log::info("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
 
     // Perform type checking
     let start_checking = Instant::now()
@@ -370,7 +367,7 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
     }
 
     let time_checking = start_checking.elapsed().to_milliseconds()
-    println("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+    Log::info("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
 
     // Perform code generation
     let start_compiling = Instant::now()
@@ -385,10 +382,10 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
     }
 
     let time_compiling = start_compiling.elapsed().to_milliseconds()
-    println("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+    Log::info("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
 
 //    FilePath::new("debug.log").write_text(unit.program.to_string())!!
 
     let total_time = start_core.elapsed().to_milliseconds()
-    println("Total time: $total_time ms")
+    Log::info("Total time: $total_time ms")
 }

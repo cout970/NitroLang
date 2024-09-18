@@ -1,7 +1,6 @@
 
 // This type is used to represent a byte, a sequence of 8 bits, the minimal addressable unit of memory
 // Bytes are unsigned, meaning they can only represent positive values from 0 to 255
-@Extern [lib: "core", name: "Byte"]
 @ValueType
 @Intrinsic
 struct Byte {}

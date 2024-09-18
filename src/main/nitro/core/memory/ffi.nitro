@@ -1,0 +1,80 @@
+
+// TODO move to ffi
+// Pointer to a sequence of bytes, null-terminated, defined in the C standard
+type_alias CString = Ptr<Byte>
+
+// Pointer to a sequence of values of type T, defined in the C standard
+// Length of the array is not known, it is up to the user to keep track of it
+type_alias CArray<#T> = Ptr<#T>
+
+// Utility functions to interact with the C standard library
+mod ffi {
+
+    // Allocates a buffer of the given size
+    fun malloc(size: Int): Ptr<Byte> {
+        ret get_memory().alloc_bytes(size)
+    }
+
+    // Free the memory allocated by malloc
+    fun free(ptr: Ptr<Byte>) {
+        // no-op for now
+    }
+
+    // Returns the length of a null-terminated C string
+    fun cstring_len(cstring: CString): Int {
+        let len = 0
+        loop {
+            let ptr: BytePtr = cstring.offset_in_bytes(len).unsafe_cast_as_ref()
+            if ptr.value == 0.to_byte() {
+                break
+            }
+            len += 1
+        }
+        ret len
+    }
+
+    // Converts a null-terminated C string, encoded as utf8, into a Nitro string
+    fun cstring_to_string(cstring: CString): String {
+        let buff = StringBuilder::new()
+        let len = 0
+
+        loop {
+            let ptr: BytePtr = cstring.offset_in_bytes(len).unsafe_cast_as_ref()
+            if ptr.value == 0.to_byte() {
+                break
+            }
+
+            buff.unsafe_add_utf8_byte(ptr.value)
+            len += 1
+        }
+
+        ret buff.to_string()
+    }
+
+    // Converts a C slice (start and length) into a Nitro string
+    fun cslice_to_string(string_ptr: CString, string_len: Int): String {
+        let buff = StringBuilder::new()
+        let len = 0
+
+        while len < string_len {
+            let ptr: BytePtr = string_ptr.offset_in_bytes(len).unsafe_cast_as_ref()
+            buff.unsafe_add_utf8_byte(ptr.value)
+            len += 1
+        }
+
+        ret buff.to_string()
+    }
+
+    // Converts a Nitro string into a null-terminated C string, encoded as utf8
+    fun string_to_cstring(str: String): CString {
+        let len = str.bytes_len
+        let array = Array::new<Byte>(len + 1)
+
+        repeat len {
+            array[it] = str.utf8_data[it]
+        }
+
+        array[len] = 0.to_byte()
+        ret array.data_ptr
+    }
+}

@@ -7,25 +7,7 @@ option Optional<#Value> {
     Some { value: #Value }
 }
 
-/* TODO: Optimize this using intrinsics to decrease memory usage
-
-@Extern [lib: "core", name: "optional_some", autogenerate: true]
-fun Some(value: #Value): Optional<#Value> {}
-
-@Extern [lib: "core", name: "optional_none", autogenerate: true]
-fun None<#Value>(): Optional<#Value> {}
-
-@Extern [lib: "core", name: "optional_is_some", autogenerate: true]
-fun Optional<#Value>.is_some(): Boolean {}
-
-@Extern [lib: "core", name: "optional_is_none", autogenerate: true]
-fun Optional<#Value>.is_none(): Boolean {}
-
-@Extern [lib: "core", name: "optional_get_or_crash", autogenerate: true]
-fun Optional<#Value>.get_or_crash(): #Value {}
-
-*/
-
+/* TODO: Optimize this using intrinsics to decrease memory usage */
 
 // Creates an instance of the Some variant of the Optional type
 fun Some(value: #Value): Optional<#Value> {

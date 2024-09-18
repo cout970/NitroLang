@@ -3,7 +3,6 @@
 fun Parser.skip_token_kind(tk: TokenKind): Parsed<Nothing> {
     if lexer.current_token_kind != tk {
         lexer.print_debug_info()
-        Trace::print_stack_trace()
 
         ret parse_error_expected(ParseError::ExpectedToken, lexer.current_token, tk)
     }

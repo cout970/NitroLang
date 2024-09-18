@@ -2,7 +2,6 @@
 // Represents a function type, has a variable number of type parameters representing:
 // - 0 or more parameter types (including the receiver type)
 // - the last type parameter is the function return type
-@Extern [lib: "core", name: "Function"]
 @Intrinsic
 struct Function {}
 

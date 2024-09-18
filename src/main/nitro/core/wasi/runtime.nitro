@@ -1,0 +1,174 @@
+
+// This module provides utilities to extract information about the runtime environment
+mod runtime {
+
+    // Returns the list of arguments passed to the program
+    fun get_program_args(): List<String> {
+        let arg_count = IntPtr @[value: 0]
+        let argv_buf_size = IntPtr @[value: 0]
+
+        let rc = wasi::args_sizes_get(arg_count, argv_buf_size)
+        if rc != 0 {
+            crash("wasi::args_sizes_get failed: $rc")
+        }
+
+        let buff: CArray<Byte> = ffi::malloc(argv_buf_size.value)
+        defer ffi::free(buff)
+
+        let arg_vec = Array::new<CString>(arg_count.value)
+
+        let rc = wasi::args_get(arg_vec.data_ptr, buff)
+        if rc != 0 {
+            crash("wasi::args_get failed: $rc")
+        }
+
+        let args: List<String> = []
+
+        repeat arg_count.value {
+            let cstring: CString = arg_vec[it]
+            args[] = ffi::cstring_to_string(cstring)
+        }
+
+        ret args
+    }
+
+    // Returns a map of the environment variables
+    fun get_environment(): Map<String, String> {
+        let environ_count = IntPtr @[value: 0]
+        let environ_buf_size = IntPtr @[value: 0]
+
+        let rc = wasi::environ_sizes_get(environ_count, environ_buf_size)
+        if rc != 0 {
+            crash("wasi::environ_sizes_get failed: $rc")
+        }
+
+        let buff: CArray<Byte> = ffi::malloc(environ_buf_size.value)
+        defer ffi::free(buff)
+
+        let environ_vec = Array::new<CString>(environ_count.value)
+
+        let rc = wasi::environ_get(environ_vec.data_ptr, buff)
+        if rc != 0 {
+            crash("wasi::environ_get failed: $rc")
+        }
+
+        let env = #[]
+
+        repeat environ_count.value {
+            let cstring: CString = environ_vec[it]
+            let str = ffi::cstring_to_string(cstring)
+            let parts = str.split("=")
+
+            env[parts[0]!!] = parts[1]!!
+        }
+
+        ret env
+    }
+
+    // Returns an instant representing the current time, using the REALTIME clock,
+    // which is subject to NTP adjustments and tries to be as close to the wall-clock time as possible
+    fun get_realtime_instant(): Instant {
+        let time_ns = LongPtr@[value: 0L]
+        let rc = wasi::clock_time_get(wasi::CLOCK_REALTIME, 1_000_000_000L, time_ns)
+        if rc != 0 {
+            crash("wasi::clock_time_get failed: $rc")
+        }
+
+        ret Instant @[
+            seconds: time_ns.value / 1_000_000_000L,
+            nanoseconds: (time_ns.value % 1_000_000_000L).to_int(),
+        ]
+    }
+
+    // Returns a monotonic clock value in nanoseconds, meaning it will never go backwards and is not subject to clock adjustments
+    // This is useful for measuring time intervals and benchmarking
+    fun get_monotonic_timer_ns(): Long {
+        let time_ns = LongPtr@[value: 0L]
+        let rc = wasi::clock_time_get(wasi::CLOCK_MONOTONIC, 1_000_000_000L, time_ns)
+        if rc != 0 {
+            crash("wasi::clock_time_get failed: $rc")
+        }
+        ret time_ns.value
+    }
+
+    // Returns a list of random bytes with the given length
+    fun get_random_bytes(amount: Int): List<Byte> {
+        let buffer: CArray<Byte> = ffi::malloc(amount)
+        defer ffi::free(buffer)
+
+        let rc = wasi::random_get(buffer, amount)
+        if rc != 0 {
+            crash("wasi::random_get failed: $rc")
+        }
+        let list = []
+
+        repeat amount {
+            let ptr: BytePtr = buffer.offset_in_bytes(it).unsafe_cast_as_ref()
+            list[] = ptr.value
+        }
+
+        ret list
+    }
+
+    // Global memory to avoid allocations in stdout_write()
+    let stdout_write_no_alloc_iovec: wasi::IOVec = wasi::IOVec @[
+        buf: null_ptr<Byte>(),
+        buf_len: 0,
+    ]
+    let stdout_write_no_alloc_written: IntPtr = IntPtr @[value: 0]
+    let stdout_write_no_alloc_char: Array<Byte> = Array::new<Byte>(4)
+
+    // Write the given string to stdout, does not append a newline
+    fun stdout_write(str: String) {
+        stdout_write_no_alloc_iovec.buf = str.utf8_data.data_ptr
+        stdout_write_no_alloc_iovec.buf_len = str.bytes_len
+
+        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(stdout_write_no_alloc_iovec), 1, stdout_write_no_alloc_written)
+        if rc != 0 {
+            crash("wasi::fd_write failed")
+        }
+    }
+
+    fun stdout_write_char(unicode: Int) {
+        // `stdout_write_no_alloc_char` is a UTF-8 string with only one character
+        let char_len = when  {
+            unicode < 0x80 -> 1
+            unicode < 0x800 -> 2
+            unicode < 0x10000 -> 3
+            else -> 4
+        }
+
+        stdout_write_no_alloc_char[0] = when char_len {
+            1 -> unicode.to_byte()
+            2 -> (0xC0 | (unicode >> 6)).to_byte()
+            3 -> (0xE0 | (unicode >> 12)).to_byte()
+            else -> (0xF0 | (unicode >> 18)).to_byte()
+        }
+        stdout_write_no_alloc_char[1] = when char_len {
+            1 -> 0.to_byte()
+            2 -> (0x80 | (unicode & 0x3F)).to_byte()
+            3 -> (0x80 | ((unicode >> 6) & 0x3F)).to_byte()
+            else -> (0x80 | ((unicode >> 12) & 0x3F)).to_byte()
+        }
+        stdout_write_no_alloc_char[2] = when char_len {
+            1 -> 0.to_byte()
+            2 -> 0.to_byte()
+            3 -> (0x80 | (unicode & 0x3F)).to_byte()
+            else -> (0x80 | ((unicode >> 6) & 0x3F)).to_byte()
+        }
+        stdout_write_no_alloc_char[3] = when char_len {
+            1 -> 0.to_byte()
+            2 -> 0.to_byte()
+            3 -> 0.to_byte()
+            else -> (0x80 | (unicode & 0x3F)).to_byte()
+        }
+
+        stdout_write_no_alloc_iovec.buf = stdout_write_no_alloc_char.data_ptr
+        stdout_write_no_alloc_iovec.buf_len = char_len
+
+        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(stdout_write_no_alloc_iovec), 1, stdout_write_no_alloc_written)
+        if rc != 0 {
+            crash("wasi::fd_write failed")
+        }
+    }
+}

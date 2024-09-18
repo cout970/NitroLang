@@ -1,27 +1,42 @@
 
-struct Logger {}
+struct Logger {
+    min_level: LoggerLevel
+}
 
-@Extern [lib: "core", name: "logger_get_logger"]
-fun get_logger(): Logger {}
+let Internal::GLOBAL_LOGGER: Logger = Logger @[min_level: LoggerLevel::DEBUG]
+
+enum LoggerLevel {
+    TRACE,
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR,
+    FATAL
+}
+
+fun get_logger(): Logger = Internal::GLOBAL_LOGGER
 
 // Trace: The most fine-grained information only used in rare cases where you need the full visibility of what is going on
-fun Logger.trace(message: String) = this.log("trace", message)
+fun Logger.trace(message: String) = this.log(LoggerLevel::TRACE, message)
 
 // Debug: Less granular than trace but still useful to log information that can help debug an application
-fun Logger.debug(message: String) = this.log("debug", message)
+fun Logger.debug(message: String) = this.log(LoggerLevel::DEBUG, message)
 
 // Info: Informational messages that help understand what is going on inside the application
-fun Logger.info(message: String) = this.log("info", message)
+fun Logger.info(message: String) = this.log(LoggerLevel::INFO, message)
 
 // Warn: Unexpected events or problems that might affect the application, but are not serious by themselves
-fun Logger.warn(message: String) = this.log("warn", message)
+fun Logger.warn(message: String) = this.log(LoggerLevel::WARN, message)
 
 // Error: Other runtime errors or unexpected conditions that might cause the application to stop working properly
-fun Logger.error(message: String) = this.log("error", message)
+fun Logger.error(message: String) = this.log(LoggerLevel::ERROR, message)
 
 // Fatal: Severe errors that cause the application to abort
-fun Logger.fatal(message: String) = this.log("fatal", message)
+fun Logger.fatal(message: String) = this.log(LoggerLevel::FATAL, message)
 
 // Logs a message with the given level, one of: trace, debug, info, warn, error, fatal
-@Extern [lib: "core", name: "logger_log"]
-fun Logger.log(level: String, message: String) {}
+fun Logger.log(level: LoggerLevel, message: String) {
+    for line in message.split("\n") {
+        println("[${Instant::now().format_to_iso8601(0, false)}][$level] $line")
+    }
+}

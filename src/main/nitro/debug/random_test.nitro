@@ -1,14 +1,245 @@
 
+/*
 fun main() {
-    repeat 10 {
-        let i = it.to_float() * 0.1
-        println(i % 0.25)
-        println((i % 0.25).to_string())
-    }
+    let args = runtime::get_program_args()
+    let env = runtime::get_environment()
+    let time1 = runtime::get_realtime_instant()
+    let time2 = runtime::get_monotonic_timer_ns()
 
-    repeat 10 {
-        let i = 10f.pow(it.to_float() * 2f) + 0.21
-        println(i)
-        println(i.to_string())
-    }
+    Log::info("Hello, world!")
+    Log::info("args: $args")
+    Log::info("env: $env")
+    Log::info("time1: ${time1}")
+    Log::info("time2: ${time2}")
+
+    let time3 = Instant::from_iso8601(time1.format_to_iso8601(2 * 60, true))!!
+    Log::info("time3: ${time3.format_to_iso8601(2 * 60, true)}")
+
+    let rand = runtime::get_random_bytes(16)
+    Log::info("random: $rand")
+
+
+    Log::info("ABCdefGHIjkl|ñ|".to_ascii_uppercase())
+    Log::info("ABCdefGHIjkl|Ñ|".to_ascii_lowercase())
+
+//    let res = FilePath::new("./").read_directory_files()
+//    if res.is_err() {
+//        Log::info("error: ${res.get_err()}")
+//        return
+//    }
+//    let files = res!!
+//    Log::info("files:")
+//    for f in files {
+//        let fp = FilePath::new("./$f")
+//        if fp.is_directory()!! {
+//            Log::info("  $fp/")
+//        } else {
+//            Log::info("  $fp")
+//        }
+//    }
+
+//    let text = FilePath::new("./README.md").read_text()!!
+//    let res = FilePath::new("./out/README2.md").write_text(text)
+//    if res.is_err() {
+//        Log::info("error: ${res.err}")
+//        return
+//    }
+}
+*/
+
+//int main() {
+//    // Test math_sqrt
+//    printf("Testing math_sqrt:\n");
+//    printf("math_sqrt(4.0f) = %f (expected 2.0)\n", math_sqrt(4.0f));
+//    printf("math_sqrt(2.0f) = %f (expected ~1.4142)\n", math_sqrt(2.0f));
+//    printf("math_sqrt(0.0f) = %f (expected 0.0)\n", math_sqrt(0.0f));
+//
+//    // Test math_cbrt
+//    printf("\nTesting math_cbrt:\n");
+//    printf("math_cbrt(8.0f) = %f (expected 2.0)\n", math_cbrt(8.0f));
+//    printf("math_cbrt(-8.0f) = %f (expected -2.0)\n", math_cbrt(-8.0f));
+//    printf("math_cbrt(0.0f) = %f (expected 0.0)\n", math_cbrt(0.0f));
+//
+//    // Test math_exp
+//    printf("\nTesting math_exp:\n");
+//    printf("math_exp(0.0f) = %f (expected 1.0)\n", math_exp(0.0f));
+//    printf("math_exp(1.0f) = %f (expected ~2.71828)\n", math_exp(1.0f));
+//    printf("math_exp(-1.0f) = %f (expected ~0.36788)\n", math_exp(-1.0f));
+//
+//    // Test math_ln
+//    printf("\nTesting math_ln:\n");
+//    printf("math_ln(1.0f) = %f (expected 0.0)\n", math_ln(1.0f));
+//    printf("math_ln(2.71828f) = %f (expected ~1.0)\n", math_ln(2.71828f));
+//    printf("math_ln(0.5f) = %f (expected ~-0.69315)\n", math_ln(0.5f));
+//
+//    // Test math_pow
+//    printf("\nTesting math_pow:\n");
+//    printf("math_pow(2.0f, 3.0f) = %f (expected 8.0)\n", math_pow(2.0f, 3.0f));
+//    printf("math_pow(-2.0f, 3.0f) = %f (expected -8.0)\n", math_pow(-2.0f, 3.0f));
+//    printf("math_pow(-2.0f, 4.0f) = %f (expected 16.0)\n", math_pow(-2.0f, 4.0f));
+//    printf("math_pow(2.0f, -2.0f) = %f (expected 0.25)\n", math_pow(2.0f, -2.0f));
+//
+//    // Test math_log1p
+//    printf("\nTesting math_log1p:\n");
+//    printf("math_log1p(0.0f) = %f (expected 0.0)\n", math_log1p(0.0f));
+//    printf("math_log1p(1.0f) = %f (expected ~0.69315)\n", math_log1p(1.0f));
+//    printf("math_log1p(-0.5f) = %f (expected ~-0.69315)\n", math_log1p(-0.5f));
+//
+//    // Test math_log10
+//    printf("\nTesting math_log10:\n");
+//    printf("math_log10(1.0f) = %f (expected 0.0)\n", math_log10(1.0f));
+//    printf("math_log10(10.0f) = %f (expected 1.0)\n", math_log10(10.0f));
+//    printf("math_log10(100.0f) = %f (expected 2.0)\n", math_log10(100.0f));
+//
+//    // Test math_log2
+//    printf("\nTesting math_log2:\n");
+//    printf("math_log2(1.0f) = %f (expected 0.0)\n", math_log2(1.0f));
+//    printf("math_log2(2.0f) = %f (expected 1.0)\n", math_log2(2.0f));
+//    printf("math_log2(8.0f) = %f (expected 3.0)\n", math_log2(8.0f));
+//
+//    // Test math_expm1
+//    printf("\nTesting math_expm1:\n");
+//    printf("math_expm1(0.0f) = %f (expected 0.0)\n", math_expm1(0.0f));
+//    printf("math_expm1(1.0f) = %f (expected ~1.71828)\n", math_expm1(1.0f));
+//    printf("math_expm1(-1.0f) = %f (expected ~-0.63212)\n", math_expm1(-1.0f));
+//
+//    return 0;
+//}
+
+fun main() {
+    // Test math_sqrt
+    Log::info("Testing math_sqrt:")
+    Log::info("math_sqrt(4.0f) = ${math::sqrt(4.0f)} (expected 2.0)")
+    Log::info("math_sqrt(2.0f) = ${math::sqrt(2.0f)} (expected ~1.4142)")
+    Log::info("math_sqrt(0.0f) = ${math::sqrt(0.0f)} (expected 0.0)")
+
+    // Test math_cbrt
+    Log::info("\nTesting math_cbrt:")
+    Log::info("math_cbrt(8.0f) = ${math::cbrt(8.0f)} (expected 2.0)")
+    Log::info("math_cbrt(-8.0f) = ${math::cbrt(-8.0f)} (expected -2.0)")
+    Log::info("math_cbrt(0.0f) = ${math::cbrt(0.0f)} (expected 0.0)")
+
+    // Test math_exp
+    Log::info("\nTesting math_exp:")
+    Log::info("math_exp(0.0f) = ${math::exp(0.0f)} (expected 1.0)")
+    Log::info("math_exp(1.0f) = ${math::exp(1.0f)} (expected ~2.71828)")
+    Log::info("math_exp(-1.0f) = ${math::exp(-1.0f)} (expected ~0.36788)")
+
+    // Test math_ln
+    Log::info("\nTesting math_ln:")
+    Log::info("math_ln(1.0f) = ${math::ln(1.0f)} (expected 0.0)")
+    Log::info("math_ln(2.71828f) = ${math::ln(2.71828f)} (expected ~1.0)")
+    Log::info("math_ln(0.5f) = ${math::ln(0.5f)} (expected ~-0.69315)")
+
+    // Test math_pow
+    Log::info("\nTesting math_pow:")
+    Log::info("math_pow(2.0f, 3.0f) = ${math::pow(2.0f, 3.0f)} (expected 8.0)")
+    Log::info("math_pow(-2.0f, 3.0f) = ${math::pow(-2.0f, 3.0f)} (expected -8.0)")
+    Log::info("math_pow(-2.0f, 4.0f) = ${math::pow(-2.0f, 4.0f)} (expected 16.0)")
+
+    // Test math_log1p
+    Log::info("\nTesting math_log1p:")
+    Log::info("math_log1p(0.0f) = ${math::log1p(0.0f)} (expected 0.0)")
+    Log::info("math_log1p(1.0f) = ${math::log1p(1.0f)} (expected ~0.69315)")
+    Log::info("math_log1p(-0.5f) = ${math::log1p(-0.5f)} (expected ~-0.69315)")
+
+    // Test math_log10
+    Log::info("\nTesting math_log10:")
+    Log::info("math_log10(1.0f) = ${math::log10(1.0f)} (expected 0.0)")
+    Log::info("math_log10(10.0f) = ${math::log10(10.0f)} (expected 1.0)")
+    Log::info("math_log10(100.0f) = ${math::log10(100.0f)} (expected 2.0)")
+
+    // Test math_log2
+    Log::info("\nTesting math_log2:")
+    Log::info("math_log2(1.0f) = ${math::log2(1.0f)} (expected 0.0)")
+    Log::info("math_log2(2.0f) = ${math::log2(2.0f)} (expected 1.0)")
+    Log::info("math_log2(8.0f) = ${math::log2(8.0f)} (expected 3.0)")
+
+    // Test math_expm1
+    Log::info("\nTesting math_expm1:")
+    Log::info("math_expm1(0.0f) = ${math::expm1(0.0f)} (expected 0.0)")
+    Log::info("math_expm1(1.0f) = ${math::expm1(1.0f)} (expected ~1.71828)")
+    Log::info("math_expm1(-1.0f) = ${math::expm1(-1.0f)} (expected ~-0.63212)")
+
+    Log::info("\n--------------------------------------------------------------------------------\n")
+
+    // Test math_sin
+    Log::info("\nTesting math_sin:")
+    Log::info("math_sin(0.0f) = ${math::sin(0.0f)} (expected 0.0)")
+    Log::info("math_sin(${math::pi_2}) = ${math::sin(math::pi_2)} (expected 1.0)")
+    Log::info("math_sin(${math::pi}) = ${math::sin(math::pi)} (expected 0.0)")
+
+    // Test math_cos
+    Log::info("\nTesting math_cos:")
+    Log::info("math_cos(0.0f) = ${math::cos(0.0f)} (expected 1.0)")
+    Log::info("math_cos(${math::pi_2}) = ${math::cos(math::pi_2)} (expected 0.0)")
+    Log::info("math_cos(${math::pi}) = ${math::cos(math::pi)} (expected -1.0)")
+
+    // Test math_sinh
+    Log::info("\nTesting math_sinh:")
+    Log::info("math_sinh(0.0f) = ${math::sinh(0.0f)} (expected 0.0)")
+    Log::info("math_sinh(1.0f) = ${math::sinh(1.0f)} (expected ~1.1752)")
+    Log::info("math_sinh(-1.0f) = ${math::sinh(-1.0f)} (expected ~-1.1752)")
+
+    // Test math_cosh
+    Log::info("\nTesting math_cosh:")
+    Log::info("math_cosh(0.0f) = ${math::cosh(0.0f)} (expected 1.0)")
+    Log::info("math_cosh(1.0f) = ${math::cosh(1.0f)} (expected ~1.5431)")
+    Log::info("math_cosh(-1.0f) = ${math::cosh(-1.0f)} (expected ~1.5431)")
+
+    // Test math_asin
+    Log::info("\nTesting math_asin:")
+    Log::info("math_asin(0.0f) = ${math::asin(0.0f)} (expected 0.0)")
+    Log::info("math_asin(1.0f) = ${math::asin(1.0f)} (expected ${math::pi_2})")
+    Log::info("math_asin(-1.0f) = ${math::asin(-1.0f)} (expected ${-math::pi_2})")
+
+    // Test math_acos
+    Log::info("\nTesting math_acos:")
+    Log::info("math_acos(1.0f) = ${math::acos(1.0f)} (expected 0.0)")
+    Log::info("math_acos(0.0f) = ${math::acos(0.0f)} (expected ${math::pi_2})")
+    Log::info("math_acos(-1.0f) = ${math::acos(-1.0f)} (expected ${math::pi})")
+
+    // Test math_asinh
+    Log::info("\nTesting math_asinh:")
+    Log::info("math_asinh(0.0f) = ${math::asinh(0.0f)} (expected 0.0)")
+    Log::info("math_asinh(1.0f) = ${math::asinh(1.0f)} (expected ~0.8814)")
+    Log::info("math_asinh(-1.0f) = ${math::asinh(-1.0f)} (expected ~-0.8814)")
+
+    // Test math_acosh
+    Log::info("\nTesting math_acosh:")
+    Log::info("math_acosh(1.0f) = ${math::acosh(1.0f)} (expected 0.0)")
+    Log::info("math_acosh(2.0f) = ${math::acosh(2.0f)} (expected ~1.31696)")
+    Log::info("math_acosh(3.0f) = ${math::acosh(3.0f)} (expected ~1.76275)")
+
+    // Test math_tan
+    Log::info("\nTesting math_tan:")
+    Log::info("math_tan(0.0f) = ${math::tan(0.0f)} (expected 0.0)")
+    Log::info("math_tan(${math::pi_4}) = ${math::tan(math::pi_4)} (expected 1.0)")
+    Log::info("math_tan(${math::pi}) = ${math::tan(math::pi)} (expected 0.0)")
+
+    // Test math_tanh
+    Log::info("\nTesting math_tanh:")
+    Log::info("math_tanh(0.0f) = ${math::tanh(0.0f)} (expected 0.0)")
+    Log::info("math_tanh(1.0f) = ${math::tanh(1.0f)} (expected ~0.76159)")
+    Log::info("math_tanh(-1.0f) = ${math::tanh(-1.0f)} (expected ~-0.76159)")
+
+    // Test math_atan
+    Log::info("\nTesting math_atan:")
+    Log::info("math_atan(0.0f) = ${math::atan(0.0f)} (expected 0.0)")
+    Log::info("math_atan(1.0f) = ${math::atan(1.0f)} (expected ~0.785398)")
+    Log::info("math_atan(-1.0f) = ${math::atan(-1.0f)} (expected ~-0.785398)")
+    Log::info("math_atan(10.0f) = ${math::atan(10.0f)} (expected ~1.471128)")
+    Log::info("math_atan(-10.0f) = ${math::atan(-10.0f)} (expected ~-1.471128)")
+
+    // Test math_atanh
+    Log::info("\nTesting math_atanh:")
+    Log::info("math_atanh(0.0f) = ${math::atanh(0.0f)} (expected 0.0)")
+    Log::info("math_atanh(0.5f) = ${math::atanh(0.5f)} (expected ~0.5493)")
+    Log::info("math_atanh(-0.5f) = ${math::atanh(-0.5f)} (expected ~-0.5493)")
+
+    // Test math_atan2
+    Log::info("\nTesting math_atan2:")
+    Log::info("math_atan2(0.0f, 1.0f) = ${math::atan2(0.0f, 1.0f)} (expected 0.0)")
+    Log::info("math_atan2(1.0f, 1.0f) = ${math::atan2(1.0f, 1.0f)} (expected ${math::pi_4})")
+    Log::info("math_atan2(-1.0f, -1.0f) = ${math::atan2(-1.0f, -1.0f)} (expected ${-3f * math::pi_4})")
 }

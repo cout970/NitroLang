@@ -3,17 +3,17 @@
 # switch to the root directory
 cd "$(dirname "$0")"
 
-# detect is deno is installed
-if ! command -v deno &> /dev/null
+# detect is wasmer is installed
+if ! command -v wasmer &> /dev/null
 then
-    echo "Command 'deno' not found, please install https://deno.com/"
+    echo "Command 'wasmer' not found, please install https://wasmer.io/"
     exit
 fi
 
-input=$(realpath "$1")
+input="$1"
 shift
-output=$(realpath "out/tmp_program.wasm")
-cache=$(realpath "out/cache0")
+output="out/tmp_program.wasm"
+cache="out/cache0"
 compiler=$(realpath "releases/$(cat releases/latest.txt)")
 
 mkdir -p "$cache"
@@ -25,7 +25,7 @@ function log {
 }
 
 log "Compiling $input"
-src/main/resources/runtimes/deno_compiler.ts "file://$compiler" "$input" "$output" "$cache" || exit -1
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" "$compiler" -- "$input" "$output" "$cache"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -33,7 +33,7 @@ if [ ! -f "$output" ]; then
 fi
 
 log "Running $input"
-src/main/resources/runtimes/deno_compiler.ts "file://$output" "$@" || exit -1
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" "$output" -- "$@" || exit -1
 
 # Clean up temporary file
 rm "$output"

@@ -1,0 +1,86 @@
+
+// This module provides functions for calculating logarithms.
+mod math {
+
+    // // ln(10) is the natural logarithm of 10
+    let ln10: Float = 2.3025850930f
+
+    // ln(2) is the natural logarithm of 2
+    let ln2: Float = 0.69314718056f
+
+    // log10(e) is the base 10 logarithm of e
+    let log10e: Float = 0.4342944819f
+
+    // log2(e) is the base 2 logarithm of e
+    let log2e: Float = 1.4426950408f
+
+    // Returns the natural logarithm (base e) of x.
+    fun ln(x: Float): Float {
+        if x <= 0f {
+            ret float_nan
+        }
+        if x == 1f {
+            ret 0f
+        }
+        if x > 2f {
+            ret math::ln(x / 2f) + math::ln2
+        }
+        if (x < 1.0f) {
+            ret -math::ln(1f / x)
+        }
+        // Series expansion for x in [1, 2]
+        let y = (x - 1f) / (x + 1f)
+        let y2 = y * y
+        let sum = y
+        let term = y
+        let i = 3f
+        while i < 100f {
+            term *= y2
+            sum += term / i
+            if (term / i).abs() < math::epsilon {
+                break
+            }
+            i += 2f
+        }
+        ret 2f * sum
+    }
+
+    // Alias for math::ln(x)
+    fun log(x: Float): Float = math::ln(x)
+
+    // Returns the natural logarithm (base e) of 1 + x for a number x.
+    fun log1p(x: Float): Float {
+        if x <= -1.0f {
+            // Error handling: log of zero or negative number
+            ret float_nan
+        }
+
+        if x.abs() > 1e-4f {
+            // For larger x, use math_ln(1 + x)
+            ret math::ln(1.0f + x)
+        }
+
+        // For small x, use series expansion
+        let term = x
+        let sum = x
+        let x_power = x
+        let n = 2f
+        while n < 100f {
+            x_power *= -x
+            term = x_power / n
+            sum += term
+            if term.abs() < math::epsilon {
+                break
+            }
+            n += 1f
+        }
+        ret sum
+    }
+
+    // Returns the base 10 logarithm of x.
+    fun log10(x: Float): Float = math::ln(x) / math::ln10
+
+    // Returns the base 2 logarithm of x
+    fun log2(x: Float): Float = math::ln(x) / math::ln2
+
+}

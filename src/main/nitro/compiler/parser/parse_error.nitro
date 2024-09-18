@@ -39,7 +39,7 @@ fun parse_error(kind: ParseError, token: Token): Parsed<#Ast> {
         token,
         expected: None(),
         info: None(),
-        stack_trace: Trace::get_stack_trace(),
+        stack_trace: [], // TODO
     ]
 }
 
@@ -49,7 +49,7 @@ fun parse_error_expected(kind: ParseError, token: Token, expected_token: TokenKi
         token,
         expected: Some(expected_token),
         info: None(),
-        stack_trace: Trace::get_stack_trace(),
+        stack_trace: [], // TODO
     ]
 }
 
@@ -59,7 +59,7 @@ fun parse_error_with_info(kind: ParseError, token: Token, message: String): Pars
         token,
         expected: None(),
         info: Some(message),
-        stack_trace: Trace::get_stack_trace(),
+        stack_trace: [], // TODO
     ]
 }
 

@@ -5,9 +5,18 @@ struct Instant {
     nanoseconds: Int
 }
 
+struct CalendarInstant {
+    year: Int
+    month: Int
+    day: Int
+    hour: Int
+    minute: Int
+    second: Int
+    nanosecond: Int
+}
+
 // Return the current instant
-@Extern [lib: "core", name: "instant_now"]
-fun Instant::now(): Instant {}
+fun Instant::now(): Instant = runtime::get_realtime_instant()
 
 // Return the instant from the unix timestamp in seconds
 fun Instant::from_unix_timestamp(seconds: Long): Instant {
@@ -78,9 +87,7 @@ fun Instant.get_ordering(other: Instant): Ordering {
     }
 }
 
-
-// Format an instant as an ISO 8601 string, with an optional timezone offset and can optionally display nanoseconds
-fun Instant.format_to_iso8601(timezone_offset_minutes: Int, show_nanoseconds: Boolean): String {
+fun Instant.to_calendar_instant(timezone_offset_minutes: Int): CalendarInstant {
     let timestamp: Long = this.seconds
     let seconds_per_day = 86400L
     let seconds_per_hour = 3600
@@ -159,24 +166,77 @@ fun Instant.format_to_iso8601(timezone_offset_minutes: Int, show_nanoseconds: Bo
     let human_day: Int = days.to_int() + 1
     let human_month: Int = months + 1
 
-    // Format the ISO 8601 string
+    ret CalendarInstant @[
+        year: years,
+        month: human_month,
+        day: human_day,
+        hour: hours,
+        minute: minutes,
+        second: seconds,
+        nanosecond: this.nanoseconds,
+    ]
+}
+
+// Format an instant as an RFC 3339 string, with an optional timezone offset and can optionally display nanoseconds
+// 2024-09-15 23:58:01Z
+fun Instant.format_to_rfc3339(timezone_offset_minutes: Int, show_nanoseconds: Boolean): String {
+    let calendar = this.to_calendar_instant(timezone_offset_minutes)
     let buf = StringBuilder::new()
 
-    buf.add_int_with_pad(years, 4)
+    buf.add_int_with_pad(calendar.year, 4)
     buf[] = "-"
-    buf.add_int_with_pad(human_month, 2)
+    buf.add_int_with_pad(calendar.month, 2)
     buf[] = "-"
-    buf.add_int_with_pad(human_day, 2)
-    buf[] = "T"
-    buf.add_int_with_pad(hours, 2)
+    buf.add_int_with_pad(calendar.day, 2)
+    buf[] = " "
+    buf.add_int_with_pad(calendar.hour, 2)
     buf[] = ":"
-    buf.add_int_with_pad(minutes, 2)
+    buf.add_int_with_pad(calendar.minute, 2)
     buf[] = ":"
-    buf.add_int_with_pad(seconds, 2)
+    buf.add_int_with_pad(calendar.second, 2)
 
     if show_nanoseconds {
         buf[] = "."
-        buf.add_int_with_pad(this.nanoseconds, 9)
+        buf.add_int_with_pad(calendar.nanosecond, 9)
+    }
+
+    if timezone_offset_minutes == 0 {
+        buf[] = "Z"
+    } else {
+        let sign = if timezone_offset_minutes < 0 { "-" } else { "+" }
+        let hours = timezone_offset_minutes / 60
+        let minutes = timezone_offset_minutes % 60
+
+        buf[] = sign
+        buf.add_int_with_pad(hours, 2)
+        buf[] = ":"
+        buf.add_int_with_pad(minutes, 2)
+    }
+
+    ret buf.to_string()
+}
+
+// Format an instant as an ISO 8601 string, with an optional timezone offset and can optionally display nanoseconds
+// 2024-09-15T23:58:01Z
+fun Instant.format_to_iso8601(timezone_offset_minutes: Int, show_nanoseconds: Boolean): String {
+    let calendar = this.to_calendar_instant(timezone_offset_minutes)
+    let buf = StringBuilder::new()
+
+    buf.add_int_with_pad(calendar.year, 4)
+    buf[] = "-"
+    buf.add_int_with_pad(calendar.month, 2)
+    buf[] = "-"
+    buf.add_int_with_pad(calendar.day, 2)
+    buf[] = "T"
+    buf.add_int_with_pad(calendar.hour, 2)
+    buf[] = ":"
+    buf.add_int_with_pad(calendar.minute, 2)
+    buf[] = ":"
+    buf.add_int_with_pad(calendar.second, 2)
+
+    if show_nanoseconds {
+        buf[] = "."
+        buf.add_int_with_pad(calendar.nanosecond, 9)
     }
 
     if timezone_offset_minutes == 0 {

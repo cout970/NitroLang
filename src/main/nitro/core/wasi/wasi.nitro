@@ -1,0 +1,363 @@
+
+// https://wasix.org/docs/api-reference
+// https://github.com/WebAssembly/WASI/blob/main/legacy/preview1/docs.md
+// https://github.com/nodejs/uvwasi?tab=readme-ov-file#path_open
+mod wasi {
+    // 0 means success, other values are error codes
+    typealias ResultCode = Int
+
+    // Unix time in seconds
+    typealias Timestamp = Long
+
+    let FD_STDIN: Int = 0
+    let FD_STDOUT: Int = 1
+    let FD_STDERR: Int = 2
+    let FC_PREOPENED: Int = 3
+
+    // The right to invoke fd_datasync. If path_open is set, includes the right to invoke path_open with FDFLAGS_DSYNC.
+    let RIGHTS_FD_DATA_SYNC: Long = 1L << 0L
+    // The right to invoke fd_read and sock_recv. If RIGHTS_FD_SEEK is set, includes the right to invoke fd_pread.
+    let RIGHTS_FD_READ: Long = 1L << 1L
+    // The right to invoke fd_seek. This flag implies RIGHTS_FD_TELL.
+    let RIGHTS_FD_SEEK: Long = 1L << 2L
+    // The right to invoke fd_fdstat_set_flags.
+    let RIGHTS_FD_FDSTAT_SET_FLAGS: Long = 1L << 3L
+    // The right to invoke fd_sync. If path_open is set, includes the right to invoke path_open with FDFLAGS_RSYNC and FDFLAGS_DSYNC.
+    let RIGHTS_FD_SYNC: Long = 1L << 4L
+    // The right to invoke fd_seek in such a way that the file offset remains unaltered (i.e., whence::cur with offset zero), or to invoke fd_tell.
+    let RIGHTS_FD_TELL: Long = 1L << 5L
+    // The right to invoke fd_write and sock_send. If RIGHTS_FD_SEEK is set, includes the right to invoke fd_pwrite.
+    let RIGHTS_FD_WRITE: Long = 1L << 6L
+    // The right to invoke fd_advise.
+    let RIGHTS_FD_ADVISE: Long = 1L << 7L
+    // The right to invoke fd_allocate.
+    let RIGHTS_FD_ALLOCATE: Long = 1L << 8L
+    // The right to invoke path_create_directory.
+    let RIGHTS_PATH_CREATE_DIRECTORY: Long = 1L << 9L
+    // If path_open is set, the right to invoke path_open with OFLAGS_CREATE.
+    let RIGHTS_PATH_CREATE_FILE: Long = 1L << 10L
+    // The right to invoke path_link with the file descriptor as the source directory.
+    let RIGHTS_PATH_LINK_SOURCE: Long = 1L << 11L
+    // The right to invoke path_link with the file descriptor as the target directory.
+    let RIGHTS_PATH_LINK_TARGET: Long = 1L << 12L
+    // The right to invoke path_open.
+    let RIGHTS_PATH_OPEN: Long = 1L << 13L
+    // The right to invoke fd_readdir.
+    let RIGHTS_FD_READDIR: Long = 1L << 14L
+    // The right to invoke path_readlink.
+    let RIGHTS_PATH_READLINK: Long = 1L << 15L
+    // The right to invoke path_rename with the file descriptor as the source directory.
+    let RIGHTS_PATH_RENAME_SOURCE: Long = 1L << 16L
+    // The right to invoke path_rename with the file descriptor as the target directory.
+    let RIGHTS_PATH_RENAME_TARGET: Long = 1L << 17L
+    // The right to invoke path_filestat_get.
+    let RIGHTS_PATH_FILESTAT_GET: Long = 1L << 18L
+
+    let WHENCE_CUR: Int = 0
+    let WHENCE_END: Int = 1
+    let WHENCE_SET: Int = 2
+
+    let DIRFLAGS_NONE: Int = 0
+    let DIRFLAGS_SYMLINK_FOLLOW: Int = 1
+
+    let OFLAGS_NONE: Int = 0
+    let OFLAGS_CREATE: Int = 1
+    let OFLAGS_DIRECTORY: Int = 2
+    let OFLAGS_EXCLUSIVE: Int = 4
+    let OFLAGS_TRUNCATE: Int = 8
+
+    let FDFLAGS_NONE: Int = 0
+    let FDFLAGS_APPEND: Int = 1
+    let FDFLAGS_DSYNC: Int = 2
+    let FDFLAGS_NONBLOCK: Int = 4
+    let FDFLAGS_RSYNC: Int = 8
+    let FDFLAGS_SYNC: Int = 16
+
+    // File metadata
+    struct FileStat {
+        dev: Long,
+        ino: Long,
+        filetype: Byte,
+        pad1: Byte,
+        pad2: Byte,
+        pad3: Byte,
+        pad4: Byte,
+        pad5: Byte,
+        pad6: Byte,
+        pad7: Byte,
+        nlink: Long,
+        size: Long,
+        atim: wasi::Timestamp,
+        mtim: wasi::Timestamp,
+        ctim: wasi::Timestamp,
+    }
+
+    // File descriptor metadata
+    struct FdStat {
+        fs_filetype: Int,
+        fs_rights_base: Int,
+        fs_rights_inheriting: Int,
+        fs_flags: Int,
+    }
+
+    // Pre-opened file descriptor metadata
+    struct PreStat {
+        pr_type: Int,
+        pr_name_len: Int,
+    }
+
+    // Struct to represent a buffer of bytes and its length
+    struct IOVec {
+        buf: Ptr<Byte>,
+        buf_len: Int,
+    }
+
+    // Struct to represent a directory entry
+    struct Dirent {
+        d_next: Long,
+        d_ino: Long,
+        d_namlen: Int,
+        d_type: Int,
+    }
+
+    enum ErrorCode {
+        Success
+        Error2big
+        ErrorAcces
+        ErrorAddrinuse
+        ErrorAddrnotavail
+        ErrorAfnosupport
+        ErrorAgain
+        ErrorAlready
+        ErrorBadf
+        ErrorBadmsg
+        ErrorBusy
+        ErrorCanceled
+        ErrorChild
+        ErrorConnaborted
+        ErrorConnrefused
+        ErrorConnreset
+        ErrorDeadlk
+        ErrorDestaddrreq
+        ErrorDom
+        ErrorDquot
+        ErrorExist
+        ErrorFault
+        ErrorFbig
+        ErrorHostunreach
+        ErrorIdrm
+        ErrorIlseq
+        ErrorInprogress
+        ErrorIntr
+        ErrorInval
+        ErrorIo
+        ErrorIsconn
+        ErrorIsdir
+        ErrorLoop
+        ErrorMfile
+        ErrorMlink
+        ErrorMsgsize
+        ErrorMultihop
+        ErrorNametoolong
+        ErrorNetdown
+        ErrorNetreset
+        ErrorNetunreach
+        ErrorNfile
+        ErrorNobufs
+        ErrorNodev
+        ErrorNoent
+        ErrorNoexec
+        ErrorNolck
+        ErrorNolink
+        ErrorNomem
+        ErrorNomsg
+        ErrorNoprotoopt
+        ErrorNospc
+        ErrorNosys
+        ErrorNotconn
+        ErrorNotdir
+        ErrorNotempty
+        ErrorNotrecoverable
+        ErrorNotsock
+        ErrorNotsup
+        ErrorNotty
+        ErrorNxio
+        ErrorOverflow
+        ErrorOwnerdead
+        ErrorPerm
+        ErrorPipe
+        ErrorProto
+        ErrorProtonosupport
+        ErrorPrototype
+        ErrorRange
+        ErrorRofs
+        ErrorSpipe
+        ErrorSrch
+        ErrorStale
+        ErrorTimedout
+        ErrorTxtbsy
+        ErrorXdev
+        ErrorNotcapable
+    }
+
+    // Read command-line argument data.
+    // The args_get() function is used to read the command-line argument data provided to the WebAssembly module.
+    // The sizes of the buffers should match the values returned by the args_sizes_get() function.
+    @Extern [lib: "wasi_snapshot_preview1", name: "args_get"]
+    fun args_get(arg_start_vec: CArray<CString>, arg_buffer: CArray<Byte>): wasi::ResultCode {}
+
+    // Return command-line argument data sizes.
+    // The args_sizes_get() function is used to retrieve the sizes of the command-line argument data provided to the WebAssembly module.
+    // arg_count contains the number of arguments, and arg_buffer_size contains the size of the buffer required to store the arguments.
+    // use args_get():
+    //  -   with a buffer of size `arg_count` * size_of(Ptr<CString>), this will store the starting address of each argument
+    //  -   with a buffer of size `arg_buffer_size` to store the actual argument data
+    @Extern [lib: "wasi_snapshot_preview1", name: "args_sizes_get"]
+    fun args_sizes_get(arg_count: IntPtr, arg_buffer_size: IntPtr): wasi::ResultCode {}
+
+    // Read environment variable data.
+    // The environ_get() function is used to read the environment variable data. It writes the environment variable pointers and string data to the specified buffers.
+    // The sizes of the buffers should match the values returned by the environ_sizes_get() function.
+    @Extern [lib: "wasi_snapshot_preview1", name: "environ_get"]
+    fun environ_get(environ_start_vec: CArray<CString>, environ_buffer: CArray<Byte>): wasi::ResultCode {}
+
+    // Return environment variable data sizes.
+    // The environ_sizes_get() function is used to retrieve the sizes of the environment variable data.
+    // It returns the number of environment variables and the size of the environment variable string data.
+    @Extern [lib: "wasi_snapshot_preview1", name: "environ_sizes_get"]
+    fun environ_sizes_get(environ_count: IntPtr, environ_buffer_size: IntPtr): wasi::ResultCode {}
+
+    // Default clocks available in WASI
+    let CLOCK_REALTIME: Int = 0
+    let CLOCK_MONOTONIC: Int = 1
+    let CLOCK_PROCESS_CPU_TIME: Int = 2
+    let CLOCK_THREAD_CPU_TIME: Int = 3
+
+    // Get the resolution of the specified clock.
+    // The clock_res_get() function is used to retrieve the resolution of the specified clock.
+    // It returns the resolution of the clock in nanoseconds.
+    @Extern [lib: "wasi_snapshot_preview1", name: "clock_time_get"]
+    fun clock_res_get(clock_id: Int, resolution: IntPtr): wasi::ResultCode {}
+
+    // Get the time of the specified clock.
+    // The clock_time_get() function is used to retrieve the time of the specified clock.
+    // It returns the value of the clock in nanoseconds.
+    @Extern [lib: "wasi_snapshot_preview1", name: "clock_time_get"]
+    fun clock_time_get(clock_id: Int, max_error_allowed: Long, time_ns: LongPtr): wasi::ResultCode {}
+
+    // Fill a buffer with high-quality random data. This function may be slow and block.
+    // The random_get() function is used to fill a buffer with high-quality random data.
+    // It takes a pointer to a buffer and the number of bytes to be written as input.
+    // The function will generate random bytes and write them to the specified buffer.
+    @Extern [lib: "wasi_snapshot_preview1", name: "random_get"]
+    fun random_get(buffer: CArray<Byte>, len: Int): wasi::ResultCode {}
+
+    // Create a directory at a path.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_create_directory"]
+    fun path_create_directory(fd: Int, path: CString, path_len: Int): wasi::ResultCode {}
+
+    // Access metadata about a file or directory.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_filestat_get"]
+    fun path_filestat_get(fd: Int, flags: Int, path: CString, path_len: Int, buf: Ptr<wasi::FileStat>): wasi::ResultCode {}
+
+    // Update time metadata on a file or directory.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_filestat_set_times"]
+    fun path_filestat_set_times(fd: Int, flags: Int, path: CString, path_len: Int, st_atim: wasi::Timestamp, st_mtim: wasi::Timestamp, fst_flags: Int): wasi::ResultCode {}
+
+    // Create a hard link.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_link"]
+    fun path_link(old_fd: Int, old_flags: Int, old_path: CString, old_path_len: Int, new_fd: Int, new_path: CString, new_path_len: Int): wasi::ResultCode {}
+
+    // Open a file located at the given path.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_open"]
+    fun path_open(dir_fd: Int, dirflags: Int, path: CString, path_len: Int, oflags: Int, fs_rights_base: Long, fs_rights_inheriting: Long, fs_flags: Int, fd: IntPtr): wasi::ResultCode {}
+
+    // Read the value of a symlink.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_readlink"]
+    fun path_readlink(fd: Int, path: CString, path_len: Int, buf: CString, buf_len: Int, buf_used: IntPtr): wasi::ResultCode {}
+
+    // Remove a directory.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_remove_directory"]
+    fun path_remove_directory(fd: Int, path: CString, path_len: Int): wasi::ResultCode {}
+
+    // Rename a file or directory.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_rename"]
+    fun path_rename(old_fd: Int, old_path: CString, old_path_len: Int, new_fd: Int, new_path: CString, new_path_len: Int): wasi::ResultCode {}
+
+    // Create a symlink.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_symlink"]
+    fun path_symlink(old_path: CString, old_path_len: Int, fd: Int, new_path: CString, new_path_len: Int): wasi::ResultCode {}
+
+    // Unlink a file, deleting it if the number of hardlinks is 1.
+    @Extern [lib: "wasi_snapshot_preview1", name: "path_unlink_file"]
+    fun path_unlink_file(fd: Int, path: CString, path_len: Int): wasi::ResultCode {}
+
+    // Terminate the process normally. An exit code of 0 indicates successful termination of the program.
+    // The meanings of other values are dependent on the environment.
+    @Extern [lib: "wasi_snapshot_preview1", name: "proc_exit"]
+    fun proc_exit(exit_status: Int) {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_advise"]
+    fun fd_advise(fd: Int, offset: Long, len: Long, advice: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_allocate"]
+    fun fd_allocate(fd: Int, offset: Long, len: Long): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_close"]
+    fun fd_close(fd: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_datasync"]
+    fun fd_datasync(fd: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_fdstat_get"]
+    fun fd_fdstat_get(fd: Int, buf: Ptr<wasi::FdStat>): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_fdstat_set_flags"]
+    fun fd_fdstat_set_flags(fd: Int, flags: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_fdstat_set_rights"]
+    fun fd_fdstat_set_rights(fd: Int, fs_rights_base: Int, fs_rights_inheriting: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_filestat_get"]
+    fun fd_filestat_get(fd: Int, buf: Ptr<wasi::FileStat>): wasi::ResultCode {}
+
+    // Change the size of an open file, zeroing out any new bytes.
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_filestat_set_size"]
+    fun fd_filestat_set_size(fd: Int, size: Long): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_filestat_set_times"]
+    fun fd_filestat_set_times(fd: Int, st_atim: wasi::Timestamp, st_mtim: wasi::Timestamp, fst_flags: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_pread"]
+    fun fd_pread(fd: Int, iovs: Ptr<wasi::IOVec>, iovs_len: Int, offset: Long, nread: IntPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_prestat_get"]
+    fun fd_prestat_get(fd: Int, buf: Ptr<wasi::PreStat>): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_prestat_dir_name"]
+    fun fd_prestat_dir_name(fd: Int, path: CString, path_len: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_pwrite"]
+    fun fd_pwrite(fd: Int, iovs: Ptr<wasi::IOVec>, iovs_len: Int, offset: Long, nwritten: IntPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_read"]
+    fun fd_read(fd: Int, iovs: Ptr<wasi::IOVec>, iovs_len: Int, nread: IntPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_readdir"]
+    fun fd_readdir(fd: Int, buf: Ptr<Byte>, buf_len: Int, cookie: Long, buf_used: IntPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_renumber"]
+    fun fd_renumber(fd: Int, to: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_seek"]
+    fun fd_seek(fd: Int, offset: Long, whence: Int, new_offset: LongPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_sync"]
+    fun fd_sync(fd: Int): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_tell"]
+    fun fd_tell(fd: Int, new_offset: IntPtr): wasi::ResultCode {}
+
+    @Extern [lib: "wasi_snapshot_preview1", name: "fd_write"]
+    fun fd_write(fd: Int, iovs: Ptr<wasi::IOVec>, iovs_len: Int, nwritten: IntPtr): wasi::ResultCode {}
+}

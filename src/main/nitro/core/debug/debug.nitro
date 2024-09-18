@@ -9,24 +9,10 @@ let debug_mode: DebugMode = DebugMode @[enable: false]
 fun println() = println("")
 
 // String argument
-@Extern [lib: "core", name: "println_string"]
-fun println(i: String) {}
-
-// Int argument
-@Extern [lib: "core", name: "println_int"]
-fun println(i: Int) {}
-
-// Long argument
-@Extern [lib: "core", name: "println_long"]
-fun println(i: Long) {}
-
-// Float argument
-@Extern [lib: "core", name: "println_float"]
-fun println(i: Float) {}
-
-// Boolean argument
-@Extern [lib: "core", name: "println_boolean"]
-fun println(i: Boolean) {}
+fun println(i: String) {
+    runtime::stdout_write(i)
+    runtime::stdout_write("\n")
+}
 
 // Nothing
 fun println(i: Nothing) = println("nothing")

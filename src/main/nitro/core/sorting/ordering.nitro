@@ -62,10 +62,6 @@ fun <#Value: GetOrdering> min(a: #Value, b: #Value): #Value {
     ret if a > b { b } else { a }
 }
 
-// Internal function for comparing two strings using the current locale and user preferences
-@Extern [lib: "core", name: "string_get_ordering_internal"]
-fun Internal::get_ordering_internal(a: String, b: String): Int {}
-
 // Utility function for converting an integer (-1, 0, 1) to an ordering
 fun Int.to_ordering(): Ordering {
     ret when {

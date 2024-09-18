@@ -26,7 +26,8 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     // Check we are out-of-memory
     if end.greater_than_signed(base_end) {
         // Error handled in native code, since we don't have enough memory to generate a stacktrace
-        memory_alloc_error(amount, start, capacity, len, base_start)
+        runtime::stdout_write("Out of memory\n")
+        unreachable()
     }
 
     ret ptr_from_address(start)
@@ -95,5 +96,80 @@ fun format_bytes(amount: Int): String {
 }
 
 // Prints the contents of the heap to the console, for debugging purposes
-@Extern [lib: "core", name: "memory_dump"]
-fun MemoryArena.dump() {}
+fun MemoryArena.dump() {
+    // Note: this implementation must not allocate memory, since it can be used to dump the main memory
+    // and we don't want to modify the memory while dumping it
+    let digits = "0123456789ABCDEF"
+    let max_columns = 16
+    let total_len = len
+    let start = 0
+
+    repeat total_len {
+        let column = it % max_columns
+
+        if column == 0 {
+            start = it
+            let address = bytes.data_ptr.address + it
+            let a = digits.get_byte(address & 0x0F).to_int()
+            let b = digits.get_byte((address >> 4) & 0x0F).to_int()
+            let c = digits.get_byte((address >> 8) & 0x0F).to_int()
+            let d = digits.get_byte((address >> 12) & 0x0F).to_int()
+            let e = digits.get_byte((address >> 16) & 0x0F).to_int()
+            let f = digits.get_byte((address >> 20) & 0x0F).to_int()
+            let g = digits.get_byte((address >> 24) & 0x0F).to_int()
+            let h = digits.get_byte((address >> 28) & 0x0F).to_int()
+
+            runtime::stdout_write("0x")
+            runtime::stdout_write_char(h)
+            runtime::stdout_write_char(g)
+            runtime::stdout_write_char(f)
+            runtime::stdout_write_char(e)
+            runtime::stdout_write_char(d)
+            runtime::stdout_write_char(c)
+            runtime::stdout_write_char(b)
+            runtime::stdout_write_char(a)
+            runtime::stdout_write(": ")
+        }
+
+        let byte = bytes[it]
+        let a = digits.get_byte(byte.to_int() >> 4).to_int()
+        let b = digits.get_byte(byte.to_int() & 0x0F).to_int()
+
+        runtime::stdout_write_char(a)
+        runtime::stdout_write_char(b)
+        runtime::stdout_write(" ")
+
+        if column == max_columns - 1 {
+            let read = it - start
+
+            repeat read {
+                let byte = bytes[start + it].to_int()
+
+                if byte >= 32 && byte <= 126 {
+                    runtime::stdout_write_char(byte)
+                } else {
+                    runtime::stdout_write(".")
+                }
+            }
+
+            runtime::stdout_write("\n")
+        }
+    }
+
+    let remaining_holes = max_columns - (total_len % max_columns)
+    repeat remaining_holes {
+        runtime::stdout_write("   ")
+    }
+
+    repeat total_len - start {
+        let byte = bytes[start + it].to_int()
+
+        if byte >= 32 && byte <= 126 {
+            runtime::stdout_write_char(byte)
+        } else {
+            runtime::stdout_write(".")
+        }
+    }
+
+    runtime::stdout_write("\n")
+}

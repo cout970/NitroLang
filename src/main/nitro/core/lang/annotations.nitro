@@ -15,7 +15,7 @@
 // the compiler will replace the function call with the instruction
 
 // @Required
-// Marks a function to be excluded from the dead code elimination process
+// Marks a function to be excluded from the dead code elimination process, so it can be called from outside
 
 // @Intrinsic
 // Marks a type or function that has special handling in the compiler

@@ -21,7 +21,6 @@
 //     (hash_of(item)): 4,
 // ]
 // ```
-@Extern [lib: "core", name: "Map"]
 struct Map<#Key, #Value> {
     capacity: Int
     count: Int

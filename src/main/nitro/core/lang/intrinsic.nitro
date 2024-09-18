@@ -3,11 +3,3 @@
 fun size_of_value(value: #Value): Int {
     ret size_of<#Value>()
 }
-
-// Internal function called by the compiler validate type casts in runtime
-//@Extern [lib: "core", name: "as_type_internal"]
-//fun as_type_internal(ptr_to_value: Int, type_id: Int): Int {}
-
-// Internal function called by the compiler check the type of a value in runtime
-//@Extern [lib: "core", name: "is_type_internal"]
-//fun is_type_internal(ptr_to_value: Int, type_id: Int): Boolean {}
