@@ -1,10 +1,13 @@
 include "./includes.nitro"
 
-let new_compiler: Boolean = false
-
 fun main() {
-    println("New compiler: $new_compiler")
+    println("Bootstrap")
 
-    CompilationUnit::compile_all("src/main/nitro/compiler/main.nitro", "out/compiler_v0.wasm", Some("out/cache"))
+    let prog = ProgramArgs::new()
+    prog.input: "src/main/nitro/compiler/main.nitro",
+    prog.output: "out/compiler_v0.wasm",
+    prog.cache_dir: Some("out/cache"),
+
+    CompilationUnit::compile_all(prog)
 }
 

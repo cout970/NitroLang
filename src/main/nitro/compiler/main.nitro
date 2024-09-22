@@ -1,82 +1,177 @@
 include "./includes.nitro"
 
-let new_compiler: Boolean = true
-
-// TODO CLI interface
 // TODO run inline tests
 // TODO generate extern types for typescript
 
-fun main() {
-    println("New compiler: $new_compiler")
-
-    let args = runtime::get_program_args()
-    let input = args[1].get_or_default("src/main/nitro/compiler/main.nitro")
-    let output = args[2].get_or_default("output.wasm")
-    let cache = args[3]
-
-    println("Input: $input")
-    println("Output: $output")
-    println("Cache: $cache")
-
-    CompilationUnit::compile_all(input, output, cache)
+struct ProgramArgs {
+    input: String,
+    output: String,
+    cache_dir: Optional<String>,
+    module_paths: Map<String, String>,
+    core_path: Optional<String>,
+    no_core_lib: Boolean,
 }
 
-// TMP
-// Reads the bytes from the file, all at once
-fun FilePath.read_bytes2(): Result<List<Byte>, IoError> {
-    let cpath = ffi::string_to_cstring(path)
-    defer ffi::free(cpath)
-
-    let file_fd = IntPtr@[value: 0]
-
-    let rights = wasi::RIGHTS_FD_READ | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL
-    let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
-        wasi::OFLAGS_NONE, rights, rights,
-        wasi::FDFLAGS_NONE, file_fd
-    )
-    if rc != 0 {
-        ret Err(IoError @[
-            message: "read_bytes: wasi::path_open failed '$path'",
-            code: wasi::ErrorCode::from_variant(rc)!!.to_string()
-        ])
-    }
-
-    let mem_buff = Array::new<Byte>(4096)
-    let nread = IntPtr@[value: 0]
-
-    let iovec = wasi::IOVec @[
-        buf: mem_buff.data_ptr,
-        buf_len: mem_buff.len,
+fun ProgramArgs::new(): ProgramArgs {
+    ret ProgramArgs @[
+        input: "",
+        output: "output.wasm",
+        cache_dir: None(),
+        module_paths: #[],
+        core_path: None(),
+        no_core_lib: false,
     ]
+}
 
-    let bytes = []
+fun main() {
+    let args = runtime::get_program_args()
 
-    loop {
-        let rc = wasi::fd_read(file_fd.value, ptr_of(iovec), 1, nread)
-        if rc != 0 {
-            ret Err(IoError @[
-                message: "read_bytes: wasi::fd_read failed '$path'",
-                code: wasi::ErrorCode::from_variant(rc)!!.to_string()
-            ])
+    let i = 0
+    let program_path = args[i]!!
+    i += 1
+
+    let prog = ProgramArgs::new()
+
+    // Process args
+    while i < args.len {
+        let arg = args[i]!!
+
+        if arg == "--help" {
+            Log::info("Usage: compiler <input> -o <output> --cache-dir <cache>")
+            ret
         }
 
-        if nread.value == 0 {
-            break
+        if arg == "--version" {
+            Log::info("Nitro Compiler v0.0.7")
+            ret
         }
 
-        repeat nread.value {
-            bytes[] = mem_buff[it]
+        if arg == "--cache-dir" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing cache directory")
+                ret
+            }
+
+            let cache_dir = args[i]!!
+            i += 1
+            prog.cache_dir = Some(cache_dir)
+            continue
         }
+
+        if arg == "--no-core" {
+            prog.no_core_lib = true
+            i += 1
+            continue
+        }
+
+        if arg == "--core-path" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing core path")
+                ret
+            }
+
+            let core_path = args[i]!!
+            i += 1
+
+            prog.core_path = Some(core_path)
+            continue
+        }
+
+        if arg == "-m" || arg == "--mod" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing module definitions")
+                Log::info("Help: --mod <name>:<path>")
+                Log::info("e.g. --mod math:./math.nitro")
+                ret
+            }
+
+            let mod_def = args[i]!!
+            i += 1
+
+            let split = mod_def.index_of(":")
+            if split.is_none() {
+                Log::error("Invalid module definition: $mod_def")
+                Log::info("Help: --mod <name>:<path>")
+                Log::info("e.g. --mod math:./math.nitro")
+                ret
+            }
+            let name = mod_def.substring(0, split!!)
+            let path = mod_def.substring(split!! + 1, mod_def.bytes_len)
+
+            if name == "" || path == "" {
+                Log::error("Invalid module definition: $mod_def")
+                Log::info("Help: --mod <name>:<path>")
+                Log::info("e.g. --mod math:./math.nitro")
+                ret
+            }
+
+            prog.module_paths[name] = path
+            continue
+        }
+
+        if arg == "-o" || arg == "--output" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing output file")
+                ret
+            }
+
+            let output = args[i]!!
+            i += 1
+            prog.output = output
+            continue
+        }
+
+        if prog.input == "" {
+            i += 1
+            prog.input = arg
+            continue
+        }
+
+        Log::error("Unknown argument: $arg")
+        ret
     }
 
-    let rc = wasi::fd_close(file_fd.value)
-    if rc != 0 {
-        ret Err(IoError @[
-            message: "read_bytes: wasi::fd_close failed '$path'",
-            code: wasi::ErrorCode::from_variant(rc)!!.to_string(),
-        ])
+    // Validate args
+    if prog.input == "" {
+        Log::error("Missing input file")
+        Log::info("Help: create a main.nitro file and run 'nitro main.nitro'")
+        Log::info("Example main.nitro:")
+        Log::info("```nitro")
+        Log::info("fun main() {")
+        Log::info("    println(\"Hello, World!\")")
+        Log::info("}")
+        Log::info("```")
+        ret
     }
 
-    ret Ok(bytes)
+    let input_path = FilePath::new(prog.input)
+    let meta = input_path.get_metadata()
+
+    if meta.is_err() {
+        Log::error("Error reading input file '${prog.input}': $meta")
+        ret
+    }
+
+    if meta!!.file_type != FileType::RegularFile {
+        Log::error("Input is not a regular file '${prog.input}'")
+        ret
+    }
+
+    if meta!!.size == 0L {
+        Log::error("Input file is empty '${prog.input}'")
+        ret
+    }
+
+    println("Compiling ${prog.input} to ${prog.output}")
+
+    // Perform compilation
+    CompilationUnit::compile_all(prog)
 }

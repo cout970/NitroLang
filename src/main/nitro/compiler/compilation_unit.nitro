@@ -13,6 +13,7 @@ struct CompilationUnit {
     type_checker: TypeChecker
     backend: WasmBackend
     cache_path: Optional<String>
+    core_path: Optional<String>
     verify_cache: Boolean
 }
 
@@ -33,6 +34,7 @@ fun CompilationUnit::new(): CompilationUnit {
         type_checker: TypeChecker::new(reporter, program, types),
         backend: WasmBackend::new(reporter, program),
         cache_path: None(),
+        core_path: None(),
         verify_cache: false,
     ]
 }
@@ -86,7 +88,7 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
         ret None()
     }
 
-    let bytes_list: List<Byte> = file_path.read_bytes2()!!
+    let bytes_list: List<Byte> = file_path.read_bytes()!!
     let buffer = ByteBuffer::new(bytes_list)
     buffer.start_read()
 
@@ -257,7 +259,15 @@ fun CompilationUnit.compile(output_path: FilePath) {
 }
 
 fun CompilationUnit.include_core() {
-    let root = "src/main/nitro/core/includes.nitro"
+    // If specified, use the core path provided
+    if core_path.is_some() {
+        module_paths["core"] = FilePath::directory_name(core_path!!)
+        add_file(IncludedFile::new(core_path!!, "core"))
+        ret
+    }
+
+    // Otherwise, use the embedded core library in the executable
+    let root = "src/main/nitro/core/core.nitro"
     module_paths["core"] = "src/main/nitro/core"
     add_source(include_as_string!("../core/collections/array_deque.nitro"), "collections/array_deque.nitro", root)
     add_source(include_as_string!("../core/collections/array_deque_iterator.nitro"), "collections/array_deque_iterator.nitro", root)
@@ -287,12 +297,14 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/lang/annotations.nitro"), "lang/annotations.nitro", root)
     add_source(include_as_string!("../core/lang/intrinsic.nitro"), "lang/intrinsic.nitro", root)
     add_source(include_as_string!("../core/math/hash/crc32.nitro"), "math/hash/crc32.nitro", root)
+    add_source(include_as_string!("../core/math/hash/md5.nitro"), "math/hash/md5.nitro", root)
     add_source(include_as_string!("../core/math/random/random.nitro"), "math/random/random.nitro", root)
     add_source(include_as_string!("../core/math/exponentiation.nitro"), "math/exponentiation.nitro", root)
     add_source(include_as_string!("../core/math/logarithms.nitro"), "math/logarithms.nitro", root)
     add_source(include_as_string!("../core/math/trigonometry.nitro"), "math/trigonometry.nitro", root)
     add_source(include_as_string!("../core/memory/array.nitro"), "memory/array.nitro", root)
     add_source(include_as_string!("../core/memory/bytes.nitro"), "memory/bytes.nitro", root)
+    add_source(include_as_string!("../core/memory/encoding.nitro"), "memory/encoding.nitro", root)
     add_source(include_as_string!("../core/memory/ffi.nitro"), "memory/ffi.nitro", root)
     add_source(include_as_string!("../core/memory/intrinsic_memory.nitro"), "memory/intrinsic_memory.nitro", root)
     add_source(include_as_string!("../core/memory/memory_allocator.nitro"), "memory/memory_allocator.nitro", root)
@@ -318,29 +330,39 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/wasi/wasi.nitro"), "wasi/wasi.nitro", root)
 }
 
-fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_path: Optional<String>) {
+fun CompilationUnit::compile_all(args: ProgramArgs) {
+    let start_compile_all = Instant::now()
     let unit = CompilationUnit::new()
-    unit.cache_path = cache_path
+    unit.cache_path = args.cache_dir
+    unit.core_path = args.core_path
 
-    // Include core library
-    let start_core = Instant::now()
-    unit.include_core()
-    unit.parse()
 
-    // Parse errors
-    if unit.reporter.has_reports() {
-        if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+    if !args.no_core_lib {
+        // Include core library
+        let start_core = Instant::now()
+        unit.include_core()
+        unit.parse()
+
+        // Parse errors
+        if unit.reporter.has_reports() {
+            if !unit.reporter.immediate_output {
+                unit.reporter.report_errors()
+            }
+            ret
         }
-        ret
+
+        let time_core = start_core.elapsed().to_milliseconds()
+        Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
     }
 
-    let time_core = start_core.elapsed().to_milliseconds()
-    Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+    // Copy module paths
+    for pair in args.module_paths {
+        unit.module_paths[pair.key] = pair.value
+    }
 
     // Include compiler
     let start_compiler = Instant::now()
-    unit.add_file(input_path, "compiler")
+    unit.add_file(args.input, "mod")
     unit.parse()
 
     // Parse errors
@@ -371,7 +393,7 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
 
     // Perform code generation
     let start_compiling = Instant::now()
-    unit.compile(FilePath::new(output_path))
+    unit.compile(FilePath::new(args.output))
 
     // Final errors
     if unit.reporter.has_reports() {
@@ -384,8 +406,6 @@ fun CompilationUnit::compile_all(input_path: String, output_path: String, cache_
     let time_compiling = start_compiling.elapsed().to_milliseconds()
     Log::info("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
 
-//    FilePath::new("debug.log").write_text(unit.program.to_string())!!
-
-    let total_time = start_core.elapsed().to_milliseconds()
+    let total_time = start_compile_all.elapsed().to_milliseconds()
     Log::info("Total time: $total_time ms")
 }

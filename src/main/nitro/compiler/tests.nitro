@@ -1,6 +1,5 @@
 
 include "./includes.nitro"
-let new_compiler: Boolean = false
 
 fun main() {
     let test = FilePath::new("tests/current_test.txt").read_text()!!.trim()
