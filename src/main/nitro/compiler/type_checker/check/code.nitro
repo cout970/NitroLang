@@ -83,8 +83,6 @@ fun TypeChecker.check_code(code: NCode) {
 }
 
 fun TypeChecker.finalize_code(code: NCode) {
-//    println("Finalizing code at ${code.span}")
-
     // Sanity check
     for i in code.inst_list {
         check(i.type_token.is_some()) @{ "All instructions must have a type: $i\n$code" }
@@ -253,33 +251,35 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
                 explicit_type_arguments: [],
                 call_site: None(),
             ]
-        } else {
-            // Replace with get_ordering(left, right).<method>()
-            let index = code.index_of_inst(inst.id)!!
-            code.duplicate_inst(index)
-            let get_ordering = code.inst_list[index]!!
-            let fun_call = code.inst_list[index + 1]!!
-
-            get_ordering.type_token = None()
-            get_ordering.kind = NInstKind::FunCall @[
-                path: "",
-                name: "get_ordering",
-                explicit_receiver: true,
-                arguments: [kind.left, kind.right],
-                explicit_type_arguments: [],
-                call_site: None(),
-            ]
-
-            fun_call.type_token = None()
-            fun_call.kind = NInstKind::FunCall @[
-                path: "",
-                name: kind.op.method,
-                explicit_receiver: true,
-                arguments: [get_ordering.id],
-                explicit_type_arguments: [],
-                call_site: None(),
-            ]
+            ret
         }
+
+        // Replace with get_ordering(left, right).<method>()
+        let index = code.index_of_inst(inst.id)!!
+        code.duplicate_inst(index)
+        let get_ordering = code.inst_list[index]!!
+        let fun_call = code.inst_list[index + 1]!!
+
+        get_ordering.type_token = None()
+        get_ordering.kind = NInstKind::FunCall @[
+            path: "",
+            name: "get_ordering",
+            explicit_receiver: true,
+            arguments: [kind.left, kind.right],
+            explicit_type_arguments: [],
+            call_site: None(),
+        ]
+
+        fun_call.type_token = None()
+        fun_call.kind = NInstKind::FunCall @[
+            path: "",
+            name: kind.op.method,
+            explicit_receiver: true,
+            arguments: [get_ordering.id],
+            explicit_type_arguments: [],
+            call_site: None(),
+        ]
+        ret
     }
 
     if inst.kind is NInstKind::FunCall {

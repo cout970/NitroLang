@@ -121,6 +121,28 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
         if inst.kind is NInstKind::IfChoose {
             let kind = inst.kind as NInstKind::IfChoose
+
+            // the branches can be 'return', 'break' or 'continue', on those canses 'select' will fail
+            let missing_if_true = func.inst_final_types[kind.if_true]!!.is_never()
+            let missing_if_false = func.inst_final_types[kind.if_false]!!.is_never()
+
+            if missing_if_true && missing_if_false {
+                // Both branches are dropped, no need to push the value
+                continue
+            }
+
+            if missing_if_true {
+                push(kind.if_false, map)
+                pop(inst.id, map)
+                continue
+            }
+
+            if missing_if_false {
+                push(kind.if_true, map)
+                pop(inst.id, map)
+                continue
+            }
+
             push(kind.if_true, map)
             push(kind.if_false, map)
             push(kind.condition, map)

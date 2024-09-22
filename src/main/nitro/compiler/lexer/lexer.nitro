@@ -281,6 +281,14 @@ fun Lexer.next(): Boolean {
         }
         // QUESTION_MARK    '?'
         c0 == a"?" -> {
+            let c1: Int = next_byte
+
+            if c1 == a"?" {
+                add_token(TokenKind::QUESTION_QUESTION)
+                cur += 2
+                ret true
+            }
+
             add_token(TokenKind::QUESTION_MARK)
             cur += 1
         }

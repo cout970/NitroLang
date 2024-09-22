@@ -49,6 +49,7 @@ enum TokenKind {
     DIV_ASSIGN @[text: "/=", len: 2]
     MOD_ASSIGN @[text: "%=", len: 2]
     QUESTION_MARK @[text: "?", len: 1]
+    QUESTION_QUESTION @[text: "??", len: 2]
     UNDERSCORE @[text: "_", len: 1]
     DOT @[text: ".", len: 1]
     LPAREN @[text: "(", len: 1]

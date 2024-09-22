@@ -11,9 +11,11 @@
 // E.g. result?
 // expressionWithSuffix
 //     : expressionWithSuffix QUESTION_MARK
+//     | expressionWithSuffix QUESTION_QUESTION expression
 //     | expressionWithSuffix BANGBANG
 //     | expressionWithSuffix LBRACKET RBRACKET expressionAssignmentEnd
 //     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET
+//     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET BANGBANG
 //     | expressionWithSuffix LBRACKET NL* expression NL* (COMMA NL* expression NL*)* RBRACKET expressionAssignmentEnd
 //     | expressionWithSuffix NL? DOT anyName
 //     | expressionWithSuffix NL? DOT anyName expressionAssignmentEnd
@@ -58,6 +60,27 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
 
             let call3 = code.add_fun_call(span, "", "get_or_crash", true, [last], [])
             last = call3.id
+            continue
+        }
+
+        if lexer.current_token_kind == TokenKind::QUESTION_QUESTION {
+            // `last ?? default`
+            // Becomes:
+            // ```
+            // if last.is_returnable_error() { default } else { last.get_or_crash() }
+            // ```
+
+            lexer.next_token()
+            let call = code.add_fun_call(span, "", "is_returnable_error", true, [last], [])
+
+            code.add_if_start(span, call.id)
+            let if_true = read_expression(code)?
+            code.add_if_else(span)
+            let if_false = code.add_fun_call(span, "", "get_or_crash", true, [last], []).id
+            code.add_if_end(span)
+
+            let choose = code.add_if_choose(span, call.id, if_true, if_false)
+            last = choose.id
             continue
         }
 
@@ -136,7 +159,15 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
 
             // Not an operator, just getting the value
             if op.is_none() || !allow_expression_assignment {
-                let call = code.add_fun_call(span, "", "get", true, args, [])
+                let func = "get"
+
+                // Special case `list[x]!!` becomes `list.unsafe_get(x)` instead of `list.get(x)!!`
+                if lexer.current_token_kind == TokenKind::BANGBANG {
+                    lexer.next_token()
+                    func = "unsafe_get"
+                }
+
+                let call = code.add_fun_call(span, "", func, true, args, [])
                 last = call.id
                 continue
             }

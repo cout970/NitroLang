@@ -25,7 +25,7 @@ option NInstKind {
     }
     IfElse {}
     IfEnd {}
-    IfChoose  {
+    IfChoose {
         condition: NInstId
         if_true: NInstId
         if_false: NInstId

@@ -34,8 +34,6 @@ fun TypeChecker.check_inst_load_var(kind: NInstKind::LoadVar, inst: NInst, code:
         ret
     }
 
-    crash("Variable not found '$full_name'\n${inst.span}\n$code")
-
     // Not found
     let error = create_error_type("Variable not found '$full_name'", inst.span).to_token()
     inst.type_token = Some(error)

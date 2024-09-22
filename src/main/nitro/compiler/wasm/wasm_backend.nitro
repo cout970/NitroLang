@@ -70,6 +70,10 @@ fun WasmBackend.compile_program() {
     }
 
     if main.is_none() {
+        Log::error("Main function not found!")
+        for f in program.functions {
+            Log::info(" - ${f.full_name}")
+        }
         crash("Main function not found!")
     }
 
