@@ -29,8 +29,7 @@ cache2="out/cache4"
 
 function cleanup() {
     # Clean up temporary file
-    mv "$output" "out/compiler_v0.wasm"
-    rm -f "$output2"
+    rm -f "$output"
 }
 
 function fail() {
@@ -48,7 +47,7 @@ function log {
 }
 
 log "Compiling compiler $compiler"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" || fail "Compilation failed"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -59,11 +58,9 @@ mkdir -p "$cache"
 
 log "Running compiler $output"
 wasm2wat -o "$output.wat" "$output"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --cache-dir "$cache2" --core-path src/main/nitro/core/core.nitro  || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --cache-dir "$cache2"
 
-log "Running program $output2"
-wasm2wat --no-check -o "$output2.wat" "$output2"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@"
+log "Generating $output2.wat"
+wasm2wat -o "$output2.wat" "$output2"
 
-cleanup
 log "Success"

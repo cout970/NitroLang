@@ -25,7 +25,9 @@ function log {
 }
 
 log "Compiling $input"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" "$compiler" -- "$input" "$output" "$cache"
+wasmer run \
+  --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" \
+  "$compiler" -- "$input" -o "$output" --cache-dir "$cache"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -33,7 +35,9 @@ if [ ! -f "$output" ]; then
 fi
 
 log "Running $input"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" "$output" -- "$@" || exit -1
+wasmer run \
+  --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" \
+   "$output" -- "$@" || exit -1
 
 # Clean up temporary file
 rm "$output"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-version="0.0.5"
+version="0.0.7"
 
 cp "out/compiler_v0.wasm" "releases/compiler_v$version.wasm"
 
