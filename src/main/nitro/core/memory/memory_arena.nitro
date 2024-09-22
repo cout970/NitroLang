@@ -26,8 +26,7 @@ fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
     // Check we are out-of-memory
     if end.greater_than_signed(base_end) {
         // Error handled in native code, since we don't have enough memory to generate a stacktrace
-        runtime::stdout_write("Out of memory\n")
-        unreachable()
+        crash("Out of memory")
     }
 
     ret ptr_from_address(start)

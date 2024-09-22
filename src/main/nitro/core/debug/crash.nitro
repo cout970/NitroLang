@@ -1,6 +1,9 @@
 
 // Crashes the program with an error message
 fun crash(msg: String): Never {
-    Log::fatal(msg);
+    runtime::stdout_write("\n---\n")
+    runtime::stdout_write(msg)
+    runtime::stdout_write("\n---\n")
+    wasi::proc_exit(-1);
     unreachable()
 }

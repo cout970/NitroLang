@@ -1,0 +1,197 @@
+fun Hex::encode(data: List<Byte>): String {
+    let buff = StringBuilder::new()
+    let hex_chars = "0123456789ABCDEF"
+
+    repeat data.len {
+        let byte = data[it]!!.to_int()
+        buff.unsafe_add_utf8_byte(hex_chars.get_byte(byte >> 4))
+        buff.unsafe_add_utf8_byte(hex_chars.get_byte(byte & 0xF))
+    }
+
+    ret buff.to_string()
+}
+
+fun Hex::decode(str: String): Optional<List<Byte>> {
+    check(str.bytes_len % 2 == 0, "Invalid hex string length")
+
+    let data = List::new<Byte>()
+
+    let i = 0
+    while i < str.bytes_len {
+        let c1= str.get_byte(i).to_int()
+        let c2= str.get_byte(i + 1).to_int()
+        i += 2
+
+        let b1 = when {
+            c1 >= 0x30 && c1 <= 0x39 -> c1 - 0x30,
+            c1 >= 0x41 && c1 <= 0x46 -> c1 - 0x37,
+            else -> ret None()
+        }
+
+        let b2 = when {
+            c2 >= 0x30 && c2 <= 0x39 -> c2 - 0x30,
+            c2 >= 0x41 && c2 <= 0x46 -> c2 - 0x37,
+            else -> ret None()
+        }
+
+        data[] = ((b1 << 4) | b2).to_byte()
+    }
+
+    ret Some(data)
+}
+
+let BASE64_RFC4648: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+let BASE64_RFC4648_URL: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+fun Base64::encode(data: List<Byte>): String = Base64::encode(data, BASE64_RFC4648)
+
+fun Base64::encode(data: List<Byte>, dictionary: String): String {
+    let buff = StringBuilder::new()
+
+    let i = 0
+    while i < data.len {
+        let len = min(3, data.len - i)
+        let a = data[i]!!.to_int()
+        let b = data[i + 1].get_or_default(0.to_byte()).to_int()
+        let c = data[i + 2].get_or_default(0.to_byte()).to_int()
+        i += 3
+
+        let u = (a << 16) | (b << 8) | c
+
+        buff.unsafe_add_utf8_byte(dictionary.get_byte((u >> 18) & 0x3F))
+        buff.unsafe_add_utf8_byte(dictionary.get_byte((u >> 12) & 0x3F))
+
+        if len < 2 {
+            buff[] = "="
+        } else {
+            buff.unsafe_add_utf8_byte(dictionary.get_byte((u >> 6) & 0x3F))
+        }
+
+        if len < 3 {
+            buff[] = "="
+        } else {
+            buff.unsafe_add_utf8_byte(dictionary.get_byte(u & 0x3F))
+        }
+
+        if len != 3 {
+            break
+        }
+    }
+
+    ret buff.to_string()
+}
+
+fun Base64::decode(str: String): Optional<List<Byte>> {
+    let data = List::new<Byte>()
+
+    let i = 0
+    while i < str.bytes_len {
+        let c1 = str.get_byte(i).to_int()
+        i += 1
+
+        let b1 = when {
+            c1 >= 0x41 && c1 <= 0x5A -> c1 - 0x41,
+            c1 >= 0x61 && c1 <= 0x7A -> c1 - 0x47,
+            c1 >= 0x30 && c1 <= 0x39 -> c1 + 0x04,
+            c1 == 0x2B -> 0x3E, // +
+            c1 == 0x2D -> 0x3E, // -
+            c1 == 0x2F -> 0x3F, // /
+            c1 == 0x5F -> 0x3F, // _
+            else -> {
+                if c1 == 0x3D {
+                    break
+                }
+                ret None()
+            }
+        }
+
+        if i >= str.bytes_len {
+            ret None()
+        }
+
+        let c2 = str.get_byte(i).to_int()
+        i += 1
+
+        let b2 = when {
+            c2 >= 0x41 && c2 <= 0x5A -> c2 - 0x41,
+            c2 >= 0x61 && c2 <= 0x7A -> c2 - 0x47,
+            c2 >= 0x30 && c2 <= 0x39 -> c2 + 0x04,
+            c2 == 0x2B -> 0x3E, // +
+            c2 == 0x2D -> 0x3E, // -
+            c2 == 0x2F -> 0x3F, // /
+            c2 == 0x5F -> 0x3F, // _
+            else -> {
+                if c2 == 0x3D {
+                    break
+                }
+                ret None()
+            }
+        }
+
+        data[] = ((b1 << 2) | ((b2 >> 4) & 0x03)).to_byte()
+
+        if c2 == 0x3D {
+            break
+        }
+
+        if i >= str.bytes_len {
+            ret None()
+        }
+
+        let c3 = str.get_byte(i).to_int()
+        i += 1
+
+        let b3 = when {
+            c3 >= 0x41 && c3 <= 0x5A -> c3 - 0x41,
+            c3 >= 0x61 && c3 <= 0x7A -> c3 - 0x47,
+            c3 >= 0x30 && c3 <= 0x39 -> c3 + 0x04,
+            c3 == 0x2B -> 0x3E, // +
+            c3 == 0x2D -> 0x3E, // -
+            c3 == 0x2F -> 0x3F, // /
+            c3 == 0x5F -> 0x3F, // _
+            else -> {
+                if c3 == 0x3D {
+                    break
+                }
+                ret None()
+            }
+        }
+
+        data[] = (((b2 << 4) & 0xF0) | ((b3 >> 2) & 0x0F)).to_byte()
+
+        if c3 == 0x3D {
+            break
+        }
+
+        if i >= str.bytes_len {
+            ret None()
+        }
+
+        let c4 = str.get_byte(i).to_int()
+        i += 1
+
+        let b4 = when {
+            c4 >= 0x41 && c4 <= 0x5A -> c4 - 0x41,
+            c4 >= 0x61 && c4 <= 0x7A -> c4 - 0x47,
+            c4 >= 0x30 && c4 <= 0x39 -> c4 + 0x04,
+            c4 == 0x2B -> 0x3E, // +
+            c4 == 0x2D -> 0x3E, // -
+            c4 == 0x2F -> 0x3F, // /
+            c4 == 0x5F -> 0x3F, // _
+            else -> {
+                if c4 == 0x3D {
+                    break
+                }
+                ret None()
+            }
+        }
+
+        data[] = (((b3 << 6) & 0xC0) | b4).to_byte()
+
+        if c4 == 0x3D {
+            break
+        }
+    }
+
+    ret Some(data)
+}

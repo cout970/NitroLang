@@ -88,7 +88,7 @@ fun FilePath.read_directory_files(): Result<List<String>, IoError> {
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "read_directory_files: wasi::path_open failed '$path'",
+            message: "at read_directory_files(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }
@@ -165,7 +165,7 @@ fun FilePath.get_metadata(): Result<FileMetadata, IoError> {
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "get_metadata: wasi::path_open failed '$path'",
+            message: "at get_metadata(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }
@@ -216,11 +216,11 @@ fun FilePath.read_text(): Result<String, IoError> {
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
         cpath, path.bytes_len,
         wasi::OFLAGS_NONE, rights, rights,
-        wasi::FDFLAGS_APPEND, file_fd
+        wasi::FDFLAGS_NONE, file_fd
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "read_text: wasi::path_open failed '$path'",
+            message: "at read_text(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }
@@ -280,7 +280,7 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "write_text: wasi::path_open failed '$path'",
+            message: "at write_text(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }
@@ -342,7 +342,7 @@ fun FilePath.read_bytes(): Result<List<Byte>, IoError> {
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "read_bytes: wasi::path_open failed '$path'",
+            message: "at read_bytes(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }
@@ -404,7 +404,7 @@ fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {
     )
     if rc != 0 {
         ret Err(IoError @[
-            message: "write_bytes: wasi::path_open failed '$path'",
+            message: "at write_bytes(): failed to open file '$path'",
             code: wasi::ErrorCode::from_variant(rc)!!.to_string()
         ])
     }

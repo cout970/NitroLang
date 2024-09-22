@@ -1,18 +1,18 @@
 
 // Trace: The most fine-grained information only used in rare cases where you need the full visibility of what is going on
-fun Log::trace(message: String) = get_logger().trace(message)
+fun <#Value: ToString> Log::trace(message: #Value) = get_logger().trace(message.to_string())
 
 // Debug: Less granular than trace but still useful to log information that can help debug an application
-fun Log::debug(message: String) = get_logger().debug(message)
+fun <#Value: ToString> Log::debug(message: #Value) = get_logger().debug(message.to_string())
 
 // Info: Informational messages that help understand what is going on inside the application
-fun Log::info(message: String) = get_logger().info(message)
+fun <#Value: ToString> Log::info(message: #Value) = get_logger().info(message.to_string())
 
 // Warn: Unexpected events or problems that might affect the application, but are not serious by themselves
-fun Log::warn(message: String) = get_logger().warn(message)
+fun <#Value: ToString> Log::warn(message: #Value) = get_logger().warn(message.to_string())
 
 // Error: Other runtime errors or unexpected conditions that might cause the application to stop working properly
-fun Log::error(message: String) = get_logger().error(message)
+fun <#Value: ToString> Log::error(message: #Value) = get_logger().error(message.to_string())
 
 // Fatal: Severe errors that cause the application to abort
-fun Log::fatal(message: String) = get_logger().fatal(message)
+fun <#Value: ToString> Log::fatal(message: #Value) = get_logger().fatal(message.to_string())

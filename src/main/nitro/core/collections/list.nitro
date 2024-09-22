@@ -38,6 +38,15 @@ fun List::new<#Item>(capacity: Int): List<#Item> {
     ]
 }
 
+// Creates a new list with the given items
+fun List::new_with_items<#Item>(len: Int, create_item: (Int) -> #Item): List<#Item> {
+    let list = List::new(len)
+    repeat len {
+        list[] = create_item(it)
+    }
+    ret list
+}
+
 // Makes sure the list has capacity for the requested number of items
 fun List<#Item>.ensure_capacity(required_capacity: Int) {
     if required_capacity <= capacity {
@@ -107,15 +116,23 @@ fun List<#Item>.add_all(other: Array<#Item>) {
 }
 
 // Get the item at the given index, if the index is out of bounds, returns `None`
-// Can be called using the `list[index]` syntax:
-// `my_list[0]` is equivalent to `my_list.get(0)`
-//
+// Can be called using the `list[index]` syntax
 fun List<#Item>.get(index: Int): Optional<#Item> {
     if index < 0 || index >= count {
         ret None<#Item>()
     }
 
     ret Some(items[index])
+}
+
+// Get the item at the given index, if the index is out of bounds, the program crashes
+// Can be called using the `list[index]!!` syntax
+fun List<#Item>.unsafe_get(index: Int): #Item {
+    if index < 0 || index >= count {
+        crash("Invalid list index: $index, len: ${count}")
+    }
+
+    ret items[index]
 }
 
 // Set the item at the given index, if the index is out of bounds, the program crashes
@@ -575,6 +592,9 @@ fun List<#Item>.to_sublist(start: Int, end: Int): List<#Item> {
 
     ret sublist
 }
+
+// Creates a new list with items between the given start index and the end of the list
+fun List<#Item>.slice(start: Int, len: Int): List<#Item> = to_sublist(start, start + len)
 
 // Removes all items that match the given predicate
 fun List<#Item>.remove_if(condition: (#Item) -> Boolean) {

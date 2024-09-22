@@ -162,20 +162,57 @@ fun StringBuilder.add(value: Int) {
 // If the number is negative, the '-' sign is added without affecting the count of digits
 // If the number is bigger than the number of digits, the number is **NOT** cropped
 fun StringBuilder.add_int_with_pad(value: Int, min_digits_len: Int) {
-    let buf = StringBuilder::new()
+    let buff = StringBuilder::new()
 
     if value >= 0 {
-        buf[] = value
+        buff[] = value
     } else {
         add("-")
-        buf[] = -value
+        buff[] = -value
     }
 
-    repeat min_digits_len - buf.bytes_len {
+    repeat min_digits_len - buff.bytes_len {
         this[] = "0"
     }
-    add(value)
+    this[] = buff
 }
+
+fun StringBuilder.add_hex(value: Int) = add_hex(value, 8)
+
+fun StringBuilder.add_hex(value: Int, min_digits_len: Int) {
+    let buff = StringBuilder::new()
+
+    if value >= 0 {
+        buff.add_int_in_base(16, value)
+    } else {
+        // Unsigned value, split in 2
+        let upper = (value >> 16) & 0x0000FFFF
+        let lower = value & 0x0000FFFF
+
+        // Lower part
+        let buff2 = StringBuilder::new()
+        buff2.add_int_in_base(16, lower)
+
+        // Add padding, to align the 2 parts
+        if upper > 0 {
+            repeat 4 - buff2.bytes_len {
+                buff2[] = "0"
+           }
+        }
+
+        // Add the upper part
+        buff.add_int_in_base(16, upper)
+
+        // Add the lower part
+        buff[] = buff2
+    }
+
+    repeat min_digits_len - buff.bytes_len {
+        this[] = "0"
+    }
+    this[] = buff
+}
+
 
 // Adds an integer to the internal buffer, in the given base
 fun StringBuilder.add_int_in_base(base: Int, value: Int) {

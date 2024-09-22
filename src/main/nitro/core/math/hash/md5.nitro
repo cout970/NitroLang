@@ -1,0 +1,224 @@
+
+// Generate the MD5 digest of the given data
+fun MD5::digest(data: List<Byte>): List<Byte> {
+    let md5 = MD5::new()
+    md5.update(data)
+    ret md5.finalize()
+
+    test! "Basic MD5 tests" {
+        let testcases = #[
+            "": "d41d8cd98f00b204e9800998ecf8427e",
+            "The quick brown fox jumps over the lazy dog": "9e107d9d372bb6826bd81d3542a419d6",
+            "The quick brown fox jumps over the lazy dog.": "e4d909c290d0fb1ca068ffaddf22cbd0",
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789": "d174ab98d277d9f5a5611c2c9f419d9f",
+            "12345678901234567890123456789012345678901234567890123456789012345678901234567890": "57edf4a22be3c955ac49da2e2107b67a",
+            " ": "7215ee9c7d9dc229d2921a40e899ec5f",
+            "a": "0cc175b9c0f1b6a831c399e269772661",
+            "abc": "900150983cd24fb0d6963f7d28e17f72",
+            "message digest": "f96b697d7cb7938d525a2f31aaf161d0",
+            "abcdefghijklmnopqrstuvwxyz": "c3fcd3d76192e4007dfb496cca67e13b",
+        ]
+
+        for entry in testcases {
+            let actual = MD5::digest_to_hex(entry.key)
+            check(actual == entry.value, "Failed with '${entry.key}', actual: $actual, expected: ${entry.value}")
+        }
+    }
+}
+
+// Generate the MD5 digest of the give UTF-8 string
+fun MD5::digest(data: String): List<Byte> = MD5::digest(data.to_bytes())
+
+// Generate the MD5 digest of the given data and return it as a hex string with 32 chars
+fun MD5::digest_to_hex(data: List<Byte>): String = Hex::encode(MD5::digest(data))
+
+// Generate the MD5 digest of the give UTF-8 string and return it as a hex string with 32 chars
+fun MD5::digest_to_hex(data: String): String = Hex::encode(MD5::digest(data))
+
+// Non-cryptographic hash, useful to detect changes in files
+// Absolutely unsecure for any other purpose
+// Ported from https://github.com/Zunawe/md5-c/blob/main/md5.c
+struct MD5 {
+    a: Int
+    b: Int
+    c: Int
+    d: Int
+    len: Int
+    input: List<Byte>
+}
+
+let MD5_A: Int = 0x67452301
+let MD5_B: Int = 0xefcdab89
+let MD5_C: Int = 0x98badcfe
+let MD5_D: Int = 0x10325476
+
+let MD5_S: List<Int> =  [
+    7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+    5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+    4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+    6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,
+]
+
+let MD5_K: List<Int> =  [
+    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+    0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+    0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+    0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+    0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+    0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+    0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+    0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+    0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+    0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
+    0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+    0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+    0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+    0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
+]
+
+let MD5_PADDING: List<Byte> = [
+    0x80.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+    0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(), 0x00.to_byte(),
+]
+
+fun MD5::new(): MD5 {
+    ret MD5 @[
+        a: MD5_A,
+        b: MD5_B,
+        c: MD5_C,
+        d: MD5_D,
+        len: 0,
+        input: List::new_with_items(64) @{ 0.to_byte() },
+    ]
+}
+
+// Internal MD5 functions
+fun MD5::f(x: Int, y: Int, z: Int): Int =  (x & y) | (x.bitwise_not() & z)
+fun MD5::g(x: Int, y: Int, z: Int): Int =  (x & z) | (y & z.bitwise_not())
+fun MD5::h(x: Int, y: Int, z: Int): Int =  x ^ y ^ z
+fun MD5::i(x: Int, y: Int, z: Int): Int =  y ^ (x | z.bitwise_not())
+
+fun MD5::rotateLeft(x: Int, n: Int): Int = (x << n) | (x >>> (32 - n))
+
+fun MD5.update(data: List<Byte>) {
+    let offset = len % 64
+    len += data.len
+
+    repeat data.len {
+        input[offset] = data[it]!!
+        offset += 1
+
+        if offset % 64 == 0 {
+            // Convert to little endian
+            let int_input = List::new_with_items(16) @{ 0 }
+            repeat 16 {
+                int_input[it] = input[it * 4]!!.to_int() | (input[it * 4 + 1]!!.to_int() << 8) | (input[it * 4 + 2]!!.to_int() << 16) | (input[it * 4 + 3]!!.to_int() << 24)
+            }
+            update_block(int_input)
+            offset = 0
+        }
+    }
+}
+
+fun MD5.update_block(data: List<Int>) {
+    check(data.len == 16, "Invalid block size")
+    let aa = this.a
+    let bb = this.b
+    let cc = this.c
+    let dd = this.d
+
+    let e = 0
+    let j = 0
+
+    repeat 64 {
+        when it / 16 {
+            0 -> {
+                e = f(bb, cc, dd)
+                j = it
+            }
+            1 -> {
+                e = g(bb, cc, dd)
+                j = (5 * it + 1) % 16
+            }
+            2 -> {
+                e = h(bb, cc, dd)
+                j = (3 * it + 5) % 16
+            }
+            else -> {
+                e = i(bb, cc, dd)
+                j = (7 * it) % 16
+            }
+        }
+
+        let rot = MD5::rotateLeft(aa + e + MD5_K[it]!! + data[j]!!, MD5_S[it]!!)
+        let temp = dd
+        dd = cc
+        cc = bb
+        bb = bb + rot
+        aa = temp
+    }
+
+    this.a += aa
+    this.b += bb
+    this.c += cc
+    this.d += dd
+}
+
+fun MD5.finalize(): List<Byte> {
+    let offset = len % 64
+    let padding_len = if offset < 56 { 56 - offset } else { (56 + 64) - offset }
+
+    update(MD5_PADDING.slice(0, padding_len))
+
+    len -= padding_len
+
+    let int_input: List<Int> = List::new_with_items(16) @{ 0 }
+    repeat 14 {
+        int_input[it] = input[it * 4]!!.to_int() | (input[it * 4 + 1]!!.to_int() << 8) | (input[it * 4 + 2]!!.to_int() << 16) | (input[it * 4 + 3]!!.to_int() << 24)
+    }
+    int_input[14] = len * 8
+    int_input[15] = len >>> 29 /* (len * 8) >> 32 */
+
+    update_block(int_input)
+
+    let digest = List::new_with_items<Byte>(16) @{ 0.to_byte() }
+    digest[0] = this.a.to_byte()
+    digest[1] = (this.a >> 8).to_byte()
+    digest[2] = (this.a >> 16).to_byte()
+    digest[3] = (this.a >> 24).to_byte()
+    digest[4] = this.b.to_byte()
+    digest[5] = (this.b >> 8).to_byte()
+    digest[6] = (this.b >> 16).to_byte()
+    digest[7] = (this.b >> 24).to_byte()
+    digest[8] = this.c.to_byte()
+    digest[9] = (this.c >> 8).to_byte()
+    digest[10] = (this.c >> 16).to_byte()
+    digest[11] = (this.c >> 24).to_byte()
+    digest[12] = this.d.to_byte()
+    digest[13] = (this.d >> 8).to_byte()
+    digest[14] = (this.d >> 16).to_byte()
+    digest[15] = (this.d >> 24).to_byte()
+    ret digest
+}
+
+fun MD5.to_string(): String {
+    let buff = StringBuilder::new()
+    buff[] = "MD5 @[a: "
+    buff.add_hex(a)
+    buff[] = ", b: "
+    buff.add_hex(b)
+    buff[] = ", c: "
+    buff.add_hex(c)
+    buff[] = ", d: "
+    buff.add_hex(d)
+    buff[] = "]"
+    ret buff.to_string()
+}

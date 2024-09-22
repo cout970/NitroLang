@@ -1,9 +1,10 @@
 
 struct Logger {
     min_level: LoggerLevel
+    plain_output: Boolean
 }
 
-let Internal::GLOBAL_LOGGER: Logger = Logger @[min_level: LoggerLevel::DEBUG]
+let Internal::GLOBAL_LOGGER: Logger = Logger @[min_level: LoggerLevel::DEBUG, plain_output: true]
 
 enum LoggerLevel {
     TRACE,
@@ -36,7 +37,11 @@ fun Logger.fatal(message: String) = this.log(LoggerLevel::FATAL, message)
 
 // Logs a message with the given level, one of: trace, debug, info, warn, error, fatal
 fun Logger.log(level: LoggerLevel, message: String) {
-    for line in message.split("\n") {
-        println("[${Instant::now().format_to_iso8601(0, false)}][$level] $line")
-    }
+//    if plain_output {
+        println(message)
+//        ret
+//    }
+//    for line in message.split("\n") {
+//        println("[${Instant::now().format_to_iso8601(0, false)}][$level] $line")
+//    }
 }
