@@ -1,1 +1,1 @@
-compiler_v0.0.7-opt.wasm
+compiler_v0.0.8-opt.wasm

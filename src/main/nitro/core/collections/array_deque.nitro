@@ -174,10 +174,19 @@ fun ArrayDeque<#Item>.get(index: Int): Optional<#Item> {
     ret Some(items[raw_index_of(index)])
 }
 
+// Unsafe version of `get` that crashes if the index is out of bounds
+fun ArrayDeque<#Item>.unsafe_get(index: Int): #Item {
+    if index < 0 || index >= count {
+        crash("Index out of bounds, index: $index, len: $count")
+    }
+
+    ret items[raw_index_of(index)]
+}
+
 // Override an item in the deque at the given index (0..<len)
 fun ArrayDeque<#Item>.set(index: Int, item: #Item) {
     if index < 0 || index >= count {
-        crash("Index out of bounds")
+        crash("Index out of bounds, index: $index, len: $count")
     }
 
     items[raw_index_of(index)] = item

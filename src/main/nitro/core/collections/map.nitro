@@ -165,6 +165,17 @@ fun <#Key: MapKey> Map<#Key, #Value>.get(key: #Key): Optional<#Value> {
     ret Some(opt!!.second)
 }
 
+// Unsafe version of `get`
+fun <#Key: MapKey> Map<#Key, #Value>.unsafe_get(key: #Key): #Value {
+    let opt = get_entry(key)
+
+    if opt.is_none() {
+        crash("Key not found in map")
+    }
+
+    ret opt!!.second
+}
+
 // Equivalent to `Map.get(key)` but returns a Pair
 fun <#Key: MapKey> Map<#Key, #Value>.get_entry(key: #Key): Optional<Pair<#Key, #Value>> {
     if count == 0 || capacity == 0 {

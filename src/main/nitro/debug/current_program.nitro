@@ -1,1 +1,1 @@
-include "./random_test.nitro"
+include "./testing.nitro"
