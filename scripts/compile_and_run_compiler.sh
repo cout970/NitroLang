@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # switch to the root directory
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 # detect is deno is installed
 if ! command -v deno &> /dev/null

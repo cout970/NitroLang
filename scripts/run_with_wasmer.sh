@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # switch to the root directory
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 # detect is wasmer is installed
 if ! command -v wasmer &> /dev/null
@@ -12,6 +12,12 @@ fi
 
 input="$1"
 shift
+
+if [ -z "$input" ]; then
+    echo "Please provide a file to run"
+    exit
+fi
+
 output="out/tmp_program.wasm"
 cache="out/cache0"
 compiler=$(realpath "releases/$(cat releases/latest.txt)")

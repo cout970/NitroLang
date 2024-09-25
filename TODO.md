@@ -15,6 +15,7 @@ Intended for the developers
 - [x] Compile to WASM
 - [x] StdLib
 - [x] Self-hosted compiler
+- [ ] Remove old kotlin compiler
 - [ ] Better memory management
 - [ ] Intellij Language Plugin
 - [ ] Package manager for dependencies
@@ -59,5 +60,16 @@ Intended for the developers
 - Change Some/None to Ok/Err to lowercase
 - Check nested ret if ... { ret if ... { ret if ... {} } }
 
+### Pending renames
+
+- `bytes_len` to `len` in strings
+- `a"-"` to `u"-"` ascii to unicode (Int)
+- `a"-"` to `b"-"` ascii to byte (Byte)
+- `a"-"` to `c"-"` ascii to char (Char)
+- `get_or_else`, `get_or_default` to `or_else`, `or_default`
+- `or_fail_with` to `expect` 
+
 ### Known Bugs
 
+- Function with return type by no return at the end, does not cause an error, crashes at runtime
+- 'break' in when expression emits error 'Int' vs 'Nothing'
