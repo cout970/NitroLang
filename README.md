@@ -6,13 +6,17 @@ Inspired by C, Rust, Kotlin and JS, combining the best features of modern langua
 
 Right now it's in alpha state and everything is subject to change.
 
-### Current task
+### How to run the compiler
 
-- [x] [Rewrite the compiler in NitroLang itself](./src/main/nitro/compiler)
-- [ ] Improve memory management
-- [ ] Create a web editor that compiles and runs the code directly in the browser
+Any WASI compatible runtime should work.
+In [./scripts](./scripts) you have a few utilities:
 
-### Syntax
+- `./run_with_wasmer.sh examples/hello_world.nitro` - Compile and run examples/hello_world.nitro using
+  the [Wasmer](https://wasmer.io/) runtime
+- `./run_with_deno.ts examples/hello_world.nitro` - Compile and run examples/hello_world.nitro
+  using [Deno](https://deno.com/)
+
+### Syntax overview
 
 Basics:
 
@@ -374,12 +378,18 @@ fun main() {
   and lambdas
 - Comes equipped with essential data structures like Lists, Maps, Sets, JSON, Optionals, Results, Pairs, etc.
 - Implements a Hindley-Milner type system, with generic structs, enums, sum types/options, type aliases and modules.
-- Offers function overloading and receiver functions, allowing object-oriented syntax in procedural code.
-- Utilizes tags for type extensions, enabling the addition of methods to any type without disrupting existing code.
+- Offers function overloading and extension functions, allowing object-oriented syntax in procedural code.
+- Uses tags for type extensions, enabling the addition of methods to any type without disrupting existing code.
 - Features a module system for effective code organization and namespacing.
-- Has no nulls, exceptions, inheritance, implicit conversions, and macros for a streamlined coding experience.
-- Simplifies the design of Domain-Specific Languages (DSLs) for configuration and constructing complex data structures.
+- Does not include the unnecessary complexity that comes from nulls, exceptions, inheritance, implicit type conversions or macros.
+- Makes Domain-Specific Languages (DSLs) easy to build using convenient syntax for lists, maps, json, lambdas with custom receiver, etc.
 - Compiles to WebAssembly, ensuring compatibility across most platforms.
 - Provides a comprehensive standard library with common data structures and algorithms.
 - Has a minimal runtime, suitable for embedding in other applications.
-- The compiler is user-friendly, offering insightful error messages, suggestions, and code snippets.
+- The compiler is user-friendly, offering insightful error messages, suggestions, and code snippets. (not a greats as it use to be, since the migration to the new compiler, but it's getting there)
+
+### Current task
+
+- [x] [Rewrite the compiler in NitroLang itself](./src/main/nitro/compiler)
+- [ ] Improve memory management
+- [ ] Create a web editor that compiles and runs the code directly in the browser
