@@ -1,6 +1,8 @@
 
 // This type represents a single character encoded as a unicode code point
 @ValueType
+@NoGC
+@IntrinsicSize [size: 4]
 struct Char {
     unicode_code_point: Int
 }

@@ -1,7 +1,8 @@
 
 // This type is used to represent signed integers in the range of -2^63 to 2^63 - 1
 @ValueType
-@Intrinsic [size: 8]
+@NoGC
+@IntrinsicSize [size: 8]
 struct Long {}
 
 // Adds two long values

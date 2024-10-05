@@ -2,14 +2,20 @@
 // Pointer to a single value stored in heap,
 // if the value is a @ValueType, the pointer itself will be the value
 @ValueType
-@Intrinsic
+@NoGC
+@IntrinsicSize [size: 4]
 struct Ptr<#Value> {}
 
 // Pointer to a single value stored in heap
+@NoGC
 struct IntPtr { value: Int }
+@NoGC
 struct LongPtr { value: Long }
+@NoGC
 struct FloatPtr { value: Float }
+@NoGC
 struct BytePtr { value: Byte }
+@NoGC
 struct UnknownPtr { }
 
 // Converts a reference to a value into a Pointer to the value
@@ -28,6 +34,9 @@ fun ptr_from_address<#Value>(address: Int): Ptr<#Value> {}
 
 // Checks if the pointer is null, i.e. created by null_ptr()
 fun Ptr<#Value>.is_null(): Boolean = this.get_address().is_equal(0)
+
+// Checks if the pointer is not null
+fun Ptr<#Value>.is_not_null(): Boolean = this.get_address().is_not_equal(0)
 
 // Converts the pointer into a reference
 // if the pointer is null, the program will crash

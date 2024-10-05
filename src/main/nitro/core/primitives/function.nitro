@@ -2,7 +2,8 @@
 // Represents a function type, has a variable number of type parameters representing:
 // - 0 or more parameter types (including the receiver type)
 // - the last type parameter is the function return type
-@Intrinsic
+@NoGC
+@IntrinsicSize [size: 4]
 struct Function {}
 
 // Invokes a function with no parameters

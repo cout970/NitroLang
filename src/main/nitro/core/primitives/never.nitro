@@ -3,7 +3,8 @@
 // like infinite loops or cases where the program always crashes
 // for example: `fun reached_error_condition(): Never = crash("The program has reached an unrecoverable error condition")`
 @ValueType
-@Intrinsic
+@NoGC
+@IntrinsicSize [size: 0]
 struct Never {}
 
 // This function is used to mark code that is unreachable,

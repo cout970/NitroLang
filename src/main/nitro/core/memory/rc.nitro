@@ -1,0 +1,129 @@
+
+let RC_STATIC_MASK: Int = 1 << 31
+let RC_FREED_MASK: Int = 1 << 30
+let RC_FREED_MASK_INV: Int = (1 << 30).bitwise_not()
+let RC_DESTRUCT_MASK: Int = 1 << 29
+let RC_DESTRUCT_MASK_INV: Int = (1 << 29).bitwise_not()
+let RC_COUNT_MASK: Int = 0xFFFF
+let RC_COUNT_MASK_INV: Int = 0xFFFF.bitwise_not()
+
+// Reference counter header
+@ValueType
+@NoGC
+@IntrinsicSize [size: 4]
+struct RcHeader {}
+
+@NoGC
+struct WeekRef<#Value> {
+    value: #Value
+}
+
+fun RcHeader::new(): RcHeader = RcHeader::from_flags(1)
+
+fun RcHeader::from_flags(value: Int): RcHeader {
+    ret ptr_from_address<RcHeader>(value).unsafe_as_ref()
+}
+
+fun RcHeader.get_flags(): Int {
+    ret ptr_of(this).address
+}
+
+// Test
+tag Rc {
+    fun This.get_rc_header(): RcHeader
+    fun This.set_rc_header(h: RcHeader): Nothing
+    fun This.deinit(): Nothing
+    fun This.internal_free(): Nothing
+}
+
+fun <#T: Rc> #T.get_rc_flags(): Int = ptr_of(this.get_rc_header()).address
+
+fun <#T: Rc> #T.set_rc_flags(flags: Int) {
+    let header: RcHeader = ptr_from_address<RcHeader>(flags).unsafe_as_ref()
+    this.set_rc_header(header)
+}
+
+@NoGC
+fun <#Struct: Rc> #Struct.set_static() {
+    this.rc_flags = this.rc_flags | RC_STATIC_MASK
+}
+
+@NoGC
+@NullableThis
+fun <#Struct: Rc> #Struct.ref_inc() {
+    if ptr_of(this).is_null() {
+        ret
+    }
+    let flags = this.rc_flags
+
+    if (flags & RC_STATIC_MASK) != 0 {
+        ret
+    }
+
+    if (flags & RC_FREED_MASK) != 0 {
+        crash("Trying to increment a freed reference counter")
+        ret
+    }
+
+    let new_count = (flags & RC_COUNT_MASK) + 1
+
+    if new_count > RC_COUNT_MASK {
+        // Mark the reference as static (for the lifetime of the program)
+        this.rc_flags = flags | RC_STATIC_MASK
+    } else {
+        this.rc_flags = (flags & RC_COUNT_MASK_INV) | new_count
+    }
+}
+
+@NoGC
+@NullableThis
+fun <#Struct: Rc> #Struct.ref_dec() {
+    if ptr_of(this).is_null() {
+        ret
+    }
+    let flags = this.rc_flags
+
+    if (flags & RC_STATIC_MASK) != 0 || (flags & RC_FREED_MASK) != 0 {
+        ret
+    }
+
+    let new_count: Int = (flags & RC_COUNT_MASK) - 1
+
+    if new_count > 0 {
+        this.rc_flags = (flags & RC_COUNT_MASK_INV) | new_count
+        ret
+    }
+
+    // Count has reached 0, but it's inside a destructor, so don't free the memory
+    if flags & RC_DESTRUCT_MASK != 0 {
+        ret
+    }
+
+    // Enable bit RC_DESTRUCT_MASK so it's not destructed again
+    this.rc_flags = (flags & RC_COUNT_MASK_INV) | RC_DESTRUCT_MASK
+
+    // Run destructor
+    this.deinit()
+
+    // Check if the ref count is still at 1
+    flags = this.rc_flags
+
+    // The ref count has increased, meaning there are now new references, so cancel the destruction
+    if (flags & RC_COUNT_MASK) > 1 {
+        this.rc_flags = (flags & RC_DESTRUCT_MASK_INV)
+        ret
+    }
+
+    this.rc_flags = (flags & RC_FREED_MASK)
+    this.internal_free()
+}
+
+fun RcHeader.to_string(): String {
+    let flags = this.get_flags()
+    let count = flags & RC_COUNT_MASK
+    let is_freed = flags & RC_FREED_MASK != 0
+    let is_static = flags & RC_STATIC_MASK != 0
+    let in_destructor = flags & RC_DESTRUCT_MASK != 0
+
+    ret "RcHeader @[count: $count, is_freed: $is_freed, is_static: $is_static, in_destructor: $in_destructor]"
+}

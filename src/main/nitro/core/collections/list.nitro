@@ -47,6 +47,13 @@ fun List::new_with_items<#Item>(len: Int, create_item: (Int) -> #Item): List<#It
     ret list
 }
 
+// Destructor
+fun List<#Item>.deinit() {
+    count = 0
+    capacity = 0
+    items.free()
+}
+
 // Makes sure the list has capacity for the requested number of items
 fun List<#Item>.ensure_capacity(required_capacity: Int) {
     if required_capacity <= capacity {
@@ -60,13 +67,16 @@ fun List<#Item>.ensure_capacity(required_capacity: Int) {
     }
 
     let new_items: Array<#Item> = Array::new<#Item>(new_capacity)
+    let prev_items = items
 
     repeat count {
-        new_items[it] = items[it]
+        new_items[it] = prev_items[it]
     }
 
     items = new_items
     capacity = new_capacity
+
+    prev_items.free()
 }
 
 // Adds the given item to the list
@@ -77,8 +87,8 @@ fun List<#Item>.add(item: #Item) {
     // Expand list if needed
     ensure_capacity(count + 1)
 
-    items[count] = item
     count += 1
+    this.set(count - 1, item)
 }
 
 // Adds the given item to the list `count` times
@@ -88,8 +98,8 @@ fun List<#Item>.add_multiple_times(item: #Item, times: Int) {
 
     // Write the item `count` times
     repeat times {
-        items[count] = item
         count += 1
+        this.set(count - 1, item)
     }
 }
 
@@ -99,8 +109,8 @@ fun List<#Item>.add_all(other: List<#Item>) {
 
     // Copy the items from the other list
     repeat other.count {
-        items[count] = other[it]!!
         count += 1
+        this.set(count - 1, other[it]!!)
     }
 }
 
@@ -110,8 +120,8 @@ fun List<#Item>.add_all(other: Array<#Item>) {
 
     // Copy the items from the other list
     repeat other.len {
-        items[count] = other[it]
         count += 1
+        this.set(count - 1, other[it])
     }
 }
 
@@ -452,12 +462,42 @@ fun List<#Item>.find(predicate: (#Item) -> Boolean): Optional<#Item> {
     ret None()
 }
 
+// Finds the last item in the list that matches the given predicate, if no item matches, returns `None`
+fun List<#Item>.find_last(predicate: (#Item) -> Boolean): Optional<#Item> {
+    let i = count - 1
+
+    while i >= 0 {
+        if predicate(this[i]!!) {
+            ret Some(this[i]!!)
+        }
+
+        i -= 1
+    }
+
+    ret None()
+}
+
 // Finds the index of the first item in the list that matches the given predicate, if no item matches, returns `None`
 fun List<#Item>.find_index(predicate: (#Item) -> Boolean): Optional<Int> {
     repeat count {
         if predicate(this[it]!!) {
             ret Some(it)
         }
+    }
+
+    ret None()
+}
+
+// Finds the index of the last item in the list that matches the given predicate, if no item matches, returns `None`
+fun List<#Item>.find_last_index(predicate: (#Item) -> Boolean): Optional<Int> {
+    let i = count - 1
+
+    while i >= 0 {
+        if predicate(this[i]!!) {
+            ret Some(i)
+        }
+
+        i -= 1
     }
 
     ret None()

@@ -7,14 +7,14 @@ struct Multimap<#Key, #Value> {
 
 // Create a new multimap
 fun <#Key: MapKey> Multimap::new(): Multimap<#Key, #Value> {
-    ret Multimap @[
+    ret Multimap<#Key, #Value> @[
         map: #[]
     ]
 }
 
 // Create a new multimap with a pre-allocated capacity
 fun <#Key: MapKey> Multimap::new(capacity: Int): Multimap<#Key, #Value> {
-    ret Multimap @[
+    ret Multimap<#Key, #Value> @[
         map: Map::new(capacity)
     ]
 }

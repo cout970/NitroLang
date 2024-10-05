@@ -2,6 +2,11 @@
 // This module provides utilities to extract information about the runtime environment
 mod runtime {
 
+    // Exit the program with the given exit code
+    fun exit(code: Int) {
+        wasi::proc_exit(code)
+    }
+
     // Returns the list of arguments passed to the program
     fun get_program_args(): List<String> {
         let arg_count = IntPtr @[value: 0]

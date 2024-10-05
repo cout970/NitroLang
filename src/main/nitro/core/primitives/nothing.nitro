@@ -3,7 +3,8 @@
 // There is only a single instance, and can be obtained by using the literal 'nothing'
 // for example: `fun foo(): Nothing = nothing` or `return nothing`
 @ValueType
-@Intrinsic
+@NoGC
+@IntrinsicSize [size: 0]
 struct Nothing {}
 
 // Converts this instance to a string

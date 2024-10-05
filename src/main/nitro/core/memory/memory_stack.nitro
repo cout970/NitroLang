@@ -3,6 +3,7 @@
 let global_stack: MemoryStack = MemoryStack::new(get_memory(), 320 * 1024 /* 320 kB */)
 
 // Fixed size memory area that allows contiguous allocations, memory is automatically freed when exiting a stack frame
+@NoGC
 struct MemoryStack {
     arena: MemoryArena
     total_size: Int
@@ -12,6 +13,7 @@ struct MemoryStack {
 }
 
 // Stack frame header
+@NoGC
 struct MemoryStackFrame {
     size: Int
     prev: Int

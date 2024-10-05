@@ -1,5 +1,6 @@
 
 // Represents and area on the heap where the user can allocate instances
+@NoGC
 struct MemoryArena {
     // Number of bytes used in the arena
     len: Int

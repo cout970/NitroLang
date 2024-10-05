@@ -17,8 +17,8 @@
 // @Required
 // Marks a function to be excluded from the dead code elimination process, so it can be called from outside
 
-// @Intrinsic
-// Marks a type or function that has special handling in the compiler
+// @IntrinsicSize
+// Marks a struct with fixed size
 
 // @Test
 // Marks a test that should be executed by the test runner and cannot be called from normal code

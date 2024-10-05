@@ -4,6 +4,6 @@ fun crash(msg: String): Never {
     runtime::stdout_write("\n---\n")
     runtime::stdout_write(msg)
     runtime::stdout_write("\n---\n")
-    wasi::proc_exit(-1);
+    // Force wasm to generate a stack trace
     unreachable()
 }

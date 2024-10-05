@@ -7,10 +7,12 @@ let MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK: Int = 7 // 63 // debug
 let MEMORY_ALLOCATOR_BLOCK_SIZE: Int = 64 // 512 // debug
 
 // Global allocator instance
+@InitPriority
 let global_allocator: MemoryAllocator = MemoryAllocator::new(get_memory(), 1048576 /* 1 MB */)
 
 // General purpose memory allocator
 // Allows alloc/free with arbitrary sizes
+@NoGC
 struct MemoryAllocator {
     arena: MemoryArena
     // Min amount to grow when no memory is available
@@ -28,6 +30,7 @@ struct MemoryAllocator {
 
 // Each block holds several entries, each correspond to an allocation that can be in use or free
 // Size MEMORY_ALLOCATOR_BLOCK_SIZE bytes (header + MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK entries)
+@NoGC
 struct MemoryAllocatorBlock {
     free_size: Int
     next: Ptr<MemoryAllocatorBlock>
@@ -38,6 +41,7 @@ struct MemoryAllocatorBlock {
 type_alias MemoryAllocatorBlockEntryId = Long
 
 // Size 8 bytes
+@NoGC
 struct MemoryAllocatorBlockEntry {
     // bit 31 is flag 'used'
     // rest is size
