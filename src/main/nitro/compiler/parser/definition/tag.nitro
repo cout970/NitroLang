@@ -49,7 +49,7 @@ fun Parser.read_tag_function(def: NTag): Parsed<NTagFunction> {
        source: NGenericSource::Tag,
        bounds: [bound],
     ]
-    generics.definitions[] = this_generic
+    generics[] = this_generic
 
     current_tag_this = Some(this_generic)
     defer { current_tag_this = None() }

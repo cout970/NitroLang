@@ -2,6 +2,7 @@
 // Read an specific token
 fun Parser.skip_token_kind(tk: TokenKind): Parsed<Nothing> {
     if lexer.current_token_kind != tk {
+        Log::debug("Expected token $tk, found ${lexer.current_token_kind}")
         lexer.print_debug_info()
 
         ret parse_error_expected(ParseError::ExpectedToken, lexer.current_token, tk)

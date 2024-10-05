@@ -26,6 +26,15 @@ fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
     ret None()
 }
 
+fun NOption.get_annotation(name: String): Optional<NAnnotation> {
+    for a in annotations {
+        if a.name == name {
+            ret Some(a)
+        }
+    }
+    ret None()
+}
+
 fun NOption.get_ordering(other: NOption): Ordering = this.id <=> other.id
 
 fun NOption.to_string(): String {

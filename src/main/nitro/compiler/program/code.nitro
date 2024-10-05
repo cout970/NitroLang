@@ -235,6 +235,34 @@ fun NCode.index_of_mark(id: Id): Optional<Int> {
     ret None()
 }
 
+fun NCode.get_inst_list_between(start_mark: Id, end_mark: Id): List<NInst> {
+    let start = index_of_mark(start_mark)!!
+    let end = index_of_mark(end_mark)!!
+    let cur = start
+    let tmp = []
+
+    loop {
+        if cur > end {
+            break
+        }
+
+        let inst = inst_list[cur]!!
+        tmp[] = inst
+        cur += 1
+    }
+
+    ret tmp
+}
+
+fun NCode.remove_inst_list_between(start_mark: Id, end_mark: Id) {
+    let start = index_of_mark(start_mark)!!
+    let end = index_of_mark(end_mark)!!
+
+    repeat end - start + 1 {
+        inst_list.remove_at(start)!!
+    }
+}
+
 fun NCode.move_instructions_to_end(start_mark: Id, end_mark: Id) {
     let start = index_of_mark(start_mark)!!
     let end = index_of_mark(end_mark)!!
@@ -252,6 +280,38 @@ fun NCode.move_instructions_to_end(start_mark: Id, end_mark: Id) {
 
     repeat end - start + 1 {
         inst_list.remove_at(start)!!
+    }
+}
+
+fun NCode.move_instructions_after(target: NInstId, start_mark: Id, end_mark: Id) {
+    let tmp = get_inst_list_between(start_mark, end_mark)
+
+    if tmp.is_empty() {
+        ret
+    }
+
+    remove_inst_list_between(start_mark, end_mark)
+
+    let index = index_of_inst(target)!! + 1
+    for inst in tmp {
+        inst_list.insert(index, inst)
+        index += 1
+    }
+}
+
+fun NCode.move_instructions_before(target: NInstId, start_mark: Id, end_mark: Id) {
+    let tmp = get_inst_list_between(start_mark, end_mark)
+
+    if tmp.is_empty() {
+        ret
+    }
+
+    remove_inst_list_between(start_mark, end_mark)
+
+    let index = index_of_inst(target)!!
+    for inst in tmp {
+        inst_list.insert(index, inst)
+        index += 1
     }
 }
 

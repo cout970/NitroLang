@@ -66,13 +66,15 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     declare_name(Path::join(def.path, def.name), def.span)
 
     def.fields[] = NStructField @[
-       span,
-       name: VARIANT_FIELD_NAME,
-       parent_struct: def,
-       offset: 0,
-       type_usage: NTypeUsage::simple(span, "Int"),
-       field_type: None(),
-   ]
+        span,
+        name: VARIANT_FIELD_NAME,
+        parent_struct: def,
+        offset: 0,
+        type_usage: NTypeUsage::simple(span, "Int"),
+        field_type: None(),
+    ]
+
+    def.add_rc_fields()
 
     if lexer.current_token_kind == TokenKind::LBRACE {
         skip_token_kind(TokenKind::LBRACE)?

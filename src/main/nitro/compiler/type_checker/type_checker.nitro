@@ -32,7 +32,7 @@ fun TypeChecker::new(reporter: Reporter, program: Program, types: TypeContainer)
 fun TypeChecker.check_all() {
     Log::debug("Pre-checking tags ${get_memory().get_stats()}")
     for def in program.tags {
-        check_tag_pre(def)
+        tag_instances[def.name] = def
     }
 
     Log::debug("Checking structs ${get_memory().get_stats()}")
@@ -55,6 +55,11 @@ fun TypeChecker.check_all() {
         check_const_header(def)
     }
 
+    if ENABLE_RC_GC {
+        Log::debug("Generating RC helpers ${get_memory().get_stats()}")
+        generate_struct_rc_functions()
+    }
+
     Log::debug("Checking tags ${get_memory().get_stats()}")
     for def in program.tags {
         for tag_func in def.functions {
@@ -69,15 +74,7 @@ fun TypeChecker.check_all() {
 
     Log::debug("Checking functions ${get_memory().get_stats()}")
     for func in program.functions {
-        check_function_header(func.header)
-        func.code.return_type_token = Some(func.header.return_type!!.to_token())
-
-        collect_getters_and_setters(func)
-
-        // Store the function in the lookup map
-        for seg in create_path_segments(func.full_name) {
-            function_lookup.add(seg, NFunCallTarget::Func @[header: func.header, func])
-        }
+        check_function(func)
     }
 
     Log::debug("Checking tag implementors ${get_memory().get_stats()}")
@@ -97,6 +94,24 @@ fun TypeChecker.check_all() {
 //        Log::debug("Checking code for function ${s.full_name} ${get_memory().get_stats()}")
         cons.add_code_to_check(s.code)
         finalize()
+    }
+
+    if !reporter.has_reports() && ENABLE_RC_GC {
+        Log::debug("Generating RefCounted instructions ${get_memory().get_stats()}")
+        generate_rc_instructions()
+
+        Log::debug("Checking function code blocks (second step) ${get_memory().get_stats()}")
+        for s in program.functions {
+            cons.add_code_to_check(s.code)
+            finalize()
+        }
+    }
+
+    for s in program.functions {
+        if s.get_annotation(ANNOTATION_DUMP_IR).is_some() {
+            Log::debug("Dumping IR for function ${s.full_name}")
+            Log::debug(s.code.to_string())
+        }
     }
 
     Log::debug("Type checking done ${get_memory().get_stats()}")
@@ -125,6 +140,18 @@ fun TypeChecker.check_const_header(s: NConst) {
     let ty = check_type_usage_with(s.generics, s.type_usage)
     s.const_type = Some(ty)
     s.code.return_type_token = Some(ty.to_token())
+}
+
+fun TypeChecker.check_function(func: NFunction) {
+    check_function_header(func.header)
+    func.code.return_type_token = Some(func.header.return_type!!.to_token())
+
+    collect_getters_and_setters(func)
+
+    // Store the function in the lookup map
+    for seg in create_path_segments(func.full_name) {
+        function_lookup.add(seg, NFunCallTarget::Func @[header: func.header, func])
+    }
 }
 
 fun TypeChecker.check_function_header(header: NFunctionHeader) {

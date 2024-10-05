@@ -90,7 +90,7 @@ fun TypeChecker.finalize_code(code: NCode) {
         if i.kind is NInstKind::LoadVar {
             let kind = i.kind as NInstKind::LoadVar
 
-            check(kind.variable.is_some() || kind.constant.is_some()) @{ "LoadVar is not linked: $i\n${code.parent_code}" }
+            check(kind.variable.is_some() || kind.constant.is_some()) @{ "LoadVar is not linked: $i\n${i.span}" }
         }
         if i.kind is NInstKind::StoreVar {
             let kind = i.kind as NInstKind::StoreVar

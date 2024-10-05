@@ -1,8 +1,4 @@
 
-fun TypeChecker.check_tag_pre(tag_instance: NTag) {
-    tag_instances[tag_instance.name] = tag_instance
-}
-
 fun TypeChecker.check_tag(tag_instance: NTag) {
     let all_set = Set::new<ResolvedTypePattern>()
 

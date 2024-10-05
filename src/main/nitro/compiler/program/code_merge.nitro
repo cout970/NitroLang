@@ -67,6 +67,8 @@ fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
             type_token: src_var.type_token,
             is_parameter: src_var.is_parameter,
             is_upvalue: src_var.is_upvalue,
+            // TODO, need inst_mapping[], but after map.copy_inst(other, this)
+            init_at: src_var.init_at,
         ]
         dst.vars_map[new_var.id] = new_var
         var_mapping[src_var.id] = new_var.id

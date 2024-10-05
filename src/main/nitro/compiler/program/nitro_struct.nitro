@@ -45,6 +45,35 @@ fun NStructField.to_string(): String {
     ret "field $offset: $name: $type_usage // $span"
 }
 
+fun NStruct.get_annotation(name: String): Optional<NAnnotation> {
+    for a in annotations {
+        if a.name == name {
+            ret Some(a)
+        }
+    }
+    ret None()
+}
+
+fun NStruct.add_rc_fields() {
+//    if is_enum || get_annotation(ANNOTATION_NO_GC).is_some() {
+//        ret
+//    }
+
+    if !ENABLE_RC_GC || get_annotation(ANNOTATION_TMP_RC).is_none() {
+        ret
+    }
+
+    fields[] = NStructField @[
+        span,
+        name: FIELD_RC_HEADER,
+        parent_struct: this,
+        offset: fields.len,
+        type_usage: NTypeUsage::simple(span, "RcHeader"),
+        field_type: None(),
+    ]
+}
+
+
 fun ByteBuffer.serialize_struct(value: NStruct) {
     let frame = start_frame(true)
     serialize_id(value.id)

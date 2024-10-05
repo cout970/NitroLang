@@ -43,7 +43,7 @@ fun Parser.read_type_param_def(generics: NGenericParams): Parsed<Nothing> {
         bounds: []
     ]
 
-    generics.definitions[] = def
+    generics[] = def
 
     if lexer.current_token_kind != TokenKind::COLON {
         ret found(nothing)

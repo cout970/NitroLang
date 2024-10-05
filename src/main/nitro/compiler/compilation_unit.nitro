@@ -330,7 +330,7 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/wasi/wasi.nitro"), "wasi/wasi.nitro", root)
 }
 
-fun CompilationUnit::compile_all(args: ProgramArgs) {
+fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     let start_compile_all = Instant::now()
     let unit = CompilationUnit::new()
     unit.cache_path = args.cache_dir
@@ -348,7 +348,7 @@ fun CompilationUnit::compile_all(args: ProgramArgs) {
             if !unit.reporter.immediate_output {
                 unit.reporter.report_errors()
             }
-            ret
+            ret false
         }
 
         let time_core = start_core.elapsed().to_milliseconds()
@@ -370,7 +370,7 @@ fun CompilationUnit::compile_all(args: ProgramArgs) {
         if !unit.reporter.immediate_output {
             unit.reporter.report_errors()
         }
-        ret
+        ret false
     }
 
    let time_compiler = start_compiler.elapsed().to_milliseconds()
@@ -385,11 +385,18 @@ fun CompilationUnit::compile_all(args: ProgramArgs) {
         if !unit.reporter.immediate_output {
             unit.reporter.report_errors()
         }
-        ret
+        ret false
     }
 
     let time_checking = start_checking.elapsed().to_milliseconds()
     Log::info("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+
+    if args.dump_ir {
+        let str = unit.program.to_string()
+        FilePath::new(args.output).write_text(str)!!
+        Log::info("IR dumped to ${args.output}")
+        ret true
+    }
 
     // Perform code generation
     let start_compiling = Instant::now()
@@ -400,7 +407,7 @@ fun CompilationUnit::compile_all(args: ProgramArgs) {
         if !unit.reporter.immediate_output {
             unit.reporter.report_errors()
         }
-        ret
+        ret false
     }
 
     let time_compiling = start_compiling.elapsed().to_milliseconds()
@@ -408,4 +415,5 @@ fun CompilationUnit::compile_all(args: ProgramArgs) {
 
     let total_time = start_compile_all.elapsed().to_milliseconds()
     Log::info("Total time: $total_time ms")
+    ret true
 }

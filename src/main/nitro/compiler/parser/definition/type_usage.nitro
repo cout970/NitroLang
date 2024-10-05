@@ -41,15 +41,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         }
         let index = current_tag_this!!.index
 
-        ret found(NTypeUsage @[
-            span,
-            kind: TypeUsageKind::TYPE_PARAM,
-            name: "This",
-            path: "",
-            params: [],
-            type_token: None(),
-            generic_def_index: Some(index),
-        ])
+        ret found(NTypeUsage::generic(span, "This", Some(index)))
     }
 
     // #A
@@ -67,19 +59,12 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
                source: current_generics.source,
                bounds: []
             ]
-            current_generics.definitions[] = instance
+            current_generics[] = instance
             def = Some(instance)
         }
 
-        ret found(NTypeUsage @[
-            span,
-            kind: TypeUsageKind::TYPE_PARAM,
-            name,
-            path: "",
-            params: [],
-            type_token: None(),
-            generic_def_index: if def.is_some() { Some(def!!.index) } else { None() },
-        ])
+        let index = if def.is_some() { Some(def!!.index) } else { None() }
+        ret found(NTypeUsage::generic(span, name, index))
     }
 
     // (Int, Boolean)->Float

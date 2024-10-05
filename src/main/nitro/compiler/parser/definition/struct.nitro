@@ -36,6 +36,8 @@ fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothin
 
     read_type_params_def()?
 
+    def.add_rc_fields()
+
     skip_nl()
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()

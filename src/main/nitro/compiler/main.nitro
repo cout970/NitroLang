@@ -3,9 +3,12 @@ include "./includes.nitro"
 // TODO run inline tests
 // TODO generate extern types for typescript
 
+let VERSION: String = "0.0.9"
+
 struct ProgramArgs {
     input: String,
     output: String,
+    dump_ir: Boolean,
     cache_dir: Optional<String>,
     module_paths: Map<String, String>,
     core_path: Optional<String>,
@@ -16,6 +19,7 @@ fun ProgramArgs::new(): ProgramArgs {
     ret ProgramArgs @[
         input: "",
         output: "output.wasm",
+        dump_ir: false,
         cache_dir: None(),
         module_paths: #[],
         core_path: None(),
@@ -42,7 +46,8 @@ fun main() {
         }
 
         if arg == "--version" {
-            Log::info("Nitro Compiler v0.0.7")
+            let v = VERSION
+            Log::info("Nitro Compiler v$v")
             ret
         }
 
@@ -57,6 +62,12 @@ fun main() {
             let cache_dir = args[i]!!
             i += 1
             prog.cache_dir = Some(cache_dir)
+            continue
+        }
+
+        if arg == "--dump-ir" {
+            prog.dump_ir = true
+            i += 1
             continue
         }
 
@@ -173,5 +184,7 @@ fun main() {
     println("Compiling ${prog.input} to ${prog.output}")
 
     // Perform compilation
-    CompilationUnit::compile_all(prog)
+    if !CompilationUnit::compile_all(prog) {
+        wasi::proc_exit(1)
+    }
 }

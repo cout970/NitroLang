@@ -60,14 +60,7 @@ fun WasmBackend::new(reporter: Reporter, program: Program): WasmBackend {
 }
 
 fun WasmBackend.compile_program() {
-    let main: Optional<NFunction> = None()
-
-    for f in program.functions {
-        if f.full_name == "main" {
-            main = Some(f)
-            break
-        }
-    }
+    let main: Optional<NFunction> = program.functions.find @{ it -> it.full_name == "main" }
 
     if main.is_none() {
         Log::error("Main function not found!")
@@ -267,22 +260,13 @@ fun WasmBackend.get_ref_size_of(final_type: FinalType): Int {
     when {
         final_type.kind is FinalTypeKind::Struct -> {
             let instance: NStruct = (final_type.kind as FinalTypeKind::Struct).instance
+            let opt = instance.get_intrinsic_size_annotation()
 
-            ret when instance.full_name {
-                "Never" -> 0
-                "Nothing" -> 0
-                "Byte" -> 1
-                "Boolean" -> 1
-                "Short" -> 2
-                "Char" -> 4
-                "Int" -> 4
-                "Float" -> 4
-                "Ptr" -> 4
-                "Array" -> 4
-                "Function" -> 4
-                "Long" -> 8
-                else -> 4
+            if opt.is_some() {
+                ret opt!!.size
             }
+
+            ret 4
         }
         final_type.kind is FinalTypeKind::Option -> {
             ret 4
@@ -298,22 +282,13 @@ fun WasmBackend.get_size_of(final_type: FinalType): Int {
     when {
         final_type.kind is FinalTypeKind::Struct -> {
             let instance: NStruct = (final_type.kind as FinalTypeKind::Struct).instance
+            let opt = instance.get_intrinsic_size_annotation()
 
-            ret when instance.full_name {
-                "Never" -> 0
-                "Nothing" -> 0
-                "Byte" -> 1
-                "Boolean" -> 1
-                "Short" -> 2
-                "Char" -> 4
-                "Int" -> 4
-                "Float" -> 4
-                "Ptr" -> 4
-                "Array" -> 4
-                "Function" -> 4
-                "Long" -> 8
-                else -> get_final_struct(instance, final_type).size
+            if opt.is_some() {
+                ret opt!!.size
             }
+
+            ret get_final_struct(instance, final_type).size
         }
         final_type.kind is FinalTypeKind::Option -> {
             let instance: NOption = (final_type.kind as FinalTypeKind::Option).instance

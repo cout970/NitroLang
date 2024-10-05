@@ -2,48 +2,67 @@
 type_alias NInstId = Id
 
 struct NInst {
+    // Instruction id, unique inside the code block
     id: NInstId
+    // Span of the instruction in the source code
     span: Span
+    // Block id where the instruction is located
     block: NBlockId
+    // Instruction kind
     kind: NInstKind
+    // Type resolution utility
     type_token: Optional<TypeToken>
+    // List of instructions that reference this instruction
     back_references: List<NInstId>
 }
 
 option NInstKind {
+    // Code markers, for relocations
     Mark {
         id: Id
     }
+    // Creates a new variable
     Let {
         variable: NVarId
     }
+    // Creates a new upvalue (variable stored in heap bound to one or more closures)
     LetUpvalue {
         variable: NVarId
     }
+    // `if (condition)` starts a new block
     IfStart {
         condition: NInstId
     }
+    // Finishes the `if` block and start a new `else` block
     IfElse {}
+    // Finish both `if` and `else` blocks
     IfEnd {}
+    // Chooses a value based on the condition, `cond ? a : b`, a and b can be defined inside the `if` and `else` blocks
     IfChoose {
         condition: NInstId
         if_true: NInstId
         if_false: NInstId
     }
+    // Starts an infinite loop block
     LoopStart {
         break_block: NBlockId
         continue_block: NBlockId
     }
+    // Ends the current loop block
     LoopEnd {}
+    // Performs an unconditional jump for `break` (backwards = false) and `continue` (backwards = true)
     BlockJump {
         backwards: Boolean
         block: Optional<NBlockId>
     }
+    // Starts a `when` (like a switch/match block) block
     WhenStart {}
+    // Ends a `when` block
     WhenEnd {
         branches: List<NInstId>
         variable: Optional<NVarId>
     }
+    // Performs a function call
     FunCall {
         path: String
         name: String
@@ -52,37 +71,45 @@ option NInstKind {
         explicit_type_arguments: List<NTypeUsage>
         call_site: Optional<FunCallSite>
     }
+    // Binary operation, like `a + b`, will be transformed into a function call `a.plus(b)` at type resolution
     BinaryOp {
         op: BinaryOperator
         left: NInstId
         right: NInstId
     }
+    // Literal value: Int, Long, Float, Boolean, String or Nothing
     Literal {
         value: NConstExpr
     }
+    // Returns from the current function
     Return {
         value: NInstId
     }
+    // Checks if a value is of a certain type, limited to variants of an option type
     IsType {
         value: NInstId
         type_pattern: NTypePattern
     }
+    // Casts a value to a certain type, limited to variants of an option type
     AsType {
         value: NInstId
         type_usage: NTypeUsage
     }
+    // Load the value of a local variable or a global constant
     LoadVar {
         path: String
         name: String
         variable: Optional<NVarId>
         constant: Optional<Id>
     }
+    // Store a value in a local variable, global variables are not supported
     StoreVar {
         path: String
         name: String
         value: NInstId
         variable: Optional<NVarId>
     }
+    // Load the value of a field from a struct instance
     LoadField {
         instance: NInstId
         name: String
@@ -90,6 +117,7 @@ option NInstKind {
         field_type_token: Optional<TypeToken>
         call_site_generics: Optional<CallSiteGenerics>
     }
+    // Store a value in a field from a struct instance
     StoreField {
         instance: NInstId
         name: String
@@ -98,28 +126,35 @@ option NInstKind {
         call_site_generics: Optional<CallSiteGenerics>
         value: NInstId
     }
+    // Retrieves the size of a type in bytes
     SizeOf {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
     }
+    // Includes a file as a string or list of bytes
     IncludeAs {
         path: String
         raw: Boolean
     }
+    // Allocates memory for a type
     Alloc {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
         is_enum: Boolean
     }
+    // Creates a lambda function, see NLambda
     Lambda {
         lambda_id: Id
     }
+    // Gets the value of a previous instruction
     Link {
         linked_id: NInstId
     }
+    // Documentation comment
     Comment {
         text: String
     }
+    // No operation
     Noop {}
 }
 
@@ -184,6 +219,7 @@ fun NCode.add_let(
         type_token: None(),
         is_parameter: false,
         is_upvalue: false,
+        init_at: None(),
     ]
     vars_map[variable.id] = variable
 
@@ -473,6 +509,40 @@ fun NCode.add_link(
     linked_id: NInstId,
 ): NInst {
     ret add_inst(span, NInstKind::Link @[linked_id])
+}
+
+fun NCode.add_inst_before(prev_id: NInstId, span: Span, kind: NInstKind): NInst {
+    let index = index_of_inst(prev_id)!!
+    let prev_inst = inst_list[index]!!
+
+    let inst = NInst @[
+        id: inst_id_provider.next(),
+        span: prev_inst.span,
+        block: prev_inst.block,
+        kind,
+        type_token: None(),
+        back_references: [],
+    ]
+
+    inst_list.insert(index, inst)
+    ret inst
+}
+
+fun NCode.add_inst_after(prev_id: NInstId, span: Span, kind: NInstKind): NInst {
+    let index = index_of_inst(prev_id)!!
+    let prev_inst = inst_list[index]!!
+
+    let inst = NInst @[
+        id: inst_id_provider.next(),
+        span: prev_inst.span,
+        block: prev_inst.block,
+        kind,
+        type_token: None(),
+        back_references: [],
+    ]
+
+    inst_list.insert(index + 1, inst)
+    ret inst
 }
 
 fun NCode.duplicate_inst(index: Int) {

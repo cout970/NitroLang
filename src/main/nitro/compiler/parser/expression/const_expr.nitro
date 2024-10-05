@@ -143,6 +143,13 @@ fun NConstExpr.get_string(): Optional<String> {
     ret None()
 }
 
+fun NConstExpr.get_int(): Optional<Int> {
+    if this is NConstExpr::NConstInt {
+        ret Some((this as NConstExpr::NConstInt).value)
+    }
+    ret None()
+}
+
 fun NConstExpr.get_boolean(): Optional<Boolean> {
     if this is NConstExpr::NConstBoolean {
         ret Some((this as NConstExpr::NConstBoolean).value)

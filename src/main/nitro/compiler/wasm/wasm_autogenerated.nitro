@@ -308,7 +308,22 @@ fun WasmBackend.compile_function_start_main() {
     let func = wasm_program.functions.find @{ it -> it.header.name == "_start_main" }!!
     let main_func = wasm_program.functions.find @{ it -> it.header.name == "main" }!!
 
-    // First init all enums
+    let sorted = []
+
+    // Prioritize init functions
+    for init_func in wasm_program.functions {
+        if init_func.source is WFunctionSource::Const {
+            let wconst = (init_func.source as WFunctionSource::Const).wconst
+
+            if !wconst.instance.has_annotation(ANNOTATION_INIT_PRIORITY) {
+                continue
+            }
+
+            sorted[] = Pair::of(init_func, wconst)
+        }
+    }
+
+    // Init all enums
     for init_func in wasm_program.functions {
         if init_func.source is WFunctionSource::Const {
             let wconst = (init_func.source as WFunctionSource::Const).wconst
@@ -316,10 +331,11 @@ fun WasmBackend.compile_function_start_main() {
             if !wconst.instance.is_enum {
                 continue
             }
+            if wconst.instance.has_annotation(ANNOTATION_INIT_PRIORITY) {
+                continue
+            }
 
-            func.bytecode.add_i32_const(wconst.section.offset)
-            func.bytecode.add_call(init_func.header.index.to_int())
-            func.bytecode.add_store_by_type(wconst.final_type, this)
+            sorted[] = Pair::of(init_func, wconst)
         }
     }
 
@@ -331,11 +347,20 @@ fun WasmBackend.compile_function_start_main() {
             if wconst.instance.is_enum {
                 continue
             }
+            if wconst.instance.has_annotation(ANNOTATION_INIT_PRIORITY) {
+                continue
+            }
 
-            func.bytecode.add_i32_const(wconst.section.offset)
-            func.bytecode.add_call(init_func.header.index.to_int())
-            func.bytecode.add_store_by_type(wconst.final_type, this)
+            sorted[] = Pair::of(init_func, wconst)
         }
+    }
+
+    for pair in sorted {
+        let init_func = pair.first
+        let wconst = pair.second
+        func.bytecode.add_i32_const(wconst.section.offset)
+        func.bytecode.add_call(init_func.header.index.to_int())
+        func.bytecode.add_store_by_type(wconst.final_type, this)
     }
 
     func.bytecode.add_call(main_func.header.index.to_int())

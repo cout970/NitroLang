@@ -46,6 +46,9 @@ fun NGenericParams.get(name: String): Optional<NGeneric> {
     ret None()
 }
 
+fun NGenericParams.add(def: NGeneric) {
+    definitions[] = def
+}
 
 fun NGeneric.get_hash(): Int = id.get_hash()
 fun NGeneric.get_ordering(other: NGeneric): Ordering = id.get_ordering(other.id)

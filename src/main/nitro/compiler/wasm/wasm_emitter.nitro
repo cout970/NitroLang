@@ -37,7 +37,6 @@ fun WasmEmitter::new(): WasmEmitter {
         debug_buffer: StringBuilder::new(),
         debug_suffix: "",
         debug_indent: 1,
-        // DEBUG
         debug_print: false,
         backend: None(),
     ]

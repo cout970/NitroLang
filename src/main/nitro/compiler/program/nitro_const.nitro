@@ -24,6 +24,20 @@ fun NConst.to_string(): String {
     ret "$id: ${prefix}const $full_name$generics: $type_usage = $code_id // $span"
 }
 
+fun NConst.has_annotation(name: String): Boolean {
+    ret get_annotation(name).is_some()
+}
+
+fun NConst.get_annotation(name: String): Optional<NAnnotation> {
+    for a in annotations {
+        if a.name == name {
+            ret Some(a)
+        }
+    }
+
+    ret None()
+}
+
 fun ByteBuffer.serialize_const(value: NConst) {
     let frame = start_frame(true)
     serialize_id(value.id)
