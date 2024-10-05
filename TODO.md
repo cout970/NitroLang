@@ -15,7 +15,7 @@ Intended for the developers
 - [x] Compile to WASM
 - [x] StdLib
 - [x] Self-hosted compiler
-- [ ] Remove old kotlin compiler
+- [x] Remove old kotlin compiler
 - [ ] Better memory management
 - [ ] Intellij Language Plugin
 - [ ] Package manager for dependencies
@@ -59,6 +59,17 @@ Intended for the developers
 - Add Short and prefix 'S'/'s' for short literals
 - Change Some/None to Ok/Err to lowercase
 - Check nested ret if ... { ret if ... { ret if ... {} } }
+- Exhaustive when with `is Type`
+- Refactor and rename of fields/functions/types that where temporary and end up permanent
+- Add better data structure for NCode inst_list, with inserts/removes while iterating and faster index_of_inst(id)
+- Not discard comments at lexing to keep them in the AST as Comment nodes
+- Rename NConstExpr
+- Fix imports and module resolution
+- Add `include "file" as prefix_name` like `import "std.nitro" as std`
+- Add path prefix to fields, like `internal::field: Int`
+- Add default values for fields in structs
+- Add default values for parameters in functions
+
 
 ### Pending renames
 
