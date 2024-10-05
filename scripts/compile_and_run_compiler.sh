@@ -11,7 +11,7 @@ then
 fi
 
 compiler=$(realpath "releases/$(cat releases/latest.txt)")
-
+dump_ir=n
 input="src/main/nitro/compiler/main.nitro"
 output="out/tmp_compiler.wasm"
 cache="out/cache0"
@@ -48,6 +48,7 @@ function log {
 }
 
 log "Compiling compiler $compiler"
+#  --core-path src/main/nitro/core/core.nitro
 wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" || fail "Compilation failed"
 
 if [ ! -f "$output" ]; then
@@ -56,6 +57,12 @@ if [ ! -f "$output" ]; then
 fi
 
 mkdir -p "$cache"
+
+if [ "$dump_ir" = "y" ]; then
+    log "Dumping IR"
+    wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2.ir" --cache-dir "$cache2" --core-path src/main/nitro/core/core.nitro --dump-ir || fail "Compilation failed"
+    exit
+fi
 
 log "Running compiler $output"
 wasm2wat -o "$output.wat" "$output"

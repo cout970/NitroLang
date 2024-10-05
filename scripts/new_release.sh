@@ -3,7 +3,14 @@
 # switch to the root directory
 cd "$(dirname "$0")/.."
 
-version="0.0.8"
+version=$(cat src/main/nitro/compiler/main.nitro | grep -oP 'let VERSION: String = "(.*?)"' | grep -oP "\d+\.\d+\.\d+")
+
+if [ -z "$version" ]; then
+    echo "Could not detect version"
+    exit 1
+fi
+
+echo "Detected version '$version'"
 
 cp "out/compiler.wasm" "releases/compiler_v$version.wasm"
 
