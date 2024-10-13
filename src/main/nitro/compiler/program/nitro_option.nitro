@@ -2,7 +2,7 @@
 struct NOption {
     id: Id
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
     name: String
     full_name: String
@@ -26,24 +26,9 @@ fun NOption.get_index_of_item(str: NStruct): Optional<Int> {
     ret None()
 }
 
-fun NOption.get_annotation(name: String): Optional<NAnnotation> {
-    for a in annotations {
-        if a.name == name {
-            ret Some(a)
-        }
-    }
-    ret None()
-}
-
 fun NOption.get_ordering(other: NOption): Ordering = this.id <=> other.id
 
 fun NOption.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
     let items_str = if items.len > 0 { "{\n" } else { "{" }
 
     for item in items {
@@ -53,16 +38,10 @@ fun NOption.to_string(): String {
     items_str = items_str + "}"
     let full_name = Path::join(path, name)
 
-    ret "$id: ${prefix}option $full_name $items_str // $span"
+    ret "$id: ${annotations}option $full_name $items_str // $span"
 }
 
 fun NOptionItem.to_string(): String {
-    let prefix = ""
-
-    for a in def.annotations {
-        prefix = "$prefix$a\n"
-    }
-
     let fields_str = if def.fields.len > 0 { "{\n" } else { "{" }
 
     for field in def.fields {
@@ -70,17 +49,14 @@ fun NOptionItem.to_string(): String {
     }
     fields_str = fields_str + "}"
 
-    ret "${prefix}${def.name} $fields_str // $span"
+    ret "${def.annotations}${def.name} $fields_str // $span"
 }
 
 fun ByteBuffer.serialize_option(value: NOption) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     write_string(value.path)
     write_string(value.name)
     serialize_generic_params(value.generics)
@@ -95,12 +71,7 @@ fun ByteBuffer.deserialize_option(program: Program): NOption {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
-
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     let name = read_string()
     let full_name = Path::join(path, name)

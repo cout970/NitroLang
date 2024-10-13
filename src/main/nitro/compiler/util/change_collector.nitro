@@ -87,6 +87,10 @@ fun ChangeCollector.diff(left: NOption, right: NOption) {
     field("items").diff(left.items, right.items)
 }
 
+fun ChangeCollector.diff(left: NAnnotationContainer, right: NAnnotationContainer) {
+    field("values").diff(left.values, right.values)
+}
+
 fun ChangeCollector.diff(left: NAnnotation, right: NAnnotation) {
     field("span").diff(left.span, right.span)
     field("name").diff(left.name, right.name)

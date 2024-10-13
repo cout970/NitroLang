@@ -6,7 +6,7 @@
 // tagDefinitionFunction
 //     : annotation* functionHeader;
 
-fun Parser.read_tag_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_tag_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::TAG)?
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?

@@ -2,7 +2,7 @@
 struct NTag {
     id: Id
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
     name: String
     full_name: String
@@ -25,12 +25,7 @@ fun NTag.to_string() -> String {
 
     str[] = id
     str[] = ": "
-
-    repeat annotations.len {
-        str[] = annotations[it]!!
-        str[] = "\n"
-    }
-
+    str[] = annotations
     str[] = "tag "
     str[] = full_name
     str[] = " {\n"
@@ -52,10 +47,7 @@ fun ByteBuffer.serialize_tag(value: NTag) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     write_string(value.path)
     write_string(value.name)
     write_int(value.functions.len)
@@ -69,10 +61,7 @@ fun ByteBuffer.deserialize_tag(): NTag {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     let name = read_string()
 

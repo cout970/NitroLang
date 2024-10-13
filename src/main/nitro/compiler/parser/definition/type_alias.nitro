@@ -3,7 +3,7 @@
 // aliasDefinition
 //     : ALIAS anyName typeParamsDef? ASSIGN typeUsage;
 
-fun Parser.read_type_alias_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_type_alias_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::TYPE_ALIAS)?
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?

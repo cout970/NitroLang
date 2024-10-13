@@ -37,8 +37,8 @@ fun Parser.read_annotation(): Parsed<NAnnotation> {
 }
 
 // Read a list of annotations
-fun Parser.read_annotations(): Parsed<List<NAnnotation>> {
-    let annotations = []
+fun Parser.read_annotations(): Parsed<NAnnotationContainer> {
+    let annotations = NAnnotationContainer::new()
 
     while lexer.current_token_kind == TokenKind::AT {
         annotations[] = read_annotation()?

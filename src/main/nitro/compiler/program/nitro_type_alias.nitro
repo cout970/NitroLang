@@ -1,7 +1,7 @@
 
 struct NTypeAlias {
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
     name: String
     full_name: String
@@ -11,24 +11,15 @@ struct NTypeAlias {
 }
 
 fun NTypeAlias.to_string() -> String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
     let full_name = Path::join(path, name)
 
-    ret "${prefix}typealias $full_name$generics = $type_usage // $span"
+    ret "${annotations}typealias $full_name$generics = $type_usage // $span"
 }
 
 fun ByteBuffer.serialize_type_alias(def: NTypeAlias) {
     let frame = start_frame(true)
     serialize_span(def.span)
-    write_int(def.annotations.len)
-    for a in def.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(def.annotations)
     write_string(def.path)
     write_string(def.name)
     serialize_generic_params(def.generics)
@@ -39,10 +30,7 @@ fun ByteBuffer.serialize_type_alias(def: NTypeAlias) {
 fun ByteBuffer.deserialize_type_alias(): NTypeAlias {
     let frame = start_frame(false)
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     let name = read_string()
     let generics = deserialize_generic_params()

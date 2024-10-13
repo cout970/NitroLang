@@ -3,7 +3,7 @@
 //    moduleDefinition
 //        : MODULE modulePath? anyName NL* LBRACE NL* definition* RBRACE ;
 
-fun Parser.read_module_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_module_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::MODULE)?
     let span = lexer.current_token_span
     let path = read_module_path()?

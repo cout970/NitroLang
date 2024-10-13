@@ -3,8 +3,7 @@ struct NFunction {
     program: Program
     id: Id
     span: Span
-    // TODO refactor into AnnotationContainer
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     header: NFunctionHeader
     code_id: Id
     full_name: String
@@ -35,7 +34,7 @@ fun NFunction.is_destructor_for(struct_name: String): Boolean {
     ret this_param.type_usage.name == struct_name
 }
 
-fun Parser.create_function(header: NFunctionHeader, annotations: List<NAnnotation>): NFunction {
+fun Parser.create_function(header: NFunctionHeader, annotations: NAnnotationContainer): NFunction {
     let id = id_provider.next()
     let full_name = Path::join(header.path, header.name)
     let code = NCode::new(program, NCodeContainer::None @[])
@@ -56,7 +55,7 @@ fun Parser.create_function(header: NFunctionHeader, annotations: List<NAnnotatio
     ret func
 }
 
-fun Program.create_function(header: NFunctionHeader, annotations: List<NAnnotation>): NFunction {
+fun Program.create_function(header: NFunctionHeader, annotations: NAnnotationContainer): NFunction {
     let id = id_provider.next()
     let full_name = Path::join(header.path, header.name)
     let code = NCode::new(this, NCodeContainer::None @[])
@@ -99,22 +98,8 @@ fun NFunction.register_params() {
 
 fun NFunction.get_param_types(): List<Type> = header.param_types
 
-fun NFunction.get_annotation(name: String): Optional<NAnnotation> {
-    for a in annotations {
-        if a.name == name {
-            ret Some(a)
-        }
-    }
-    ret None()
-}
-
-fun NFunction.has_annotation(name: String): Boolean {
-    ret get_annotation(name).is_some()
-}
-
 fun NFunction.to_string(): String {
-    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-    ret "$id: ${prefix}${header.to_pretty_string()} = $code_id // $span"
+    ret "$id: ${annotations}${header.to_pretty_string()} = $code_id // $span"
 }
 
 fun NFunctionParameter.to_string(): String {
@@ -146,16 +131,13 @@ fun NFunctionHeader.to_pretty_string(): String {
     ret str.to_string()
 }
 
-fun NFunction.is_extern(): Boolean = get_extern_annotation().is_some()
+fun NFunction.is_extern(): Boolean = annotations.get_extern_annotation().is_some()
 
 fun ByteBuffer.serialize_function(value: NFunction) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     serialize_function_header(value.header)
     serialize_id(value.code_id)
     end_frame(frame)
@@ -165,10 +147,7 @@ fun ByteBuffer.deserialize_function(program: Program): NFunction {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let header = deserialize_function_header()
     let code_id = deserialize_id()
 

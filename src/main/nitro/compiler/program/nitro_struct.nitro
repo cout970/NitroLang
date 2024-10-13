@@ -2,7 +2,7 @@
 struct NStruct {
     id: Id
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
     name: String
     full_name: String
@@ -24,12 +24,6 @@ struct NStructField {
 fun NStruct.get_ordering(other: NStruct): Ordering = this.id <=> other.id
 
 fun NStruct.to_string(): String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
     let fields_str = if fields.len > 0 { "{\n" } else { "{" }
 
     for field in fields {
@@ -38,28 +32,19 @@ fun NStruct.to_string(): String {
     fields_str = fields_str + "}"
     let full_name = Path::join(path, name)
 
-    ret "$id: ${prefix}struct $full_name$generics $fields_str  // $span"
+    ret "$id: ${annotations}struct $full_name$generics $fields_str  // $span"
 }
 
 fun NStructField.to_string(): String {
     ret "field $offset: $name: $type_usage // $span"
 }
 
-fun NStruct.get_annotation(name: String): Optional<NAnnotation> {
-    for a in annotations {
-        if a.name == name {
-            ret Some(a)
-        }
-    }
-    ret None()
-}
-
 fun NStruct.add_rc_fields() {
-//    if is_enum || get_annotation(ANNOTATION_NO_GC).is_some() {
+//    if is_enum || annotations[ANNOTATION_NO_GC].is_some() {
 //        ret
 //    }
 
-    if !ENABLE_RC_GC || get_annotation(ANNOTATION_TMP_RC).is_none() {
+    if !ENABLE_RC_GC || annotations[ANNOTATION_TMP_RC].is_none() {
         ret
     }
 
@@ -78,10 +63,7 @@ fun ByteBuffer.serialize_struct(value: NStruct) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     write_string(value.path)
     write_string(value.name)
     serialize_generic_params(value.generics)
@@ -97,10 +79,7 @@ fun ByteBuffer.deserialize_struct(): NStruct {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     let name = read_string()
     let generics = deserialize_generic_params()

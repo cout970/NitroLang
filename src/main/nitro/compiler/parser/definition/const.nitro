@@ -3,7 +3,7 @@
 // constDefinition
 //     : LET modulePath? anyName COLON typeUsage ASSIGN NL* expression ;
 
-fun Parser.read_const_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_const_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::LET)?
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?

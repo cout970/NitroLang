@@ -9,7 +9,7 @@
 // optionDefinitionItem
 //     : anyName structBody?;
 
-fun Parser.read_option_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_option_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::OPTION)?
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?
@@ -53,7 +53,7 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     let def = NStruct @[
         id: id_provider.next(),
         span,
-        annotations: [],
+        annotations: NAnnotationContainer::new(),
         path,
         name,
         full_name: Path::join(path, name),

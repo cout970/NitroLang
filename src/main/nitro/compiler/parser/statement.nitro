@@ -101,7 +101,7 @@ fun Parser.read_statement(code: NCode): Parsed<Nothing> {
         TokenKind::LOOP -> read_loop_statement(code)?
         TokenKind::WHEN -> read_when_statement(code)?
         TokenKind::TEST -> {
-            read_test_definition([])?
+            read_test_definition(NAnnotationContainer::new())?
             // Prevent this statement from affecting the last expression
             code.last_expression = prev_last_expression
             ret found(nothing)

@@ -3,7 +3,7 @@ struct NConst {
     program: Program
     id: Id
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
     name: String
     generics: NGenericParams
@@ -19,33 +19,14 @@ fun NConst.get_code(): NCode = program.find_code(code_id)
 fun NConst.get_ordering(other: NConst): Ordering = this.id <=> other.id
 
 fun NConst.to_string(): String {
-    let prefix = if annotations.is_empty() { "" } else { annotations.join("\n") + "\n" }
-
-    ret "$id: ${prefix}const $full_name$generics: $type_usage = $code_id // $span"
-}
-
-fun NConst.has_annotation(name: String): Boolean {
-    ret get_annotation(name).is_some()
-}
-
-fun NConst.get_annotation(name: String): Optional<NAnnotation> {
-    for a in annotations {
-        if a.name == name {
-            ret Some(a)
-        }
-    }
-
-    ret None()
+    ret "$id: ${annotations}const $full_name$generics: $type_usage = $code_id // $span"
 }
 
 fun ByteBuffer.serialize_const(value: NConst) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     write_string(value.path)
     write_string(value.name)
     serialize_generic_params(value.generics)
@@ -59,10 +40,7 @@ fun ByteBuffer.deserialize_const(program: Program): NConst {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     let name = read_string()
     let generics = deserialize_generic_params()

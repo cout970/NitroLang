@@ -108,7 +108,7 @@ fun TypeChecker.check_all() {
     }
 
     for s in program.functions {
-        if s.get_annotation(ANNOTATION_DUMP_IR).is_some() {
+        if s.annotations[ANNOTATION_DUMP_IR].is_some() {
             Log::debug("Dumping IR for function ${s.full_name}")
             Log::debug(s.code.to_string())
         }

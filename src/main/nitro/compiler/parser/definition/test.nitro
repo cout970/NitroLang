@@ -3,7 +3,7 @@
 // testDefinition
 //     : TEST NL* PLAIN_STRING NL* statementBlock ;
 
-fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_test_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::TEST)?
     skip_nl()
 

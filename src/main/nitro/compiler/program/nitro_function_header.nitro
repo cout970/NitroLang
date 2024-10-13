@@ -24,7 +24,7 @@ option NFunCallTarget {
 
 fun NFunCallTarget.has_annotation(name: String): Boolean {
     ret when {
-        this is NFunCallTarget::Func -> (this as NFunCallTarget::Func).func.has_annotation(name)
+        this is NFunCallTarget::Func -> (this as NFunCallTarget::Func).func.annotations[name].is_some()
         this is NFunCallTarget::Tag -> false
         else -> unreachable()
     }

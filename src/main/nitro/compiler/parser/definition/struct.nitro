@@ -10,7 +10,7 @@
 // structField
 //      : INTERNAL? anyName COLON typeUsage;
 
-fun Parser.read_struct_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_struct_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::STRUCT)?
     let span = lexer.current_token_span
     let path = read_declaration_module_path()?

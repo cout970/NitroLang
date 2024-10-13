@@ -1,27 +1,18 @@
 
 struct NInclude {
     span: Span
-    annotations: List<NAnnotation>
+    annotations: NAnnotationContainer
     path: String
 }
 
 fun NInclude.to_string() -> String {
-    let prefix = ""
-
-    for a in annotations {
-        prefix = "$prefix$a\n"
-    }
-
-    ret "${prefix}include \"$path\" // $span"
+    ret "${annotations}include \"$path\" // $span"
 }
 
 fun ByteBuffer.serialize_include(value: NInclude) {
     let frame = start_frame(true)
     serialize_span(value.span)
-    write_int(value.annotations.len)
-    for a in value.annotations {
-        serialize_annotation(a)
-    }
+    serialize_annotation_container(value.annotations)
     write_string(value.path)
     end_frame(frame)
 }
@@ -29,10 +20,7 @@ fun ByteBuffer.serialize_include(value: NInclude) {
 fun ByteBuffer.deserialize_include(): NInclude {
     let frame = start_frame(false)
     let span = deserialize_span()
-    let annotations = []
-    repeat read_int() {
-        annotations[] = deserialize_annotation()
-    }
+    let annotations = deserialize_annotation_container()
     let path = read_string()
     end_frame(frame)
 

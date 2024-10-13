@@ -34,7 +34,7 @@
 //     | ARROW typeUsage
 //     ;
 
-fun Parser.read_function_definition(annotations: List<NAnnotation>): Parsed<Nothing> {
+fun Parser.read_function_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     let generics = NGenericParams::new(NGenericSource::Function)
     let header = read_function_header(generics)?
 
