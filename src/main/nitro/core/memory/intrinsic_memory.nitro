@@ -6,13 +6,41 @@ fun get_memory(): MemoryArena = ptr_from_address<MemoryArena>(4).unsafe_as_ref()
 // used by the compiler to allocate memory when a struct instance is created
 @WasmName [name: "memory_alloc_internal"]
 fun memory_alloc_internal(bytes: Int): Int {
-    ret get_memory().alloc_bytes(bytes).get_address()
+    ret get_memory().alloc_bytes(bytes).address
+}
+
+@Override
+@WasmName [name: "memory_alloc_internal2"]
+fun memory_alloc_internal2(size: Int): Int {
+    if !global_allocator.enable {
+        ret get_memory().alloc_bytes(size).address
+    }
+
+    let ptr = global_allocator.zero_alloc_bytes(size)
+    ret ptr.address
+}
+
+@WasmName [name: "memory_realloc_internal"]
+fun memory_realloc_internal(ptr: Int, size: Int): Int {
+    let new_ptr = get_memory().alloc_bytes(size).address
+    memory_copy_internal(new_ptr, ptr, size)
+    memory_free_internal(ptr)
+    ret new_ptr
 }
 
 @WasmName [name: "memory_free_internal"]
 fun memory_free_internal(bytes: Int) {
     // No-op
 }
+
+@WasmName [name: "memory_realloc_internal2"]
+fun memory_free_internal2(ptr: Int) {
+    if !global_allocator.enable {
+        ret
+    }
+    global_allocator.free(ptr_from_address(ptr))
+}
+
 
 // Copies a chunk of memory to another location
 @WasmInline [opcode: "memory.copy"]

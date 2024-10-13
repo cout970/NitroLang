@@ -103,6 +103,7 @@ fun List<#Item>.add_multiple_times(item: #Item, times: Int) {
     }
 }
 
+// Add all the items from the other list to this list
 fun List<#Item>.add_all(other: List<#Item>) {
     // Expand list if needed
     ensure_capacity(this.count + other.count)
@@ -114,6 +115,7 @@ fun List<#Item>.add_all(other: List<#Item>) {
     }
 }
 
+// Add all the items from the other array to this list
 fun List<#Item>.add_all(other: Array<#Item>) {
     // Expand list if needed
     ensure_capacity(this.count + other.len)

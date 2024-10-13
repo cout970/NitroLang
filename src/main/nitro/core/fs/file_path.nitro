@@ -95,6 +95,7 @@ fun FilePath.read_directory_files(): Result<List<String>, IoError> {
 
     let entries: List<String> = []
     let mem_buff = Array::new<Byte>(1024 * 4)
+    defer mem_buff.free()
     let cookie = 0L
 
     loop {
@@ -226,6 +227,7 @@ fun FilePath.read_text(): Result<String, IoError> {
     }
 
     let mem_buff = Array::new<Byte>(4096)
+    defer mem_buff.free()
     let nread = IntPtr@[value: 0]
 
     let iovec = wasi::IOVec @[
@@ -286,6 +288,7 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {
     }
 
     let mem_buff = Array::new<Byte>(4096)
+    defer mem_buff.free()
     let nwritten = IntPtr@[value: 0]
     let offset = 0
 
@@ -348,6 +351,7 @@ fun FilePath.read_bytes(): Result<List<Byte>, IoError> {
     }
 
     let mem_buff = Array::new<Byte>(4096)
+    defer mem_buff.free()
     let nread = IntPtr@[value: 0]
 
     let iovec = wasi::IOVec @[
@@ -410,6 +414,7 @@ fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {
     }
 
     let mem_buff = Array::new<Byte>(4096)
+    defer mem_buff.free()
     let nwritten = IntPtr@[value: 0]
     let offset = 0
 

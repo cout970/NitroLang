@@ -21,6 +21,7 @@ mod runtime {
         defer ffi::free(buff)
 
         let arg_vec = Array::new<CString>(arg_count.value)
+        defer arg_vec.free()
 
         let rc = wasi::args_get(arg_vec.data_ptr, buff)
         if rc != 0 {
@@ -51,6 +52,7 @@ mod runtime {
         defer ffi::free(buff)
 
         let environ_vec = Array::new<CString>(environ_count.value)
+        defer environ_vec.free()
 
         let rc = wasi::environ_get(environ_vec.data_ptr, buff)
         if rc != 0 {

@@ -70,12 +70,10 @@ fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(required_capacity: Int) {
         new_capacity *= 2
     }
 
-    // Keep old table to move items later
-    let old_map = Map<#Key, #Value> @[
-        capacity: capacity,
-        count: count,
-        table: table,
-    ]
+    // Keep values to reinsert them later
+    let pairs = to_list()
+
+    table.free()
 
     capacity = new_capacity
     count = 0
@@ -83,7 +81,16 @@ fun <#Key: MapKey> Map<#Key, #Value>.ensure_capacity(required_capacity: Int) {
     table.fill(None())
 
     // Copy previous items
-    add_all(old_map)
+    for pair in pairs {
+        add(pair)
+    }
+}
+
+// Destructor
+fun Map<#Key, #Value>.deinit(key: #Key) {
+    capacity = 0
+    count = 0
+    table.free()
 }
 
 fun Map::get_index(hash: Int, capacity: Int): Int {

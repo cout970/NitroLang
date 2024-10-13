@@ -23,6 +23,21 @@ fun Duration::from_seconds(seconds: Long): Duration {
     ]
 }
 
+fun Duration.plus(other: Duration): Duration {
+    let sec = this.seconds + other.seconds
+    let ns = this.nanoseconds + other.nanoseconds
+
+    if ns >= 1_000_000_000 {
+        sec += 1L
+        ns -= 1_000_000_000
+    }
+
+    ret Duration @[
+        seconds: sec,
+        nanoseconds: ns,
+    ]
+}
+
 fun Duration.to_days(): Float {
     ret this.seconds.to_float() / 60.0 / 60.0 / 24.0 + this.nanoseconds.to_float() / 60_000_000_000.0
 }

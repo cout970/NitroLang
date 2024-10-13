@@ -29,6 +29,13 @@ fun <#Item> ArrayDeque::new(capacity: Int): ArrayDeque<#Item> {
     ]
 }
 
+fun ArrayDeque<#Item>.deinit() {
+    capacity = 0
+    first = 0
+    count = 0
+    items.free()
+}
+
 // Makes sure the deque has capacity for the requested number of items
 fun ArrayDeque<#Item>.ensure_capacity(needed_capacity: Int) {
     if needed_capacity <= capacity {
@@ -48,6 +55,8 @@ fun ArrayDeque<#Item>.ensure_capacity(needed_capacity: Int) {
         let index = raw_index_of(it)
         new_items[it] = items[index]
     }
+
+    items.free()
 
     first = 0
     items = new_items

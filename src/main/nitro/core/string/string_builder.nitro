@@ -13,6 +13,12 @@ fun StringBuilder::new(): StringBuilder {
     ]
 }
 
+// Destructor
+fun StringBuilder.deinit() {
+    bytes_len = 0
+    bytes.free()
+}
+
 // Creates a new StringBuilder, call the lambda to collect the string contents, and return the final string
 fun build_string(func: StringBuilder.() -> Nothing): String {
     let builder = StringBuilder::new()
@@ -225,6 +231,7 @@ fun StringBuilder.add_int_in_base(base: Int, value: Int) {
 
     // The maximum number of posible digits is 32 (32 bits in base 2), so we can preallocate the array
     let digits: Array<Char> = Array::new(32)
+    defer digits.free()
     let digits_len = 0
     let aux = value
 
@@ -275,6 +282,7 @@ fun StringBuilder.add_long_in_base(base: Long, value: Long) {
 
     // The maximum number of posible digits is 64 (64 bits in base 2), so we can preallocate the array
     let digits: Array<Char> = Array::new(64)
+    defer digits.free()
     let digits_len = 0
     let aux = value
 

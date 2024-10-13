@@ -2,9 +2,15 @@
 // Block Header has 8 bytes
 let MEMORY_ALLOCATOR_BLOCK_HEADER_SIZE: Int = 8
 // By default 7 entries are used to get a total block size of 64 (usual cache line size)
-let MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK: Int = 7 // 63 // debug
+let MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK: Int = 7
 // MEMORY_ALLOCATOR_BLOCK_HEADER_SIZE + MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK * size_of<MemoryAllocatorBlockEntry>()
-let MEMORY_ALLOCATOR_BLOCK_SIZE: Int = 64 // 512 // debug
+let MEMORY_ALLOCATOR_BLOCK_SIZE: Int = 64
+
+let MASK_USED_ENTRY: Int = 0x80000000
+let MASK_SIZE_ENTRY: Int = 0x7FFFFFFF
+
+// Turns out using free lists is slower than just scanning all the entries until a free one is found
+let MEMORY_ALLOCATOR_USE_FREE_LISTS: Boolean = false
 
 // Global allocator instance
 @InitPriority
@@ -24,6 +30,12 @@ struct MemoryAllocator {
     total_available_entries: Int
     // Fallback to arena allocator when some internal operation requires memory allocation
     enable: Boolean
+    // Direct ptr to a free chunk at least the size indicated
+    free_list_4b: Ptr<Byte>
+    free_list_8b: Ptr<Byte>
+    free_list_16b: Ptr<Byte>
+    free_list_32b: Ptr<Byte>
+    free_list_64b: Ptr<Byte>
     // Linked list of blocks
     block_list: Ptr<MemoryAllocatorBlock>
 }
@@ -55,10 +67,16 @@ fun MemoryAllocator::new(arena: MemoryArena, min_grow_size: Int): MemoryAllocato
     // Header
     let header: MemoryAllocator = arena.alloc<MemoryAllocator>().unsafe_as_ref()
     header.arena = arena
+    header.min_grow_size = min_grow_size
     header.user_alloc_total = 0
     header.user_free_total = 0
     header.total_available_entries = MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK
     header.enable = true
+    header.free_list_4b = null_ptr()
+    header.free_list_8b = null_ptr()
+    header.free_list_16b = null_ptr()
+    header.free_list_32b = null_ptr()
+    header.free_list_64b = null_ptr()
     header.block_list = null_ptr()
 
     let first_block: MemoryAllocatorBlock = arena.alloc_bytes(MEMORY_ALLOCATOR_BLOCK_SIZE).unsafe_cast_as_ref()
@@ -97,7 +115,53 @@ fun MemoryAllocator.alloc_bytes(requested_size: Int): Ptr<Byte> {
 
     ensure_enough_entries()
 
-    let entry_id = find_free_entry_for(user_alloc_size)
+    let entry_id = 0L
+
+    // Look for a free entry in the free lists
+    if MEMORY_ALLOCATOR_USE_FREE_LISTS {
+        when {
+            requested_size <= 4 && !free_list_4b.is_null() -> {
+                entry_id = find_entry_by_data_ptr(free_list_4b)
+                if entry_id != 0L {
+                    let int_ptr: IntPtr = free_list_4b.unsafe_cast_as_ref()
+                    free_list_4b = ptr_from_address<Byte>(int_ptr.value)
+                }
+            }
+            requested_size <= 8 && !free_list_8b.is_null() -> {
+                entry_id = find_entry_by_data_ptr(free_list_8b)
+                if entry_id != 0L {
+                    let int_ptr: IntPtr = free_list_8b.unsafe_cast_as_ref()
+                    free_list_8b = ptr_from_address<Byte>(int_ptr.value)
+                }
+            }
+            requested_size <= 16 && !free_list_16b.is_null() -> {
+                entry_id = find_entry_by_data_ptr(free_list_16b)
+                if entry_id != 0L {
+                    let int_ptr: IntPtr = free_list_16b.unsafe_cast_as_ref()
+                    free_list_16b = ptr_from_address<Byte>(int_ptr.value)
+                }
+            }
+            requested_size <= 32 && !free_list_32b.is_null() -> {
+                entry_id = find_entry_by_data_ptr(free_list_32b)
+                if entry_id != 0L {
+                    let int_ptr: IntPtr = free_list_32b.unsafe_cast_as_ref()
+                    free_list_32b = ptr_from_address<Byte>(int_ptr.value)
+                }
+            }
+            requested_size <= 64 && !free_list_64b.is_null() -> {
+                entry_id = find_entry_by_data_ptr(free_list_64b)
+                if entry_id != 0L {
+                    let int_ptr: IntPtr = free_list_64b.unsafe_cast_as_ref()
+                    free_list_64b = ptr_from_address<Byte>(int_ptr.value)
+                }
+            }
+        }
+    }
+
+    // If no appropriately sized free chunk was found, look at all the available entries
+    if entry_id == 0L {
+        entry_id = find_free_entry_for(user_alloc_size)
+    }
 
     if entry_id == 0L {
         // No enough free space, request more memory,
@@ -108,15 +172,22 @@ fun MemoryAllocator.alloc_bytes(requested_size: Int): Ptr<Byte> {
 
         if entry_id == 0L {
             enable = false
-            crash("Out of memory")
+            crash_with_info("Out of memory")
         }
     }
 
     let entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(entry_id)
     let entry_block = MemoryAllocatorBlockEntry::get_entry_block_by_id(entry_id)
-    let entry_size = entry.flags & 0x7FFFFFFF
+    let entry_size = entry.flags & MASK_SIZE_ENTRY
 
-    if entry_size > user_alloc_size {
+    // Mark the entry as used to prevent further internal allocations from using it
+    entry.flags = entry.flags | MASK_USED_ENTRY
+
+    // Make sure is not in any free list
+    remove_from_free_list(entry.data, entry_size)
+
+    // Split the entry if is too large for the requested size
+    if entry_size > user_alloc_size * 2 {
         total_available_entries -= 1
 
         // Split entry
@@ -124,27 +195,31 @@ fun MemoryAllocator.alloc_bytes(requested_size: Int): Ptr<Byte> {
 
         if new_entry_id == 0L {
             enable = false
-            crash("Unable to split entry, no available entries")
+            crash_with_info("Unable to split entry, no available entries")
         }
 
         let new_entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(new_entry_id)
         let new_entry_block: MemoryAllocatorBlock = MemoryAllocatorBlockEntry::get_entry_block_by_id(new_entry_id)
+        let new_entry_index: Int = MemoryAllocatorBlockEntry::get_entry_index_by_id(new_entry_id)
         let new_entry_size = entry_size - user_alloc_size
 
         // Not used, size is the remaining size
         new_entry.flags = new_entry_size
+
         // Points to the remaining memory
         new_entry.data = entry.data.offset_in_bytes(user_alloc_size)
 
+        // Add to free list
+        add_to_free_list(new_entry.data, new_entry_size)
+
         // Mark entry used and update size
-        entry.flags = 0x80000000 | user_alloc_size
+        entry.flags = MASK_USED_ENTRY | user_alloc_size
 
         // Update free size
         entry_block.free_size -= entry_size
         new_entry_block.free_size += new_entry_size
     } else {
         // Use full entry
-        entry.flags = 0x80000000 | entry_size
         entry_block.free_size -= entry_size
     }
 
@@ -155,94 +230,241 @@ fun MemoryAllocator.alloc_bytes(requested_size: Int): Ptr<Byte> {
 
 // Try to extend the allocation, if possible, otherwise alloc new memory and copy
 fun MemoryAllocator.realloc_bytes(ptr: Ptr<Byte>, new_size: Int): Ptr<Byte> {
-    let entry_id = find_entry_by_data(ptr)
+    let entry_id = find_entry_by_data_ptr(ptr)
 
     if entry_id == 0L {
         enable = false
-        debug()
-        crash("Invalid pointer: $ptr")
+        crash_with_info("Invalid pointer: $ptr")
     }
 
     let entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(entry_id)
     let block: MemoryAllocatorBlock = MemoryAllocatorBlockEntry::get_entry_block_by_id(entry_id)
-    let entry_used = entry.flags & 0x80000000 != 0
-    let entry_size = entry.flags & 0x7FFFFFFF
+    let index = MemoryAllocatorBlockEntry::get_entry_index_by_id(entry_id)
+    let entry_used = entry.flags & MASK_USED_ENTRY != 0
+    let entry_size = entry.flags & MASK_SIZE_ENTRY
 
     if !entry_used {
         enable = false
-        crash("Calling realloc with freed pointer: $ptr")
+        crash_with_info("Calling realloc with freed pointer: $ptr")
+    }
+
+    if entry_size >= new_size {
+        // No need to change the size
+        ret ptr
     }
 
     let new_data_ptr = ptr_from_address<Byte>(entry.data.address + entry_size)
-    let contiguous_entry_id = find_entry_by_data(new_data_ptr)
+    let contiguous_entry_id = find_entry_by_data_ptr(new_data_ptr)
 
-    if contiguous_entry_id != 0L {
-        let contiguous_entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(contiguous_entry_id)
-        let contiguous_entry_block: MemoryAllocatorBlock = MemoryAllocatorBlockEntry::get_entry_block_by_id(contiguous_entry_id)
-        let contiguous_entry_used = contiguous_entry.flags & 0x80000000 != 0
-        let contiguous_entry_size = contiguous_entry.flags & 0x7FFFFFFF
-
-        let total_size = entry_size + contiguous_entry_size
-
-        if !contiguous_entry_used && total_size >= new_size {
-            let remaining_size = total_size - new_size
-
-            if remaining_size > 16 {
-                // Balance entries, move space from the second entry to the first
-                entry.flags = 0x80000000 | new_size
-                // Note: free_size is not updated because `entry` is not free, so the amount of free space is the same
-
-                contiguous_entry.flags = remaining_size
-                contiguous_entry.data = ptr.offset_in_bytes(new_size)
-
-                // Decrease free size to account lost space
-                contiguous_entry_block.free_size -= new_size - entry_size
-            } else {
-                // Merge 2 entries into one
-                entry.flags = 0x80000000 | total_size
-
-                // Mark available
-                contiguous_entry.flags = 0
-                contiguous_entry.data = null_ptr()
-                contiguous_entry_block.free_size -= contiguous_entry_size
-                total_available_entries += 1
-            }
-            ret ptr
-        }
+    // No contiguous entry, fallback to alloc new memory and copy
+    if contiguous_entry_id == 0L {
+        let new_ptr = alloc_bytes(new_size)
+        memory_copy_internal(new_ptr.address, ptr.address, entry_size);
+        free(ptr)
+        ret new_ptr
     }
 
-    // Fallback implementation, alloc new memory and copy
-    let new_ptr = alloc_bytes(new_size)
-    memory_copy_internal(new_ptr.address, ptr.address, entry_size);
-    free(ptr)
-    ret new_ptr
+    let contiguous_entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(contiguous_entry_id)
+    let contiguous_entry_block: MemoryAllocatorBlock = MemoryAllocatorBlockEntry::get_entry_block_by_id(contiguous_entry_id)
+    let contiguous_entry_used = contiguous_entry.flags & MASK_USED_ENTRY != 0
+    let contiguous_entry_size = contiguous_entry.flags & MASK_SIZE_ENTRY
+
+    let total_size = entry_size + contiguous_entry_size
+
+    // Contiguous entry is used or doesn't have enough space, fallback to alloc new memory and copy
+    if contiguous_entry_used || total_size < new_size {
+        let new_ptr = alloc_bytes(new_size)
+        memory_copy_internal(new_ptr.address, ptr.address, entry_size);
+        free(ptr)
+        ret new_ptr
+    }
+
+    let remaining_size = total_size - new_size
+
+    // Make sure is not in any free list
+    remove_from_free_list(entry.data, entry_size)
+
+    if remaining_size > 16 {
+        // Balance entries, move space from the second entry to the first
+        entry.flags = MASK_USED_ENTRY | new_size
+
+        // Make sure is not in any free list
+        remove_from_free_list(contiguous_entry.data, contiguous_entry_size)
+
+        // Note: free_size is not updated because `entry` is not free, so the amount of free space is the same
+
+        // Update flags with the remaining size and without MASK_USED_ENTRY
+        contiguous_entry.flags = remaining_size
+        contiguous_entry.data = ptr.offset_in_bytes(new_size)
+
+        // Decrease free size to account lost space
+        contiguous_entry_block.free_size -= new_size - entry_size
+    } else {
+        // Merge 2 entries into one
+        entry.flags = MASK_USED_ENTRY | total_size
+
+        // Make sure is not in any free list
+        remove_from_free_list(contiguous_entry.data, contiguous_entry_size)
+
+        // Mark available
+        contiguous_entry.flags = 0
+        contiguous_entry.data = null_ptr()
+        contiguous_entry_block.free_size -= contiguous_entry_size
+        total_available_entries += 1
+    }
+    ret ptr
 }
 
 // Free memory previously allocated
 // This function will crash if the pointer is invalid or if it was already freed before
 fun MemoryAllocator.free(ptr: Ptr<Byte>) {
     // Maybe this could be optimized storing a pointer just before the data, but that will use more memory
-    let entry_id = find_entry_by_data(ptr)
+    let entry_id = find_entry_by_data_ptr(ptr)
 
     if entry_id == 0L {
         enable = false
-        debug()
-        crash("Invalid pointer: $ptr")
+        crash_with_info("Invalid pointer: $ptr")
     }
 
     let entry: MemoryAllocatorBlockEntry = MemoryAllocatorBlockEntry::get_entry_by_id(entry_id)
     let block: MemoryAllocatorBlock = MemoryAllocatorBlockEntry::get_entry_block_by_id(entry_id)
-    let entry_size = entry.flags & 0x7FFFFFFF
-    let entry_used = entry.flags & 0x80000000 != 0
+    let entry_size = entry.flags & MASK_SIZE_ENTRY
+    let entry_used = entry.flags & MASK_USED_ENTRY != 0
 
     if !entry_used {
         enable = false
-        crash("Double free: $ptr")
+        crash_with_info("Double free: $ptr")
     }
 
+    // Mark the memory to detect usage after free
+    memory_fill_internal(ptr.address, 0xAB.to_byte(), entry_size)
+
+    // Update the free lists
+    // This allows to reuse this chunk of memory as soon as possible
+    add_to_free_list(ptr, entry_size)
+
+    // Update the entry
     entry.flags = entry_size
     block.free_size += entry_size
     user_free_total += entry_size
+}
+
+fun MemoryAllocator.add_to_free_list(ptr: Ptr<Byte>, entry_size: Int) {
+    if !MEMORY_ALLOCATOR_USE_FREE_LISTS {
+        ret
+    }
+
+    let int_ptr: IntPtr = ptr.unsafe_cast_as_ref()
+
+    if entry_size < 8 {
+       int_ptr.value = free_list_4b.address
+       free_list_4b = ptr
+       ret
+    }
+
+    if entry_size < 16 {
+       int_ptr.value = free_list_8b.address
+       free_list_8b = ptr
+       ret
+    }
+
+    if entry_size < 32 {
+       int_ptr.value = free_list_16b.address
+       free_list_16b = ptr
+       ret
+    }
+
+    if entry_size < 64 {
+       int_ptr.value = free_list_32b.address
+       free_list_32b = ptr
+       ret
+    }
+
+    if entry_size < 128 {
+       int_ptr.value = free_list_64b.address
+       free_list_64b = ptr
+       ret
+    }
+}
+
+fun MemoryAllocator.remove_from_free_list(ptr: Ptr<Byte>, entry_size: Int) {
+    if ptr.is_null() || !MEMORY_ALLOCATOR_USE_FREE_LISTS {
+        ret
+    }
+
+    let prev: Ptr<Byte> = null_ptr()
+
+    when {
+        entry_size >= 4 && entry_size < 8 -> {
+            if free_list_4b == ptr {
+                let int_ptr: IntPtr = free_list_4b.unsafe_cast_as_ref()
+                free_list_4b = ptr_from_address<Byte>(int_ptr.value)
+                ret
+            }
+
+            prev = free_list_4b
+        }
+        entry_size >= 8 && entry_size < 16 -> {
+            if free_list_8b == ptr {
+                let int_ptr: IntPtr = free_list_8b.unsafe_cast_as_ref()
+                free_list_8b = ptr_from_address<Byte>(int_ptr.value)
+                ret
+            }
+
+            prev = free_list_8b
+        }
+        entry_size >= 16 && entry_size < 32 -> {
+            if free_list_16b == ptr {
+                let int_ptr: IntPtr = free_list_16b.unsafe_cast_as_ref()
+                free_list_16b = ptr_from_address<Byte>(int_ptr.value)
+                ret
+            }
+
+            prev = free_list_16b
+        }
+        entry_size >= 32 && entry_size < 64 -> {
+            if free_list_32b == ptr {
+                let int_ptr: IntPtr = free_list_32b.unsafe_cast_as_ref()
+                free_list_32b = ptr_from_address<Byte>(int_ptr.value)
+                ret
+            }
+
+            prev = free_list_32b
+        }
+        entry_size >= 64 && entry_size < 128 -> {
+            if free_list_64b == ptr {
+                let int_ptr: IntPtr = free_list_64b.unsafe_cast_as_ref()
+                free_list_64b = ptr_from_address<Byte>(int_ptr.value)
+                ret
+            }
+
+            prev = free_list_64b
+        }
+        else -> {
+            // Too large, not in free list
+            ret
+        }
+    }
+
+    if prev.is_null() {
+        ret
+    }
+
+    let int_ptr: IntPtr = prev.unsafe_cast_as_ref()
+    let next = ptr_from_address<Byte>(int_ptr.value)
+
+    while !next.is_null() {
+        if next == ptr {
+            let prev_ptr: IntPtr = prev.unsafe_cast_as_ref()
+            let next_ptr: IntPtr = next.unsafe_cast_as_ref()
+            prev_ptr.value = next_ptr.value
+            ret
+        }
+
+        prev = next
+        int_ptr = prev.unsafe_cast_as_ref()
+        next = ptr_from_address<Byte>(int_ptr.value)
+    }
 }
 
 // Increase the memory available to the allocator
@@ -253,15 +475,22 @@ fun MemoryAllocator.grow_memory(size: Int) {
 
     if entry_id == 0L {
         enable = false
-        crash("Unable to extend memory, no available entries ($total_available_entries)")
+        crash_with_info("Unable to extend memory, no available entries ($total_available_entries)")
     }
 
     let entry = MemoryAllocatorBlockEntry::get_entry_by_id(entry_id)
     let block = MemoryAllocatorBlockEntry::get_entry_block_by_id(entry_id)
 
-    entry.flags = size & 0x7FFFFFFF
+    // Store 0 as pointer to the next free chunk
+    let int_ptr: IntPtr = region.unsafe_cast_as_ref()
+    int_ptr.value = 0
+
+    // Initialize entry and block
+    entry.flags = size & MASK_SIZE_ENTRY
     entry.data = region
     block.free_size += size
+
+    // Create new entries
     total_available_entries -= 1
     ensure_enough_entries()
 }
@@ -342,9 +571,8 @@ fun MemoryAllocator.find_free_entry_for(user_alloc_size: Int): MemoryAllocatorBl
                 continue
             }
 
-            let used = entry.flags & 0x80000000 != 0
-            let size = entry.flags & 0x7FFFFFFF
-
+            let used = entry.flags & MASK_USED_ENTRY != 0
+            let size = entry.flags & MASK_SIZE_ENTRY
 
             // Entry in use or not enough space
             if used || size < user_alloc_size {
@@ -363,9 +591,10 @@ fun MemoryAllocator.find_free_entry_for(user_alloc_size: Int): MemoryAllocatorBl
 }
 
 // Find an entry by the data pointer
-fun MemoryAllocator.find_entry_by_data(data: Ptr<Byte>): MemoryAllocatorBlockEntryId {
+fun MemoryAllocator.find_entry_by_data_ptr(data: Ptr<Byte>): MemoryAllocatorBlockEntryId {
     // Find a block with enough space
     let block_ptr: Ptr<MemoryAllocatorBlock> = block_list
+    let index = 0
 
     loop {
         if block_ptr.is_null() {
@@ -381,6 +610,7 @@ fun MemoryAllocator.find_entry_by_data(data: Ptr<Byte>): MemoryAllocatorBlockEnt
         }
 
         block_ptr = block.next
+        index += 1
     }
 
     ret 0L
@@ -393,11 +623,12 @@ fun MemoryAllocator.create_new_block(): MemoryAllocatorBlock {
     // Alloc and init block
     let block: MemoryAllocatorBlock = alloc_bytes(MEMORY_ALLOCATOR_BLOCK_SIZE).unsafe_cast_as_ref()
     init_new_block(block)
+
     ret block
 }
 
 // Internally allocate a new block and append it to the block list
-fun MemoryAllocator.init_new_block(block: MemoryAllocatorBlock){
+fun MemoryAllocator.init_new_block(block: MemoryAllocatorBlock) {
     block.free_size = 0
     block.next = null_ptr()
 
@@ -426,16 +657,180 @@ fun MemoryAllocator.init_new_block(block: MemoryAllocatorBlock){
     }
 }
 
+fun MemoryAllocator.detect_corruption() {
+    let save_user_alloc_total = this.user_alloc_total
+    let save_user_free_total = this.user_free_total
+    let save_total_available_entries = this.total_available_entries
+
+    let total_free_bytes = 0
+    let total_used_bytes = 0
+
+    let block_ptr: Ptr<MemoryAllocatorBlock> = block_list
+
+    while !block_ptr.is_null() {
+        let block: MemoryAllocatorBlock = block_ptr.unsafe_as_ref()
+        let count_free_size = 0
+        let count_used_size = 0
+
+        repeat MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK {
+            let entry: MemoryAllocatorBlockEntry = block[it]
+            let used = entry.flags & MASK_USED_ENTRY != 0
+            let size = entry.flags & MASK_SIZE_ENTRY
+
+            if used {
+                count_used_size += size
+            } else {
+                count_free_size += size
+            }
+
+            if used {
+                if entry.data.is_null() {
+                    enable = false
+                    println("Corrupted entry: ${ptr_of(entry)}")
+                    crash_with_info("Memory corruption detected")
+                }
+
+                if !is_block_ptr(entry.data) {
+                    debug_detect_overlap(entry.data, size)
+                }
+            }
+        }
+
+        if count_free_size != block.free_size {
+            enable = false
+            println("Block corruption at ${ptr_of(block)}: block.free_size = ${block.free_size}, real free size = $count_free_size")
+            println("MemoryAllocator: total_free_bytes = $total_free_bytes, total_used_bytes = $total_used_bytes")
+            crash_with_info("Memory corruption detected")
+        }
+
+        total_free_bytes += count_free_size
+        total_used_bytes += count_used_size
+
+        block_ptr = block.next
+    }
+}
+
+fun MemoryAllocator.is_block_ptr(ptr: Ptr<Byte>): Boolean {
+    let block_ptr: Ptr<MemoryAllocatorBlock> = block_list
+
+    while !block_ptr.is_null() {
+        if MemoryAllocator::is_bad_address(block_ptr.unsafe_cast()) {
+            crash("Internal allocator data corrupted")
+        }
+
+        let block: MemoryAllocatorBlock = block_ptr.unsafe_as_ref()
+
+        if block_ptr.address == ptr.address {
+            ret true
+        }
+
+        block_ptr = block.next
+    }
+    ret false
+}
+
+fun MemoryAllocator.crash_with_info(msg: String) {
+    enable = false
+    debug()
+    crash(msg)
+}
+
+fun MemoryAllocator::is_bad_address(ptr: Ptr<Byte>): Boolean {
+    ret ptr.address == 0xCDCDCDCD || ptr.address == 0xABACABAB || ptr.address == 0xFFFFFFFF
+}
+
+fun MemoryAllocator.debug_ptr_list(start: Ptr<Byte>): String {
+    let buff = StringBuilder::new()
+    let curr: Ptr<Byte> = start
+    let iter = 0
+
+    loop {
+        if buff.is_not_empty() {
+            buff[] = " -> "
+        }
+        buff[] = curr
+        if curr.is_null() {
+            break
+        }
+        if MemoryAllocator::is_bad_address(curr) {
+            enable = false
+            crash("Corrupted pointer while printing linked list: $curr")
+            break
+        }
+
+        if iter > 100 {
+            buff[] = "..."
+            break
+        }
+
+        let int_ptr: IntPtr = curr.unsafe_cast_as_ref()
+        curr = ptr_from_address<Byte>(int_ptr.value)
+        iter += 1
+    }
+
+    ret buff.to_string()
+}
+
+fun MemoryAllocator.debug_detect_overlap(ptr: Ptr<Byte>, size: Int) {
+    let block_ptr: Ptr<MemoryAllocatorBlock> = block_list
+
+    while !block_ptr.is_null() {
+        let block: MemoryAllocatorBlock = block_ptr.unsafe_as_ref()
+
+        let start = block_ptr.address
+        let end = start + MEMORY_ALLOCATOR_BLOCK_SIZE
+
+        let start2 = ptr.address
+        let end2 = start2 + size
+
+        if start2 >= start && start2 < end {
+            enable = false
+            println("Overlap detected at ${ptr_of(block_ptr)}: $start <= start $start2 < $end, $size B")
+            crash_with_info("Overlap detected")
+        }
+
+        if end2 > start && end2 < end {
+            enable = false
+            println("Overlap detected at ${ptr_of(block_ptr)}: $start < end $end2 < $end, $size B")
+            crash_with_info("Overlap detected")
+        }
+
+        if start2 <= start && end2 > end {
+            enable = false
+            println("Overlap detected at ${ptr_of(block_ptr)}: $start <= start $start2 < end $end2 < $end, $size B")
+            crash_with_info("Overlap detected")
+        }
+
+        if start2 >= start && end2 < end {
+            enable = false
+            println("Overlap detected at ${ptr_of(block_ptr)}: $start <= start $start2 < end $end2 < $end, $size B")
+            crash_with_info("Overlap detected")
+        }
+
+        block_ptr = block.next
+    }
+}
+
 // Print the internal state of the allocator
 // Warning requires memory to print, cannot be used if the allocator is in a corrupted state
 fun MemoryAllocator.debug() {
     enable = false
+    println("---- BEGIN MemoryAllocator DUMP ----")
     println("MemoryAllocator: ${ptr_of(this)}")
     println("  user_alloc_total: $user_alloc_total")
     println("  user_free_total: $user_free_total")
     println("  total_available_entries: $total_available_entries")
+    println("  free_list_4b: ${debug_ptr_list(free_list_4b)}")
+    println("  free_list_8b: ${debug_ptr_list(free_list_8b)}")
+    println("  free_list_16b: ${debug_ptr_list(free_list_16b)}")
+    println("  free_list_32b: ${debug_ptr_list(free_list_32b)}")
+    println("  free_list_64b: ${debug_ptr_list(free_list_64b)}")
     println("  block_list:")
     let block_ptr: Ptr<MemoryAllocatorBlock> = block_list
+    let block_count = 0
+    let entry_count = 0
+    let used_entry_count = 0
+    let free_entry_count = 0
 
     while !block_ptr.is_null() {
         let block: MemoryAllocatorBlock = block_ptr.unsafe_as_ref()
@@ -446,13 +841,31 @@ fun MemoryAllocator.debug() {
         println("      entries:")
         repeat MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK {
             let entry: MemoryAllocatorBlockEntry = block[it]
-            let used = entry.flags & 0x80000000 != 0
-            let size = entry.flags & 0x7FFFFFFF
-            println("        entry $it: used=$used, size=0x${size.to_string_in_base(16)} ($size), data=${entry.data}")
+            let used = entry.flags & MASK_USED_ENTRY != 0
+            let size = entry.flags & MASK_SIZE_ENTRY
+
+            let new_ptr: Ptr<Byte> = if used {
+                null_ptr<Byte>()
+            } else {
+                let int_ptr: IntPtr = entry.data.unsafe_cast_as_ref()
+                ptr_from_address<Byte>(int_ptr.value)
+            }
+
+            println("        entry ${ptr_of(entry)} $it: used=$used, size=0x${size.to_string_in_base(16)} ($size), data=${entry.data}")
+            if used {
+                used_entry_count += 1
+            } else {
+                free_entry_count += 1
+            }
+            entry_count += 1
         }
 
         block_ptr = block.next
+        block_count += 1
     }
+    println("  block_count: $block_count")
+    println("  entry_count: $entry_count ($used_entry_count used / $free_entry_count free)")
+    println("---- END MemoryAllocator DUMP ----")
     enable = true
 }
 
@@ -463,11 +876,11 @@ fun MemoryAllocatorBlockEntry::to_id(block: MemoryAllocatorBlock, index: Int): M
 }
 
 fun MemoryAllocatorBlockEntry::get_entry_block_by_id(id: MemoryAllocatorBlockEntryId): MemoryAllocatorBlock {
-    ret ptr_from_address((id >> 32L).to_int()).unsafe_as_ref()
+    ret ptr_from_address<MemoryAllocatorBlock>((id >> 32L).to_int()).unsafe_as_ref()
 }
 
 fun MemoryAllocatorBlockEntry::get_entry_index_by_id(id: MemoryAllocatorBlockEntryId): Int {
-    ret (id & 0x7FFFFFFFL).to_int()
+    ret id.to_int() & MASK_SIZE_ENTRY
 }
 
 fun MemoryAllocatorBlockEntry::get_entry_by_id(id: MemoryAllocatorBlockEntryId): MemoryAllocatorBlockEntry {

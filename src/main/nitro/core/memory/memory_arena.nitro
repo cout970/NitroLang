@@ -96,10 +96,11 @@ fun format_bytes(amount: Int): String {
 }
 
 // Prints the contents of the heap to the console, for debugging purposes
-fun MemoryArena.dump() {
+fun MemoryArena::dump(ptr: Ptr<Byte>, len: Int) {
     // Note: this implementation must not allocate memory, since it can be used to dump the main memory
     // and we don't want to modify the memory while dumping it
     let digits = "0123456789ABCDEF"
+    let bytes: Array<Byte> = ptr.offset_in_bytes(-4).unsafe_cast_as_ref()
     let max_columns = 16
     let total_len = len
     let start = 0
@@ -109,7 +110,7 @@ fun MemoryArena.dump() {
 
         if column == 0 {
             start = it
-            let address = bytes.data_ptr.address + it
+            let address = ptr.address + it
             let a = digits.get_byte(address & 0x0F).to_int()
             let b = digits.get_byte((address >> 4) & 0x0F).to_int()
             let c = digits.get_byte((address >> 8) & 0x0F).to_int()
