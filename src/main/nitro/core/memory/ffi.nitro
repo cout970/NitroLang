@@ -67,7 +67,7 @@ mod ffi {
 
     // Converts a Nitro string into a null-terminated C string, encoded as utf8
     fun string_to_cstring(str: String): CString {
-        let len = str.bytes_len
+        let len = str.len
         let array = Array::new<Byte>(len + 1)
 
         repeat len {

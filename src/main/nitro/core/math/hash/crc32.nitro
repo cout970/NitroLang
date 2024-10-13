@@ -4,7 +4,7 @@ let CRC32_TABLE: List<Int> = [0x00000000,0x77073096,0xee0e612c,0x990951ba,0x076d
 
 fun CRC32::from_string(s: String): Int {
     let state = 0
-    repeat s.bytes_len {
+    repeat s.len {
         let byte = s.utf8_data[it].to_int()
         state = CRC32_TABLE[(state ^ byte) & 0xff]!! ^ (state >> 8)
     }

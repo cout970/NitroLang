@@ -54,7 +54,7 @@ fun WasmEmitter.debug_print_line(line: String) {
     debug_buffer[] = line
 
     if debug_suffix.is_not_empty() {
-        debug_buffer[] = " " * (30 - line.bytes_len - debug_indent * 2)
+        debug_buffer[] = " " * (30 - line.len - debug_indent * 2)
         debug_buffer[] = debug_suffix
         debug_suffix = ""
     }

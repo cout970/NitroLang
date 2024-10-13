@@ -194,19 +194,19 @@ fun CompilationUnit.get_cache_file_path(path: String): FilePath {
     let safe_path = path
 
     if safe_path.starts_with("..") {
-        safe_path = safe_path.substring(2, safe_path.bytes_len)
+        safe_path = safe_path.substring(2, safe_path.len)
     }
     if safe_path.starts_with("/") {
-        safe_path = safe_path.substring(1, safe_path.bytes_len)
+        safe_path = safe_path.substring(1, safe_path.len)
     }
     if safe_path.starts_with("../") {
-        safe_path = safe_path.substring(3, safe_path.bytes_len)
+        safe_path = safe_path.substring(3, safe_path.len)
     }
     if safe_path.starts_with("./") {
-        safe_path = safe_path.substring(2, safe_path.bytes_len)
+        safe_path = safe_path.substring(2, safe_path.len)
     }
     if safe_path.ends_with(".nitro") {
-        safe_path = safe_path.substring(0, safe_path.bytes_len - 6)
+        safe_path = safe_path.substring(0, safe_path.len - 6)
     }
     for c in invalid_chars {
         safe_path = safe_path.replace(c, "_")

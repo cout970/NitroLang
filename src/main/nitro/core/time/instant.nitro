@@ -267,7 +267,7 @@ fun Instant::from_iso8601(iso8601: String): Optional<Instant> {
 
     // Split the string into date and time parts
     let date_str = str.substring(0, t_index)
-    let time_str_with_offset = str.substring(t_index + 1, str.bytes_len)
+    let time_str_with_offset = str.substring(t_index + 1, str.len)
 
     // Parse the date components (YYYY-MM-DD)
     let date_parts = date_str.split("-")
@@ -287,7 +287,7 @@ fun Instant::from_iso8601(iso8601: String): Optional<Instant> {
 
     if tz_index.is_some() {
         time_str = time_str_with_offset.substring(0, tz_index!!)
-        tz_str = time_str_with_offset.substring(tz_index!!, time_str_with_offset.bytes_len)
+        tz_str = time_str_with_offset.substring(tz_index!!, time_str_with_offset.len)
     } else {
         time_str = time_str_with_offset
         tz_str = ""
@@ -300,7 +300,7 @@ fun Instant::from_iso8601(iso8601: String): Optional<Instant> {
 
     if dot_index.is_some() {
         let time_part = time_str.substring(0, dot_index!!)
-        let frac_part = time_str.substring(dot_index!! + 1, time_str.bytes_len)
+        let frac_part = time_str.substring(dot_index!! + 1, time_str.len)
 
         time_components = time_part.split(":")
         if time_components.len != 3 {
@@ -327,7 +327,7 @@ fun Instant::from_iso8601(iso8601: String): Optional<Instant> {
 
     if tz_str.starts_with("+") || tz_str.starts_with("-") {
         let sign = if tz_str.starts_with("-") { -1 } else { 1 }
-        let offset_str = tz_str.substring(1, tz_str.bytes_len)
+        let offset_str = tz_str.substring(1, tz_str.len)
         let offset_parts = offset_str.split(":")
 
         if offset_parts.len != 2 {

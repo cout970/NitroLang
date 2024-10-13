@@ -441,14 +441,14 @@ fun WasmBackend.push_string(value: String): Int {
     wasm_program.memory.pad_to(4)
 
     // struct String {
-    //     bytes_len: Int
+    //     len: Int
     //     utf8_data: Array<Byte>
     //     hash_cache: Int
     // }
     let struct_size = STRUCT_HEADER_SIZE + INT_SIZE + PTR_SIZE + INT_SIZE
     let instance = ByteWriter::new()
     instance.add_pad(0x00.to_byte(), STRUCT_HEADER_SIZE)
-    instance.add_int_le(value.bytes_len)
+    instance.add_int_le(value.len)
     instance.add_int_le(wasm_program.memory.offset + struct_size)
     instance.add_int_le(-1)
 
@@ -456,7 +456,7 @@ fun WasmBackend.push_string(value: String): Int {
 
     let contents = ByteWriter::new()
     // Array length
-    contents.add_int_le(value.bytes_len)
+    contents.add_int_le(value.len)
     // Array contents
     contents.add_string_utf8_without_size(value)
 

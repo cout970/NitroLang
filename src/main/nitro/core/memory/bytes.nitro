@@ -254,7 +254,7 @@ fun ByteReader.read_float_ieee754_32(): Float {
 
 // Write a string content as UTF-8 without size
 fun ByteWriter.add_string_utf8_without_size(value: String) {
-    repeat value.bytes_len {
+    repeat value.len {
         bytes[] = value.utf8_data[it]
     }
 }
@@ -273,7 +273,7 @@ fun ByteReader.read_string_utf8_without_size(len: Int): String {
 
 // Write a string content as UTF-8 with size encoded as LEB128
 fun ByteWriter.add_string_utf8_with_size_leb128(value: String) {
-    add_int_leb128(value.bytes_len)
+    add_int_leb128(value.len)
     add_string_utf8_without_size(value)
 }
 

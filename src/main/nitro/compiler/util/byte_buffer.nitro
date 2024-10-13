@@ -173,8 +173,8 @@ fun ByteBuffer.start_read() {
     }
 
     // Verify the size of the remaining bytes
-    let bytes_len = reader.read_int_leb128()
-    if reader.pos + bytes_len != reader.bytes.len {
+    let len = reader.read_int_leb128()
+    if reader.pos + len != reader.bytes.len {
         crash("Invalid bytes length")
     }
 }

@@ -82,7 +82,7 @@ fun FilePath.read_directory_files(): Result<List<String>, IoError> {
     let dir_fd = IntPtr@[value: 0]
 
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
         wasi::FDFLAGS_NONE, dir_fd
     )
@@ -160,7 +160,7 @@ fun FilePath.get_metadata(): Result<FileMetadata, IoError> {
     let dir_fd = IntPtr@[value: 0]
 
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
         wasi::FDFLAGS_NONE, dir_fd
     )
@@ -215,7 +215,7 @@ fun FilePath.read_text(): Result<String, IoError> {
 
     let rights = wasi::RIGHTS_FD_READ | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_NONE, rights, rights,
         wasi::FDFLAGS_NONE, file_fd
     )
@@ -275,7 +275,7 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {
     let rights_inherited = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
 
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_CREATE | wasi::OFLAGS_TRUNCATE,
         rights, rights_inherited,
         wasi::FDFLAGS_NONE, file_fd
@@ -298,7 +298,7 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {
     ]
 
     loop {
-        let chunk_len = min(text.bytes_len - offset, mem_buff.len)
+        let chunk_len = min(text.len - offset, mem_buff.len)
         repeat chunk_len {
             mem_buff[it] = text.utf8_data[offset + it]
         }
@@ -314,7 +314,7 @@ fun FilePath.write_text(text: String): Result<Nothing, IoError> {
 
         offset += nwritten.value
 
-        if offset >= text.bytes_len {
+        if offset >= text.len {
             break
         }
     }
@@ -339,7 +339,7 @@ fun FilePath.read_bytes(): Result<List<Byte>, IoError> {
 
     let rights = wasi::RIGHTS_FD_READ | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_NONE, rights, rights,
         wasi::FDFLAGS_NONE, file_fd
     )
@@ -401,7 +401,7 @@ fun FilePath.write_bytes(bytes: List<Byte>): Result<Nothing, IoError> {
     let rights_inherited = wasi::RIGHTS_FD_WRITE | wasi::RIGHTS_FD_SEEK | wasi::RIGHTS_FD_TELL | wasi::RIGHTS_PATH_CREATE_FILE;
 
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_CREATE | wasi::OFLAGS_TRUNCATE,
         rights, rights_inherited,
         wasi::FDFLAGS_NONE, file_fd
@@ -464,7 +464,7 @@ fun FilePath.exists(): Result<Boolean, IoError> {
     let dir_fd = IntPtr@[value: 0]
 
     let rc = wasi::path_open(wasi::FC_PREOPENED, wasi::DIRFLAGS_NONE,
-        cpath, path.bytes_len,
+        cpath, path.len,
         wasi::OFLAGS_NONE, wasi::RIGHTS_FD_READ, wasi::RIGHTS_FD_READ,
         wasi::FDFLAGS_NONE, dir_fd
     )

@@ -2,7 +2,7 @@
 // This type is used to represent a string in the language
 // Strings are immutable and are stored as UTF-8 encoded bytes
 struct String {
-    bytes_len: Int
+    len: Int
     utf8_data: Array<Byte>
     hash_cache: Int
 }
@@ -13,7 +13,7 @@ tag ToString {
 }
 
 // Reads a single byte from the string
-// This is unrecommended as it does not account for UTF-8 encoding
+// This is unrecommended as it does not account for multi-byte UTF-8 encoding
 fun String.get_byte(index: Int): Byte {
     ret utf8_data[index]
 }
@@ -74,7 +74,7 @@ fun String.get_codepoint(index: Int): Optional<Char> {
 
 // Given the index of a codepoint, returns the number of bytes it occupies in the string
 fun String.codepoint_len_at(index: Int): Int {
-    if index >= bytes_len {
+    if index >= len {
         // Index out of bounds
         ret 0
     }
@@ -105,7 +105,7 @@ fun String.codepoint_len_at(index: Int): Int {
 fun String.next_codepoint_index(index: Int): Optional<Int> {
     let curr_len = codepoint_len_at(index)
 
-    if curr_len == 0 || index + curr_len >= bytes_len {
+    if curr_len == 0 || index + curr_len >= len {
         // Invalid byte sequence or no next codepoint
         ret None()
     }
@@ -118,7 +118,7 @@ fun String.to_list(): List<Char> {
     let list = []
     let cursor = 0
 
-    while cursor < bytes_len {
+    while cursor < len {
         let curr_len = codepoint_len_at(cursor)
 
         when {
@@ -169,7 +169,7 @@ fun String.to_list(): List<Char> {
 // Joins two strings together
 fun String.concat(other: String): String {
     let builder = StringBuilder::new()
-    builder.ensure_capacity(this.bytes_len + other.bytes_len)
+    builder.ensure_capacity(this.len + other.len)
     builder[] = this
     builder[] = other
     ret builder.to_string()
@@ -178,7 +178,7 @@ fun String.concat(other: String): String {
 // Joins a string and a char together
 fun String.concat(char: Char): String {
     let builder = StringBuilder::new()
-    builder.ensure_capacity(this.bytes_len + 1)
+    builder.ensure_capacity(this.len + 1)
     builder[] = this
     builder[] = char
     ret builder.to_string()
@@ -196,11 +196,11 @@ fun String.is_equal(other: String): Boolean {
         ret true
     }
 
-    if this.bytes_len != other.bytes_len {
+    if this.len != other.len {
         ret false
     }
 
-    repeat this.bytes_len {
+    repeat this.len {
         if this.get_byte(it) != other.get_byte(it) {
             ret false
         }
@@ -211,11 +211,11 @@ fun String.is_equal(other: String): Boolean {
 
 // Compares two strings
 fun String.get_ordering(other: String): Ordering {
-    if this.bytes_len != other.bytes_len {
-        ret if this.bytes_len < other.bytes_len { Ordering::Less } else { Ordering::Greater }
+    if this.len != other.len {
+        ret if this.len < other.len { Ordering::Less } else { Ordering::Greater }
     }
 
-    repeat this.bytes_len {
+    repeat this.len {
         let this_byte = this.get_byte(it)
         let other_byte = other.get_byte(it)
 
@@ -234,14 +234,14 @@ fun String.get_ordering(other: String): Ordering {
 fun String.is_not_equal(other: String): Boolean = !this.is_equal(other)
 
 // Checks if the string has no characters
-fun String.is_empty(): Boolean = bytes_len == 0
+fun String.is_empty(): Boolean = len == 0
 
 // Checks if the string has at least one character
-fun String.is_not_empty(): Boolean = bytes_len != 0
+fun String.is_not_empty(): Boolean = len != 0
 
 // Checks if the string has at least one printable character
 fun String.is_blank(): Boolean {
-    let total_len = bytes_len
+    let total_len = len
     let cursor = 0
 
     while cursor < total_len {
@@ -268,7 +268,7 @@ fun String.get_hash(): Int {
 
     let hash: Int = 0
 
-    repeat bytes_len {
+    repeat len {
         hash = (31 * hash).bitwise_xor(get_byte(it).to_int())
     }
 
@@ -285,10 +285,10 @@ fun String.replace(find: String, replacement: String): String {
     let cursor = 0
     let builder = StringBuilder::new()
 
-    while cursor < bytes_len {
+    while cursor < len {
         if contains_substring_at(cursor, find) {
             builder[] = replacement
-            cursor += find.bytes_len
+            cursor += find.len
         } else {
             let opt = get_codepoint(cursor)
             if opt.is_some() {
@@ -315,7 +315,7 @@ fun String.indent(spaces: Int): String {
 // start and end are indices into the byte array
 fun String.substring(start: Int, end: Int): String {
     start = max(0, start)
-    end = min(bytes_len, end)
+    end = min(len, end)
     let new_len = end - start
 
     if new_len <= 0 {
@@ -332,16 +332,16 @@ fun String.substring(start: Int, end: Int): String {
 fun String.slice(offset: Int, slice_len: Int): String {
     if slice_len < 0 {
         // `slice_len` is negative, so we add it instead of subtracting it
-        slice_len = bytes_len + slice_len
+        slice_len = len + slice_len
     }
     ret substring(offset, offset + slice_len)
 }
 
 // Checks if a string contains a substring at a certain index
 fun String.contains_substring_at(at: Int, substring: String): Boolean {
-    let substring_len = substring.bytes_len
+    let substring_len = substring.len
 
-    if at + substring.bytes_len > bytes_len {
+    if at + substring.len > len {
         ret false
     }
 
@@ -361,7 +361,7 @@ fun String.contains_substring_at(at: Int, substring: String): Boolean {
 // Gets the index of the first instance of a substring
 fun String.index_of(substring: String): Optional<Int> {
     let current = 0
-    let total_len = bytes_len
+    let total_len = len
 
     while current < total_len {
         if contains_substring_at(current, substring) {
@@ -377,7 +377,7 @@ fun String.index_of(substring: String): Optional<Int> {
 // Gets the index of the first instance of any of the substrings
 fun String.index_of_any(substrings: List<String>): Optional<Int> {
     let current = 0
-    let total_len = bytes_len
+    let total_len = len
 
     while current < total_len {
         for substring in substrings {
@@ -394,7 +394,7 @@ fun String.index_of_any(substrings: List<String>): Optional<Int> {
 
 // Gets the index of the last instance of a substring
 fun String.last_index_of(substring: String): Optional<Int> {
-    let current = bytes_len - substring.bytes_len
+    let current = len - substring.len
 
     while current >= 0 {
         if contains_substring_at(current, substring) {
@@ -421,12 +421,12 @@ fun String.starts_with(prefix: String): Boolean {
 // Checks if a string ends with a suffix
 fun String.ends_with(suffix: String): Boolean {
     let index = last_index_of(suffix)
-    ret index.is_some() && index!! + suffix.bytes_len == bytes_len
+    ret index.is_some() && index!! + suffix.len == len
 }
 
 // Adds padding to the start of a string until it reaches a certain length
 fun String.pad_start(pad_len: Int, pad_character: Char): String {
-    let padding_len = pad_len - bytes_len
+    let padding_len = pad_len - len
 
     if padding_len <= 0 {
         ret this
@@ -441,7 +441,7 @@ fun String.pad_left(pad_len: Int, pad_character: Char): String = pad_start(pad_l
 
 // Adds padding to the end of a string until it reaches a certain length
 fun String.pad_end(pad_len: Int, pad_character: Char): String {
-    let padding_len = pad_len - bytes_len
+    let padding_len = pad_len - len
 
     if padding_len <= 0 {
         ret this
@@ -459,8 +459,8 @@ fun String.split(separator: String): List<String> {
     let list: List<String> = []
     let start: Int = 0
     let cursor: Int = 0
-    let total_len = bytes_len
-    let sep_len = separator.bytes_len
+    let total_len = len
+    let sep_len = separator.len
 
     while cursor < total_len {
         if sep_len == 0 && start == cursor {
@@ -492,7 +492,7 @@ fun String.trim(): String {
 // Remove all whitespace characters from the start of the string
 fun String.trim_start(): String {
     let start = 0
-    let total_len = bytes_len
+    let total_len = len
 
     while start < total_len {
         let byte = get_byte(start).to_int()
@@ -510,7 +510,7 @@ fun String.trim_start(): String {
 
 // Remove all whitespace characters from the end of the string
 fun String.trim_end(): String {
-    let end = bytes_len - 1
+    let end = len - 1
 
     while end >= 0 {
         let byte = get_byte(end).to_int()
@@ -530,7 +530,7 @@ fun String.trim_end(): String {
 fun String.to_ascii_lowercase(): String {
     let buff = StringBuilder::new()
 
-    repeat bytes_len {
+    repeat len {
         let byte = get_byte(it)
         let value = byte.to_int()
 
@@ -548,7 +548,7 @@ fun String.to_ascii_lowercase(): String {
 fun String.to_ascii_uppercase(): String {
     let buff = StringBuilder::new()
 
-    repeat bytes_len {
+    repeat len {
         let byte = get_byte(it)
         let value = byte.to_int()
 
@@ -578,8 +578,8 @@ fun String.to_string(): String = this
 
 // Generates a list of bytes with the content of this string
 fun String.to_bytes(): List<Byte> {
-    let list = List::new(bytes_len)
-    repeat bytes_len {
+    let list = List::new(len)
+    repeat len {
         list[] = get_byte(it)
     }
     ret list
@@ -589,7 +589,7 @@ fun String.to_bytes(): List<Byte> {
 // TODO handle 0x, 0o and 0b prefixes
 fun String.to_int(): Optional<Int> {
     let result = 0
-    let total_len = bytes_len
+    let total_len = len
     let cursor = 0
     let sign = 1
 
@@ -631,7 +631,7 @@ fun String.to_int(): Optional<Int> {
 // Converts a string to an integer, only [_\-\+0-9a-zA-Z] chars are allowed
 fun String.to_int_in_base(base: Int): Optional<Int> {
     let result = 0
-    let total_len = bytes_len
+    let total_len = len
     let cursor = 0
     let sign = 1
 
@@ -710,7 +710,7 @@ fun String.to_long(): Optional<Long> {
 
 fun String.to_long_in_base(base: Long): Optional<Long> {
     let result = 0L
-    let total_len = bytes_len
+    let total_len = len
     let cursor = 0
     let sign = 1L
 
@@ -796,7 +796,7 @@ fun String.to_long_in_base(base: Long): Optional<Long> {
 // Ignores all appearances of '_' between digits
 fun String.to_float(): Optional<Float> {
     let result = 0f
-    let total_len = bytes_len
+    let total_len = len
     let cursor = 0
     let sign = 1f
     let has_dot = false

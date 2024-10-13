@@ -134,7 +134,7 @@ fun Lexer.restore_state(saved_state: SavedState) {
 
 // Creates a new span from the given token
 fun Lexer.span_of(token: Token): Span {
-    let len = if token.kind.len > 0 { token.kind.len } else { token.extra.bytes_len }
+    let len = if token.kind.len > 0 { token.kind.len } else { token.extra.len }
 
     ret Span::new(token.offset, len, file)
 }
@@ -168,7 +168,7 @@ fun Lexer.add_token_with_extra(kind: TokenKind, offset: Int, extra: String) {
 
 // Tries to read the next token, returns true if there are more tokens to read
 fun Lexer.next(): Boolean {
-    if cur >= src.bytes_len {
+    if cur >= src.len {
         // We add extra so the parser can always look ahead 4 tokens
         add_token(TokenKind::EOF)
         add_token(TokenKind::EOF)
@@ -620,7 +620,7 @@ fun Lexer.next(): Boolean {
 
 // Skip whitespaces
 fun Lexer.strip_whitespace() {
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         // c is ' ', '\t', '\r'
@@ -639,7 +639,7 @@ fun Lexer.strip_whitespace() {
 fun Lexer.read_line_comment() {
     let start = cur
 
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         if c == a"\n" {
@@ -667,7 +667,7 @@ fun Lexer.read_block_comment() {
     // skip "/*"
     cur += 2
     let start = cur
-    let max = src.bytes_len - 1
+    let max = src.len - 1
 
     while cur < max {
         let c: Int = current_byte
@@ -687,7 +687,7 @@ fun Lexer.read_block_comment() {
     cur += 2
 
     // Detect /** vs /* at the beginning of a comment
-    let kind = if extra.bytes_len > 1 && extra.get_byte(0).to_int() == a"*" {
+    let kind = if extra.len > 1 && extra.get_byte(0).to_int() == a"*" {
         TokenKind::DOC_COMMENT
     } else {
         TokenKind::BLOCK_COMMENT
@@ -711,7 +711,7 @@ fun Lexer.read_foreign_block() {
     cur += 3
 
     let start = cur
-    let max = src.bytes_len
+    let max = src.len
 
     while cur < max {
         let c: Int = current_byte
@@ -747,7 +747,7 @@ fun Lexer.read_string() {
     let is_plain = true
     let buff = StringBuilder::new()
 
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         if c == a"\"" {
@@ -869,7 +869,7 @@ fun Lexer.read_string_blob() {
             cur += 1
             let start2 = cur
 
-            while cur < src.bytes_len {
+            while cur < src.len {
                 let c: Int = current_byte
 
                 if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
@@ -885,7 +885,7 @@ fun Lexer.read_string_blob() {
         }
     }
 
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         if c == a"\$" || c == a"\\" || c == a"\"" {
@@ -982,7 +982,7 @@ fun Lexer.read_string2() {
     add_token(TokenKind::STRING2_START)
 
     let start = cur
-    let max = src.bytes_len - 1
+    let max = src.len - 1
 
     while cur < max {
         if current_byte == a"\"" && next_byte == a"#" {
@@ -1012,7 +1012,7 @@ fun Lexer.read_string2() {
 fun Lexer.read_identifier() {
     let start = cur
 
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         if c >= a"a" && c <= a"z" || c >= a"A" && c <= a"Z" || c >= a"0" && c <= a"9" || c == a"_" {
@@ -1025,7 +1025,7 @@ fun Lexer.read_identifier() {
     let extra = src.substring(start, cur)
 
     // Identifiers cannot end in '_'
-    if extra.get_byte(extra.bytes_len - 1).to_int() == a"_" {
+    if extra.get_byte(extra.len - 1).to_int() == a"_" {
         cur -= 1
         extra = src.substring(start, cur)
     }
@@ -1073,7 +1073,7 @@ fun Lexer.read_identifier() {
     let lower = first >= a"a" && first <= a"z"
 
     // Ascii string
-    if first == a"a" && extra.bytes_len == 1 && current_byte == a"\"" {
+    if first == a"a" && extra.len == 1 && current_byte == a"\"" {
         cur -= 1
         read_ascii_string()
         ret
@@ -1110,7 +1110,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"x" {
         cur += 2
 
-        while cur < src.bytes_len {
+        while cur < src.len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"9" || c >= a"a" && c <= a"f" || c >= a"A" && c <= a"F" || c == a"_" {
@@ -1136,7 +1136,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"o" {
         cur += 2
 
-        while cur < src.bytes_len {
+        while cur < src.len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"7" || c == a"_" {
@@ -1162,7 +1162,7 @@ fun Lexer.read_number() {
     if current_byte == a"0" && next_byte == a"b" {
         cur += 2
 
-        while cur < src.bytes_len {
+        while cur < src.len {
             let c: Int = current_byte
 
             if c >= a"0" && c <= a"1" || c == a"_" {
@@ -1251,7 +1251,7 @@ fun Lexer.read_digits(): Boolean {
     let start = cur
     let prev_was_digit = false
 
-    while cur < src.bytes_len {
+    while cur < src.len {
         let c: Int = current_byte
 
         // ignore '_' between digits
@@ -1289,7 +1289,7 @@ fun Lexer.print_debug_info() {
 fun Lexer.print_char_debug_info() {
     println("Chars around print_char_debug_info():")
     let start = max(cur - 5, 0)
-    let end = min(cur + 5, src.bytes_len - 1)
+    let end = min(cur + 5, src.len - 1)
 
     while start <= end {
         let byte = src.get_byte(start).to_int()

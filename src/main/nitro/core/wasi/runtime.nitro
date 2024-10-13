@@ -128,7 +128,7 @@ mod runtime {
     // Write the given string to stdout, does not append a newline
     fun stdout_write(str: String) {
         stdout_write_no_alloc_iovec.buf = str.utf8_data.data_ptr
-        stdout_write_no_alloc_iovec.buf_len = str.bytes_len
+        stdout_write_no_alloc_iovec.buf_len = str.len
 
         let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(stdout_write_no_alloc_iovec), 1, stdout_write_no_alloc_written)
         if rc != 0 {

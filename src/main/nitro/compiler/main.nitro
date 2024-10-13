@@ -113,7 +113,7 @@ fun main() {
                 ret
             }
             let name = mod_def.substring(0, split!!)
-            let path = mod_def.substring(split!! + 1, mod_def.bytes_len)
+            let path = mod_def.substring(split!! + 1, mod_def.len)
 
             if name == "" || path == "" {
                 Log::error("Invalid module definition: $mod_def")

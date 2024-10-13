@@ -155,9 +155,9 @@ fun Span.to_string(): String {
         path
     }
 
-    let m = max(path.bytes_len, 27)
-    let sub = if m < path.bytes_len {
-        "..." + path.slice(path.bytes_len - m, m)
+    let m = max(path.len, 27)
+    let sub = if m < path.len {
+        "..." + path.slice(path.len - m, m)
     } else {
         path
     }

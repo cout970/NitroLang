@@ -12,12 +12,12 @@ fun Hex::encode(data: List<Byte>): String {
 }
 
 fun Hex::decode(str: String): Optional<List<Byte>> {
-    check(str.bytes_len % 2 == 0, "Invalid hex string length")
+    check(str.len % 2 == 0, "Invalid hex string length")
 
     let data = List::new<Byte>()
 
     let i = 0
-    while i < str.bytes_len {
+    while i < str.len {
         let c1= str.get_byte(i).to_int()
         let c2= str.get_byte(i + 1).to_int()
         i += 2
@@ -85,7 +85,7 @@ fun Base64::decode(str: String): Optional<List<Byte>> {
     let data = List::new<Byte>()
 
     let i = 0
-    while i < str.bytes_len {
+    while i < str.len {
         let c1 = str.get_byte(i).to_int()
         i += 1
 
@@ -105,7 +105,7 @@ fun Base64::decode(str: String): Optional<List<Byte>> {
             }
         }
 
-        if i >= str.bytes_len {
+        if i >= str.len {
             ret None()
         }
 
@@ -134,7 +134,7 @@ fun Base64::decode(str: String): Optional<List<Byte>> {
             break
         }
 
-        if i >= str.bytes_len {
+        if i >= str.len {
             ret None()
         }
 
@@ -163,7 +163,7 @@ fun Base64::decode(str: String): Optional<List<Byte>> {
             break
         }
 
-        if i >= str.bytes_len {
+        if i >= str.len {
             ret None()
         }
 

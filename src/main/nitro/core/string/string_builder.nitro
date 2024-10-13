@@ -2,20 +2,20 @@
 // A simple string builder that can be used to efficiently create strings
 struct StringBuilder {
     bytes: Array<Byte>
-    bytes_len: Int
+    len: Int
 }
 
 // Creates a new StringBuilder
 fun StringBuilder::new(): StringBuilder {
     ret StringBuilder @[
         bytes: Array::new(16),
-        bytes_len: 0
+        len: 0
     ]
 }
 
 // Destructor
 fun StringBuilder.deinit() {
-    bytes_len = 0
+    len = 0
     bytes.free()
 }
 
@@ -48,17 +48,17 @@ fun StringBuilder.ensure_capacity(required_capacity: Int) {
 
 // Removes the last `amount` characters from the internal buffer
 fun StringBuilder.remove_last(amount: Int) {
-    bytes_len = max(0, bytes_len - amount)
+    len = max(0, len - amount)
 }
 
 // Remove leading whitespace from the internal buffer
 fun StringBuilder.trimEnd() {
-    while bytes_len > 0 {
-        let last = bytes[bytes_len - 1].to_int()
+    while len > 0 {
+        let last = bytes[len - 1].to_int()
         if last != a" " && last != a"\n" && last != a"\t" && last != a"\r" {
             break
         }
-        bytes_len -= 1
+        len -= 1
     }
 }
 
@@ -68,43 +68,43 @@ fun StringBuilder.add(c: Char) {
     let code = c.to_int()
     
     if code <= 0x7F {
-        ensure_capacity(bytes_len + 1)
+        ensure_capacity(len + 1)
         /* 0xxxxxxx */
-        bytes[bytes_len] = code.to_byte()
-        bytes_len += 1
+        bytes[len] = code.to_byte()
+        len += 1
         ret
     } 
     if code <= 0x7FF {
-        ensure_capacity(bytes_len + 2)
+        ensure_capacity(len + 2)
         /* 110xxxxx */
-        bytes[bytes_len]     = (0xC0 | (code >> 6)).to_byte()
+        bytes[len]     = (0xC0 | (code >> 6)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 1] = (0x80 | (code & 0x3F)).to_byte()
-        bytes_len += 2
+        bytes[len + 1] = (0x80 | (code & 0x3F)).to_byte()
+        len += 2
         ret
     } 
     if code <= 0xFFFF {
-        ensure_capacity(bytes_len + 3)
+        ensure_capacity(len + 3)
         /* 1110xxxx */
-        bytes[bytes_len]     = (0xE0 | (code >> 12)).to_byte()
+        bytes[len]     = (0xE0 | (code >> 12)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 1] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
+        bytes[len + 1] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 2] = (0x80 | (code & 0x3F)).to_byte()
-        bytes_len += 3
+        bytes[len + 2] = (0x80 | (code & 0x3F)).to_byte()
+        len += 3
         ret
     } 
     if code <= 0x10FFFF {
-        ensure_capacity(bytes_len + 4)
+        ensure_capacity(len + 4)
         /* 11110xxx */
-        bytes[bytes_len]     = (0xF0 | (code >> 18)).to_byte()
+        bytes[len]     = (0xF0 | (code >> 18)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 1] = (0x80 | ((code >> 12) & 0x3F)).to_byte()
+        bytes[len + 1] = (0x80 | ((code >> 12) & 0x3F)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 2] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
+        bytes[len + 2] = (0x80 | ((code >> 6) & 0x3F)).to_byte()
         /* 10xxxxxx */
-        bytes[bytes_len + 3] = (0x80 | (code & 0x3F)).to_byte()
-        bytes_len += 4
+        bytes[len + 3] = (0x80 | (code & 0x3F)).to_byte()
+        len += 4
         ret
     }
     unreachable()
@@ -112,35 +112,35 @@ fun StringBuilder.add(c: Char) {
 
 // Adds a string to the internal buffer
 fun StringBuilder.add(str: String) {
-    ensure_capacity(bytes_len + str.bytes_len)
+    ensure_capacity(len + str.len)
 
-    repeat str.bytes_len {
-        bytes[bytes_len + it] = str.utf8_data[it]
+    repeat str.len {
+        bytes[len + it] = str.utf8_data[it]
     }
 
-    bytes_len += str.bytes_len
+    len += str.len
 }
 
 // Adds a byte to the internal buffer, this may create an invalid state,
 // this functions should be used only to append a stream of bytes that are known to be valid UTF-8
 fun StringBuilder.unsafe_add_utf8_byte(byte: Byte) {
-    ensure_capacity(bytes_len + 1)
-    bytes[bytes_len] = byte
-    bytes_len += 1
+    ensure_capacity(len + 1)
+    bytes[len] = byte
+    len += 1
 }
 
 // Adds a substring of a string to the internal buffer
 fun StringBuilder.add_substring(str: String, offset: Int, substring_len: Int) {
-    offset = offset.clamp(0, str.bytes_len)
-    substring_len = substring_len.clamp(0, str.bytes_len - offset)
+    offset = offset.clamp(0, str.len)
+    substring_len = substring_len.clamp(0, str.len - offset)
 
-    ensure_capacity(bytes_len + substring_len)
+    ensure_capacity(len + substring_len)
 
     repeat substring_len {
-        bytes[bytes_len + it] = str.utf8_data[offset + it]
+        bytes[len + it] = str.utf8_data[offset + it]
     }
 
-    bytes_len += substring_len
+    len += substring_len
 }
 
 // Any other generic item with to_string()
@@ -150,13 +150,13 @@ fun <#T: ToString> StringBuilder.add(value: #T) {
 
 // Copies the contents of another StringBuilder to the internal buffer
 fun StringBuilder.add(builder: StringBuilder) {
-    ensure_capacity(bytes_len + builder.bytes_len)
+    ensure_capacity(len + builder.len)
 
-    repeat builder.bytes_len {
-        bytes[bytes_len + it] = builder.bytes[it]
+    repeat builder.len {
+        bytes[len + it] = builder.bytes[it]
     }
 
-    bytes_len += builder.bytes_len
+    len += builder.len
 }
 
 // Adds an integer to the internal buffer, in base 10
@@ -177,7 +177,7 @@ fun StringBuilder.add_int_with_pad(value: Int, min_digits_len: Int) {
         buff[] = -value
     }
 
-    repeat min_digits_len - buff.bytes_len {
+    repeat min_digits_len - buff.len {
         this[] = "0"
     }
     this[] = buff
@@ -201,7 +201,7 @@ fun StringBuilder.add_hex(value: Int, min_digits_len: Int) {
 
         // Add padding, to align the 2 parts
         if upper > 0 {
-            repeat 4 - buff2.bytes_len {
+            repeat 4 - buff2.len {
                 buff2[] = "0"
            }
         }
@@ -213,7 +213,7 @@ fun StringBuilder.add_hex(value: Int, min_digits_len: Int) {
         buff[] = buff2
     }
 
-    repeat min_digits_len - buff.bytes_len {
+    repeat min_digits_len - buff.len {
         this[] = "0"
     }
     this[] = buff
@@ -402,26 +402,26 @@ fun StringBuilder.add(value: Float) {
 }
 
 // Is the internal buffer empty?
-fun StringBuilder.is_empty(): Boolean = bytes_len == 0
+fun StringBuilder.is_empty(): Boolean = len == 0
 
 // Is the internal buffer not empty?
-fun StringBuilder.is_not_empty(): Boolean = bytes_len != 0
+fun StringBuilder.is_not_empty(): Boolean = len != 0
 
 // Clears the internal buffer
 fun StringBuilder.clear() {
-    bytes_len = 0
+    len = 0
 }
 
 // Converts the internal buffer to a string
 fun StringBuilder.to_string(): String {
-    let new_bytes = Array::new(bytes_len)
+    let new_bytes = Array::new(len)
 
-    repeat bytes_len {
+    repeat len {
         new_bytes[it] = bytes[it]
     }
 
     ret String @[
-        bytes_len,
+        len,
         utf8_data: new_bytes,
         hash_cache: -1,
     ]
