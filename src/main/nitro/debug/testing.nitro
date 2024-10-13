@@ -2,10 +2,12 @@
 fun main() {
     println("Works")
 
-    let myInt: Int = a"n"
-    let myChar: Char = u"ñ"
+    let slice: MemorySlice<Int> = MemorySlice::new<Int>(10)
 
-    println(myInt)
-    println(myChar)
+    slice[0] = 42
+
+    let value: Int = slice.data.read()
+
+    println(value)
 }
 

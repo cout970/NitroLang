@@ -304,6 +304,7 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/math/logarithms.nitro"), "math/logarithms.nitro", root)
     add_source(include_as_string!("../core/math/trigonometry.nitro"), "math/trigonometry.nitro", root)
     add_source(include_as_string!("../core/memory/array.nitro"), "memory/array.nitro", root)
+    add_source(include_as_string!("../core/memory/memory_slice.nitro"), "memory/memory_slice.nitro", root)
     add_source(include_as_string!("../core/memory/bytes.nitro"), "memory/bytes.nitro", root)
 //    add_source(include_as_string!("../core/memory/encoding.nitro"), "memory/encoding.nitro", root)
     add_source(include_as_string!("../core/memory/ffi.nitro"), "memory/ffi.nitro", root)
