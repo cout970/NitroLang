@@ -45,7 +45,7 @@ fun Result<#Ok, #Err>.get_or_crash(): #Ok {
 }
 
 // Returns the value of the result if it is Ok, otherwise returns the given value
-fun Result<#Ok, #Err>.get_or_else(other: #Ok): #Ok {
+fun Result<#Ok, #Err>.or_else(other: #Ok): #Ok {
     if this.is_ok() {
         ret this!!
     }

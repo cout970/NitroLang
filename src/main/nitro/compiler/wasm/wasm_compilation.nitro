@@ -485,7 +485,7 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
     let nvar = code.find_var(nvar_id)
 
     // If the variable is local `let_final_types` will have the type, otherwise it's an upvalue and we check the original variable
-    let final_type = func.let_final_types[nvar_id].get_or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
+    let final_type = func.let_final_types[nvar_id].or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
 
     // Zero size type, no need to load
     if backend.get_size_of(final_type) == 0 {
@@ -532,7 +532,7 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
     let nvar = code.find_var(nvar_id)
 
     // If the variable is local `let_final_types` will have the type, otherwise it's an upvalue and we check the original variable
-    let final_type = func.let_final_types[nvar_id].get_or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
+    let final_type = func.let_final_types[nvar_id].or_else @{ func.ctx.convert_type(nvar.type_token!!.find_type()) }
 
     // Zero size type, no need to store
     if backend.get_size_of(final_type) == 0 {

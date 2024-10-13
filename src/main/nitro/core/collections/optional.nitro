@@ -66,12 +66,12 @@ fun Optional<#A>.convert_error(): Optional<#B> {
 }
 
 // Returns the value of the Some variant, or the default value if the Optional is the None variant
-fun Optional<#Value>.get_or_default(default: #Value): #Value {
+fun Optional<#Value>.or_default(default: #Value): #Value {
     ret if this.is_some() { this!! } else { default }
 }
 
 // Returns the value of the Some variant, or the result of the function if the Optional is the None variant
-fun Optional<#Value>.get_or_else(f: () -> #Value): #Value {
+fun Optional<#Value>.or_else(f: () -> #Value): #Value {
     ret if this.is_some() { this!! } else { f() }
 }
 

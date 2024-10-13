@@ -58,7 +58,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
         if receiver_type.is_some() {
             first_arg = receiver_type!!.to_token()
         } else {
-            first_arg = arg_types[1].get_or_default(type_cache["Nothing"]!!.to_token())
+            first_arg = arg_types[1] ?? (type_cache["Nothing"]!!.to_token())
         }
     }
 

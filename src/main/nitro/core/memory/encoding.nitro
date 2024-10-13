@@ -52,8 +52,8 @@ fun Base64::encode(data: List<Byte>, dictionary: String): String {
     while i < data.len {
         let len = min(3, data.len - i)
         let a = data[i]!!.to_int()
-        let b = data[i + 1].get_or_default(0.to_byte()).to_int()
-        let c = data[i + 2].get_or_default(0.to_byte()).to_int()
+        let b = (data[i + 1] ?? 0.to_byte()).to_int()
+        let c = (data[i + 2] ?? 0.to_byte()).to_int()
         i += 3
 
         let u = (a << 16) | (b << 8) | c

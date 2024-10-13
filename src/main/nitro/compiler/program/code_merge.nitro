@@ -119,12 +119,12 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
         orig is NInstKind::Let -> {
             let kind = orig as NInstKind::Let
 
-            ret NInstKind::Let @[variable: var_mapping[kind.variable].get_or_default(kind.variable)]
+            ret NInstKind::Let @[variable: var_mapping[kind.variable] ?? kind.variable]
         }
         orig is NInstKind::LetUpvalue -> {
             let kind = orig as NInstKind::LetUpvalue
 
-            ret NInstKind::LetUpvalue @[variable: var_mapping[kind.variable].get_or_default(kind.variable)]
+            ret NInstKind::LetUpvalue @[variable: var_mapping[kind.variable] ?? kind.variable]
         }
         orig is NInstKind::IfStart -> {
             let kind = orig as NInstKind::IfStart
@@ -201,7 +201,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
             ret NInstKind::WhenEnd @[
                 branches: kind.branches,
                 variable: if kind.variable.is_some() {
-                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                    Some(var_mapping[kind.variable!!] ?? kind.variable!!)
                 } else {
                     None()
                 },
@@ -240,7 +240,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
                 path: kind.path,
                 name: kind.name,
                 variable: if kind.variable.is_some() {
-                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                    Some(var_mapping[kind.variable!!] ?? kind.variable!!)
                 } else {
                     None()
                 }
@@ -254,7 +254,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
                 path: kind.path,
                 name: kind.name,
                 variable: if kind.variable.is_some() {
-                    Some(var_mapping[kind.variable!!].get_or_default(kind.variable!!))
+                    Some(var_mapping[kind.variable!!] ?? kind.variable!!)
                 } else {
                     None()
                 }
