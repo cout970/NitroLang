@@ -99,7 +99,7 @@ fun ChangeCollector.diff(left: NAnnotationArg, right: NAnnotationArg) {
     field("value").diff(left.value, right.value)
 }
 
-fun ChangeCollector.diff(left: NConstExpr, right: NConstExpr) {
+fun ChangeCollector.diff(left: NValue, right: NValue) {
     field("value").diff(left.to_string(), right.to_string())
 }
 

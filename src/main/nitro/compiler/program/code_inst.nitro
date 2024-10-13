@@ -79,7 +79,7 @@ option NInstKind {
     }
     // Literal value: Int, Long, Float, Boolean, String or Nothing
     Literal {
-        value: NConstExpr
+        value: NValue
     }
     // Returns from the current function
     Return {
@@ -291,33 +291,33 @@ fun NCode.add_if_choose(
 
 fun NCode.add_lit(
     span: Span
-    value: NConstExpr
+    value: NValue
 ): NInst {
     ret add_inst(span, NInstKind::Literal @[value])
 }
 
 fun NCode.add_lit_int(span: Span, value: Int): NInst {
-    ret this.add_lit(span, NConstExpr::NConstInt @[value])
+    ret this.add_lit(span, NValue::Int @[value])
 }
 
 fun NCode.add_lit_long(span: Span, value: Long): NInst {
-    ret this.add_lit(span, NConstExpr::NConstLong @[value])
+    ret this.add_lit(span, NValue::Long @[value])
 }
 
 fun NCode.add_lit_float(span: Span, value: Float): NInst {
-    ret this.add_lit(span, NConstExpr::NConstFloat @[value])
+    ret this.add_lit(span, NValue::Float @[value])
 }
 
 fun NCode.add_lit_boolean(span: Span, value: Boolean): NInst {
-    ret this.add_lit(span, NConstExpr::NConstBoolean @[value])
+    ret this.add_lit(span, NValue::Boolean @[value])
 }
 
 fun NCode.add_lit_string(span: Span, value: String): NInst {
-    ret this.add_lit(span, NConstExpr::NConstString @[value])
+    ret this.add_lit(span, NValue::String @[value])
 }
 
 fun NCode.add_lit_nothing(span: Span): NInst {
-    ret this.add_lit(span, NConstExpr::NConstNothing @[])
+    ret this.add_lit(span, NValue::Nothing @[])
 }
 
 fun NCode.add_return(
@@ -1152,7 +1152,7 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
         t is NInstKind::Literal -> {
             write_int(13)
             let kind = t as NInstKind::Literal
-            serialize_const_expr(kind.value)
+            serialize_nvalue(kind.value)
         }
         t is NInstKind::Return -> {
             write_int(14)
@@ -1329,7 +1329,7 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
             NInstKind::WhenEnd @[branches, variable]
         }
         13 -> {
-            let value = deserialize_const_expr()
+            let value = deserialize_nvalue()
             NInstKind::Literal @[value]
         }
         14 -> {

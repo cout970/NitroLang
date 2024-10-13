@@ -6,7 +6,7 @@ option InstResultAction {
     Keep,
     // Add a constant to the stack
     Const {
-        value: NConstExpr
+        value: NValue
     },
     // Save in a var for multiple uses or a use later
     Save {
@@ -632,86 +632,86 @@ fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: Was
 }
 
 fun WasmEmitter.compile_inst_literal(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
-    let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
+    let expr: NValue = (inst.kind as NInstKind::Literal).value
 
-    if expr is NConstExpr::NConstInt {
-        let const_value = expr as NConstExpr::NConstInt
+    if expr is NValue::Int {
+        let const_value = expr as NValue::Int
         add_i32_const(const_value.value)
         pop(inst.id, map)
         ret
     }
-    if expr is NConstExpr::NConstLong {
-        let const_value = expr as NConstExpr::NConstLong
+    if expr is NValue::Long {
+        let const_value = expr as NValue::Long
         add_i64_const(const_value.value)
         pop(inst.id, map)
         ret
     }
-    if expr is NConstExpr::NConstFloat {
-        let const_value = expr as NConstExpr::NConstFloat
+    if expr is NValue::Float {
+        let const_value = expr as NValue::Float
         add_f32_const(const_value.value)
         pop(inst.id, map)
         ret
     }
 // No new features until the new compiler is functional
-//  if expr is NConstExpr::NConstDouble {
-//      let value = expr as NConstExpr::NConstDouble
+//  if expr is NValue::NConstDouble {
+//      let value = expr as NValue::NConstDouble
 //      add_f64_const(value.value)
 //      ret
 //  }
-    if expr is NConstExpr::NConstString {
-        let const_value = expr as NConstExpr::NConstString
+    if expr is NValue::String {
+        let const_value = expr as NValue::String
         let ptr = backend.push_string(const_value.value)
         add_i32_const(ptr)
         pop(inst.id, map)
         ret
     }
-    if expr is NConstExpr::NConstBoolean {
-        let const_value = expr as NConstExpr::NConstBoolean
+    if expr is NValue::Boolean {
+        let const_value = expr as NValue::Boolean
         add_i32_const(if const_value.value {1} else {0})
         pop(inst.id, map)
         ret
     }
-    if expr is NConstExpr::NConstNothing {
+    if expr is NValue::Nothing {
         // Nothing has 0 size
         ret
     }
     crash("Unknown literal type: ${expr}")
 }
 
-fun WasmEmitter.push_literal(expr: NConstExpr) {
-    if expr is NConstExpr::NConstInt {
-        let const_value = expr as NConstExpr::NConstInt
+fun WasmEmitter.push_literal(expr: NValue) {
+    if expr is NValue::Int {
+        let const_value = expr as NValue::Int
         add_i32_const(const_value.value)
         ret
     }
-    if expr is NConstExpr::NConstLong {
-        let const_value = expr as NConstExpr::NConstLong
+    if expr is NValue::Long {
+        let const_value = expr as NValue::Long
         add_i64_const(const_value.value)
         ret
     }
-    if expr is NConstExpr::NConstFloat {
-        let const_value = expr as NConstExpr::NConstFloat
+    if expr is NValue::Float {
+        let const_value = expr as NValue::Float
         add_f32_const(const_value.value)
         ret
     }
 // No new features until the new compiler is functional
-//  if expr is NConstExpr::NConstDouble {
-//      let value = expr as NConstExpr::NConstDouble
+//  if expr is NValue::NConstDouble {
+//      let value = expr as NValue::NConstDouble
 //      add_f64_const(value.value)
 //      ret
 //  }
-    if expr is NConstExpr::NConstString {
-        let const_value = expr as NConstExpr::NConstString
+    if expr is NValue::String {
+        let const_value = expr as NValue::String
         let ptr = backend!!.push_string(const_value.value)
         add_i32_const(ptr)
         ret
     }
-    if expr is NConstExpr::NConstBoolean {
-        let const_value = expr as NConstExpr::NConstBoolean
+    if expr is NValue::Boolean {
+        let const_value = expr as NValue::Boolean
         add_i32_const(if const_value.value {1} else {0})
         ret
     }
-    if expr is NConstExpr::NConstNothing {
+    if expr is NValue::Nothing {
         // Nothing has 0 size
         ret
     }

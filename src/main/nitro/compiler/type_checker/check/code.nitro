@@ -429,22 +429,22 @@ fun TypeChecker.add_load_this_var(code: NCode, id: NInstId): NInstId {
 }
 
 fun TypeChecker.check_inst_literal(kind: NInstKind::Literal, inst: NInst, code: NCode) {
-    let expr: NConstExpr = kind.value
+    let expr: NValue = kind.value
 
     when {
-        expr is NConstExpr::NConstInt -> {
+        expr is NValue::Int -> {
             inst.type_token = type_cache["Int"].to_token()
         }
-        expr is NConstExpr::NConstLong -> {
+        expr is NValue::Long -> {
             inst.type_token = type_cache["Long"].to_token()
         }
-        expr is NConstExpr::NConstFloat -> {
+        expr is NValue::Float -> {
             inst.type_token = type_cache["Float"].to_token()
         }
-        expr is NConstExpr::NConstString -> {
+        expr is NValue::String -> {
             inst.type_token = type_cache["String"].to_token()
         }
-        expr is NConstExpr::NConstBoolean -> {
+        expr is NValue::Boolean -> {
             inst.type_token = type_cache["Boolean"].to_token()
         }
         else -> {

@@ -182,32 +182,32 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         let inst = inst_opt!!
 
         if inst.kind is NInstKind::Literal {
-            let expr: NConstExpr = (inst.kind as NInstKind::Literal).value
+            let expr: NValue = (inst.kind as NInstKind::Literal).value
 
             when {
-                expr is NConstExpr::NConstInt -> {
-                    let value: Int = (expr as NConstExpr::NConstInt).value
+                expr is NValue::Int -> {
+                    let value: Int = (expr as NValue::Int).value
                     data.add_int_le(value)
                 }
-                expr is NConstExpr::NConstLong -> {
-                    let value: Long = (expr as NConstExpr::NConstLong).value
+                expr is NValue::Long -> {
+                    let value: Long = (expr as NValue::Long).value
                     data.add_long_le(value)
                 }
-                expr is NConstExpr::NConstFloat -> {
-                    let float_value: Float = (expr as NConstExpr::NConstFloat).value
+                expr is NValue::Float -> {
+                    let float_value: Float = (expr as NValue::Float).value
                     let value: Int = float_value.reinterpret_as_int()
                     data.add_int_le(value)
                 }
-                expr is NConstExpr::NConstString -> {
-                    let string_value: String = (expr as NConstExpr::NConstString).value
+                expr is NValue::String -> {
+                    let string_value: String = (expr as NValue::String).value
                     let address: Int = push_string(string_value)
                     data.add_int_le(address)
                 }
-                expr is NConstExpr::NConstBoolean -> {
-                    let value: Boolean = (expr as NConstExpr::NConstBoolean).value
+                expr is NValue::Boolean -> {
+                    let value: Boolean = (expr as NValue::Boolean).value
                     data.add_boolean(value)
                 }
-                expr is NConstExpr::NConstNothing -> {
+                expr is NValue::Nothing -> {
                     // Nothing has 0 size
                 }
             }

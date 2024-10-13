@@ -20,7 +20,7 @@ fun Parser.read_test_definition(annotations: List<NAnnotation>): Parsed<Nothing>
             NAnnotationArg @[
                 span,
                 key: "name",
-                value: NConstExpr::NConstString @[value: test_name]
+                value: NValue::String @[value: test_name]
             ]
         ]
     ]

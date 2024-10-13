@@ -67,15 +67,15 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::LPAREN -> read_expression_in_parens(code)
         // constExpr
         // constExpr callSuffix
-        TokenKind::INT_NUMBER -> read_expression_const_expr(code)
-        TokenKind::LONG_NUMBER -> read_expression_const_expr(code)
-        TokenKind::FLOAT_NUMBER -> read_expression_const_expr(code)
-        TokenKind::PLAIN_STRING -> read_expression_const_expr(code)
-        TokenKind::ASCII_STRING -> read_expression_const_expr(code)
-        TokenKind::TRUE -> read_expression_const_expr(code)
-        TokenKind::FALSE -> read_expression_const_expr(code)
-        TokenKind::NULL -> read_expression_const_expr(code)
-        TokenKind::NOTHING -> read_expression_const_expr(code)
+        TokenKind::INT_NUMBER -> read_expression_nvalue(code)
+        TokenKind::LONG_NUMBER -> read_expression_nvalue(code)
+        TokenKind::FLOAT_NUMBER -> read_expression_nvalue(code)
+        TokenKind::PLAIN_STRING -> read_expression_nvalue(code)
+        TokenKind::ASCII_STRING -> read_expression_nvalue(code)
+        TokenKind::TRUE -> read_expression_nvalue(code)
+        TokenKind::FALSE -> read_expression_nvalue(code)
+        TokenKind::NULL -> read_expression_nvalue(code)
+        TokenKind::NOTHING -> read_expression_nvalue(code)
         // string
         // string callSuffix
         TokenKind::PLAIN_STRING -> read_expression_string_or_call(code)
@@ -130,7 +130,7 @@ fun Parser.read_expression_in_parens(code: NCode): Parsed<NInstId> {
     ret read_expression_call_suffix(code, expr)
 }
 
-fun Parser.read_expression_const_expr(code: NCode): Parsed<NInstId> {
+fun Parser.read_expression_nvalue(code: NCode): Parsed<NInstId> {
     let expr = read_expression_literal(code)?
     ret read_expression_call_suffix(code, expr)
 }

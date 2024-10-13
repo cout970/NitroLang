@@ -311,15 +311,15 @@ fun WasmEmitter.emit_opcode_by_name(name: String) {
     crash("Unable to find opcode: '$name'")
 }
 
-fun WasmEmitter.emit_const_by_type(expr: NConstExpr) {
+fun WasmEmitter.emit_const_by_type(expr: NValue) {
     when {
-        expr is NConstExpr::NConstInt -> add_i32_const((expr as NConstExpr::NConstInt).value)
-        expr is NConstExpr::NConstLong -> add_i64_const((expr as NConstExpr::NConstLong).value)
-        expr is NConstExpr::NConstFloat -> add_f32_const((expr as NConstExpr::NConstFloat).value)
-        expr is NConstExpr::NConstBoolean -> add_i32_const(if (expr as NConstExpr::NConstBoolean).value { 1 } else { 0 })
-        expr is NConstExpr::NConstNothing -> {}
-        expr is NConstExpr::NConstString -> {
-            let str = (expr as NConstExpr::NConstString).value
+        expr is NValue::Int -> add_i32_const((expr as NValue::Int).value)
+        expr is NValue::Long -> add_i64_const((expr as NValue::Long).value)
+        expr is NValue::Float -> add_f32_const((expr as NValue::Float).value)
+        expr is NValue::Boolean -> add_i32_const(if (expr as NValue::Boolean).value { 1 } else { 0 })
+        expr is NValue::Nothing -> {}
+        expr is NValue::String -> {
+            let str = (expr as NValue::String).value
             let ptr = backend!!.push_string(str)
             add_i32_const(ptr)
         }

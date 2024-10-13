@@ -10,63 +10,63 @@
 //        | NOTHING
 //        ;
 
-option NConstExpr {
-    NConstInt {
+option NValue {
+    Int {
         value: Int
     }
-    NConstLong {
+    Long {
         value: Long
     }
-    NConstFloat {
+    Float {
         value: Float
     }
-    NConstString {
+    String {
         value: String
     }
-    NConstBoolean {
+    Boolean {
         value: Boolean
     }
-    NConstNothing
+    Nothing
 }
 
 // Parse a constant expression, a value that can be evaluated at compile time
-fun Parser.read_const_expr(): Parsed<NConstExpr> {
+fun Parser.read_nvalue(): Parsed<NValue> {
     let expr = when lexer.current_token_kind {
         TokenKind::INT_NUMBER -> {
             let value: Int = read_int()?
-            NConstExpr::NConstInt @[value]
+            NValue::Int @[value]
         }
         TokenKind::LONG_NUMBER -> {
             let value: Long = read_long()?
-            NConstExpr::NConstLong @[value]
+            NValue::Long @[value]
         }
         TokenKind::FLOAT_NUMBER -> {
             let value: Float = read_float()?
-            NConstExpr::NConstFloat @[value]
+            NValue::Float @[value]
         }
         TokenKind::PLAIN_STRING -> {
             let value: String = read_plain_string()?
-            NConstExpr::NConstString @[value]
+            NValue::String @[value]
         }
         TokenKind::ASCII_STRING -> {
             let value: Int = read_ascii_string()?
-            NConstExpr::NConstInt @[value]
+            NValue::Int @[value]
         }
         TokenKind::TRUE -> {
             lexer.next_token()
-            NConstExpr::NConstBoolean @[value: true]
+            NValue::Boolean @[value: true]
         }
         TokenKind::FALSE -> {
             lexer.next_token()
-            NConstExpr::NConstBoolean @[value: false]
+            NValue::Boolean @[value: false]
         }
         TokenKind::NULL -> {
             lexer.next_token()
-            NConstExpr::NConstNothing @[]
+            NValue::Nothing @[]
         }
         TokenKind::NOTHING -> {
             lexer.next_token()
-            NConstExpr::NConstNothing @[]
+            NValue::Nothing @[]
         }
         else -> {
             ret parse_error(ParseError::ExpectedConstExpr, lexer.current_token)
@@ -136,79 +136,79 @@ fun Parser.read_float(): Parsed<Float> {
     ret found(parse_result!!)
 }
 
-fun NConstExpr.get_string(): Optional<String> {
-    if this is NConstExpr::NConstString {
-        ret Some((this as NConstExpr::NConstString).value)
+fun NValue.get_string(): Optional<String> {
+    if this is NValue::String {
+        ret Some((this as NValue::String).value)
     }
     ret None()
 }
 
-fun NConstExpr.get_int(): Optional<Int> {
-    if this is NConstExpr::NConstInt {
-        ret Some((this as NConstExpr::NConstInt).value)
+fun NValue.get_int(): Optional<Int> {
+    if this is NValue::Int {
+        ret Some((this as NValue::Int).value)
     }
     ret None()
 }
 
-fun NConstExpr.get_boolean(): Optional<Boolean> {
-    if this is NConstExpr::NConstBoolean {
-        ret Some((this as NConstExpr::NConstBoolean).value)
+fun NValue.get_boolean(): Optional<Boolean> {
+    if this is NValue::Boolean {
+        ret Some((this as NValue::Boolean).value)
     }
     ret None()
 }
 
-fun NConstExpr.to_string(): String {
+fun NValue.to_string(): String {
     ret when {
-        this is NConstExpr::NConstInt -> (this as NConstExpr::NConstInt).value.to_string()
-        this is NConstExpr::NConstLong -> (this as NConstExpr::NConstLong).value.to_string()
-        this is NConstExpr::NConstFloat -> (this as NConstExpr::NConstFloat).value.to_string()
-        this is NConstExpr::NConstString -> "\"" + (this as NConstExpr::NConstString).value.replace("\n", "\\n") + "\""
-        this is NConstExpr::NConstBoolean -> (this as NConstExpr::NConstBoolean).value.to_string()
-        this is NConstExpr::NConstNothing -> "nothing"
+        this is NValue::Int -> (this as NValue::Int).value.to_string()
+        this is NValue::Long -> (this as NValue::Long).value.to_string()
+        this is NValue::Float -> (this as NValue::Float).value.to_string()
+        this is NValue::String -> "\"" + (this as NValue::String).value.replace("\n", "\\n") + "\""
+        this is NValue::Boolean -> (this as NValue::Boolean).value.to_string()
+        this is NValue::Nothing -> "nothing"
         else -> unreachable()
     }
 }
 
-fun ByteBuffer.serialize_const_expr(value: NConstExpr) {
+fun ByteBuffer.serialize_nvalue(value: NValue) {
     let frame = start_frame(true)
     when {
-        value is NConstExpr::NConstInt -> {
+        value is NValue::Int -> {
             write_int(0)
-            write_int((value as NConstExpr::NConstInt).value)
+            write_int((value as NValue::Int).value)
         }
-        value is NConstExpr::NConstLong -> {
+        value is NValue::Long -> {
             write_int(1)
-            write_long((value as NConstExpr::NConstLong).value)
+            write_long((value as NValue::Long).value)
         }
-        value is NConstExpr::NConstFloat -> {
+        value is NValue::Float -> {
             write_int(2)
-            write_float((value as NConstExpr::NConstFloat).value)
+            write_float((value as NValue::Float).value)
         }
-        value is NConstExpr::NConstString -> {
+        value is NValue::String -> {
             write_int(3)
-            write_string((value as NConstExpr::NConstString).value)
+            write_string((value as NValue::String).value)
         }
-        value is NConstExpr::NConstBoolean -> {
+        value is NValue::Boolean -> {
             write_int(4)
-            write_boolean((value as NConstExpr::NConstBoolean).value)
+            write_boolean((value as NValue::Boolean).value)
         }
-        value is NConstExpr::NConstNothing -> {
+        value is NValue::Nothing -> {
             write_int(5)
         }
     }
     end_frame(frame)
 }
 
-fun ByteBuffer.deserialize_const_expr(): NConstExpr {
+fun ByteBuffer.deserialize_nvalue(): NValue {
     let frame = start_frame(false)
     let variant = read_int()
     let value = when variant {
-        0 -> NConstExpr::NConstInt @[value: read_int()]
-        1 -> NConstExpr::NConstLong @[value: read_long()]
-        2 -> NConstExpr::NConstFloat @[value: read_float()]
-        3 -> NConstExpr::NConstString @[value: read_string()]
-        4 -> NConstExpr::NConstBoolean @[value: read_boolean()]
-        5 -> NConstExpr::NConstNothing @[]
+        0 -> NValue::Int @[value: read_int()]
+        1 -> NValue::Long @[value: read_long()]
+        2 -> NValue::Float @[value: read_float()]
+        3 -> NValue::String @[value: read_string()]
+        4 -> NValue::Boolean @[value: read_boolean()]
+        5 -> NValue::Nothing @[]
         else -> unreachable()
     }
     end_frame(frame)

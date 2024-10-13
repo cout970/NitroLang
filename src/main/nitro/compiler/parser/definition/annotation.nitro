@@ -54,7 +54,7 @@ fun Parser.read_annotation_arg(): Parsed<NAnnotationArg> {
     let key: String = read_const_string()?
     skip_nl()
     skip_token_kind(TokenKind::COLON)?
-    let value: NConstExpr = read_const_expr()?
+    let value: NValue = read_nvalue()?
 
     ret found(NAnnotationArg @[span, key, value])
 }
