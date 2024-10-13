@@ -22,6 +22,14 @@ option NFunCallTarget {
     }
 }
 
+fun NFunCallTarget.has_annotation(name: String): Boolean {
+    ret when {
+        this is NFunCallTarget::Func -> (this as NFunCallTarget::Func).func.has_annotation(name)
+        this is NFunCallTarget::Tag -> false
+        else -> unreachable()
+    }
+}
+
 fun NFunCallTarget.get_header(): NFunctionHeader {
     ret when {
         this is NFunCallTarget::Func -> (this as NFunCallTarget::Func).header

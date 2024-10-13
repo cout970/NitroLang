@@ -31,6 +31,11 @@ fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
     ]
 }
 
+fun Parser.deinit() {
+    module_path_stack.deinit()
+    lexer.deinit()
+}
+
 // Parse a program
 fun Parser.read_file() {
     // parseFile : NL* definition* EOF;

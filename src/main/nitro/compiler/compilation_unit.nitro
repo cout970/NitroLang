@@ -183,6 +183,7 @@ fun CompilationUnit.parse_file(file: IncludedFile): Program {
     let parser = Parser::new(lexer, reporter, sub_program)
     parser.current_path = file.path
     parser.read_file()
+    parser.deinit()
 
     let end = Instant::now()
     ret sub_program
@@ -335,7 +336,6 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     let unit = CompilationUnit::new()
     unit.cache_path = args.cache_dir
     unit.core_path = args.core_path
-
 
     if !args.no_core_lib {
         // Include core library
