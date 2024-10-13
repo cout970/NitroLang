@@ -49,7 +49,7 @@ function log {
 
 log "Compiling compiler $compiler"
 #  --core-path src/main/nitro/core/core.nitro
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro || fail "Compilation failed"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -65,12 +65,14 @@ if [ "$dump_ir" = "y" ]; then
 fi
 
 log "Running compiler $output"
+cp "$output" "out/compiler.wasm"
 wasm2wat -o "$output.wat" "$output"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --cache-dir "$cache2" --core-path src/main/nitro/core/core.nitro  || fail "Compilation failed"
+# --cache-dir "$cache2"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --core-path src/main/nitro/core/core.nitro  || fail "Compilation failed"
 
 log "Running program $output2"
 wasm2wat --no-check -o "$output2.wat" "$output2"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@" | tee out/output.txt
 
 cleanup
 log "Success"
