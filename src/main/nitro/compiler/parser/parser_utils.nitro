@@ -104,6 +104,16 @@ fun Parser.read_ascii_string(): Parsed<Int> {
     ret found(ascii.to_int_in_base(10)!!)
 }
 
+fun Parser.read_unicode_string(): Parsed<Char> {
+    if lexer.current_token_kind != TokenKind::UNICODE_STRING {
+        ret parse_error(ParseError::ExpectedPlainString, lexer.current_token)
+    }
+
+    let string = lexer.current_token_text
+    lexer.next_token()
+    ret found(string.get_codepoint(0)!!)
+}
+
 // Ignore next newlines
 fun Parser.skip_nl() {
     while lexer.current_token_kind == TokenKind::NL {

@@ -129,6 +129,7 @@ enum TokenKind {
 //
     PLAIN_STRING @[text: "plain_string", len: 0]
     ASCII_STRING @[text: "ascii_string", len: 0]
+    UNICODE_STRING @[text: "unicode_string", len: 0]
     STRING_START @[text: "string_start", len: 1]
     STRING_INTERP_START @[text: "string_interp_start", len: 2]
     STRING_INTERP_END @[text: "string_interp_end", len: 1]

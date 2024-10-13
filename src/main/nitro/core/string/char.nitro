@@ -3,19 +3,15 @@
 @ValueType
 @NoGC
 @IntrinsicSize [size: 4]
-struct Char {
-    unicode_code_point: Int
-}
+struct Char {}
 
 // This function converts a Char to an integer, exposing the underlying unicode code point value
-fun Char.to_int(): Int {
-    ret this.unicode_code_point
-}
+@WasmInline [opcode: "nop"]
+fun Char.to_int(): Int {}
 
 // This function converts an integer to a Char instance
-fun Int.to_char(): Char {
-    ret Char @[unicode_code_point: this]
-}
+@WasmInline [opcode: "nop"]
+fun Int.to_char(): Char {}
 
 // Creates an string with only this character
 fun Char.to_string(): String {

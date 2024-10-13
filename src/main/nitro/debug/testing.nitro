@@ -1,5 +1,11 @@
 
 fun main() {
     println("Works")
+
+    let myInt: Int = a"n"
+    let myChar: Char = u"ñ"
+
+    println(myInt)
+    println(myChar)
 }
 

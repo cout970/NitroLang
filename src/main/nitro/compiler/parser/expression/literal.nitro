@@ -23,6 +23,11 @@ fun Parser.read_expression_literal(code: NCode): Parsed<NInstId> {
             let value: Int = read_ascii_string()?
             code.add_lit_int(span, value)
         }
+        TokenKind::UNICODE_STRING -> {
+            let value: Char = read_unicode_string()?
+            let inst = code.add_lit_int(span, value.to_int())
+            code.add_fun_call(span, "", "to_char", true, [inst.id], [])
+        }
         TokenKind::TRUE -> {
             lexer.next_token()
             code.add_lit_boolean(span, true)

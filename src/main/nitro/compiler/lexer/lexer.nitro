@@ -784,7 +784,7 @@ fun Lexer.read_string() {
     state[] = 1
 }
 
-// Read an ascii string
+// Read an ascii string with a single char
 // a"S"
 fun Lexer.read_ascii_string() {
     let start = cur
@@ -824,6 +824,69 @@ fun Lexer.read_ascii_string() {
     let extra = byte.to_string_in_base(10)
 
     add_token_with_extra(TokenKind::ASCII_STRING, start, extra)
+}
+
+
+// Read an unicode string with a single char
+// u"ñ"
+fun Lexer.read_unicode_string() {
+    let start = cur
+
+    if current_byte != a"u" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+    cur += 1
+
+    if current_byte != a"\"" {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+    cur += 1
+
+    let str_start = cur
+    let b0 = current_byte
+    let string: String = ""
+
+    when {
+        b0 == a"\\" -> {
+            // Escape sequence like \n, \t, \xFF, \uFFFF, etc.
+            string = read_string_escape_sequence()
+            cur += string.len
+        }
+        b0 & 0b10000000 == 0 -> {
+            // Single-byte character
+            cur += 1
+            string = src.substring(str_start, cur)
+        }
+        b0 & 0b11100000 == 0b11000000 -> {
+            // Start of a 2-byte character
+            cur += 2
+            string = src.substring(str_start, cur)
+        }
+        b0 & 0b11110000 == 0b11100000 -> {
+            // Start of a 3-byte character
+            cur += 3
+            string = src.substring(str_start, cur)
+        }
+        b0 & 0b11111000 == 0b11110000 -> {
+            // Start of a 4-byte character
+            cur += 4
+            string = src.substring(str_start, cur)
+        }
+    }
+
+    if current_byte != a"\"" || string.is_empty() {
+        add_token(TokenKind::ERROR_CHARACTER)
+        cur += 1
+        ret
+    }
+
+    // skip "
+    cur += 1
+    add_token_with_extra(TokenKind::UNICODE_STRING, start, string)
 }
 
 // Read a string contents
@@ -1072,10 +1135,17 @@ fun Lexer.read_identifier() {
     let first = extra.get_byte(0).to_int()
     let lower = first >= a"a" && first <= a"z"
 
-    // Ascii string
+    // Ascii char string
     if first == a"a" && extra.len == 1 && current_byte == a"\"" {
         cur -= 1
         read_ascii_string()
+        ret
+    }
+
+    // Unicode char string
+    if first == a"u" && extra.len == 1 && current_byte == a"\"" {
+        cur -= 1
+        read_unicode_string()
         ret
     }
 

@@ -72,6 +72,7 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::FLOAT_NUMBER -> read_expression_nvalue(code)
         TokenKind::PLAIN_STRING -> read_expression_nvalue(code)
         TokenKind::ASCII_STRING -> read_expression_nvalue(code)
+        TokenKind::UNICODE_STRING -> read_expression_nvalue(code)
         TokenKind::TRUE -> read_expression_nvalue(code)
         TokenKind::FALSE -> read_expression_nvalue(code)
         TokenKind::NULL -> read_expression_nvalue(code)

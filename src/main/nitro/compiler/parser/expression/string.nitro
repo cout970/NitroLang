@@ -2,6 +2,7 @@
 // string
 //     : PLAIN_STRING
 //     | ASCII_STRING
+//     | UNICODE_STRING
 //     | STRING_START stringContents* STRING_END
 //     | STRING2_START string2Contents* STRING2_END
 //     ;
@@ -21,6 +22,7 @@ fun Parser.read_expression_string(code: NCode): Parsed<NInstId> {
     ret when lexer.current_token_kind {
         TokenKind::PLAIN_STRING -> read_expression_string_plain(code)
         TokenKind::ASCII_STRING -> read_expression_string_ascii(code)
+        TokenKind::UNICODE_STRING -> read_expression_string_unicode(code)
         TokenKind::STRING_START -> read_expression_string_format(code)
         TokenKind::STRING2_START -> read_expression_string_raw(code)
         else -> {
@@ -47,6 +49,19 @@ fun Parser.read_expression_string_ascii(code: NCode): Parsed<NInstId> {
     let inst = code.add_lit_int(span, text.to_int_in_base(10)!!)
 
     ret found(inst.id)
+}
+
+fun Parser.read_expression_string_unicode(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    let text = lexer.current_token_text
+    skip_token_kind(TokenKind::UNICODE_STRING)?
+
+    let value: Char = text.get_codepoint(0)!!
+
+    let inst = code.add_lit_int(span, value.to_int())
+    let inst2 = code.add_fun_call(span, "", "to_char", true, [inst.id], [])
+
+    ret found(inst2.id)
 }
 
 fun Parser.read_expression_string_format(code: NCode): Parsed<NInstId> {

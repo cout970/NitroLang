@@ -26,6 +26,9 @@ option NValue {
     Boolean {
         value: Boolean
     }
+    Char {
+        value: Char
+    }
     Nothing
 }
 
@@ -51,6 +54,10 @@ fun Parser.read_nvalue(): Parsed<NValue> {
         TokenKind::ASCII_STRING -> {
             let value: Int = read_ascii_string()?
             NValue::Int @[value]
+        }
+        TokenKind::UNICODE_STRING -> {
+            let value: Char = read_unicode_string()?
+            NValue::Char @[value]
         }
         TokenKind::TRUE -> {
             lexer.next_token()
