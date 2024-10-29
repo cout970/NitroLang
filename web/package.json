@@ -1,0 +1,25 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "description": "Nitro lang playground",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "sass": "^1.79.5",
+    "vite": "^5.4.6"
+  },
+  "dependencies": {
+    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
+    "@wasmer/sdk": "^0.7.1",
+    "ace-builds": "^1.36.2",
+    "node-stdlib-browser": "^1.2.1",
+    "vite-plugin-wasm": "^3.3.0"
+  }
+}
