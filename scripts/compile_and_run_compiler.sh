@@ -29,7 +29,7 @@ cache2="out/cache4"
 
 function cleanup() {
     # Clean up temporary file
-    mv "$output" "out/compiler_v0.wasm"
+    rm -f "$output"
     rm -f "$output2"
 }
 
