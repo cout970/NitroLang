@@ -1,5 +1,5 @@
 import {init, Directory, runWasix} from "@wasmer/sdk";
-import compilerUrl from "../wasm/compiler_v0.0.10-opt.wasm?url";
+import compilerUrl from "../wasm/compiler_v0.0.11-opt.wasm?url";
 import wasmerUrl from "../wasm/wasmer_js_bg.wasm?url";
 import {updateFiles} from "./files";
 

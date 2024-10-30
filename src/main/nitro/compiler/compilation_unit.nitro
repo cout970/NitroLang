@@ -1,5 +1,5 @@
 
-let CACHE_VERSION: Int = 0x02
+let CACHE_VERSION: Int = 0x03
 
 struct CompilationUnit {
     reporter: Reporter
