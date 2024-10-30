@@ -6,6 +6,8 @@ Inspired by C, Rust, Kotlin and JS, combining the best features of modern langua
 
 Right now it's in alpha state and everything is subject to change.
 
+Checkout the Language book: [NitroLang Book](./web/docs/src/SUMMARY.md)
+
 ### How to run the compiler
 
 Any WASI compatible runtime should work.

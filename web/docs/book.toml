@@ -1,0 +1,11 @@
+[book]
+authors = ["cout970"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Nitro Lang"
+
+[output.html.playground]
+editable = true
+runnable = true
+mdbook-runnable = true
