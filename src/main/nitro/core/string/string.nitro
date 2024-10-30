@@ -113,6 +113,10 @@ fun String.next_codepoint_index(index: Int): Optional<Int> {
     ret Some(index + curr_len)
 }
 
+// Gives the character at the given index, if it exists, the index is the number of unicode
+// codepoints to skip to get to the desired character
+fun String.char_at(index: Int): Optional<Char> = to_list()[index]
+
 // Creates a list of all the unicode codepoints in the string
 fun String.to_list(): List<Char> {
     let list = []
@@ -228,6 +232,32 @@ fun String.get_ordering(other: String): Ordering {
     }
 
     ret Ordering::Equals
+}
+
+// Checks if a string is equal to another string, ignoring case
+fun String.equals_ignore_case(other: String): Boolean {
+    if this.len != other.len {
+        ret false
+    }
+
+    repeat this.len {
+        let this_byte = this.get_byte(it).to_int()
+        let other_byte = other.get_byte(it).to_int()
+
+        if this_byte >= a"A" && this_byte <= a"Z" {
+            this_byte += 32
+        }
+
+        if other_byte >= a"A" && other_byte <= a"Z" {
+            other_byte += 32
+        }
+
+        if this_byte != other_byte {
+            ret false
+        }
+    }
+
+    ret true
 }
 
 // Checks if a string is not equal to another string

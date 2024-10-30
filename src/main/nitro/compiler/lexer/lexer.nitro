@@ -674,26 +674,32 @@ fun Lexer.read_block_comment() {
     cur += 2
     let start = cur
     let max = src.len - 1
+    let count = 1
 
     while cur < max {
         let c: Int = current_byte
 
-        if c == a"*" {
-            let c1: Int = next_byte
+        if c == a"/" && next_byte == a"*" {
+            count += 1
+            cur += 1
+        }
 
-            if c1 == a"/" {
-                break
-            }
+        if c == a"*" && next_byte == a"/" {
+            count -= 1
+            cur += 1
         }
 
         cur += 1
+
+        if count == 0 {
+            break
+        }
     }
 
-    let extra = src.substring(start, cur)
-    cur += 2
+    let extra = src.substring(start, cur - 2)
 
     // Detect /** vs /* at the beginning of a comment
-    let kind = if extra.len > 1 && extra.get_byte(0).to_int() == a"*" {
+    let kind = if extra.len > 1 && extra.get_byte(1).to_int() == a"*" {
         TokenKind::DOC_COMMENT
     } else {
         TokenKind::BLOCK_COMMENT
@@ -860,7 +866,6 @@ fun Lexer.read_unicode_string() {
         b0 == a"\\" -> {
             // Escape sequence like \n, \t, \xFF, \uFFFF, etc.
             string = read_string_escape_sequence()
-            cur += string.len
         }
         b0 & 0b10000000 == 0 -> {
             // Single-byte character

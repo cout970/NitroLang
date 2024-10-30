@@ -1,4 +1,21 @@
+tag Printable {
+    fun This.print()
+}
+
+fun Int.print() {
+    println("Printing an Int: $this")
+}
+
+fun String.print() {
+    println("Printing an String: '$this'")
+}
+
+fun <#T: Printable> print_me(value: #T) {
+    value.print()
+}
 
 fun main() {
-    println(#[a: 1, b: 69])
+    // Both will work
+    print_me(42)
+    print_me("Hello, world!")
 }
