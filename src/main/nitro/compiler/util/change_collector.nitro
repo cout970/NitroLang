@@ -429,6 +429,18 @@ fun ChangeCollector.diff(left: NInstKind, right: NInstKind) {
         ret
     }
 
+    if left is NInstKind::InitField && right is NInstKind::InitField {
+        let leftKind = left as NInstKind::InitField
+        let rightKind = right as NInstKind::InitField
+        field("instance").diff(leftKind.instance, rightKind.instance)
+        field("name").diff(leftKind.name, rightKind.name)
+        field("field").diff(leftKind.field, rightKind.field)
+        field("field_type_token").diff(leftKind.field_type_token, rightKind.field_type_token)
+        field("call_site_generics").diff(leftKind.call_site_generics, rightKind.call_site_generics)
+        field("value").diff(leftKind.value, rightKind.value)
+        ret
+    }
+
     if left is NInstKind::SizeOf && right is NInstKind::SizeOf {
         let leftKind = left as NInstKind::SizeOf
         let rightKind = right as NInstKind::SizeOf

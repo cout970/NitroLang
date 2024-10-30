@@ -158,7 +158,7 @@ fun Parser.read_enum_definition(annotations: NAnnotationContainer): Parsed<Nothi
         // Alloc initializes the variant field for options, but enums are regular structs,
         // so we need to initialize it manually
         let variant_value = const_code.add_lit_int(entry.span, entry.variant)
-        const_code.add_store_field(entry.span, alloc.id, VARIANT_FIELD_NAME, variant_value.id)
+        const_code.add_init_field(entry.span, alloc.id, VARIANT_FIELD_NAME, variant_value.id)
         // Variant field
         used_field_names[] = VARIANT_FIELD_NAME
 
@@ -172,7 +172,7 @@ fun Parser.read_enum_definition(annotations: NAnnotationContainer): Parsed<Nothi
                 continue
             }
 
-            const_code.add_store_field(entry.span, alloc.id, i.field_name, const_code.last_expression!!)
+            const_code.add_init_field(entry.span, alloc.id, i.field_name, const_code.last_expression!!)
         }
 
         let link = const_code.add_link(entry.span, alloc.id)
@@ -422,7 +422,7 @@ fun Parser.autogenerate_enum_method_from_variant(struct_def: NStruct, enum_entri
     ])
     let return_type = NTypeUsage::simple_with_params(span, "Optional", [NTypeUsage::simple(span, struct_def.full_name)])
     let func = create_function(NFunctionHeader::new(span, struct_def.full_name, "from_variant", return_type), annotations)
-    func.add_parameter(span, "variant", NTypeUsage::simple(span, "Int"))
+    func.add_parameter(span, VARIANT_FIELD_NAME, NTypeUsage::simple(span, "Int"))
     func.register_params()
     register_nitro_function(func)
 
@@ -430,7 +430,7 @@ fun Parser.autogenerate_enum_method_from_variant(struct_def: NStruct, enum_entri
 
     for entry in enum_entries {
         // if (variant == 1) { ret Some(Direction::Up) }
-        let variant_var = code.add_load_var(span, "", "variant", None())
+        let variant_var = code.add_load_var(span, "", VARIANT_FIELD_NAME, None())
         let variant_lit = code.add_lit_int(span, entry.variant)
         let equals = code.add_fun_call(span, "", "is_equal", true, [variant_var.id, variant_lit.id], [])
         code.add_if_start(span, equals.id)

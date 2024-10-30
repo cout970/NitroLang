@@ -42,6 +42,8 @@ struct NCode {
     // Cache of constants used in this code, constants depend on the location of the function inside the global scope,
     // In a block of code (function or constant) a given name will always refer to the same constant
     const_cache: Map<String, NConst>
+    // Cursor pointing to the index of the last added instruction, if is -1, instructions will be added at the end
+    cursor: Int
 }
 
 fun NCode::new(program: Program, container: NCodeContainer): NCode {
@@ -68,6 +70,7 @@ fun NCode::new(program: Program, container: NCodeContainer): NCode {
         receiver_type_token: None(),
         return_type_token: None(),
         const_cache: #[],
+        cursor: -1,
     ]
 
     let root_block = NBlock @[
@@ -434,6 +437,13 @@ fun NCode.calculate_back_references() {
                 let dep2 = find_inst(kind.value)
                 dep2.back_references[] = inst.id
             }
+            inst.kind is NInstKind::InitField -> {
+                let kind = inst.kind as NInstKind::InitField
+                let dep = find_inst(kind.instance)
+                dep.back_references[] = inst.id
+                let dep2 = find_inst(kind.value)
+                dep2.back_references[] = inst.id
+            }
             inst.kind is NInstKind::Link -> {
                 let kind = inst.kind as NInstKind::Link
                 let dep = find_inst(kind.linked_id)
@@ -512,6 +522,7 @@ fun ByteBuffer.serialize_code(code: NCode) {
     serialize_id_provider(code.block_id_provider)
     serialize_id(code.current_block)
     write_boolean(code.jumped_out_of_block)
+    write_int(code.cursor)
     write_int(code.break_jumps.len)
     for jump in code.break_jumps {
         serialize_id(jump)
@@ -558,6 +569,7 @@ fun ByteBuffer.deserialize_code(program: Program): NCode {
     let block_map = #[]
     let current_block = deserialize_id()
     let jumped_out_of_block = read_boolean()
+    let cursor = read_int()
     let break_jumps = []
     repeat read_int() {
         break_jumps[] = deserialize_id()
@@ -591,6 +603,7 @@ fun ByteBuffer.deserialize_code(program: Program): NCode {
         const_cache: #[],
         receiver_type_token: None(),
         return_type_token: None(),
+        cursor,
     ]
 
     repeat read_int() {

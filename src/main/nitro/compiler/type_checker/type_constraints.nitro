@@ -18,6 +18,7 @@ enum TypeConstraintSource {
     TypeParameter @[info: "type parameter"]
     LoadField @[info: "field access"]
     StoreField @[info: "field store"]
+    InitField @[info: "field init"]
     Alloc @[info: "allocation"]
     Return @[info: "return"]
     IfCondition @[info: "if condition"]

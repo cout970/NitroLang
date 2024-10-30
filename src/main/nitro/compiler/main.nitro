@@ -14,6 +14,7 @@ struct ProgramArgs {
     core_path: Optional<String>,
     no_core_lib: Boolean,
     verbose: Boolean,
+    dump_wat: Boolean,
 }
 
 fun ProgramArgs::new(): ProgramArgs {
@@ -26,6 +27,7 @@ fun ProgramArgs::new(): ProgramArgs {
         core_path: None(),
         no_core_lib: false,
         verbose: false,
+        dump_wat: false,
     ]
 }
 
@@ -69,6 +71,12 @@ fun main() {
 
         if arg == "--dump-ir" {
             prog.dump_ir = true
+            i += 1
+            continue
+        }
+
+        if arg == "--dump-wat" {
+            prog.dump_wat = true
             i += 1
             continue
         }

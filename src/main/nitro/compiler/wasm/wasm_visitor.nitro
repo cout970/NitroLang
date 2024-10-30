@@ -470,6 +470,7 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
         }
         inst.kind is NInstKind::StoreVar -> {}
         inst.kind is NInstKind::StoreField -> {}
+        inst.kind is NInstKind::InitField -> {}
         inst.kind is NInstKind::LoadField -> {}
         inst.kind is NInstKind::SizeOf -> {
             let size_of_type = (inst.kind as NInstKind::SizeOf).type_token!!.find_type()

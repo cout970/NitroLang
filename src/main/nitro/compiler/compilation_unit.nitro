@@ -408,6 +408,7 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
 
     // Perform code generation
     let start_compiling = Instant::now()
+    unit.backend.emitter.debug_print = args.dump_wat
     unit.compile(FilePath::new(args.output))
 
     // Final errors

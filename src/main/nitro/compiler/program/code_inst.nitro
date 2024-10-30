@@ -126,6 +126,15 @@ option NInstKind {
         call_site_generics: Optional<CallSiteGenerics>
         value: NInstId
     }
+    // Instance init field
+    InitField {
+        instance: NInstId
+        name: String
+        field: Optional<NStructField>
+        field_type_token: Optional<TypeToken>
+        call_site_generics: Optional<CallSiteGenerics>
+        value: NInstId
+    }
     // Retrieves the size of a type in bytes
     SizeOf {
         type_usage: NTypeUsage
@@ -158,19 +167,34 @@ option NInstKind {
     Noop {}
 }
 
+fun NCode.seek_inst(id: Id) {
+    cursor = index_of_inst(id)!!
+}
+
+fun NCode.seek_end() {
+    cursor = -1
+}
+
 fun NCode.add_inst(
     span: Span,
     kind: NInstKind,
 ): NInst {
+    let block = if cursor == -1 { current_block } else { inst_list[cursor]!!.block }
     let i = NInst @[
         id: inst_id_provider.next(),
         span,
-        block: current_block,
+        block,
         kind,
         type_token: None(),
         back_references: [],
     ]
-    inst_list[] = i
+
+    if cursor == -1 {
+        inst_list[] = i
+    } else {
+        inst_list.insert(cursor + 1, i)
+    }
+
     ret i
 }
 
@@ -187,7 +211,11 @@ fun NCode.add_inst_in_block(
         type_token: None(),
         back_references: [],
     ]
-    inst_list[] = i
+    if cursor == -1 {
+        inst_list[] = i
+    } else {
+        inst_list.insert(cursor + 1, i)
+    }
     ret i
 }
 
@@ -416,6 +444,22 @@ fun NCode.add_store_field(
     ])
 }
 
+fun NCode.add_init_field(
+    span: Span,
+    instance: NInstId,
+    name: String,
+    value: NInstId,
+): NInst {
+    ret add_inst(span, NInstKind::InitField @[
+        instance,
+        name,
+        field: None(),
+        field_type_token: None(),
+        call_site_generics: None(),
+        value,
+    ])
+}
+
 fun NCode.add_loop_start(
     span: Span,
     break_block: NBlockId,
@@ -601,6 +645,7 @@ fun NInstKind.get_name(): String {
         this is NInstKind::StoreVar -> "store-var"
         this is NInstKind::LoadField -> "load-field"
         this is NInstKind::StoreField -> "store-field"
+        this is NInstKind::InitField -> "init-field"
         this is NInstKind::SizeOf -> "size-of"
         this is NInstKind::IncludeAs -> "include-as"
         this is NInstKind::Alloc -> "alloc"
@@ -785,6 +830,15 @@ fun NInstKind.to_string(): String {
             }
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
+        }
+        this is NInstKind::InitField -> {
+            let kind = this as NInstKind::InitField
+
+            if kind.field_type_token.is_some() {
+                ret "init-field #${kind.instance} -> [${kind.name}: ${kind.field_type_token!!}] = #${kind.value}"
+            }
+
+            "init-field #${kind.instance} -> ${kind.name} = #${kind.value}"
         }
         this is NInstKind::SizeOf -> {
             let kind = this as NInstKind::SizeOf
@@ -1021,6 +1075,15 @@ fun NInst.to_string(code: NCode): String {
 
             "store-field #${kind.instance} -> ${kind.name} = #${kind.value}"
         }
+        t is NInstKind::InitField -> {
+            let kind = t as NInstKind::InitField
+
+            if kind.field_type_token.is_some() {
+                ret "init-field #${kind.instance} => [${kind.name}: ${kind.field_type_token!!}] = #${kind.value}"
+            }
+
+            "init-field #${kind.instance} -> ${kind.name} = #${kind.value}"
+        }
         t is NInstKind::SizeOf -> {
             let kind = t as NInstKind::SizeOf
 
@@ -1040,7 +1103,18 @@ fun NInst.to_string(code: NCode): String {
         t is NInstKind::Lambda -> {
             let kind = t as NInstKind::Lambda
 
-            "lambda ${kind.lambda_id}"
+            let lambda = code.program.find_lambda(kind.lambda_id)
+            let upvalues = []
+            for inst in lambda.code.inst_list {
+                if inst.kind !is NInstKind::LetUpvalue {
+                    break
+                }
+                let upvalue = inst.kind as NInstKind::LetUpvalue
+                let upvalue_var = lambda.code.find_var(upvalue.variable)
+                upvalues[] = "${upvalue_var.name}: ${upvalue_var.type_token}"
+            }
+
+            "lambda ${lambda.id} $upvalues"
         }
         t is NInstKind::Link -> {
             let kind = t as NInstKind::Link
@@ -1249,6 +1323,13 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             write_string(kind.path)
             write_boolean(kind.raw)
         }
+        t is NInstKind::InitField -> {
+            write_int(29)
+            let kind = t as NInstKind::InitField
+            serialize_id(kind.instance)
+            write_string(kind.name)
+            serialize_id(kind.value)
+        }
         else -> crash("Unknown NInstKind variant")
     }
 }
@@ -1407,6 +1488,12 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
             let path = read_string()
             let raw = read_boolean()
             NInstKind::IncludeAs @[path, raw]
+        }
+        29 -> {
+            let instance = deserialize_id()
+            let name = read_string()
+            let value = deserialize_id()
+            NInstKind::InitField @[instance, name, field: None(), field_type_token: None(), call_site_generics: None(), value]
         }
         else -> crash("Unknown NInstKind variant")
     }

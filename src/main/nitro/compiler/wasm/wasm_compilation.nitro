@@ -224,6 +224,11 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             continue
         }
 
+        if inst.kind is NInstKind::InitField {
+            compile_inst_init_field(inst, func, backend, map, code)
+            continue
+        }
+
         if inst.kind is NInstKind::SizeOf {
             let kind = inst.kind as NInstKind::SizeOf
             let final_type = func.inst_final_types[inst.id]!!
@@ -372,27 +377,6 @@ fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBa
 
     add_i32_const(size)
     add_call(call.value.to_int())
-
-    if final_type.kind is FinalTypeKind::Struct {
-        let instance = (final_type.kind as FinalTypeKind::Struct).instance
-
-        if instance.parent.is_some() {
-            let option_instance: NOption = instance.parent!!
-            let index = option_instance.get_index_of_item(instance)!!
-            let wvar = func.add_local("tmp_${inst.id}", WType::I32)
-
-            if debug_print {
-                debug_print_local(wvar)
-            }
-
-            // Fill variant field
-            add_local_tee(wvar.index.to_int())
-            add_i32_const(index)
-            add_i32_store(0) // ptr: i32, value: i32 -> void
-            add_local_get(wvar.index.to_int())
-        }
-    }
-
     pop(inst.id, map)
 }
 
@@ -412,6 +396,42 @@ fun WasmEmitter.compile_inst_store_field(inst: NInst, func: WFunction, backend: 
 
     let instance_type_token = code.find_inst_type_token(kind.instance)
     check(instance_type_token.is_some()) @{ "StoreField instance has not type! #${kind.instance}\n$code" }
+
+    let instance_type = func.ctx.convert_type(instance_type_token!!.find_type())
+    let final_struct = backend.get_final_struct(field.parent_struct, instance_type)
+
+    // Offset in the struct
+    let offset = 0
+    for field in final_struct.fields {
+        if field.name == kind.name {
+            break
+        }
+        offset += field.size
+    }
+
+    push(kind.instance, map)
+    add_i32_const(offset)
+    add_i32_add()
+    push(kind.value, map)
+    add_store_by_type(field_type, backend)
+}
+
+fun WasmEmitter.compile_inst_init_field(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
+    let kind = inst.kind as NInstKind::InitField
+
+    check(kind.field.is_some()) @{ "InitField without field! #${inst.id} $inst\n$code" }
+    check(kind.field_type_token.is_some()) @{ "InitField without field_type_token! #${inst.id} $inst\n$code" }
+
+    let field = kind.field!!
+    let field_type = func.ctx.convert_type(kind.field_type_token!!.find_type())
+
+    // Zero size type, no need to store
+    if backend.get_size_of(field_type) == 0 {
+        ret
+    }
+
+    let instance_type_token = code.find_inst_type_token(kind.instance)
+    check(instance_type_token.is_some()) @{ "InitField instance has not type! #${kind.instance}\n$code" }
 
     let instance_type = func.ctx.convert_type(instance_type_token!!.find_type())
     let final_struct = backend.get_final_struct(field.parent_struct, instance_type)

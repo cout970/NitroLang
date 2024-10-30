@@ -337,6 +337,11 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         ret
     }
 
+    if inst.kind is NInstKind::InitField {
+        check_inst_init_field(inst.kind as NInstKind::InitField, inst, code)
+        ret
+    }
+
     if inst.kind is NInstKind::SizeOf {
         let kind = inst.kind as NInstKind::SizeOf
         kind.type_token = Some(check_type_usage_with(code.generics, kind.type_usage).to_token())

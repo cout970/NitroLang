@@ -116,3 +116,63 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
     let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span).to_token()
     inst.type_token = Some(error)
 }
+
+
+fun TypeChecker.check_inst_init_field(kind: NInstKind::InitField, inst: NInst, code: NCode) {
+    let instance_tt = code.find_inst_type_token(kind.instance)
+
+    check(instance_tt.is_some()) @{ "Instance must have a type (#${kind.instance})" }
+
+    inst.type_token = type_cache["Nothing"].to_token()
+
+    let checker = this
+    cons.once_resolved(instance_tt!!) @{ instance_tt: TypeToken ->
+        checker.check_inst_init_field_post(kind, inst, code, instance_tt)
+    }
+}
+
+fun TypeChecker.check_inst_init_field_post(kind: NInstKind::InitField, inst: NInst, code: NCode, instance_tt: TypeToken) {
+    let instance_type = instance_tt.find_type()
+
+    // Direct struct field
+    let field_name = kind.name
+    let field: Optional<NStructField> = find_field(instance_type, field_name)
+
+    if field.is_some() {
+        let call_site = create_call_site_generics(field!!.parent_struct.generics, inst.span)
+        let field_type: Type = call_site.replace_with_unresolved(field!!.field_type!!)
+
+        let field_tt: TypeToken = field_type.to_token()
+        kind.field = field
+        kind.field_type_token = Some(field_tt)
+        kind.call_site_generics = Some(call_site)
+
+        cons.add_unify_list(instance_tt.type_params, call_site.resolved.find_types(), inst.span, TypeConstraintSource::TypeParameter)
+
+        let value_tt = code.find_inst_type_token(kind.value)
+        if value_tt.is_some() {
+            cons.add_unify(value_tt!!, field_tt, inst.span, TypeConstraintSource::InitField)
+        }
+        ret
+    }
+
+    // Getter function
+    let setter = find_setter(instance_type, field_name)
+
+    if setter.is_some() {
+        // Overwrite with a FunCall
+        inst.kind = NInstKind::FunCall @[
+            path: "",
+            name: "set_$field_name",
+            explicit_receiver: true,
+            arguments: [kind.instance, kind.value],
+            explicit_type_arguments: [],
+            call_site: None(),
+        ]
+        inst.type_token = None()
+        ret
+    }
+
+    let error = create_error_type("Field not found '$field_name' on $instance_type", inst.span).to_token()
+    inst.type_token = Some(error)
+}

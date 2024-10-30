@@ -1,0 +1,27 @@
+/* --- BEGIN CODE --- */
+option AorB {
+    A { value: Int }
+    B { value: Int }
+}
+
+fun main() {
+    let a = AorB::A @[]
+    let b = AorB::B @[]
+    println(a.variant)
+    println(a.value)
+    println(b.variant)
+    println(b.value)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Error: Field 'value' is not initialized
+--> src/test/nitro/compiler/missing_field_in_initializer.nitro:7:21
+  |
+7 |    let a = AorB::A @[]
+  |                    ^
+Error: Field 'value' is not initialized
+--> src/test/nitro/compiler/missing_field_in_initializer.nitro:8:21
+  |
+8 |    let b = AorB::B @[]
+  |
+--- END OUTPUT --- */

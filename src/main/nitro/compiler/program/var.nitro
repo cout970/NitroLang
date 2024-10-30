@@ -26,6 +26,12 @@ fun ByteBuffer.serialize_var(value: NVar) {
     serialize_type_usage(value.type_usage)
     write_boolean(value.is_parameter)
     write_boolean(value.is_upvalue)
+    if value.init_at.is_some() {
+        write_int(1)
+        serialize_id(value.init_at!!)
+    } else {
+        write_int(0)
+    }
     end_frame(frame)
 }
 
@@ -38,7 +44,11 @@ fun ByteBuffer.deserialize_var(): NVar {
     let type_usage = deserialize_type_usage()
     let is_parameter = read_boolean()
     let is_upvalue = read_boolean()
+    let init_at: Optional<Id> = None()
+    if read_int() == 1 {
+        init_at = Some(deserialize_id())
+    }
     end_frame(frame)
 
-    ret NVar @[id, span, block, name, type_usage, type_token: None(), is_parameter, is_upvalue]
+    ret NVar @[id, span, block, name, type_usage, type_token: None(), is_parameter, is_upvalue, init_at]
 }

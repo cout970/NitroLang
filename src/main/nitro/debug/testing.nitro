@@ -1,9 +1,4 @@
-struct Box {
-    value: Int
-}
-fun Box.to_string(): String = "Box @[value: $value]"
-@DumpIr
+
 fun main() {
-    let b1 = Box @[]
-    println(b1)
+    println(#[a: 1, b: 34])
 }

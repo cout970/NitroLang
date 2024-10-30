@@ -41,13 +41,6 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     // Parameter definition
     read_lambda_header(lambda)?
 
-    // Create a local variable per parameter
-    // TODO implicit 'it' or 'this'
-    for param in lambda.parameters {
-        let variable = lambda_code.add_let(param.span, param.name, Some(param.type_usage))
-        variable.is_parameter = true
-    }
-
     // Code of the lambda
     skip_nl()
     read_statement_block_end(lambda_code)

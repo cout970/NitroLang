@@ -256,7 +256,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
     if type_args.len > 0 {
         report_error("Type arguments are not allowed here", span)
     }
-    
+
     let inst = code.add_load_var(span, path, name, None())
     ret found(inst.id)
 }
@@ -320,11 +320,11 @@ fun Parser.read_expression_new_instance(code: NCode, path: String, name: String,
             skip_nl()
             let expr = read_expression(code)?
 
-            code.add_store_field(span, instance.id, name, expr)
+            code.add_init_field(span, instance.id, name, expr)
         } else {
             let inst = code.add_load_var(span, path, name, None())
 
-            code.add_store_field(span, instance.id, name, inst.id)
+            code.add_init_field(span, instance.id, name, inst.id)
         }
 
         ret found(nothing)

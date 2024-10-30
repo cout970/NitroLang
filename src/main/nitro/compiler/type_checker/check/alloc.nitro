@@ -37,4 +37,38 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     let final_type: Type = types.create_type_direct(ty.kind, call_site.resolved.find_types())
 
     cons.add_unify(unresolved, final_type.to_token(), inst.span, TypeConstraintSource::InstType)
+
+    let init_fields = Set::new()
+    for sub_inst in code.inst_list {
+        if sub_inst.kind !is NInstKind::InitField {
+            continue
+        }
+        let init_field = sub_inst.kind as NInstKind::InitField
+        if init_field.instance != inst.id {
+            continue
+        }
+        init_fields[] = init_field.name
+    }
+
+    // Check for missing fields
+    for field in instance.fields {
+        if field.name in init_fields {
+            continue
+        }
+
+        if field.name == VARIANT_FIELD_NAME {
+            if instance.parent.is_some() {
+                let option_instance: NOption = instance.parent!!
+                let index = option_instance.get_index_of_item(instance)!!
+
+                code.seek_inst(inst.id)
+                let lit = code.add_lit_int(inst.span, index)
+                code.add_init_field(inst.span, inst.id, VARIANT_FIELD_NAME, lit.id)
+                code.seek_end()
+                continue
+            }
+        }
+
+        reporter.report_error("Field '${field.name}' is not initialized", inst.span)
+    }
 }
