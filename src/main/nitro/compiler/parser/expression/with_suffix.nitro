@@ -216,23 +216,17 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             }
 
             // Function call
-            if lexer.current_token_kind == TokenKind::LPAREN {
-                let args = read_expression_function_call_params(code)?
-                args.add_first(last)
+            if lexer.current_token_kind == TokenKind::LPAREN || lexer.current_token_kind == TokenKind::LAMBDA_START{
+                let args = [last]
 
+                if lexer.current_token_kind == TokenKind::LPAREN {
+                    args.add_all(read_expression_function_call_params(code)?)
+                }
+
+                // Function call end
                 if lexer.current_token_kind == TokenKind::LAMBDA_START {
                     args[] = read_expression_function_call_end(code)?
                 }
-
-                let call = code.add_fun_call(span, path, name, true, args, type_param_args)
-                last = call.id
-                continue
-            }
-
-            // Function call end
-            if lexer.current_token_kind == TokenKind::LAMBDA_START {
-                let args = [last]
-                args[] = read_expression_function_call_end(code)?
 
                 let call = code.add_fun_call(span, path, name, true, args, type_param_args)
                 last = call.id
@@ -275,6 +269,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 continue
             }
 
+            // obj.field += value
             let operator = op!!
             lexer.next_token()
             skip_nl()
@@ -290,6 +285,170 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             }
 
             code.add_store_field(span, last, name, result)
+
+            let inst = code.add_lit_nothing(span)
+            last = inst.id
+            break
+        }
+
+        if lexer.next_non_nl_token_kind == TokenKind::QUESTION_DOT {
+            skip_nl()
+            lexer.next_token()
+
+            let path = read_module_path()?
+            let name = read_name()?
+
+            let type_param_args = []
+
+            // find_token_kind_before2() is required to distinguish between a function call and a comparison
+            // i.e. `a < b` could be the beginning of a function call `a < b >()`, or a comparison `a < b + 1`
+            if lexer.current_token_kind == TokenKind::LTH && lexer.find_token_kind_before2(TokenKind::GTH, [TokenKind::LPAREN, TokenKind::LBRACKET, TokenKind::LBRACE, TokenKind::NL]) {
+                let save_tk = lexer.tk
+                let res = read_type_param_args()
+
+                if res is Parsed::Found<*> {
+                    type_param_args = res!!
+                } else {
+                    lexer.tk = save_tk
+                }
+            }
+
+            // Function call
+            // obj?.func(args)
+            if lexer.current_token_kind == TokenKind::LPAREN || lexer.current_token_kind == TokenKind::LAMBDA_START {
+                // lambda_0_arg_0 = args[0]
+                // lambda_0_arg_1 = args[1]
+                let args = []
+
+                if lexer.current_token_kind == TokenKind::LPAREN {
+                    args.add_all(read_expression_function_call_params(code)?)
+                }
+
+                // Function call end
+                if lexer.current_token_kind == TokenKind::LAMBDA_START {
+                    args[] = read_expression_function_call_end(code)?
+                }
+
+                let lambda_id = program.id_provider.peek_next()
+
+                let arg_var_names = []
+                repeat args.len {
+                    let arg = args[it]!!
+                    let arg_name = "lambda_${lambda_id}_arg_$it"
+                    let arg_var = code.add_let(span, arg_name, None())
+                    code.add_store_var(span, "", arg_name, arg, Some(arg_var.id))
+                    arg_var_names[] = arg_name
+                }
+
+                // last.map(it => it.func(lambda_0_arg_0, lambda_0_arg_1, ...))
+                let lambda = create_lambda(code)
+                let it_var = lambda.add_parameter(span, "it", NTypeUsage::unresolved(span))
+
+                let load_it = lambda.code.add_load_var(span, "", "it", Some(it_var.id))
+                let func_args = [load_it.id]
+                for arg_var_name in arg_var_names {
+                    let load_arg = lambda.code.add_load_var(span, "", arg_var_name, None())
+                    func_args[] = load_arg.id
+                }
+
+                let last_call = lambda.code.add_fun_call(span, path, name, true, func_args, [])
+                lambda.code.add_return(span, last_call.id)
+
+                let lambda_inst = code.add_lambda(span, lambda.id)
+                let call = code.add_fun_call(span, "", "map", true, [last, lambda_inst.id], [])
+                last = call.id
+                continue
+            }
+
+            if type_param_args.len > 0 {
+                report_error("Type arguments are only allowed in field access", span)
+            }
+
+            // Field assignment
+            // obj?.field = 42
+            if lexer.current_token_kind == TokenKind::ASSIGN {
+                //    opt?.field = 34
+                // To:
+                //    if !opt.is_returnable_error() {
+                //        opt!!.field = 34
+                //    }
+                lexer.next_token()
+                let right = read_expression(code)?
+
+                let is_error = code.add_fun_call(span, "", "is_returnable_error", true, [last], [])
+                let not_is_error = code.add_fun_call(span, "", "logical_not", true, [is_error.id], [])
+                code.add_if_start(span, not_is_error.id)
+
+                let safe_last = code.add_fun_call(span, "", "get_or_crash", true, [last], [])
+                code.add_store_field(span, safe_last.id, name, right)
+
+                code.add_if_end(span)
+
+                let inst = code.add_lit_nothing(span)
+                last = inst.id
+                break
+            }
+
+            // Check for +=, -=, *=, /=, %=
+            let op = when lexer.current_token_kind {
+                TokenKind::ADD_ASSIGN -> Some(BinaryOperator::ADD)
+                TokenKind::SUB_ASSIGN -> Some(BinaryOperator::SUB)
+                TokenKind::MUL_ASSIGN -> Some(BinaryOperator::MUL)
+                TokenKind::DIV_ASSIGN -> Some(BinaryOperator::DIV)
+                TokenKind::MOD_ASSIGN -> Some(BinaryOperator::MOD)
+                else -> None()
+            }
+
+            // Field access
+            // obj?.field
+            if op.is_none() || !allow_expression_assignment {
+                if path != "" {
+                    report_error("Field access cannot use a module path prefix", span)
+                }
+
+                //      obj?.field
+                // To:
+                //      obj.map({ it -> it.field })
+                let lambda = create_lambda(code)
+                let it_var = lambda.add_parameter(span, "it", NTypeUsage::unresolved(span))
+
+                let load_it = lambda.code.add_load_var(span, "", "it", Some(it_var.id))
+                let field_value = lambda.code.add_load_field(span, load_it.id, name)
+                lambda.code.add_return(span, field_value.id)
+
+                let lambda_inst = code.add_lambda(span, lambda.id)
+                let call = code.add_fun_call(span, "", "map", true, [last, lambda_inst.id], [])
+                last = call.id
+                continue
+            }
+
+            //    obj?.field += value
+            // To:
+            //    if !obj.is_returnable_error() {
+            //        obj!!.field += value
+            //    }
+            let operator = op!!
+            lexer.next_token()
+            skip_nl()
+
+            let is_error = code.add_fun_call(span, "", "is_returnable_error", true, [last], [])
+            let not_is_error = code.add_fun_call(span, "", "logical_not", true, [is_error.id], [])
+            code.add_if_start(span, not_is_error.id)
+
+            let safe_last = code.add_fun_call(span, "", "get_or_crash", true, [last], [])
+            let access = code.add_load_field(span, safe_last.id, name)
+            let right_id = read_expression(code)?
+
+            let result = if operator.uses_ordering {
+                let get_ordering = code.add_fun_call(span, "", "get_ordering", true, [access.id, right_id], [])
+                code.add_fun_call(span, "", operator.method, true, [get_ordering.id], []).id
+            } else {
+                code.add_fun_call(span, "", operator.method, true, [access.id, right_id], []).id
+            }
+
+            code.add_store_field(span, safe_last.id, name, result)
+
+            code.add_if_end(span)
 
             let inst = code.add_lit_nothing(span)
             last = inst.id

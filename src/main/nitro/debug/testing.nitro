@@ -1,13 +1,9 @@
-
-fun main() {
-    println("Works")
-
-    let slice: MemorySlice<Int> = MemorySlice::new<Int>(10)
-
-    slice[0] = 42
-
-    let value: Int = slice.data.read()
-
-    println(value)
+struct Box {
+    value: Int
 }
-
+fun Box.to_string(): String = "Box @[value: $value]"
+@DumpIr
+fun main() {
+    let b1 = Box @[]
+    println(b1)
+}

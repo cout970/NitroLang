@@ -22,6 +22,10 @@ fun IdProvider.next(): Id {
     ret Id @[current_value: last_id]
 }
 
+fun IdProvider.peek_next(): Id {
+    ret Id @[current_value: last_id + 1]
+}
+
 fun IdProvider.seek_to(other: IdProvider) {
     last_id = other.last_id
 }

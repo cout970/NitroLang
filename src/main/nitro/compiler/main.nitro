@@ -3,7 +3,7 @@ include "./includes.nitro"
 // TODO run inline tests
 // TODO generate extern types for typescript
 
-let VERSION: String = "0.0.10"
+let VERSION: String = "0.0.11"
 
 struct ProgramArgs {
     input: String,
@@ -13,6 +13,7 @@ struct ProgramArgs {
     module_paths: Map<String, String>,
     core_path: Optional<String>,
     no_core_lib: Boolean,
+    verbose: Boolean,
 }
 
 fun ProgramArgs::new(): ProgramArgs {
@@ -24,6 +25,7 @@ fun ProgramArgs::new(): ProgramArgs {
         module_paths: #[],
         core_path: None(),
         no_core_lib: false,
+        verbose: false,
     ]
 }
 
@@ -73,6 +75,12 @@ fun main() {
 
         if arg == "--no-core" {
             prog.no_core_lib = true
+            i += 1
+            continue
+        }
+
+        if arg == "--verbose" {
+            prog.verbose = true
             i += 1
             continue
         }
@@ -181,7 +189,9 @@ fun main() {
         ret
     }
 
-    println("Compiling ${prog.input} to ${prog.output}")
+    if prog.verbose {
+        Log::info("Compiling ${prog.input} to ${prog.output}")
+    }
 
     // Perform compilation
     if !CompilationUnit::compile_all(prog) {

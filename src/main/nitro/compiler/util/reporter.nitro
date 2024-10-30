@@ -120,11 +120,6 @@ fun Reporter.report_suggestion(message: String, location: Span) {
 
 // Print the report
 fun Report.to_string(): String {
-    let st_str = ""
-    for frame in stack_trace {
-        st_str += "  - "
-        st_str += frame.to_string()
-        st_str += "\n"
-    }
-    ret "At $location\n[$kind] $message\n$st_str"
+    ret "$kind: $message\n${location.to_code_sample()}"
 }
+

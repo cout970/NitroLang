@@ -1,0 +1,18 @@
+/* --- BEGIN CODE --- */
+struct Box {
+    value: Int
+}
+fun Box.to_string(): String = "Box @[value: $value]"
+fun main() {
+    let b1: Optional<Box> = Some(Box @[value: 69])
+    b1?.value += 42
+    println(b1)
+    let b2: Optional<Box> = None()
+    b2?.value += 42
+    println(b2)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Some(Box @[value: 111])
+None
+--- END OUTPUT --- */

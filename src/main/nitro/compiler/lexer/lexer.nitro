@@ -203,6 +203,12 @@ fun Lexer.next(): Boolean {
         c0 == a"?" -> {
             let c1: Int = next_byte
 
+            if c1 == a"." {
+                add_token(TokenKind::QUESTION_DOT)
+                cur += 2
+                ret true
+            }
+
             if c1 == a"?" {
                 add_token(TokenKind::QUESTION_QUESTION)
                 cur += 2

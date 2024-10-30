@@ -20,6 +20,15 @@ fun NLambda.get_generics(): NGenericParams = container.generics
 
 fun NLambda.get_code(): NCode = program.find_code(code_id)
 
+fun NLambda.add_parameter(span: Span, name: String, type_usage: NTypeUsage): NVar {
+    let param = NFunctionParameter @[span, name, type_usage, param_type: None()]
+    parameters[] = param
+
+    let variable = code.add_let(param.span, param.name, Some(param.type_usage))
+    variable.is_parameter = true
+    ret variable
+}
+
 fun NLambda.to_string(): String {
     let str = StringBuilder::new()
     str[] = "NLambda {\n"

@@ -353,7 +353,9 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
         }
 
         let time_core = start_core.elapsed().to_milliseconds()
-        Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+        if args.verbose {
+            Log::info("Core included (Time $time_core ms, Memory ${get_memory().get_stats()})")
+        }
     }
 
     // Copy module paths
@@ -374,11 +376,14 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
         ret false
     }
 
-   let time_compiler = start_compiler.elapsed().to_milliseconds()
-    Log::info("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
+    let time_compiler = start_compiler.elapsed().to_milliseconds()
+    if args.verbose {
+        Log::info("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
+    }
 
     // Perform type checking
     let start_checking = Instant::now()
+    unit.type_checker.verbose = args.verbose
     unit.check_types()
 
     // Type errors
@@ -390,7 +395,9 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     }
 
     let time_checking = start_checking.elapsed().to_milliseconds()
-    Log::info("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+    if args.verbose {
+        Log::info("Type checking finished (Time $time_checking ms, Memory ${get_memory().get_stats()})")
+    }
 
     if args.dump_ir {
         let str = unit.program.to_string()
@@ -412,9 +419,13 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     }
 
     let time_compiling = start_compiling.elapsed().to_milliseconds()
-    Log::info("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+    if args.verbose {
+        Log::info("Compilation finished (Time $time_compiling ms, Memory ${get_memory().get_stats()})")
+    }
 
     let total_time = start_compile_all.elapsed().to_milliseconds()
-    Log::info("Total time: $total_time ms")
+    if args.verbose {
+        Log::info("Total time: $total_time ms")
+    }
     ret true
 }

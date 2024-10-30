@@ -90,28 +90,27 @@ fun TypeChecker.finalize_code(code: NCode) {
         if i.kind is NInstKind::LoadVar {
             let kind = i.kind as NInstKind::LoadVar
 
-            check(kind.variable.is_some() || kind.constant.is_some()) @{ "LoadVar is not linked: $i\n${i.span}" }
+            if kind.variable.is_none() && kind.constant.is_none() && !i.type_token!!.find_type().is_invalid() {
+                let full_name = Path::join(kind.path, kind.name)
+                reporter.report_error("Variable not found: $full_name", i.span)
+            }
         }
         if i.kind is NInstKind::StoreVar {
             let kind = i.kind as NInstKind::StoreVar
 
-            check(kind.variable.is_some()) @{ "StoreVar is not linked: $i\n$code" }
+            if kind.variable.is_none() && !i.type_token!!.find_type().is_invalid() {
+                let full_name = Path::join(kind.path, kind.name)
+                reporter.report_error("Variable not found: $full_name", i.span)
+            }
         }
-        if i.kind is NInstKind::FunCall {
-            let kind = i.kind as NInstKind::FunCall
-
-            // There is already an error when a function is not found
-//            check(kind.call_site.is_some()) @{ "FunCall is not linked: #${i.id} $i\n$code" }
-        }
-
         let ty = i.type_token!!.find_type()
 
         if ty.has_unresolved() {
-            reporter.report_error("Not enough context information to infer type $ty at #${i.id}", i.span)
+            reporter.report_error("Not enough context information to infer type $ty", i.span)
         }
 
         if ty.is_union() {
-            reporter.report_error("Unable to decide on type $ty at #${i.id}", i.span)
+            reporter.report_error("Unable to decide on type $ty", i.span)
         }
     }
 }

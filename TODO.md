@@ -27,7 +27,6 @@ Intended for the developers
 ### Other features to implement
 
 - Fix missing field in struct creation does not produce an error
-- `it?.func()` to call a function on an optional value
 - Optional arguments 
 - Improve core library
 - Smart casts
@@ -63,22 +62,11 @@ Intended for the developers
 - Refactor and rename of fields/functions/types that where temporary and end up permanent
 - Add better data structure for NCode inst_list, with inserts/removes while iterating and faster index_of_inst(id)
 - Not discard comments at lexing to keep them in the AST as Comment nodes
-- Rename NConstExpr
 - Fix imports and module resolution
 - Add `include "file" as prefix_name` like `import "std.nitro" as std`
 - Add path prefix to fields, like `internal::field: Int`
 - Add default values for fields in structs
 - Add default values for parameters in functions
-
-
-### Pending renames
-
-- `bytes_len` to `len` in strings
-- `a"-"` to `u"-"` ascii to unicode (Int)
-- `a"-"` to `b"-"` ascii to byte (Byte)
-- `a"-"` to `c"-"` ascii to char (Char)
-- `get_or_else`, `get_or_default` to `or_else`, `or_default`
-- `or_fail_with` to `expect` 
 
 ### Known Bugs
 

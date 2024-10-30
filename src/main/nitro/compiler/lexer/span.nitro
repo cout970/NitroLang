@@ -165,6 +165,56 @@ fun Span.to_string(): String {
     ret "$sub($filename:$line)"
 }
 
+
+fun Span.to_code_sample(): String {
+    let source = file.source
+    let line_start = start
+
+    while line_start > 0 && source.get_byte(line_start - 1).to_int() != a"\n" {
+        line_start -= 1
+    }
+
+    let line_end = line_start
+
+    while line_end < source.len && source.get_byte(line_end).to_int() != a"\n" {
+        line_end += 1
+    }
+
+    let builder = StringBuilder::new()
+
+    let line_text = source.substring(line_start, line_end)
+    let prefix1 = "${get_line()} |"
+    let prefix2 = "${" " * (prefix1.len - 2)} |"
+
+    let path = file.path
+    let filename = if "/" in path {
+        path.split("/").last()!!
+    } else {
+        path
+    }
+
+    builder[] = "--> "
+    builder[] = path
+    builder[] = ":"
+    builder[] = get_line()
+    builder[] = ":"
+    builder[] = get_column()
+    builder[] = "\n"
+
+    builder[] = prefix2
+    builder[] = "\n"
+
+    builder[] = prefix1
+    builder[] = line_text
+    builder[] = "\n"
+
+    builder[] = prefix2
+    builder[] = " " * ((start - line_start))
+    builder[] = "^"
+
+    ret builder.to_string()
+}
+
 fun Span.get_link(): String {
     let path = file.path
     let filename = if "/" in path {

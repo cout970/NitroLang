@@ -35,32 +35,7 @@ fun Parser.read_expression_lambda(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::LAMBDA_START)
 
-    let new_code = code.new_child_code(NCodeContainer::None @[], false)
-    program.codes[] = new_code
-
-    let lambda_id = program.id_provider.next()
-
-    let lambda = NLambda @[
-        program,
-        container: code.container,
-        id: lambda_id,
-        name: "lambda#${lambda_id}",
-        span,
-        receiver_type: None(),
-        return_type_usage: None(),
-        return_type_token: None(),
-        type_token: None(),
-        parameters: [],
-        code_id: new_code.id.new_copy(),
-        parent_inst: Id @[current_value: code.inst_id_provider.last_id + 1],
-        parent_block: code.current_block
-        ctx: None(),
-    ]
-
-    program.lambdas[] = lambda
-    new_code.container = NCodeContainer::Lambda @[def: lambda]
-    code.lambdas[] = lambda.id
-
+    let lambda = create_lambda(code)
     let lambda_code = lambda.code
 
     // Parameter definition
@@ -108,8 +83,7 @@ fun Parser.read_lambda_header(lambda: NLambda): Parsed<Nothing> {
                     lambda.return_type_usage = Some(read_type_usage()?)
                 }
                 else -> {
-                    let param = read_lambda_parameter()?
-                    lambda.parameters[] = param
+                    read_lambda_parameter(lambda)?
                 }
             }
 
@@ -125,7 +99,7 @@ fun Parser.read_lambda_header(lambda: NLambda): Parsed<Nothing> {
     ret found(nothing)
 }
 
-fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
+fun Parser.read_lambda_parameter(lambda: NLambda): Parsed<Nothing> {
     let span = lexer.current_token_span
     read_var_modifier()?
 
@@ -144,12 +118,36 @@ fun Parser.read_lambda_parameter(): Parsed<NFunctionParameter> {
         NTypeUsage::unresolved(span)
     }
 
-    let def = NFunctionParameter @[
+    lambda.add_parameter(span, name, type_usage)
+    ret found(nothing)
+}
+
+fun Parser.create_lambda(code: NCode): NLambda {
+    let span = lexer.current_token_span
+    let new_code = code.new_child_code(NCodeContainer::None @[], false)
+    program.codes[] = new_code
+
+    let lambda_id = program.id_provider.next()
+
+    let lambda = NLambda @[
+        program,
+        container: code.container,
+        id: lambda_id,
+        name: "lambda#${lambda_id}",
         span,
-        name,
-        type_usage,
-        param_type: None(),
+        receiver_type: None(),
+        return_type_usage: None(),
+        return_type_token: None(),
+        type_token: None(),
+        parameters: [],
+        code_id: new_code.id.new_copy(),
+        parent_inst: Id @[current_value: code.inst_id_provider.last_id + 1],
+        parent_block: code.current_block
+        ctx: None(),
     ]
 
-    ret found(def)
+    program.lambdas[] = lambda
+    new_code.container = NCodeContainer::Lambda @[def: lambda]
+    code.lambdas[] = lambda.id
+    ret lambda
 }
