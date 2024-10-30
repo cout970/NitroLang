@@ -78,7 +78,7 @@ fun parse_input(code: String): Input {
             tokens[] = token
 
             // For each position of a digit, store a reference to the token, so we can find it later
-            repeat num.bytes_len {
+            repeat num.len {
                 let pos = TokenPos @[
                     row: num_start_row,
                     col: num_start_col + it

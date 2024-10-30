@@ -1,0 +1,225 @@
+
+// Binary tree
+struct BinaryTree {
+    root: Optional<BinaryTreeNode>
+    len: Int
+}
+
+// A single node of the tree
+struct BinaryTreeNode {
+    left: Optional<BinaryTreeNode>
+    right: Optional<BinaryTreeNode>
+    value: Int
+}
+
+// Create a new binary tree
+fun BinaryTree::new(): BinaryTree {
+    ret BinaryTree @[
+        root: None(),
+        len: 0
+    ]
+}
+
+// Find a node in the binary tree
+fun BinaryTree.find(search: Int): Optional<BinaryTreeNode> {
+    let current = root
+
+    while current.is_some() {
+        let node = current!!
+
+        if node.value == search {
+            ret Some(node)
+        }
+
+        current = if search < node.value { node.left } else { node.right }
+    }
+
+    ret None()
+}
+
+// Add a value to the binary tree, if it already exists, do nothing
+fun BinaryTree.add(new_value: Int) {
+    // Replace root
+    if root.is_none() {
+        root = Some(BinaryTreeNode @[
+            left: None(),
+            right: None(),
+            value: new_value,
+        ])
+        len += 1
+        ret
+    }
+
+    let current = root
+
+    loop {
+        let node = current!!
+
+        // Already present in this node?
+        if node.value == new_value {
+            ret
+        }
+
+        // Search left
+        if new_value < node.value {
+            if node.left.is_none() {
+                // Found a spot to insert
+                node.left = Some(BinaryTreeNode @[
+                    left: None(),
+                    right: None(),
+                    value: new_value,
+                ])
+                len += 1
+                ret
+            }
+            current = node.left
+            continue
+        }
+
+        // Search right
+        if node.right.is_none() {
+            // Found a spot to insert
+            node.right = Some(BinaryTreeNode @[
+                left: None(),
+                right: None(),
+                value: new_value,
+            ])
+            len += 1
+            ret
+        }
+        current = node.right
+    }
+}
+
+// Remove a value from the binary tree, return true if the value was found and removed
+fun BinaryTree.remove(value: Int) {
+    // Empty tree
+    if root.is_none() {
+        ret
+    }
+
+    // Replace the root node or any children
+    root = remove(root!!, value)
+}
+
+// Recursively visits each children of [node], if a node with [search] value is found, it is removed and replaced if needed
+fun BinaryTree.remove(node: BinaryTreeNode, search: Int): Optional<BinaryTreeNode> {
+
+    // Search on the left
+    if search < node.value {
+        if node.left.is_some() {
+            node.left = remove(node.left!!, search)
+        }
+        ret Some(node)
+    }
+
+    // Search on the right
+    if search > node.value {
+        if node.right.is_some() {
+            node.right = remove(node.right!!, search)
+        }
+        ret Some(node)
+    }
+
+    // This node is the one to remove
+    if search != node.value {
+        ret Some(node)
+    }
+
+    // No children, this node gets removed
+    if node.left.is_none() && node.right.is_none() {
+        len -= 1
+        ret None()
+    }
+
+    // Only right child, replace with right child
+    if node.left.is_some() && node.right.is_none() {
+        len -= 1
+        ret node.left
+    }
+
+    // Only left child, replace with left child
+    if node.left.is_none() && node.right.is_some() {
+        len -= 1
+        ret node.right
+    }
+
+    // Two children
+    // Find the smallest node in the right subtree
+    let smallest = node.right!!
+    while smallest.left.is_some() {
+        smallest = smallest.left!!
+    }
+
+    // Remove the smallest node from the right subtree
+    let new_right = remove(node.right!!, smallest.value)
+
+    // Replace this node with the smallest node
+    ret Some(BinaryTreeNode @[
+        left: node.left,
+        right: new_right,
+        value: smallest.value,
+    ])
+}
+
+// Check if a value is in the binary tree
+fun BinaryTree.contains(value: Int): Boolean = find(value).is_some()
+
+// Convert the binary tree to a string representation
+fun BinaryTree.to_string(): String {
+    if root.is_none() {
+        ret "Tree: len = 0"
+    }
+
+    ret "Tree: len = $len\n${root!!}"
+}
+
+// Convert the binary tree node and its children to a string representation
+fun BinaryTreeNode.to_string(): String = this.to_string("", 1)
+
+// Recursively convert a binary tree node to its string representation
+fun BinaryTreeNode.to_string(prefix: String, dir: Int): String {
+    let value_str = " $value "
+    let space = " " * value_str.len;
+
+    let right_prefix = prefix + "│  ".to_list()[dir]!!
+    let right_str = if right.is_some() { right!!.to_string(right_prefix + space, 2) } else { "" }
+
+    let symbol_index = (if left.is_some() { 2 } else { 0 }) + (if right.is_some() { 1 } else { 0 })
+    let symbol = " ┐┘┤".to_list()[symbol_index]!!
+    let center_str = prefix + "┌ └".to_list()[dir]!! + value_str + symbol + "\n"
+
+    let left_prefix = prefix + "  │".to_list()[dir]!!
+    let left_str = if left.is_some() { left!!.to_string(left_prefix + space, 0) } else { "" }
+
+    return left_str + center_str + right_str
+}
+
+fun main() {
+    // Create a new binary tree
+    let tree = BinaryTree::new()
+
+    // Add values to the tree
+    tree[] = 6
+    tree[] = 3
+    tree[] = 4
+    tree[] = 2
+    tree[] = 1
+    tree[] = 8
+    tree[] = 7
+    tree[] = 5
+
+    // Print the tree
+    println(tree)
+
+    // Remove a node
+    tree.remove(6)
+
+    // Print the new tree
+    println(tree)
+
+    // Check if a value is in the binary tree
+    println("Contains 1: ${1 in tree}")
+    println("Contains 2: ${6 in tree}")
+    println("Contains 3: ${2 in tree}")
+}

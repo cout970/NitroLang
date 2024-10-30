@@ -1,0 +1,32 @@
+
+fun main() {
+    // Print the first 20 Fibonacci numbers.
+    repeat 20 {
+        let result = fibonacci_iter(it)
+        println("fibonacci_iter($it) => $result")
+    }
+    repeat 20 {
+        let result = fibonacci_rec(it)
+        println("fibonacci_rec($it) => $result")
+    }
+}
+
+// Fibonacci element at index `n` using an iterative approach.
+fun fibonacci_iter(n: Int): Int {
+    let a = 0
+    let b = 1
+    repeat n {
+        let tmp = a
+        a = b
+        b = tmp + b
+    }
+    ret a
+}
+
+// Fibonacci element at index `n` using a recursive approach.
+fun fibonacci_rec(n: Int): Int {
+    if n <= 1 {
+        ret n
+    }
+    ret fibonacci_rec(n - 1) + fibonacci_rec(n - 2)
+}

@@ -1,0 +1,31 @@
+
+// Print an ASCII approximation of the Mandelbrot set
+fun main() {
+    let chars = " .-:;+=xX\$& ".to_list()
+
+    repeat 24 {
+        let line = StringBuilder::new()
+        let y_pixel = it.to_float()
+        let y = y_pixel / 12f - 1f
+
+        repeat 120 {
+            let x_pixel = it.to_float()
+            let x = x_pixel / 30f - 2f
+            let x0 = x
+            let y0 = y
+
+            let iter = 0
+            while iter < 11 && x0 * x0 + y0 * y0 <= 4f {
+                let x1 = (x0 * x0) - (y0 * y0) + x
+                let y1 = 2f * x0 * y0 + y
+                x0 = x1
+                y0 = y1
+                iter += 1
+            }
+
+            line[] = chars[iter]!!
+        }
+
+        println(line)
+    }
+}

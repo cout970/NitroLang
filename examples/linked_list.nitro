@@ -1,0 +1,115 @@
+
+struct LinkedList {
+    head: Optional<LinkedListNode>
+    len: Int
+}
+
+struct LinkedListNode {
+    next: Optional<LinkedListNode>
+    value: Int
+}
+
+// Create a new linked list
+fun LinkedList::new(): LinkedList {
+    ret LinkedList @[
+        head: None(),
+        len: 0
+    ]
+}
+
+// Add a value to the linked list
+fun LinkedList.add(new_value: Int) {
+    let previous = head
+
+    head = Some(LinkedListNode @[
+        next: previous,
+        value: new_value
+    ])
+    len += 1
+}
+
+// Remove a value from the linked list
+fun LinkedList.remove(value: Int) {
+    let current = head
+    let previous = None()
+
+    while current.is_some() {
+        let node = current!!
+
+        if node.value == value {
+            if previous.is_none() {
+                head = node.next
+            } else {
+                previous!!.next = node.next
+            }
+            len -= 1
+            ret
+        }
+
+        previous = current
+        current = node.next
+    }
+}
+
+// Check if the linked list contains a value
+fun LinkedList.contains(value: Int): Boolean {
+    let current = head
+
+    while current.is_some() {
+        let node = current!!
+
+        if node.value == value {
+            ret true
+        }
+
+        current = node.next
+    }
+
+    ret false
+}
+
+// Convert the linked list to a string
+fun LinkedList.to_string(): String {
+    let current = head
+    let buffer = StringBuilder::new()
+
+    while current.is_some() {
+        let node = current!!
+
+        buffer[] = node.value
+
+        if node.next.is_some() {
+            buffer[] = " -> "
+        }
+
+        current = node.next
+    }
+
+    ret buffer.to_string()
+}
+
+fun main() {
+    // Create a new list
+    let list = LinkedList::new()
+
+    // Add values to the list
+    list[] = 5
+    list[] = 3
+    list[] = 7
+    list[] = 2
+    list[] = 4
+
+    // Print the list
+    println(list)
+
+    // Remove a value
+    list.remove(2)
+
+    // Print the new list
+    println(list)
+
+    // Check if a value is in the list
+    println("Contains 1: ${1 in list}")
+    println("Contains 2: ${2 in list}")
+    println("Contains 3: ${3 in list}")
+}
