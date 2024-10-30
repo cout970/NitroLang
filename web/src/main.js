@@ -1,4 +1,4 @@
-import '../style.scss';
+import '../res/css/style.scss';
 import {setupEditor} from "./editor.js";
 import {setupTerminal} from "./terminal.js";
 import {setupCompiler} from "./compiler.js";

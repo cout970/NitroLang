@@ -6,6 +6,7 @@ import 'ace-builds/src-noconflict/theme-dracula';
 import 'ace-builds/src-noconflict/mode-javascript';
 import './mode-nitro.js';
 import {updateFiles} from "./files";
+import {toggleTerminal} from "./terminal";
 
 export async function compile() {
   await saveEditorFile();
@@ -31,9 +32,10 @@ export async function editorSelectFile(path) {
 
 export async function saveEditorFile() {
   const editor = window.editor;
+  const text = editor.getValue();
   const fs = await getProject();
   const path = localStorage.getItem('currentEditorFile');
-  await fs.writeFile(path, new TextEncoder().encode(editor.getValue()));
+  await fs.writeFile(path, new TextEncoder().encode(text));
   await saveFS(fs);
   await updateFiles();
 }
@@ -83,6 +85,14 @@ export async function setupEditor() {
   // Compile
   document.querySelector('#menu-btn-compile').addEventListener('click', () => {
     compile().then(() => console.debug('Done!'));
+  });
+
+  document.querySelector('#menu-btn-toggle-files').addEventListener('click', () => {
+    document.querySelector('#files').classList.toggle('open');
+  });
+
+  document.querySelector('#menu-btn-toggle-console').addEventListener('click', () => {
+    toggleTerminal();
   });
 
   // Download current file

@@ -1,7 +1,8 @@
 import {init, Directory, runWasix} from "@wasmer/sdk";
-import compilerUrl from "../wasm/compiler_v0.0.11-opt.wasm?url";
-import wasmerUrl from "../wasm/wasmer_js_bg.wasm?url";
+import compilerUrl from "../res/wasm/compiler_v0.0.11-opt.wasm?url";
+import wasmerUrl from "../res/wasm/wasmer_js_bg.wasm?url";
 import {updateFiles} from "./files";
+import example1Url from "../../examples/advent_of_code_2023_3.nitro?url";
 
 /**
  * @returns {Promise<Directory>}
@@ -16,6 +17,7 @@ export async function getProject() {
 async function initFS() {
   const fs = new Directory();
   await fs.createDir('src');
+  await fs.createDir('src/examples');
   await fs.createDir("out");
   await fs.createDir("out/cache");
 
@@ -27,6 +29,10 @@ async function initFS() {
     const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
     await fs.writeFile(name, bytes);
   }
+
+  // Examples
+  await fs.writeFile('src/examples/advent_of_code_2023_3.nitro', new Uint8Array(await (await fetch(example1Url)).arrayBuffer()));
+
   return fs;
 }
 

@@ -163,6 +163,11 @@ html, body {
   position: relative;
   background: $background-files;
   border-right: 1px solid $border-files;
+  display: none;
+
+  &.open {
+    display: block;
+  }
 
   .files-grab {
     position: absolute;

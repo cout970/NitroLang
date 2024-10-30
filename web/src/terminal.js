@@ -69,12 +69,7 @@ export async function setupTerminal() {
   const terminal = document.querySelector('#terminal');
 
   document.querySelector('#toggle-terminal').addEventListener('click', () => {
-    if (!app.classList.contains('horizontal-layout')) {
-      terminal.classList.toggle('terminal-collapsed');
-    } else{
-      app.classList.remove('horizontal-layout')
-      terminal.classList.toggle('terminal-collapsed');
-    }
+    toggleTerminal()
   });
 
   document.querySelector('#toggle-layout').addEventListener('click', () => {
@@ -151,4 +146,16 @@ export async function setupTerminal() {
   initGrabber();
 
   console.debug("Terminal is ready");
+}
+
+export function toggleTerminal() {
+  const app = document.querySelector('#app');
+  const terminal = document.querySelector('#terminal');
+
+  if (!app.classList.contains('horizontal-layout')) {
+    terminal.classList.toggle('terminal-collapsed');
+  } else {
+    app.classList.remove('horizontal-layout')
+    terminal.classList.toggle('terminal-collapsed');
+  }
 }
