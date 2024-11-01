@@ -9,9 +9,9 @@ fun main() {
         is Choice::A -> {
             println("A")
         }
-//        is Choice::B -> {
-//            println("B")
-//        }
+        is Choice::B -> {
+            println("B")
+        }
         is Choice::C -> {
             println("C")
         }
