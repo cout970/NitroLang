@@ -99,7 +99,8 @@ fun Parser.read_statement(code: NCode): Parsed<Nothing> {
         TokenKind::REPEAT -> read_repeat_statement(code)?
         TokenKind::WHILE -> read_while_statement(code)?
         TokenKind::LOOP -> read_loop_statement(code)?
-        TokenKind::WHEN -> read_when_statement(code)?
+        TokenKind::WHEN -> read_when_statement(code, false)?
+        TokenKind::WHEN_BANG -> read_when_statement(code, true)?
         TokenKind::TEST -> {
             read_test_definition(NAnnotationContainer::new())?
             // Prevent this statement from affecting the last expression

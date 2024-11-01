@@ -23,6 +23,7 @@ let keyword_map: Map<String, TokenKind> = #[
   "enum": TokenKind::ENUM,
   "nothing": TokenKind::NOTHING,
   "when": TokenKind::WHEN,
+  "when!": TokenKind::WHEN_BANG,
   "match": TokenKind::MATCH,
   "alias": TokenKind::ALIAS,
   "if": TokenKind::IF,

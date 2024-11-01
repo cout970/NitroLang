@@ -193,18 +193,32 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
             ]
         }
         orig is NInstKind::WhenStart -> {
-            ret NInstKind::WhenStart @[]
+            let kind = orig as NInstKind::WhenStart
+            let prev_info = kind.info
+
+            let result_variable = if prev_info.result_variable.is_some() {
+                Some(var_mapping[prev_info.result_variable!!] ?? prev_info.result_variable!!)
+            } else {
+                None()
+            }
+
+            let new_info = WhenInfo @[
+                is_expression: prev_info.is_expression,
+                is_exhaustive: prev_info.is_exhaustive,
+                has_else: prev_info.has_else,
+                expr: prev_info.expr.map @{ it -> inst_mapping[it]!! },
+                branches: prev_info.branches.map @{ it -> inst_mapping[it]!! },
+                conditions: prev_info.conditions.map @{ it -> inst_mapping[it]!! },
+                result_variable,
+            ]
+
+            ret NInstKind::WhenStart @[info: new_info]
         }
         orig is NInstKind::WhenEnd -> {
             let kind = orig as NInstKind::WhenEnd
 
             ret NInstKind::WhenEnd @[
-                branches: kind.branches,
-                variable: if kind.variable.is_some() {
-                    Some(var_mapping[kind.variable!!] ?? kind.variable!!)
-                } else {
-                    None()
-                },
+                start: inst_mapping[kind.start]!!,
             ]
         }
         orig is NInstKind::Literal -> {

@@ -1,3 +1,4 @@
+/* --- BEGIN CODE --- */
 option Choice {
    A {}
    B {}
@@ -17,3 +18,11 @@ fun main() {
         }
     }
 }
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Error: Exhaustive 'when' missing branch for option item Choice::B
+--> src/test/nitro/compiler/when_stm_exhaustive.nitro:8:11
+  |
+8 |    when! a {
+  |          ^
+--- END OUTPUT --- */

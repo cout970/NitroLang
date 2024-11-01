@@ -324,14 +324,16 @@ fun ChangeCollector.diff(left: NInstKind, right: NInstKind) {
     }
 
     if left is NInstKind::WhenStart && right is NInstKind::WhenStart {
+        let leftKind = left as NInstKind::WhenStart
+        let rightKind = right as NInstKind::WhenStart
+        field("info").diff(leftKind.info, rightKind.info)
         ret
     }
 
     if left is NInstKind::WhenEnd && right is NInstKind::WhenEnd {
         let leftKind = left as NInstKind::WhenEnd
         let rightKind = right as NInstKind::WhenEnd
-        field("branches").diff(leftKind.branches, rightKind.branches)
-        field("variable").diff(leftKind.variable, rightKind.variable)
+        field("start").diff(leftKind.start, rightKind.start)
         ret
     }
 
@@ -484,6 +486,15 @@ fun ChangeCollector.diff(left: NInstKind, right: NInstKind) {
     }
 
     crash("Unhandled NInstKind diff")
+}
+
+fun ChangeCollector.diff(left: WhenInfo, right: WhenInfo) {
+    field("is_expression").diff(left.is_expression, right.is_expression)
+    field("is_exhaustive").diff(left.is_exhaustive, right.is_exhaustive)
+    field("expr").diff(left.expr, right.expr)
+    field("branches").diff(left.branches, right.branches)
+    field("conditions").diff(left.conditions, right.conditions)
+    field("result_variable").diff(left.result_variable, right.result_variable)
 }
 
 fun ChangeCollector.diff(left: FunCallSite, right: FunCallSite) {

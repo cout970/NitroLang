@@ -132,8 +132,12 @@ fun TypeContainer.type_kind_to_pattern(tk: TypeKind, ignore_generics: Boolean): 
         crash("Cannot convert a type union to pattern")
     }
 
+    // Propagate error
+    if tk is TypeKind::Invalid {
+        ret ResolvedTypePatternKind::Any @[]
+    }
+
     crash("Unknown type to pattern conversion: $tk")
-//    ret ResolvedTypePatternKind::Any @[]
 }
 
 fun TypeContainer.matches_pattern(a: Type, b: ResolvedTypePattern): Boolean {

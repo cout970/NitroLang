@@ -26,7 +26,6 @@ Intended for the developers
 
 ### Other features to implement
 
-- Fix missing field in struct creation does not produce an error
 - Optional arguments 
 - Improve core library
 - Smart casts
@@ -43,11 +42,10 @@ Intended for the developers
 - Variadic function arguments
 - Allow fields at the option level, to be added to all the option variants
 - Add formatter to convert values to string without allocating intermediary strings and allow special formats (hex,
-  binary, fixed number of decimales, custom separators, etc.)
+  binary, fixed number of decimals, custom separators, etc.)
 - Add inverse tags, if Int and Float have the tag Numeric, any function shared between Int and Float, becomes a function
   of Numeric
 - Add suspend functions (async/await)
-- Support WASI runtime
 - Inline struct in another struct to share a set of fields between structs
 - Add bench! to create benchmarks
 - Add dbg! to debug expression and block of statements
@@ -58,7 +56,6 @@ Intended for the developers
 - Add Short and prefix 'S'/'s' for short literals
 - Change Some/None to Ok/Err to lowercase
 - Check nested ret if ... { ret if ... { ret if ... {} } }
-- Exhaustive when with `is Type`
 - Refactor and rename of fields/functions/types that where temporary and end up permanent
 - Add better data structure for NCode inst_list, with inserts/removes while iterating and faster index_of_inst(id)
 - Not discard comments at lexing to keep them in the AST as Comment nodes

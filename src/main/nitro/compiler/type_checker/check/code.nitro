@@ -205,19 +205,22 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
 
     if inst.kind is NInstKind::WhenEnd {
         let kind = inst.kind as NInstKind::WhenEnd
+        let start = code.find_inst(kind.start)
+        let info: WhenInfo = (start.kind as NInstKind::WhenStart).info
+        check_inst_when(start, inst, info, code)
 
-        if kind.branches.is_empty() {
+        if info.branches.is_empty() {
             inst.type_token = type_cache["Nothing"].to_token()
             ret
         }
 
         let common_type = create_unresolved_type(inst.span).to_token()
 
-        if kind.variable.is_some() {
-            cons.add_unify(common_type, code.find_var(kind.variable!!).type_token!!, inst.span, TypeConstraintSource::WhenBranch)
+        if info.result_variable.is_some() {
+            cons.add_unify(common_type, code.find_var(info.result_variable!!).type_token!!, inst.span, TypeConstraintSource::WhenBranch)
         }
 
-        for id in kind.branches {
+        for id in info.branches {
             let branch_type = code.find_inst_type_token(id)
 
             check_not(branch_type.is_none()) @{
@@ -453,6 +456,128 @@ fun TypeChecker.check_inst_literal(kind: NInstKind::Literal, inst: NInst, code: 
         }
         else -> {
             inst.type_token = type_cache["Nothing"].to_token()
+        }
+    }
+}
+
+fun TypeChecker.check_inst_when(start: NInst, end: NInst, info: WhenInfo, code: NCode) {
+    // Non-exhaustive when expressions must always have an else branch
+    if info.is_expression && !info.is_exhaustive {
+        if !info.has_else {
+            reporter.report_error("When expressions must have an 'else' branch", start.span)
+        }
+        ret
+    }
+
+    // Non exhaustive when have no additional limitations
+    if !info.is_exhaustive {
+        ret
+    }
+
+    let has_non_is_conds = false
+    // Exhaustive when always have the shape:
+    // when <expr> {
+    //      is OptionType::Item1 -> {}
+    //      is OptionType::Item2 -> {}
+    //      ...
+    // }
+    // Where <expr> has type OptionType or one of the OptionType::Item variants
+
+    if info.expr.is_none() {
+        reporter.report_error("Exhaustive 'when' must have an expression", start.span)
+        ret
+    }
+
+    let patterns: List<ResolvedTypePattern> = []
+
+    // All conditions must be `is OptionType::Item`
+    for id in info.conditions {
+        let inst2 = code.find_inst(id)
+
+        if inst2.kind is NInstKind::IsType {
+            let kind2 = inst2.kind as NInstKind::IsType
+            patterns[] = resolve_type_pattern(kind2.type_pattern, code)
+        }
+        else {
+            has_non_is_conds = true
+        }
+    }
+
+    // Mix of `is OptionType::Item` and other conditions
+    if has_non_is_conds || patterns.is_empty() {
+        reporter.report_error("Exhaustive 'when' must have all its conditions as 'is OptionType::Item'", start.span)
+        ret
+    }
+
+    // Check all patterns are valid option items
+    let option_instance: Optional<NOption> = None()
+    let option_item_instances: List<NStruct> = []
+    let has_errors = false
+
+    for p in patterns {
+        if p.kind !is ResolvedTypePatternKind::Struct {
+            reporter.report_error("Exhaustive 'when' condition types must be option items", p.span)
+            has_errors = true
+            continue
+        }
+
+        let item_instance = (p.kind as ResolvedTypePatternKind::Struct).instance
+
+        if item_instance.parent.is_none() {
+            reporter.report_error("Exhaustive 'when' condition types must be option items", p.span)
+            has_errors = true
+            continue
+        }
+
+        option_item_instances[] = item_instance
+
+        if option_instance.is_none() {
+            option_instance = Some(item_instance.parent!!)
+        } else {
+            if option_instance!! != item_instance.parent!! {
+                reporter.report_error("Exhaustive 'when' condition has different option type than previous branches", p.span)
+                has_errors = true
+                continue
+            }
+        }
+    }
+
+    // `option_instance` is the common parent of all the option items
+    check(option_instance.is_some()) @{ "At least one pattern must be an option item: ${start.span}" }
+
+    // If something failed, stop here
+    if has_errors {
+        ret
+    }
+
+    // We know the options are all patterns, but we need to check if
+    // the patterns are option items and the expression is the option type
+    let expr_inst = code.find_inst(info.expr!!)
+
+    cons.once_resolved(expr_inst.type_token!!) @{ expr_type_token: TypeToken ->
+        let expr_type = expr_type_token.find_type()
+
+        if expr_type.kind !is TypeKind::Option && expr_type.kind !is TypeKind::OptionItem {
+            reporter.report_error("Exhaustive 'when' expected a Option type, but ${expr_type} was found", start.span)
+            ret
+        }
+
+        let instance = if expr_type.kind is TypeKind::Option {
+            (expr_type.kind as TypeKind::Option).instance
+        } else {
+            (expr_type.kind as TypeKind::OptionItem).instance.parent!!
+        }
+
+        if instance != option_instance!! {
+            reporter.report_error("Exhaustive 'when' expected a Option type of ${option_instance}, but ${instance} was found", start.span)
+            ret
+        }
+
+        // Check that all option items are covered
+        for item in instance.items {
+            if item.def !in option_item_instances {
+                reporter.report_error("Exhaustive 'when' missing branch for option item ${item.def.full_name}", start.span)
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ include "./includes.nitro"
 // TODO run inline tests
 // TODO generate extern types for typescript
 
-let VERSION: String = "0.0.11"
+let VERSION: String = "0.0.12"
 
 struct ProgramArgs {
     input: String,

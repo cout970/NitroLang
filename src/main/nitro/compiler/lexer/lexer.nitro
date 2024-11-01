@@ -1104,15 +1104,15 @@ fun Lexer.read_identifier() {
         extra = src.substring(start, cur)
     }
 
-    // Keyword
-    let keyword = keyword_map[extra]
-
-    if keyword.is_some() {
-        add_token(keyword!!, start)
-        ret
-    }
-
+    // Special keywords
     if current_byte == a"!" {
+        // when!
+        if extra == "when" {
+            add_token(TokenKind::WHEN_BANG, start)
+            cur += 1
+            ret
+        }
+
         // test!
         if extra == "test" {
             add_token(TokenKind::TEST, start)
@@ -1140,6 +1140,14 @@ fun Lexer.read_identifier() {
             cur += 1
             ret
         }
+    }
+
+    // Keyword
+    let keyword = keyword_map[extra]
+
+    if keyword.is_some() {
+        add_token(keyword!!, start)
+        ret
     }
 
     // Identifier

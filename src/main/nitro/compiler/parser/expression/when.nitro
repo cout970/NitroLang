@@ -17,8 +17,8 @@
 //     | ELSE
 //     ;
 
-fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
-    skip_token_kind(TokenKind::WHEN)?
+fun Parser.read_expression_when(code: NCode, exhaustive: Boolean): Parsed<NInstId> {
+    if exhaustive { skip_token_kind(TokenKind::WHEN_BANG)? } else { skip_token_kind(TokenKind::WHEN)? }
     skip_nl()
 
     let span = lexer.current_token_span
@@ -32,16 +32,25 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
-    code.add_when_start(span)
-    let branches = []
+    let when_info = WhenInfo @[
+        is_expression: true,
+        is_exhaustive: exhaustive,
+        has_else: false,
+        expr,
+        branches: [],
+        conditions: [],
+        result_variable: None(),
+    ]
+
+    let start = code.add_when_start(span, when_info)
 
     let type_usage = NTypeUsage::unresolved(span)
     let when_var = code.add_let(span, "when-result", Some(type_usage))
+    when_info.result_variable = Some(when_var.id)
 
     code.enter_block(false)
 
     let when_block = code.current_block
-    let has_read_else = false
 
     read_until_delimited(TokenKind::RBRACE) @{
         // else -> {}
@@ -50,12 +59,12 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
             skip_token_kind(TokenKind::ELSE)?
             skip_token_kind(TokenKind::ARROW)?
 
-            if has_read_else {
+            if when_info.has_else {
                 // only one else is allowed
                 ret parse_error(ParseError::WhenMultipleElse, lexer.current_token)
             }
 
-            has_read_else = true
+            when_info.has_else = true
 
             if lexer.current_token_kind == TokenKind::LBRACE {
                 read_statement_block_expr(code)?
@@ -63,30 +72,48 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
                 code.last_expression = Some(read_expression(code)?)
             }
 
-            branches[] = code.last_expression!!
+            when_info.branches[] = code.last_expression!!
             code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var.id))
 
             ret found(nothing)
         }
 
-        // <expr> -> <expr>
-        if has_read_else {
+        if when_info.has_else {
             // 'else' must be the last entry, cannot have anything after it
             ret parse_error(ParseError::WhenUnorderedElse, lexer.current_token)
         }
 
-        let condition = if expr.is_some() {
-            let span = lexer.current_token_span
-            let cond_aux = read_expression(code)?
+        let condition: NInstId
+        when {
+            lexer.current_token_kind == TokenKind::IS -> {
+                let span = lexer.current_token_span
+                skip_token_kind(TokenKind::IS)?
 
-            code.add_fun_call(span, "", "is_equal", true, [expr!!, cond_aux], []).id
-        } else {
-            read_expression(code)?
+                if expr.is_none() {
+                    // 'is' can only be used with a condition
+                    ret parse_error(ParseError::WhenIsWithoutCondition, lexer.current_token)
+                }
+
+                let type_pattern = read_type_pattern_excluding_function_types()?
+                let inst = code.add_is_type(span, expr!!, type_pattern)
+                condition = inst.id
+            }
+            expr.is_some() -> {
+                let span = lexer.current_token_span
+                let cond_aux = read_expression(code)?
+
+                let inst = code.add_fun_call(span, "", "is_equal", true, [expr!!, cond_aux], [])
+                condition = inst.id
+            }
+            else -> {
+                condition = read_expression(code)?
+            }
         }
 
         let span = lexer.current_token_span
         skip_token_kind(TokenKind::ARROW)?
 
+        when_info.conditions[] = condition
         code.add_if_start(span, condition)
         code.enter_block(false)
 
@@ -96,7 +123,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
             code.last_expression = Some(read_expression(code)?)
         }
 
-        branches[] = code.last_expression!!
+        when_info.branches[] = code.last_expression!!
         code.add_store_var(span, "", "when-result", code.last_expression!!, Some(when_var.id))
 
         code.add_block_jump(span, false, Some(when_block))
@@ -108,11 +135,7 @@ fun Parser.read_expression_when(code: NCode): Parsed<NInstId> {
     }?
 
     code.exit_block()
-    code.add_when_end(span, branches, Some(when_var.id))
-
-    if !has_read_else {
-        report_error("When expressions must have an 'else' branch", span)
-    }
+    code.add_when_end(span, start.id)
 
     let inst = code.add_load_var(span, "", "when-result", Some(when_var.id))
 

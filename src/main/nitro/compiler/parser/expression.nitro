@@ -23,7 +23,8 @@ fun Parser.read_expression_assignment(code: NCode): Parsed<NInstId> {
 
     let inst = when lexer.current_token_kind {
         TokenKind::IF -> read_expression_if(code)
-        TokenKind::WHEN -> read_expression_when(code)
+        TokenKind::WHEN -> read_expression_when(code, false)
+        TokenKind::WHEN_BANG -> read_expression_when(code, true)
         TokenKind::RETURN -> read_expression_return(code)
         else -> read_expression_or(code)
     }
@@ -39,7 +40,8 @@ fun Parser.read_expression(code: NCode): Parsed<NInstId> {
 
     let inst = when lexer.current_token_kind {
         TokenKind::IF -> read_expression_if(code)
-        TokenKind::WHEN -> read_expression_when(code)
+        TokenKind::WHEN -> read_expression_when(code, false)
+        TokenKind::WHEN_BANG -> read_expression_when(code, true)
         TokenKind::RETURN -> read_expression_return(code)
         else -> read_expression_or(code)
     }
@@ -111,6 +113,7 @@ fun Parser.is_at_expression_first(): Boolean {
     ret when lexer.current_token_kind {
         TokenKind::IDENTIFIER -> true
         TokenKind::WHEN -> true
+        TokenKind::WHEN_BANG -> true
         TokenKind::IF -> true
         TokenKind::RETURN -> true
         TokenKind::LPAREN -> true

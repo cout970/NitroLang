@@ -1,0 +1,29 @@
+/* --- BEGIN CODE --- */
+option Choice {
+   A {}
+   B {}
+   C {}
+}
+fun main() {
+    let a: Choice = Choice::A @[]
+    let b = when! a {
+        is Choice::A -> {
+            println("A")
+            1
+        }
+        is Choice::B -> {
+            println("B")
+            2
+        }
+        is Choice::C -> {
+            println("C")
+            3
+        }
+    }
+    println(b)
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+A
+3
+--- END OUTPUT --- */

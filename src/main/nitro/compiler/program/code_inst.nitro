@@ -56,11 +56,12 @@ option NInstKind {
         block: Optional<NBlockId>
     }
     // Starts a `when` (like a switch/match block) block
-    WhenStart {}
+    WhenStart {
+        info: WhenInfo
+    }
     // Ends a `when` block
     WhenEnd {
-        branches: List<NInstId>
-        variable: Optional<NVarId>
+        start: NInstId
     }
     // Performs a function call
     FunCall {
@@ -165,6 +166,16 @@ option NInstKind {
     }
     // No operation
     Noop {}
+}
+
+struct WhenInfo {
+    is_expression: Boolean
+    is_exhaustive: Boolean
+    has_else: Boolean
+    expr: Optional<NInstId>
+    branches: List<NInstId>
+    conditions: List<NInstId>
+    result_variable: Optional<NVarId>
 }
 
 fun NCode.seek_inst(id: Id) {
@@ -507,12 +518,12 @@ fun NCode.add_binary_op(
     ret add_inst(span, NInstKind::BinaryOp @[op, left, right])
 }
 
-fun NCode.add_when_start(span: Span): NInst {
-    ret add_inst(span, NInstKind::WhenStart @[])
+fun NCode.add_when_start(span: Span, info: WhenInfo): NInst {
+    ret add_inst(span, NInstKind::WhenStart @[info])
 }
 
-fun NCode.add_when_end(span: Span, branches: List<NInstId>, variable: Optional<NVarId>): NInst {
-    ret add_inst(span, NInstKind::WhenEnd @[branches, variable])
+fun NCode.add_when_end(span: Span, start: NInstId): NInst {
+    ret add_inst(span, NInstKind::WhenEnd @[start])
 }
 
 fun NCode.add_size_of(
@@ -1210,18 +1221,31 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
         }
         t is NInstKind::WhenStart -> {
             write_int(11)
+            let info: WhenInfo = (t as NInstKind::WhenStart).info
+            write_boolean(info.is_expression)
+            write_boolean(info.is_exhaustive)
+            write_boolean(info.has_else)
+            write_boolean(info.expr.is_some())
+            if info.expr.is_some() {
+                serialize_id(info.expr!!)
+            }
+            write_int(info.branches.len)
+            for branch in info.branches {
+                serialize_id(branch)
+            }
+            write_int(info.conditions.len)
+            for cond in info.conditions {
+                serialize_id(cond)
+            }
+            write_boolean(info.result_variable.is_some())
+            if info.result_variable.is_some() {
+                serialize_id(info.result_variable!!)
+            }
         }
         t is NInstKind::WhenEnd -> {
             write_int(12)
             let kind = t as NInstKind::WhenEnd
-            write_int(kind.branches.len)
-            for branch in kind.branches {
-                serialize_id(branch)
-            }
-            write_boolean(kind.variable.is_some())
-            if kind.variable.is_some() {
-                serialize_id(kind.variable!!)
-            }
+            serialize_id(kind.start)
         }
         t is NInstKind::Literal -> {
             write_int(13)
@@ -1399,15 +1423,34 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
             NInstKind::FunCall @[path, name, explicit_receiver, arguments, explicit_type_arguments, call_site: None()]
         }
         11 -> {
-            NInstKind::WhenStart @[]
-        }
-        12 -> {
+            let is_expression = read_boolean()
+            let is_exhaustive = read_boolean()
+            let has_else = read_boolean()
+            let expr = if read_boolean() { Some(deserialize_id()) } else { None() }
             let branches = []
             repeat read_int() {
                 branches[] = deserialize_id()
             }
-            let variable = if read_boolean() { Some(deserialize_id()) } else { None() }
-            NInstKind::WhenEnd @[branches, variable]
+            let conditions = []
+            repeat read_int() {
+                conditions[] = deserialize_id()
+            }
+            let result_variable = if read_boolean() { Some(deserialize_id()) } else { None() }
+
+            let info = WhenInfo @[
+                is_expression,
+                is_exhaustive,
+                has_else,
+                expr,
+                branches,
+                conditions,
+                result_variable,
+            ]
+            NInstKind::WhenStart @[info]
+        }
+        12 -> {
+            let start = deserialize_id()
+            NInstKind::WhenEnd @[start]
         }
         13 -> {
             let value = deserialize_nvalue()

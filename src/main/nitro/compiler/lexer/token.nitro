@@ -93,6 +93,7 @@ enum TokenKind {
     ENUM @[text: "enum", len: 4]
     NOTHING @[text: "nothing", len: 7]
     WHEN @[text: "when", len: 4]
+    WHEN_BANG @[text: "when!", len: 5]
     MATCH @[text: "match", len: 5]
     ALIAS @[text: "alias", len: 5]
     IF @[text: "if", len: 2]

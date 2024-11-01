@@ -1,0 +1,22 @@
+/* --- BEGIN CODE --- */
+fun type_to_int(a: #T): Int {
+    ret when a {
+        is Int -> { 0 }
+        is Float -> { 1 }
+        is Long -> { 2 }
+        else -> { -1 }
+    }
+}
+fun main() {
+    println(type_to_int(1))
+    println(type_to_int(1f))
+    println(type_to_int(1L))
+    println(type_to_int(false))
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+0
+1
+2
+-1
+--- END OUTPUT --- */
