@@ -3,7 +3,7 @@ include "./includes.nitro"
 // TODO run inline tests
 // TODO generate extern types for typescript
 
-let VERSION: String = "0.0.12"
+let VERSION: String = "0.0.13"
 
 struct ProgramArgs {
     input: String,
@@ -39,6 +39,7 @@ fun main() {
     i += 1
 
     let prog = ProgramArgs::new()
+    let dump_allocator = false
 
     // Process args
     while i < args.len {
@@ -75,8 +76,14 @@ fun main() {
             continue
         }
 
-        if arg == "--dump-wat" {
+        if arg == "--dump-wasm-emitter" {
             prog.dump_wat = true
+            i += 1
+            continue
+        }
+
+        if arg == "--dump-allocator" {
+            dump_allocator = true
             i += 1
             continue
         }
@@ -204,5 +211,9 @@ fun main() {
     // Perform compilation
     if !CompilationUnit::compile_all(prog) {
         wasi::proc_exit(1)
+    }
+
+    if dump_allocator {
+        global_allocator.debug()
     }
 }

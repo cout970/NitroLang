@@ -339,6 +339,10 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     unit.core_path = args.core_path
 
     if !args.no_core_lib {
+        if args.verbose {
+            Log::info("Including Core from '${unit.core_path ?? "<bundled core>"}'")
+        }
+
         // Include core library
         let start_core = Instant::now()
         unit.include_core()

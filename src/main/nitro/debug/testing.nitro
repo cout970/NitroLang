@@ -1,19 +1,4 @@
-option Choice {
-   A {}
-   B {}
-   C {}
-}
+
 fun main() {
-    let a: Choice = Choice::A @[]
-    when! a {
-        is Choice::A -> {
-            println("A")
-        }
-        is Choice::B -> {
-            println("B")
-        }
-        is Choice::C -> {
-            println("C")
-        }
-    }
+    println("Hello, World!")
 }
