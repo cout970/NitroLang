@@ -3,10 +3,10 @@
 # switch to the root directory
 cd "$(dirname "$0")/.."
 
-# detect is wasmer is installed
-if ! command -v wasmer &> /dev/null
+# detect is wasmtime is installed
+if ! command -v wasmtime &> /dev/null
 then
-    echo "Command 'wasmer' not found, please install https://wasmer.io/"
+    echo "Command 'wasmtime' not found, please install https://wasmtime.dev/"
     exit
 fi
 
@@ -30,13 +30,15 @@ function log {
     printf '\e[0m';
 }
 
+root="$(realpath .)"
+
 # Clean up temporary file
 rm "$output" 2> /dev/null
 
 log "Compiling $input"
-wasmer run \
-  --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" \
-  "$compiler" -- "$input" -o "$output" --cache-dir "$cache"
+wasmtime run \
+  --dir "$root" \
+  "$compiler" "$input" -o "$output" --cache-dir "$cache" --verbose
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -44,8 +46,8 @@ if [ ! -f "$output" ]; then
 fi
 
 log "Running $input"
-wasmer run \
-  --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" \
-   "$output" -- "$@" || exit -1
+wasmtime run \
+  --dir "$root" \
+   "$output" "$@" || exit -1
 
 log "Success"
