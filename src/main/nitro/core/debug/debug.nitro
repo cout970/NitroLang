@@ -14,6 +14,18 @@ fun println(i: String) {
     runtime::stdout_write("\n")
 }
 
+// Int argument
+fun println(i: Int) {
+    runtime::stdout_write_int(i)
+    runtime::stdout_write("\n")
+}
+
+// Char argument
+fun println(i: Char) {
+    runtime::stdout_write_char(i)
+    runtime::stdout_write("\n")
+}
+
 // Nothing
 fun println(i: Nothing) = println("nothing")
 

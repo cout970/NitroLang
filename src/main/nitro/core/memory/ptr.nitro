@@ -70,8 +70,12 @@ fun Ptr<#Item>.write(value: #Item) {}
 // Compares two pointers by their numerical address
 fun Ptr<#Value>.get_ordering(other: Ptr<#Value>): Ordering = this.address <=> other.address
 
-// Aligns the pointer to the next multiple of 4
+// Aligns a value to the next multiple of 4
 fun Ptr::align(value: Int): Int = (value + 3) & 3.bitwise_not()
+
+// Aligns a value to the next multiple of [alignment]
+// Alignment must be a power of 2
+fun Ptr::align(value: Int, alignment: Int): Int = (value + (alignment - 1)) & (alignment - 1).bitwise_not()
 
 // Debug representation of the pointer
 fun Ptr<#Value>.to_string(): String {

@@ -263,3 +263,16 @@ fun Int.clamp(min: Int, max: Int): Int {
         else -> this
     }
 }
+
+// Rounds the integer up to the nearest power of two, if it is already a power of two it is returned as is
+fun Int.round_up_to_power_of_two(): Int {
+    let value = this
+    value -= 1
+    value = value | (value >> 1)
+    value = value | (value >> 2)
+    value = value | (value >> 4)
+    value = value | (value >> 8)
+    value = value | (value >> 16)
+    value += 1
+    ret value
+}

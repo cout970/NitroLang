@@ -75,7 +75,10 @@ mod runtime {
     // Returns an instant representing the current time, using the REALTIME clock,
     // which is subject to NTP adjustments and tries to be as close to the wall-clock time as possible
     fun get_realtime_instant(): Instant {
-        let time_ns = LongPtr@[value: 0L]
+        let buff = ffi::malloc(8)
+        defer ffi::free(buff)
+
+        let time_ns: LongPtr = buff.unsafe_cast_as_ref()
         let rc = wasi::clock_time_get(wasi::CLOCK_REALTIME, 1_000_000_000L, time_ns)
         if rc != 0 {
             crash("wasi::clock_time_get failed: $rc")
@@ -90,7 +93,10 @@ mod runtime {
     // Returns a monotonic clock value in nanoseconds, meaning it will never go backwards and is not subject to clock adjustments
     // This is useful for measuring time intervals and benchmarking
     fun get_monotonic_timer_ns(): Long {
-        let time_ns = LongPtr@[value: 0L]
+        let buff = ffi::malloc(8)
+        defer ffi::free(buff)
+
+        let time_ns: LongPtr = buff.unsafe_cast_as_ref()
         let rc = wasi::clock_time_get(wasi::CLOCK_MONOTONIC, 1_000_000_000L, time_ns)
         if rc != 0 {
             crash("wasi::clock_time_get failed: $rc")
@@ -117,27 +123,51 @@ mod runtime {
         ret list
     }
 
-    // Global memory to avoid allocations in stdout_write()
-    let stdout_write_no_alloc_iovec: wasi::IOVec = wasi::IOVec @[
-        buf: null_ptr<Byte>(),
-        buf_len: 0,
-    ]
-    let stdout_write_no_alloc_written: IntPtr = IntPtr @[value: 0]
-    let stdout_write_no_alloc_char: Array<Byte> = Array::new<Byte>(4)
+    // Static memory to avoid allocations in stdout_write_char()
+    //  struct {
+    //      int written,
+    //      int iovec_buf,
+    //      int iovec_buf_len,
+    //      char[4] chars,
+    //      char[33] digits,
+    //  }
+    let static_buffer: String = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    let sb_written: Int = 0
+    let sb_buf: Int = 4
+    let sb_buf_size: Int = 8
+    let sb_chars: Int = 12
+    let sb_digits: Int = 16
 
     // Write the given string to stdout, does not append a newline
+    // Note: this function has been carefully optimized to avoid allocations
     fun stdout_write(str: String) {
-        stdout_write_no_alloc_iovec.buf = str.utf8_data.data_ptr
-        stdout_write_no_alloc_iovec.buf_len = str.len
+        let buffer: Ptr<Byte> = static_buffer.utf8_data.data_ptr
 
-        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(stdout_write_no_alloc_iovec), 1, stdout_write_no_alloc_written)
+        let iovec_buf: IntPtr = buffer.offset_in_bytes(sb_buf).unsafe_cast_as_ref()
+        iovec_buf.value = str.utf8_data.data_ptr.address
+
+        let iovec_buf_size: IntPtr = buffer.offset_in_bytes(sb_buf_size).unsafe_cast_as_ref()
+        iovec_buf_size.value = str.len
+
+        let written: IntPtr = buffer.offset_in_bytes(sb_written).unsafe_cast_as_ref()
+
+        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(iovec_buf).unsafe_cast(), 1, written)
         if rc != 0 {
             crash("wasi::fd_write failed")
         }
     }
 
+    // Write a char to the stdout
+    fun stdout_write_char(unicode: Char) {
+        stdout_write_char(unicode.to_int())
+    }
+
+    // Write a char to the stdout given a Unicode code point
+    // Note: this function has been carefully optimized to avoid allocations
     fun stdout_write_char(unicode: Int) {
-        // `stdout_write_no_alloc_char` is a UTF-8 string with only one character
+        let buffer: Ptr<Byte> = static_buffer.utf8_data.data_ptr
+        // `chars` is a UTF-8 string with only one character
+        let chars: Ptr<Byte> = buffer.offset_in_bytes(sb_chars)
         let char_len = when  {
             unicode < 0x80 -> 1
             unicode < 0x800 -> 2
@@ -145,35 +175,98 @@ mod runtime {
             else -> 4
         }
 
-        stdout_write_no_alloc_char[0] = when char_len {
+        let ptr: Ptr<Byte> = chars
+        ptr.write(when char_len {
             1 -> unicode.to_byte()
             2 -> (0xC0 | (unicode >> 6)).to_byte()
             3 -> (0xE0 | (unicode >> 12)).to_byte()
             else -> (0xF0 | (unicode >> 18)).to_byte()
-        }
-        stdout_write_no_alloc_char[1] = when char_len {
+        })
+        ptr = ptr.offset_in_bytes(1)
+        ptr.write(when char_len {
             1 -> 0.to_byte()
             2 -> (0x80 | (unicode & 0x3F)).to_byte()
             3 -> (0x80 | ((unicode >> 6) & 0x3F)).to_byte()
             else -> (0x80 | ((unicode >> 12) & 0x3F)).to_byte()
-        }
-        stdout_write_no_alloc_char[2] = when char_len {
+        })
+        ptr = ptr.offset_in_bytes(1)
+        ptr.write(when char_len {
             1 -> 0.to_byte()
             2 -> 0.to_byte()
             3 -> (0x80 | (unicode & 0x3F)).to_byte()
             else -> (0x80 | ((unicode >> 6) & 0x3F)).to_byte()
-        }
-        stdout_write_no_alloc_char[3] = when char_len {
+        })
+        ptr = ptr.offset_in_bytes(1)
+        ptr.write(when char_len {
             1 -> 0.to_byte()
             2 -> 0.to_byte()
             3 -> 0.to_byte()
             else -> (0x80 | (unicode & 0x3F)).to_byte()
+        })
+
+        let iovec_buf: IntPtr = buffer.offset_in_bytes(sb_buf).unsafe_cast_as_ref()
+        iovec_buf.value = chars.address
+
+        let iovec_buf_size: IntPtr = buffer.offset_in_bytes(sb_buf_size).unsafe_cast_as_ref()
+        iovec_buf_size.value = char_len
+
+        let written: IntPtr = buffer.offset_in_bytes(sb_written).unsafe_cast_as_ref()
+
+        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(iovec_buf).unsafe_cast(), 1, written)
+        if rc != 0 {
+            crash("wasi::fd_write failed")
+        }
+    }
+
+    // Write a signed integer to the stdout
+    // Note: this function has been carefully optimized to avoid allocations
+    fun stdout_write_int(value: Int) {
+        let buffer: Ptr<Byte> = static_buffer.utf8_data.data_ptr
+        let chars: Ptr<Byte> = buffer.offset_in_bytes(sb_chars)
+        let ptr = chars
+
+        // Special case for 0
+        if value == 0 {
+            stdout_write_char(a"0")
+            ret
         }
 
-        stdout_write_no_alloc_iovec.buf = stdout_write_no_alloc_char.data_ptr
-        stdout_write_no_alloc_iovec.buf_len = char_len
+        // Special case for int_min_value
+        if value == -2147483648 {
+            stdout_write("-2147483648")
+            ret
+        }
 
-        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(stdout_write_no_alloc_iovec), 1, stdout_write_no_alloc_written)
+        // Minus sign for negative numbers
+        let negative = value < 0
+        if negative {
+            value = -value
+        }
+
+        let offset = 33
+        while value > 0 {
+            let digit = value % 10
+            value = value / 10
+            offset -= 1
+            let ptr: BytePtr = buffer.offset_in_bytes(sb_digits + offset).unsafe_cast_as_ref()
+            ptr.value = (digit + a"0").to_byte()
+        }
+
+        if negative {
+            offset -= 1
+            let ptr: BytePtr = buffer.offset_in_bytes(sb_digits + offset).unsafe_cast_as_ref()
+            ptr.value = a"-".to_byte()
+        }
+
+        let iovec_buf: IntPtr = buffer.offset_in_bytes(sb_buf).unsafe_cast_as_ref()
+        iovec_buf.value = buffer.offset_in_bytes(sb_digits + offset).address
+
+        let iovec_buf_size: IntPtr = buffer.offset_in_bytes(sb_buf_size).unsafe_cast_as_ref()
+        iovec_buf_size.value = 33 - offset
+
+        let written: IntPtr = buffer.offset_in_bytes(sb_written).unsafe_cast_as_ref()
+
+        let rc = wasi::fd_write(wasi::FD_STDOUT, ptr_of(iovec_buf).unsafe_cast(), 1, written)
         if rc != 0 {
             crash("wasi::fd_write failed")
         }

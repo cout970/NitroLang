@@ -8,29 +8,39 @@ struct MemoryArena {
     bytes: Array<Byte>
     // Total bytes available in the arena
     capacity: Int
+    count: Int
 }
 
 // Allocates a number of bytes, returning a pointer to the start of the allocation
 fun MemoryArena.alloc_bytes(amount: Int): Ptr<Byte> {
-    // Bump allocator
-    let next = (len + 3) & 3.bitwise_not()
+    ret alloc_bytes(amount, 4)
+}
 
-    len = next + amount
+// Allocates a number of bytes with a given alignment, returning a pointer to the start of the allocation
+// The alignment must be a power of two, 1, 2, 4, 8, etc. (otherwise it will be rounded up to the next power of two)
+fun MemoryArena.alloc_bytes(amount: Int, alignment: Int): Ptr<Byte> {
+    // Closest power of two greater than the alignment
+    alignment = alignment.round_up_to_power_of_two()
 
-    // Translate to address
-    let base_start = ptr_of(bytes).address + size_of<Int>()
-    let base_end = base_start + capacity
+    // To correct the alignment of `bytes`, we discard the first bytes that are not aligned to the 64 byte boundary
+    let unused = bytes.get_data_ptr().address & 0x3F
 
-    let start = base_start + next
-    let end = start + amount
+    // Move len to the correct alignment
+    len = Ptr::align(len + unused, alignment) - unused
+
+    // Ptr to the start of allocation
+    let start: Ptr<Byte> = bytes.get_data_ptr().offset_in_bytes(len)
+
+    // Increment len
+    len += amount
 
     // Check we are out-of-memory
-    if end.greater_than_signed(base_end) {
+    if len.greater_than_signed(capacity) {
         // Error handled in native code, since we don't have enough memory to generate a stacktrace
         crash("Out of memory")
     }
 
-    ret ptr_from_address(start)
+    ret start
 }
 
 // Allocates a value on the heap, using the size of the value to determine the number of bytes to allocate
