@@ -701,7 +701,7 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
       ],
       "#function_calls": [
         {
-          token: ["entity.name.function.nitro", "paren.lparen"],
+          token: ["variable.nitro", "paren.lparen"],
           regex: /(\w+\s*)(\()/,
           push: [
             {

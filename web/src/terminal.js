@@ -5,6 +5,7 @@ import {compile} from "./editor";
  * @param msg
  */
 function terminalLog(level, msg) {
+  if (msg === '') return;
   const wrapper = document.querySelector('.terminal-content');
   const div = document.createElement('div');
   div.className = 'terminal-line lvl-' + level;

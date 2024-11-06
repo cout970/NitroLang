@@ -1,62 +1,7 @@
-import {init, Directory, runWasix} from "@wasmer/sdk";
+import {Directory, init, runWasix} from "@wasmer/sdk";
 import compilerUrl from "../res/wasm/compiler_v0.0.11-opt.wasm?url";
 import wasmerUrl from "../res/wasm/wasmer_js_bg.wasm?url";
-import {updateFiles} from "./files";
-import example1Url from "../../examples/advent_of_code_2023_3.nitro?url";
-
-/**
- * @returns {Promise<Directory>}
- */
-export async function getProject() {
-  if (!window.project) {
-    window.project = await initFS();
-  }
-  return window.project;
-}
-
-async function initFS() {
-  const fs = new Directory();
-  await fs.createDir('src');
-  await fs.createDir('src/examples');
-  await fs.createDir("out");
-  await fs.createDir("out/cache");
-
-  // Load from localstorage
-  const cacheEntries = Object.keys(localStorage).filter(k => k.startsWith("fs/"));
-  for (const cacheEntry of cacheEntries) {
-    const name = cacheEntry.substring(3);
-    const hex = localStorage.getItem(cacheEntry);
-    const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-    await fs.writeFile(name, bytes);
-  }
-
-  // Examples
-  await fs.writeFile('src/examples/advent_of_code_2023_3.nitro', new Uint8Array(await (await fetch(example1Url)).arrayBuffer()));
-
-  return fs;
-}
-
-export async function saveFS(fs) {
-  const saveDir = async (path) => {
-    const entries = await fs.readDir(path);
-
-    for (const entry of entries) {
-      const entryPath = path + entry.name;
-
-      if (entry.type === "file") {
-        const fileContents = await fs.readFile(entryPath);
-        const hex = [...fileContents].map(b => b.toString(16).padStart(2, '0')).join('');
-        localStorage.setItem(`fs${entryPath}`, hex);
-      }
-
-      if (entry.type === "dir") {
-        await saveDir(entryPath + '/');
-      }
-    }
-  }
-
-  await saveDir('/');
-}
+import {getProject, saveFS, updateFiles} from "./files";
 
 export async function compileAndRun(fs) {
   const bytes = await compileProgram(fs);

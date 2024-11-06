@@ -1,11 +1,11 @@
-import {compileAndRun, getProject, saveFS} from "./compiler.js";
+import {compileAndRun} from "./compiler.js";
 import ace from 'ace-builds';
 import 'ace-builds/esm-resolver';
 import 'ace-builds/src-noconflict/theme-monokai';
 import 'ace-builds/src-noconflict/theme-dracula';
 import 'ace-builds/src-noconflict/mode-javascript';
 import './mode-nitro.js';
-import {updateFiles} from "./files";
+import {getProject, saveFS, updateFiles} from "./files";
 import {toggleTerminal} from "./terminal";
 
 export async function compile() {
@@ -28,6 +28,71 @@ export async function editorSelectFile(path) {
   localStorage.setItem('currentEditorFile', path);
   editor.setValue(content);
   editor.clearSelection();
+  addTab({name: path.split('/').pop(), file: path});
+}
+
+export function addTab({file}) {
+  const tabs = document.querySelector('#tabs');
+  const existing = tabs.querySelector(`[data-file="${file}"]`);
+
+  if (existing) {
+    tabs.querySelectorAll('.tab').forEach(tab => {
+      tab.classList.remove('active');
+      const order = parseInt(tab.getAttribute('data-order'), 10);
+      tab.setAttribute('data-order', String(order + 1));
+    });
+    existing.classList.add('active');
+    existing.setAttribute('data-order', '0');
+    return;
+  }
+
+  const template = document.querySelector('#tab-template');
+  const node = template.content.cloneNode(true);
+  const tab = node.querySelector('.tab');
+
+  tab.querySelector('.name').textContent = file.split('/').pop();
+  tab.setAttribute('data-file', file);
+  tab.setAttribute('data-order', 0);
+  tab.title = file;
+  tab.classList.add('active');
+
+  tab.addEventListener('click', () => {
+    editorSelectFile(file).catch(console.error);
+  });
+
+  tab.querySelector('.close').addEventListener('click', (e) => {
+    const all_tabs = tabs.querySelectorAll('.tab');
+    if (all_tabs.length === 1) {
+      return;
+    }
+
+    tabs.removeChild(tab);
+
+    // Get the tab with less 'data-order' value
+    let min = undefined;
+    let selected = undefined;
+
+    all_tabs.forEach(tab => {
+      const order = parseInt(tab.getAttribute('data-order'), 10);
+      if (min === undefined || order < min) {
+        min = order;
+        selected = tab;
+      }
+    });
+
+    if (selected) {
+      editorSelectFile(selected.getAttribute('data-file')).catch(console.error);
+    }
+
+    e.stopPropagation();
+  });
+
+  tabs.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.remove('active');
+    const order = parseInt(tab.getAttribute('data-order'), 10);
+    tab.setAttribute('data-order', String(order + 1));
+  });
+  tabs.appendChild(node);
 }
 
 export async function saveEditorFile() {
@@ -35,6 +100,14 @@ export async function saveEditorFile() {
   const text = editor.getValue();
   const fs = await getProject();
   const path = localStorage.getItem('currentEditorFile');
+  // There is a bug, if you write a file multiple times, and the length of the new file is shorter
+  // than the previous one, the file will corrupt
+  // To prevent this, we remove the file first, then write the new file
+  try {
+    await fs.removeFile(path);
+  } catch (_) {
+    // ignore
+  }
   await fs.writeFile(path, new TextEncoder().encode(text));
   await saveFS(fs);
   await updateFiles();
@@ -151,6 +224,8 @@ async function restore() {
     editor.setValue(defaultValue);
   }
   editor.clearSelection();
+
+  addTab({file: localStorage.getItem('currentEditorFile')});
 
   await saveEditorFile();
 }
