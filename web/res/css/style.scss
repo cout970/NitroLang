@@ -62,6 +62,7 @@ html, body {
   .end {
     flex-grow: 1;
     align-items: flex-end;
+    min-width: 0;
   }
 
   .menu-dropdown {
@@ -135,6 +136,7 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: auto;
   }
 
   .tab {
@@ -284,7 +286,7 @@ html, body {
 #editor {
   width: auto;
   height: auto;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   margin: 0;
   padding: 0;
   flex-grow: 1;

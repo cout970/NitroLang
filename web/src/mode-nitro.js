@@ -1,6 +1,7 @@
 // noinspection RegExpRedundantEscape,RegExpUnnecessaryNonCapturingGroup,RegExpSingleCharAlternation,JSFileReferences
-
 "use strict";
+
+import themeCss from '../res/css/theme.scss?raw';
 
 // See https://ace.c9.io/tool/mode_creator.html
 // https://ace.c9.io/#nav=higlighter
@@ -14,8 +15,8 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
     // regexps are ordered -> the first match is used
 
     const keywordMapper = this.$keywords = this.createKeywordMapper({
-      "keyword.operator.nitro": "Self|function|var|val|module|class|type|recv|receiver|trait|interface|either|ref_mut|ref|copy|or|and|xor|not|This|fun|let|mod|struct|ret|return|size_of|sizeOf|sizeof|option|rec|tag|defer|type_alias|typeAlias|typealias|enum|when|match|alias|if|else|for|in|while|repeat|loop|is|as|include|break|continue|use|mut",
-      "constant.language.nitro": "true|false|null|this|nothing|self",
+      "keyword.nitro": "Self|function|var|val|module|class|type|recv|receiver|trait|interface|either|ref_mut|ref|copy|or|and|xor|not|This|fun|let|mod|struct|ret|return|size_of|sizeOf|sizeof|option|rec|tag|defer|type_alias|typeAlias|typealias|enum|when|match|alias|if|else|for|in|while|repeat|loop|is|as|include|break|continue|use|mut",
+      "keyword.constant.nitro": "true|false|null|this|nothing|self",
     }, "variable.nitro");
 
     const restart = (currentState, stack) => {
@@ -117,26 +118,15 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
           regex: /@\w+\b/,
         }
       ],
-      "#constants": [
+      "#numbers": [
         {
           token: "constant.numeric.nitro",
           regex: /\b(?:0(?:[xbo])[0-9a-fA-F]*|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:(?:[eE])(?:\+|-)?[0-9]+)?)(?:[LlFfUuDd]|UL|ul)?\b/
         },
-        {
-          token: "constant.other.nitro",
-          regex: /\b[A-Z][A-Z0-9_]+\b/
-        }
       ],
       "#expressions": [
         {
-          token: keywordMapper,
-          regex: /[a-zA-Z]\w*\b/
-        },
-        {
           include: "#strings"
-        },
-        {
-          include: "#constants"
         },
         {
           include: "#keywords"
@@ -145,8 +135,26 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
           include: "#function_calls"
         },
         {
+          include: "#operators"
+        },
+        {
+          include: "#numbers"
+        },
+        {
+          token: keywordMapper,
+          regex: /\b[a-z]\w*\b/
+        },
+        {
+          token: "entity.name.variable.constant.nitro",
+          regex: /\b[A-Z]+\b/
+        },
+        {
+          token: "entity.name.variable.type.nitro",
+          regex: /\b[A-Z]\w*\b/
+        },
+        {
           include: "#comments"
-        }
+        },
       ],
       "#generics": [
         {
@@ -295,16 +303,16 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
       ],
       "#struct": [
         {
-          token: "keyword.struct.nitro",
+          token: "keyword.nitro",
           regex: /\bstruct\b/,
           push: [
             {
-              token: "punctuation.struct.start",
+              token: "punctuation.start",
               regex: /\{/,
               next: "#struct_body",
             },
             {
-              token: "storage.type.struct.nitro",
+              token: "storage.type.nitro",
               regex: /\w+\b/,
             },
             {
@@ -331,7 +339,75 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
       ],
       "#struct_body": [
         {
-          token: "punctuation.struct.end",
+          token: "punctuation.end",
+          regex: /\}/,
+          next: restart,
+        },
+        {
+          token: ["entity.name.variable.nitro", "text", "punctuation", "text"],
+          regex: /(\w+)(\s*)(:)(\s*)/,
+          push: [
+            {
+              include: "#types",
+            },
+            {
+              token: "text",
+              regex: /(?=.)/,
+              next: "pop",
+            }
+          ],
+        },
+        {
+          token: "punctuation",
+          regex: /,/,
+        },
+        {
+          token: "text",
+          regex: /\s+/,
+        },
+        {
+          include: "#comments"
+        },
+      ],
+      "#enum": [
+        {
+          token: "keyword.enum.nitro",
+          regex: /\benum\b/,
+          push: [
+            {
+              token: "punctuation.start",
+              regex: /\{/,
+              next: "#enum_body",
+            },
+            {
+              token: "storage.type.nitro",
+              regex: /\w+\b/,
+            },
+            {
+              token: "text",
+              regex: /\s+/,
+            },
+            {
+              include: "#definition_generics"
+            },
+            {
+              token: "text",
+              regex: /\s+/,
+            },
+            {
+              include: "#comments"
+            },
+            {
+              token: "text",
+              regex: /(?=$|\{|\}|=|,)/,
+              next: "pop",
+            },
+          ],
+        }
+      ],
+      '#enum_body': [
+        {
+          token: "punctuation.end",
           regex: /\}/,
           next: restart,
         },
@@ -603,6 +679,9 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
               ]
             },
             {
+              include: "#expressions"
+            },
+            {
               next: "pop",
             }
           ]
@@ -647,28 +726,24 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
           next: "pop"
         }
       ],
-      "#keywords": [
+      "#operators": [
         {
           token: "keyword.operator.nitro",
-          regex: /==|!=|===|!==|<=|>=|<|>|=>|->|::|\?:/
+          regex: /==|!=|===|!==|<=|>=|<|>|<=>|=>|->|::|\?/
         },
+        {
+          token: "keyword.operator.nitro",
+          regex: /\.\.=|\.\.<|@\[|%\[|#\[|\^\^|\?\?|_|\||\#|!|&|@|\$|\^/
+        },
+        {
+          token: "keyword.operator.nitro",
+          regex: /(\+|-|\*|\/|%)(=?)/
+        },
+      ],
+      "#keywords": [
         {
           token: "keyword.operator.assignment.nitro",
           regex: /=/
-        },
-        {
-          token: "keyword.operator.declaration.nitro",
-          regex: /:/,
-          push: [
-            {
-              token: "text",
-              regex: /(?=$|{|=|,)/,
-              next: "pop"
-            },
-            {
-              include: "#types"
-            }
-          ]
         },
         {
           token: "keyword.operator.dot.nitro",
@@ -701,7 +776,7 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
       ],
       "#function_calls": [
         {
-          token: ["variable.nitro", "paren.lparen"],
+          token: ["entity.name.function.nitro", "paren.lparen"],
           regex: /(\w+\s*)(\()/,
           push: [
             {
@@ -744,7 +819,7 @@ ace.define('ace/mode/nitro_highlight_rules', ['require', 'exports', 'ace/lib/oop
         },
         {
           token: "string",
-          regex: /"/,
+          regex: /[au]?"/,
           push: [
             {
               token: "string",
@@ -902,12 +977,27 @@ ace.define("ace/mode/nitro", ["require", "exports", "module", "ace/lib/oop", "ac
   };
   oop.inherits(Mode, TextMode);
 
-  (function() {
+  (function () {
     this.lineCommentStart = "//";
     this.blockComment = {start: "/*", end: "*/", nestable: true};
     this.$id = "ace/mode/nitro";
   }).call(Mode.prototype);
 
-
   exports.Mode = Mode;
 });
+
+ace.define("ace/theme/cout970", ["require", "exports", "module", "ace/lib/dom"], function (require, exports, module) {
+  exports.isDark = true;
+  exports.cssClass = "ace-cout970";
+  exports.cssText = themeCss;
+  var dom = require("../lib/dom");
+  dom.importCssString(exports.cssText, exports.cssClass, false);
+});
+
+(function () {
+  ace.require(["ace/theme/cout970"], function (m) {
+    if (typeof module == "object" && typeof exports == "object" && module) {
+      module.exports = m;
+    }
+  });
+})();

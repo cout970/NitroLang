@@ -6,7 +6,13 @@ import 'ace-builds/src-noconflict/theme-dracula';
 import 'ace-builds/src-noconflict/mode-javascript';
 import './mode-nitro.js';
 import {getProject, saveFS, updateFiles} from "./files";
-import {toggleTerminal} from "./terminal";
+import {openTerminal, toggleTerminal} from "./terminal";
+
+const validThemes = [
+  'ace/theme/cout970',
+  'ace/theme/monokai',
+  'ace/theme/dracula',
+];
 
 export async function compile() {
   await saveEditorFile();
@@ -28,10 +34,11 @@ export async function editorSelectFile(path) {
   localStorage.setItem('currentEditorFile', path);
   editor.setValue(content);
   editor.clearSelection();
-  addTab({name: path.split('/').pop(), file: path});
+
+  addTab(path);
 }
 
-export function addTab({file}) {
+export function addTab(file) {
   const tabs = document.querySelector('#tabs');
   const existing = tabs.querySelector(`[data-file="${file}"]`);
 
@@ -61,29 +68,8 @@ export function addTab({file}) {
   });
 
   tab.querySelector('.close').addEventListener('click', (e) => {
-    const all_tabs = tabs.querySelectorAll('.tab');
-    if (all_tabs.length === 1) {
-      return;
-    }
-
-    tabs.removeChild(tab);
-
-    // Get the tab with less 'data-order' value
-    let min = undefined;
-    let selected = undefined;
-
-    all_tabs.forEach(tab => {
-      const order = parseInt(tab.getAttribute('data-order'), 10);
-      if (min === undefined || order < min) {
-        min = order;
-        selected = tab;
-      }
-    });
-
-    if (selected) {
-      editorSelectFile(selected.getAttribute('data-file')).catch(console.error);
-    }
-
+    removeTab(file);
+    selectLastTab();
     e.stopPropagation();
   });
 
@@ -93,13 +79,73 @@ export function addTab({file}) {
     tab.setAttribute('data-order', String(order + 1));
   });
   tabs.appendChild(node);
+
+  // Remove excess tabs
+  const all_tabs = tabs.querySelectorAll('.tab');
+  if (all_tabs.length > 8) {
+    // Get the tab with less 'data-order' value
+    let max = undefined;
+    let selected = undefined;
+
+    all_tabs.forEach(tab => {
+      const order = parseInt(tab.getAttribute('data-order'), 10);
+      if (max === undefined || order > max) {
+        max = order;
+        selected = tab;
+      }
+    });
+
+    if (selected) {
+      removeTab(selected.getAttribute('data-file'));
+    }
+  }
+}
+
+export function removeTab(path) {
+  const tabs = document.querySelector('#tabs');
+  const tab = tabs.querySelector(`[data-file="${path}"]`);
+
+  if (!tab) {
+    return;
+  }
+
+  const all_tabs = tabs.querySelectorAll('.tab');
+  if (all_tabs.length === 1) {
+    return;
+  }
+
+  tabs.removeChild(tab);
+}
+
+function selectLastTab() {
+  const tabs = document.querySelector('#tabs');
+  const all_tabs = tabs.querySelectorAll('.tab');
+
+  // Get the tab with less 'data-order' value
+  let min = undefined;
+  let selected = undefined;
+
+  all_tabs.forEach(tab => {
+    const order = parseInt(tab.getAttribute('data-order'), 10);
+    if (min === undefined || order < min) {
+      min = order;
+      selected = tab;
+    }
+  });
+
+  if (selected) {
+    editorSelectFile(selected.getAttribute('data-file')).catch(console.error);
+  }
 }
 
 export async function saveEditorFile() {
   const editor = window.editor;
+  clearTimeout(editor.__save_timeout_id__);
+
   const text = editor.getValue();
   const fs = await getProject();
   const path = localStorage.getItem('currentEditorFile');
+
   // There is a bug, if you write a file multiple times, and the length of the new file is shorter
   // than the previous one, the file will corrupt
   // To prevent this, we remove the file first, then write the new file
@@ -117,8 +163,10 @@ export async function setupEditor() {
   const editor = ace.edit("editor", {useWorker: false});
   window.editor = editor;
 
-  editor.setTheme(localStorage.getItem('selectedTheme') || 'ace/theme/monokai');
+  editor.setTheme(localStorage.getItem('selectedTheme') || validThemes[0]);
   editor.session.setMode("ace/mode/nitro");
+
+  editor.setOption("scrollPastEnd", 0.25)
 
   await restore();
 
@@ -156,7 +204,8 @@ export async function setupEditor() {
   });
 
   // Compile
-  document.querySelector('#menu-btn-compile').addEventListener('click', () => {
+  document.querySelector('#menu-btn-compile, #compiler-btn').addEventListener('click', () => {
+    openTerminal();
     compile().then(() => console.debug('Done!'));
   });
 
@@ -179,7 +228,10 @@ export async function setupEditor() {
 
   // Toggle theme
   document.querySelector('#menu-btn-toggle-theme').addEventListener('click', () => {
-    const newTheme = editor.getTheme() === "ace/theme/monokai" ? "ace/theme/dracula" : "ace/theme/monokai";
+    let index = validThemes.indexOf(editor.getTheme());
+    index = (index + 1) % validThemes.length;
+
+    const newTheme = validThemes[index];
     localStorage.setItem('selectedTheme', newTheme);
     editor.setTheme(newTheme);
   });
@@ -225,7 +277,8 @@ async function restore() {
   }
   editor.clearSelection();
 
-  addTab({file: localStorage.getItem('currentEditorFile')});
+  addTab(localStorage.getItem('currentEditorFile'));
 
   await saveEditorFile();
 }
+

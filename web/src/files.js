@@ -7,6 +7,7 @@ export async function setupFiles() {
 
   document.expandedDirs = new Set(['/src']);
 
+  await getProject();
   await updateFiles();
 
   const initGrabber = () => {
@@ -97,6 +98,11 @@ async function initFS() {
     await fs.writeFile(name, bytes);
   }
 
+  loadDefaultFiles(fs).then(()=> updateFiles());
+  return fs;
+}
+
+async function loadDefaultFiles(fs){
   // Copy core
   const coreFiles = [
     'collections/array_deque.nitro',
@@ -305,8 +311,6 @@ async function initFS() {
     const url = new URL(`../../examples/${file}`, import.meta.url).href;
     await fs.writeFile(path, new Uint8Array(await (await fetch(url)).arrayBuffer()));
   }
-
-  return fs;
 }
 
 async function createParentDirs(fs, path) {

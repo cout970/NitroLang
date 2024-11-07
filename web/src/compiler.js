@@ -69,6 +69,5 @@ export async function setupCompiler() {
     log: window.debugMode ? 'trace' : 'error',
   };
   await init(config);
-  await getProject();
   console.debug("Wasmer is ready");
 }

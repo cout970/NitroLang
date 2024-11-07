@@ -10,5 +10,4 @@ async function setup() {
   await setupFiles();
   await setupEditor();
 }
-
 setup().then(() => console.debug("All systems ready!"));

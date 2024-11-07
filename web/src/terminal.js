@@ -86,10 +86,6 @@ export async function setupTerminal() {
     document.querySelector('.terminal-content').innerHTML = '';
   });
 
-  document.querySelector('#compiler-btn').addEventListener('click', () => {
-    compile();
-  });
-
   const initGrabber = () => {
     const grab = document.querySelector('#terminal .terminal-grab');
     let holding = false;
@@ -159,4 +155,11 @@ export function toggleTerminal() {
     app.classList.remove('horizontal-layout')
     terminal.classList.toggle('terminal-collapsed');
   }
+}
+
+export function openTerminal() {
+  const app = document.querySelector('#app');
+  const terminal = document.querySelector('#terminal');
+
+  terminal.classList.remove('terminal-collapsed');
 }
