@@ -60,7 +60,7 @@ fi
 
 log "Running compiler $output"
 cp "$output" "out/compiler.wasm"
-wasm2wat -o "$output.wat" "$output"
+wasm2wat --no-check -o "$output.wat" "$output"
 # --cache-dir "$cache2"
 rm -f "$output2"
 wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
