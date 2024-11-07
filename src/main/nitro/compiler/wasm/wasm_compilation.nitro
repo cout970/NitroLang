@@ -230,10 +230,8 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
 
         if inst.kind is NInstKind::SizeOf {
-            let kind = inst.kind as NInstKind::SizeOf
-            let final_type = func.inst_final_types[inst.id]!!
-            let size = backend.get_size_of(final_type)
-            add_i32_const(size)
+            let kind = func.inst_map[inst.id]!!.kind as WInstKind::SizeOf
+            add_i32_const(kind.size)
             pop(inst.id, map)
             continue
         }

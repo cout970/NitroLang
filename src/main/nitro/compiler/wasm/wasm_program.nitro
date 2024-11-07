@@ -45,6 +45,7 @@ struct WFunction {
     source: WFunctionSource
     code: NCode
     header: WFunctionHeader
+    inst_map: Map<NInstId, WInst>
     let_declarations: Map<NVarId, WVar>
     let_final_types: Map<NVarId, FinalType>
     inst_final_types: Map<NInstId, FinalType>
@@ -55,6 +56,18 @@ struct WFunction {
     ctx: TypeMappingCtx
     locals: List<WVar>
     bytecode: WasmEmitter
+}
+
+struct WInst {
+    id: NInstId
+    span: Span
+    kind: WInstKind
+}
+
+// TODO add all remaining instructions
+option WInstKind {
+    SizeOf { final_type: FinalType, size: Int }
+    Nop {}
 }
 
 option WFuncCall {

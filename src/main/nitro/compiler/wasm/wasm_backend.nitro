@@ -163,6 +163,11 @@ fun WasmBackend.get_key_for_function(ctx: TypeMappingCtx, instance: NFunction): 
         params_final_types[] = sub_ctx.convert_type(param.param_type!!)
     }
 
+    let generic_params = []
+    for tk in instance.header.generics.type_tokens {
+        generic_params[] = sub_ctx.convert_type(tk.find_type())
+    }
+
     params_final_types[] = sub_ctx.convert_type(instance.header.return_type!!)
 
     let final_type = final_types.create_final_type(FinalTypeKind::Function @[instance], params_final_types)
@@ -170,6 +175,7 @@ fun WasmBackend.get_key_for_function(ctx: TypeMappingCtx, instance: NFunction): 
     ret MonomorphizationKey @[
         name: instance.full_name,
         final_type,
+        generic_params
     ]
 }
 
@@ -179,6 +185,7 @@ fun WasmBackend.get_key_for_const(instance: NConst): MonomorphizationKey {
     ret MonomorphizationKey @[
         name: instance.full_name,
         final_type,
+        generic_params: [],
     ]
 }
 
@@ -206,7 +213,7 @@ fun WasmBackend.get_function_header(key: MonomorphizationKey, index: Id, is_impo
 }
 
 fun WasmBackend.get_indirect_function_header(final_type: FinalType): WFunctionHeader{
-    let key = MonomorphizationKey @[name: "Function", final_type]
+    let key = MonomorphizationKey @[name: "Function", final_type, generic_params: []]
     let header = get_function_header(key, Id::uninitialized(), false)
 
     // Implicit `self` argument, used to store the indirect function pointer and upvalues

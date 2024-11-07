@@ -55,9 +55,16 @@ fun WasmBackend.add_task_visit_function(ctx: TypeMappingCtx, instance: NFunction
 fun WasmBackend.add_task_visit_lambda(ctx: TypeMappingCtx, instance: NLambda, lambda_type: FinalType): Id {
     let index = function_indices.next()
     let lambda_index = Id::uninitialized()
+
+    let generic_params = []
+    for tk in instance.generics.type_tokens {
+        generic_params[] = ctx.convert_type(tk.find_type())
+    }
+
     let key = MonomorphizationKey @[
         name: "lambda_${instance.id}",
         final_type: lambda_type,
+        generic_params,
     ]
 
     task_queue[] = CompilationTask::VisitLambda @[key, index, lambda_index, instance, ctx,]
@@ -97,6 +104,7 @@ fun WasmBackend.visit_function(ctx: TypeMappingCtx, key: MonomorphizationKey, in
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        inst_map: #[],
         compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
@@ -139,6 +147,7 @@ fun WasmBackend.visit_lambda(ctx: TypeMappingCtx, key: MonomorphizationKey, inst
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        inst_map: #[],
         compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
@@ -257,6 +266,7 @@ fun WasmBackend.visit_const(key: MonomorphizationKey, instance: NConst, index: I
         let_declarations: #[],
         let_final_types: #[],
         inst_final_types: #[],
+        inst_map: #[],
         compile_operation: #[],
         function_calls: #[],
         lambda_instances: #[],
@@ -474,7 +484,14 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
         inst.kind is NInstKind::LoadField -> {}
         inst.kind is NInstKind::SizeOf -> {
             let size_of_type = (inst.kind as NInstKind::SizeOf).type_token!!.find_type()
-            wasm_func.inst_final_types[inst.id] = ctx.convert_type(size_of_type)
+            let final_type = ctx.convert_type(size_of_type)
+            let size = get_size_of(final_type)
+
+            wasm_func.inst_map[inst.id] = WInst @[
+                id: inst.id,
+                span: inst.span,
+                kind: WInstKind::SizeOf @[final_type, size],
+            ]
         }
         inst.kind is NInstKind::IncludeAs -> {}
         inst.kind is NInstKind::Alloc -> {
