@@ -1,7 +1,7 @@
 import {Directory, init, runWasix} from "@wasmer/sdk";
-import compilerUrl from "../res/wasm/compiler_v0.0.11-opt.wasm?url";
+import compilerUrl from "../res/wasm/compiler_v0.0.13-opt.wasm?url";
 import wasmerUrl from "../res/wasm/wasmer_js_bg.wasm?url";
-import {getProject, saveFS, updateFiles} from "./files";
+import {saveFS, updateFiles} from "./files";
 
 export async function compileAndRun(fs) {
   const bytes = await compileProgram(fs);
