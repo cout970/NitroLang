@@ -10,6 +10,7 @@ let MASK_USED_ENTRY: Int = 0x80000000
 let MASK_SIZE_ENTRY: Int = 0x7FFFFFFF
 
 let TOTAL_AVAILABLE_ENTRIES_THRESHOLD: Int = MEMORY_ALLOCATOR_ENTRIES_PER_BLOCK + 4
+let MEMORY_ALLOCATOR_MARK_FREE: Boolean = false
 
 // Global allocator instance
 @InitPriority
@@ -78,10 +79,7 @@ fun MemoryAllocator::new(arena: MemoryArena, min_grow_size: Int): MemoryAllocato
     entry.data = ptr_of(first_block).unsafe_cast()
 
     header.initialized = true
-    println("global_allocator init (header: ${ptr_of(header)}, first_block: ${ptr_of(first_block)})")
-
     header.grow_memory(min_grow_size)
-
     header.ensure_enough_entries()
 
     ret header
@@ -334,7 +332,9 @@ fun MemoryAllocator.free(ptr: Ptr<Byte>) {
     }
 
     // Mark the memory to detect usage after free
-    memory_fill_internal(ptr.address, 0xAB.to_byte(), entry_size)
+    if MEMORY_ALLOCATOR_MARK_FREE {
+        memory_fill_internal(ptr.address, 0xAB.to_byte(), entry_size)
+    }
 
     // Update the entry
     entry.flags = entry_size
