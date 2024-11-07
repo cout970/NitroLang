@@ -4,7 +4,7 @@ Nitro is a statically typed, compiled language with a focus on performance and s
 
 # Try it
 
-You can run Nitro code in your browser using the [Nitro Playground](https://code.cout970.net/).
+You can run Nitro code in your browser using the [Nitro Playground](https://play.nitro-lang.org/).
 
 
 # Examples

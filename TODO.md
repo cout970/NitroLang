@@ -69,3 +69,4 @@ Intended for the developers
 
 - Function with return type by no return at the end, does not cause an error, crashes at runtime
 - 'break' in when expression emits error 'Int' vs 'Nothing'
+- Crash with options if they only have one variant
