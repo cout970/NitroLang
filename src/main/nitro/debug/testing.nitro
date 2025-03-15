@@ -2,3 +2,27 @@
 fun main() {
     println("Hello, World!")
 }
+
+//interface ToString {
+//    fun This.to_string(): String
+//}
+//
+//impl ToString for Int {
+//    fun This.to_string(): String {
+//        return this.to_string()
+//    }
+//}
+//
+//struct VTable {
+//    kind: Long
+//    fn_address: Int // to_string: #T.() -> String
+//}
+//
+//struct Interface <#T> {
+//    vtable: VTable
+//    value: #T
+//}
+//
+//fun example(obj: ToString): String {
+//    return obj.vtable.fn_address(obj)
+//}

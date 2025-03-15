@@ -2,6 +2,7 @@
 let CACHE_VERSION: Int = 0x04
 
 struct CompilationUnit {
+    args: ProgramArgs
     reporter: Reporter
     module_paths: Map<String, String>
     included_paths: List<String>
@@ -12,17 +13,16 @@ struct CompilationUnit {
     types: TypeContainer
     type_checker: TypeChecker
     backend: WasmBackend
-    cache_path: Optional<String>
-    core_path: Optional<String>
     verify_cache: Boolean
 }
 
-fun CompilationUnit::new(): CompilationUnit {
+fun CompilationUnit::new(args: ProgramArgs): CompilationUnit {
     let reporter = Reporter::new()
     let program = Program::new()
     let types = TypeContainer::new()
 
     ret CompilationUnit @[
+        args,
         reporter,
         module_paths: #[],
         included_paths: [],
@@ -33,8 +33,6 @@ fun CompilationUnit::new(): CompilationUnit {
         types,
         type_checker: TypeChecker::new(reporter, program, types),
         backend: WasmBackend::new(reporter, program),
-        cache_path: None(),
-        core_path: None(),
         verify_cache: false,
     ]
 }
@@ -69,6 +67,17 @@ fun CompilationUnit.parse() {
         included_files[] = file
 
         for inc in sub_program.includes {
+            let only_if = inc.annotations.get_only_if_annotation()
+
+            // Skip includes that are not for the current target
+            if only_if.is_some() {
+                let target = only_if!!.target
+
+                if target != args.target {
+                    continue
+                }
+            }
+
             let include_path = resolve_full_path(inc.path, file.path, inc.span)
 
             add_file(include_path, file.root)
@@ -79,7 +88,7 @@ fun CompilationUnit.parse() {
 }
 
 fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program> {
-    if cache_path.is_none() {
+    if args.cache_dir.is_none() {
         ret None()
     }
 
@@ -150,7 +159,7 @@ fun CompilationUnit.parse_file_from_cache(file: IncludedFile): Optional<Program>
 }
 
 fun CompilationUnit.save_parse_cache(file: IncludedFile, sub_program: Program) {
-    if cache_path.is_none() {
+    if args.cache_dir.is_none() {
         ret
     }
 
@@ -212,7 +221,7 @@ fun CompilationUnit.get_cache_file_path(path: String): FilePath {
         safe_path = safe_path.replace(c, "_")
     }
 
-    let base_path = cache_path!!
+    let base_path = args.cache_dir!!
     ret FilePath::new("$base_path/$safe_path.bin")
 }
 
@@ -261,9 +270,9 @@ fun CompilationUnit.compile(output_path: FilePath) {
 
 fun CompilationUnit.include_core() {
     // If specified, use the core path provided
-    if core_path.is_some() {
-        module_paths["core"] = FilePath::directory_name(core_path!!)
-        add_file(IncludedFile::new(core_path!!, "core"))
+    if args.core_path.is_some() {
+        module_paths["core"] = FilePath::directory_name(args.core_path!!)
+        add_file(IncludedFile::new(args.core_path!!, "core"))
         ret
     }
 
@@ -328,19 +337,24 @@ fun CompilationUnit.include_core() {
     add_source(include_as_string!("../core/string/string_builder.nitro"), "string/string_builder.nitro", root)
     add_source(include_as_string!("../core/time/duration.nitro"), "time/duration.nitro", root)
     add_source(include_as_string!("../core/time/instant.nitro"), "time/instant.nitro", root)
-    add_source(include_as_string!("../core/wasi/runtime.nitro"), "wasi/runtime.nitro", root)
-    add_source(include_as_string!("../core/wasi/wasi.nitro"), "wasi/wasi.nitro", root)
+    if args.target == "wasm32-wasi" {
+        add_source(include_as_string!("../core/wasi_runtime/runtime.nitro"), "wasi/runtime.nitro", root)
+        add_source(include_as_string!("../core/wasi_runtime/runtime_fs.nitro"), "wasi/runtime_fs.nitro", root)
+        add_source(include_as_string!("../core/wasi_runtime/wasi.nitro"), "wasi/wasi.nitro", root)
+    }
+    if args.target == "wasm32-js" {
+        add_source(include_as_string!("../core/js_runtime/runtime.nitro"), "js/runtime.nitro", root)
+        add_source(include_as_string!("../core/js_runtime/runtime_fs.nitro"), "js/runtime_fs.nitro", root)
+    }
 }
 
 fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     let start_compile_all = Instant::now()
-    let unit = CompilationUnit::new()
-    unit.cache_path = args.cache_dir
-    unit.core_path = args.core_path
+    let unit = CompilationUnit::new(args)
 
     if !args.no_core_lib {
         if args.verbose {
-            Log::info("Including Core from '${unit.core_path ?? "<bundled core>"}'")
+            Log::info("Including Core from '${args.core_path ?? "<bundled core>"}'")
         }
 
         // Include core library

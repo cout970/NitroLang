@@ -10,7 +10,21 @@ struct WasmEmitter {
     debug_suffix: String
     debug_indent: Int
     debug_print: Boolean
+    generate_dwarf: Boolean
+    debug_lines: List<DebugLine>
     backend: Optional<WasmBackend>
+}
+
+enum DebugLineKind {
+    Span
+    FunctionStart
+    FunctionEnd
+}
+
+struct DebugLine {
+    kind: DebugLineKind
+    offset: Int
+    span: Span
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
@@ -38,6 +52,8 @@ fun WasmEmitter::new(): WasmEmitter {
         debug_suffix: "",
         debug_indent: 1,
         debug_print: false,
+        generate_dwarf: false,
+        debug_lines: [],
         backend: None(),
     ]
 }
@@ -131,6 +147,11 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
 
     // Symbol names
     emit_custom_section_names(program)
+
+    if generate_dwarf {
+        // DWARF debug info
+        emit_custom_section_dwarf(program)
+    }
 }
 
 // https://webassembly.github.io/spec/core/binary/modules.html#sections
@@ -442,6 +463,169 @@ fun WasmEmitter.emit_custom_section_names(program: WasmProgram) {
     emit(tmp)
 }
 
+fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
+    let tmp = new_child_emitter()
+    if debug_print {
+        tmp.debug_print_line("Emit custom section: .debug_line")
+    }
+
+    tmp.emit_name(".debug_line")
+    let line = new_child_emitter()
+
+    line.emit_byte(0x04) // DWARF version
+    line.emit_byte(0x00) // DWARF version
+
+    let header = new_child_emitter()
+
+    header.emit_byte(0x01) // DWARF min_inst_length
+    header.emit_byte(0x01) // DWARF max_ops_per_inst
+    header.emit_byte(0x01) // DWARF default_is_stmt
+    header.emit_byte(0x7B /* -5 in Signed LEB128 */) // DWARF line_base
+    header.emit_byte(14) // DWARF line_range
+    header.emit_byte(13) // DWARF opcode_base
+
+    // Standard opcode lengths
+    header.emit_byte(0x00);   // DW_LNS_copy
+    header.emit_byte(0x01);   // DW_LNS_advance_pc
+    header.emit_byte(0x01);   // DW_LNS_advance_line
+    header.emit_byte(0x01);   // DW_LNS_set_file
+    header.emit_byte(0x01);   // DW_LNS_set_column
+    header.emit_byte(0x00);   // DW_LNS_negate_stmt
+    header.emit_byte(0x00);   // DW_LNS_set_basic_block
+    header.emit_byte(0x00);   // DW_LNS_const_add_pc
+    header.emit_byte(0x01);   // DW_LNS_fixed_advance_pc
+    header.emit_byte(0x00);   // DW_LNS_set_prologue_end
+    header.emit_byte(0x00);   // DW_LNS_set_epilogue_begin
+    header.emit_byte(0x01);   // DW_LNS_set_isa
+
+    // Directory table (just empty string for current directory)
+    header.emit_byte(0) // Number of directories
+
+    let file_map: Map<String, IncludedFile> = #[]
+
+    for debug_line in debug_lines {
+        let path = debug_line.span.file.file_path.path
+        file_map[path] = debug_line.span.file
+    }
+
+    let files = file_map.keys_to_list()
+
+    println("All files: ${debug_lines.join("\n")}")
+
+    // File name table
+    for path in files {
+        let file = file_map[path]!!
+        // File path
+        header.emit_raw_bytes(path.to_bytes())
+        header.emit_byte(0x00) // Null byte
+        // Directory index
+        header.emit_u32(0)
+        // Last modified time
+        header.emit_u32(file.last_modified)
+        // File size
+        header.emit_u32(file.source.len)
+    }
+    // Mark end of file list
+    header.emit_byte(0x00) // Null byte
+
+    // End of header
+    line.emit_u32_le(header.buffer.len) // Header length
+    line.emit(header)
+
+    // Line number program
+    let current_file = ""
+    let current_column = 0
+    let current_line = 0
+
+    for debug_line in debug_lines {
+        if debug_line.kind == DebugLineKind::FunctionEnd {
+            // End sequence
+            line.emit_byte(0x00) // Extended opcode
+            line.emit_byte(0x01) // Operation length
+            line.emit_byte(0x01 /* DW_LNS_end_sequence */)
+            continue
+        }
+
+        let file = debug_line.span.file.file_path.path
+
+        // Set file
+        if file != current_file {
+            current_file = file
+            // 1 base index
+            let file_index: Int = files.index_of(current_file)!! + 1
+            line.emit_byte(0x04 /* DW_LNS_set_file */)
+            line.emit_u32(file_index)
+        }
+
+        // Set address
+        line.emit_byte(0x00) // Extended opcode
+        line.emit_u32_le(0x5) // Operation length: 1 + size_of<Int>()
+        line.emit_byte(0x02 /* DW_LNE_set_address */)
+        line.emit_u32_le(debug_line.offset) // Wasm offset
+
+        // Set column number
+        if debug_line.span.column != current_column {
+            current_column = debug_line.span.column
+            line.emit_byte(0x05 /* DW_LNS_set_column */)
+            line.emit_u32(current_column)
+        }
+
+        // Set line number
+        if debug_line.span.line != current_line {
+            current_line = debug_line.span.line
+            line.emit_byte(0x03 /* DW_LNS_advance_line */)
+            line.emit_i32(debug_line.span.line - current_line)
+        }
+
+        // Emit a row in the matrix
+        line.emit_byte(0x01 /* DW_LNS_copy */)
+    }
+
+    // End sequence
+    line.emit_byte(0x00) // Extended opcode
+    line.emit_byte(0x01) // Operation length
+    line.emit_byte(0x01 /* DW_LNS_end_sequence */)
+
+    // Total length of the DWARF section
+    tmp.emit_u32_le(line.buffer.len)
+    // Rest of DWARF section
+    tmp.emit(line)
+
+    // Wasm custom section encapsulated in a DWARF section
+    emit_section_header(SectionType::Custom, tmp.buffer.len)
+    emit(tmp)
+}
+
+fun WasmEmitter.add_span(span: Span) {
+    if generate_dwarf {
+        debug_lines[] = DebugLine @[
+            kind: DebugLineKind::Span,
+            offset: buffer.len,
+            span,
+        ]
+    }
+}
+
+fun WasmEmitter.add_enter_function(span: Span) {
+    if generate_dwarf {
+        debug_lines[] = DebugLine @[
+            kind: DebugLineKind::FunctionStart,
+            offset: buffer.len,
+            span,
+        ]
+    }
+}
+
+fun WasmEmitter.add_exit_function(span: Span) {
+    if generate_dwarf {
+        debug_lines[] = DebugLine @[
+            kind: DebugLineKind::FunctionEnd,
+            offset: buffer.len,
+            span,
+        ]
+    }
+}
+
 // https://webassembly.github.io/spec/core/binary/values.html#names
 fun WasmEmitter.emit_name(name: String) {
     // names are just a vec of bytes that must be encoded in UTF-8, Strings are already UTF-8
@@ -457,8 +641,29 @@ fun WasmEmitter.emit_bytes(bytes: List<Byte>) {
     }
 }
 
+fun WasmEmitter.emit_raw_bytes(bytes: List<Byte>) {
+    buffer.ensure_capacity(buffer.len + bytes.len)
+    repeat bytes.len {
+        buffer[] = bytes[it]!!
+    }
+}
+
+// 4 byte integer in little-endian, 0x12345678 -> 0x78 0x56 0x34 0x12
+fun WasmEmitter.emit_u32_le(value: Int) {
+    emit_byte(value & 0xFF)
+    emit_byte((value >> 8) & 0xFF)
+    emit_byte((value >> 16) & 0xFF)
+    emit_byte((value >> 24) & 0xFF)
+}
+
 // https://webassembly.github.io/spec/core/binary/values.html#integers
 fun WasmEmitter.emit_u32(value: Int) {
+    // Fast path for small values (0-127)
+    if value < 128 {
+        emit_byte(value)
+        ret
+    }
+
     // unsigned LEB128 encoding
     loop {
         let byte = value & 0x7F
@@ -638,6 +843,7 @@ fun WasmEmitter.emit_limits(min: Int, max: Int) {
 
 // Copy the content of another emitter into this one
 fun WasmEmitter.emit(other: WasmEmitter) {
+    let start = buffer.len
     let aux = other.buffer
     buffer.ensure_capacity(buffer.len + aux.len)
 
@@ -648,6 +854,11 @@ fun WasmEmitter.emit(other: WasmEmitter) {
     debug_buffer[] = other.debug_buffer.to_string().indent(2)
     debug_buffer.trimEnd()
     debug_buffer[] = "\n"
+
+    for line in other.debug_lines {
+        line.offset += start
+        debug_lines[] = line
+    }
 }
 
 fun WasmEmitter.emit_byte(value: Int) {
@@ -656,4 +867,8 @@ fun WasmEmitter.emit_byte(value: Int) {
 
 fun WasmEmitter.ends_in_return(): Boolean {
     ret buffer.len > 0 && buffer[buffer.len - 1]!!.to_int() == WOpcode::Return.code
+}
+
+fun DebugLine.to_string(): String {
+    ret "$offset: $span"
 }

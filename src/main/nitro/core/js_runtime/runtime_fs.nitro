@@ -1,0 +1,52 @@
+
+mod runtime_fs {
+
+    fun read_directory_files(path: String): Result<List<String>, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun get_metadata(path: String): Result<FileMetadata, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun read_text(path: String): Result<String, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun write_text(path: String, text: String): Result<Nothing, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun read_bytes(path: String): Result<List<Byte>, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun write_bytes(path: String, bytes: List<Byte>): Result<Nothing, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+
+    fun exists(path: String): Result<Boolean, IoError> {
+        ret Err(IoError @[
+             message: "Filesystem not supported on the browser",
+             code: "not_supported"
+        ])
+    }
+}

@@ -1,0 +1,113 @@
+
+// This module provides utilities to extract information about the runtime environment
+mod runtime {
+
+    // Exit the program with the given exit code
+    @Extern [lib: "core", name: "runtime_exit"]
+    fun exit(code: Int) {}
+
+    // Returns the list of arguments passed to the program
+    fun get_program_args(): List<String> {
+        let args: List<String> = []
+
+        repeat runtime::extern::get_program_args_count() {
+            args[] = runtime::extern::get_program_arg(it)
+        }
+
+        ret args
+    }
+
+    @Extern [lib: "core", name: "runtime_get_program_args_count"]
+    fun extern::get_program_args_count(): Int {}
+
+    @Extern [lib: "core", name: "runtime_get_program_arg"]
+    fun extern::get_program_arg(index: Int): String {}
+
+    // Returns a map of the environment variables
+    fun get_environment(): Map<String, String> {
+        let env = #[]
+
+        repeat runtime::extern::get_environment_count() {
+            let key = runtime::extern::get_environment_key(it)
+            let value = runtime::extern::get_environment_value(it)
+
+            env[key] = value
+        }
+
+        ret env
+    }
+
+    @Extern [lib: "core", name: "runtime_get_environment_count"]
+    fun extern::get_environment_count(): Int {}
+
+    @Extern [lib: "core", name: "runtime_get_environment_key"]
+    fun extern::get_environment_key(index: Int): String {}
+
+    @Extern [lib: "core", name: "runtime_get_environment_value"]
+    fun extern::get_environment_value(index: Int): String {}
+
+    // Returns an instant representing the current time, using the REALTIME clock,
+    // which is subject to NTP adjustments and tries to be as close to the wall-clock time as possible
+    fun get_realtime_instant(): Instant {
+        let now_ms: Float = runtime::extern::get_realtime_clock_ms()
+        ret Instant @[
+            seconds: (now_ms / 1000f).to_long(),
+            nanoseconds: ((now_ms % 1000f) * 1000000f).to_int()
+        ]
+    }
+
+    @Extern [lib: "core", name: "runtime_get_realtime_clock_ms"]
+    fun extern::get_realtime_clock_ms(): Float {}
+
+    // Returns a monotonic clock value in nanoseconds, meaning it will never go backwards and is not subject to clock adjustments
+    // This is useful for measuring time intervals and benchmarking
+    fun get_monotonic_timer_ns(): Long {
+        let now_ns = runtime::extern::get_monotonic_clock_ns()
+        ret (now_ns * 1000000f).to_long()
+    }
+
+    @Extern [lib: "core", name: "runtime_get_monotonic_clock_ns"]
+    fun extern::get_monotonic_clock_ns(): Float {}
+
+    // Returns a list of random bytes with the given length
+    fun get_random_bytes(amount: Int): List<Byte> {
+        let list = []
+
+        repeat amount {
+            let zero_to_one: Float = runtime::extern::random()
+            list[] = (zero_to_one * 256f).to_int().to_byte()
+        }
+
+        ret list
+    }
+
+    @Extern [lib: "core", name: "runtime_random"]
+    fun extern::random(): Float {}
+
+    // Write the given string to stdout, does not append a newline
+    fun stdout_write(str: String) {
+        let cursor = 0
+
+        while cursor < str.len {
+            let curr_len = str.codepoint_len_at(cursor)
+            let codepoint = str.get_codepoint(cursor)
+            if codepoint.is_some() {
+                runtime::stdout_write_char(codepoint!!)
+            }
+            cursor += curr_len
+        }
+    }
+
+    // Write a char to the stdout
+    fun stdout_write_char(unicode: Char) {
+        runtime::stdout_write_char(unicode.to_int())
+    }
+
+    // Write a char to the stdout given a Unicode code point
+    @Extern [lib: "core", name: "runtime_stdout_write_char"]
+    fun stdout_write_char(unicode: Int) {}
+
+    // Write a signed integer to the stdout
+    @Extern [lib: "core", name: "runtime_stdout_write_int"]
+    fun stdout_write_int(value: Int) {}
+}

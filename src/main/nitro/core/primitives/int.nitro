@@ -187,6 +187,13 @@ fun Int.to_byte(): Byte {}
 // Converts this integer value to a string
 fun Int.to_string(): String = to_string_in_base(10)
 
+// Converts this integer value to a hexadecimal string with fixed width
+fun Int.to_hex(): String {
+    let buffer = StringBuilder::new()
+    buffer.add_hex(this)
+    ret buffer.to_string()
+}
+
 // Converts this integer value to a string in the given base,
 // the base must be in the range of 2 to 36
 // e.g. 0x10.to_string_in_base(16) = "10"

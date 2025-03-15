@@ -180,6 +180,32 @@ fun NAnnotationContainer.get_intrinsic_size_annotation(): Optional<IntrinsicSize
     ret Some(IntrinsicSizeAnnotation @[size: size_opt!!])
 }
 
+struct OnlyIfAnnotation {
+    target: String
+}
+
+fun NAnnotationContainer.get_only_if_annotation(): Optional<OnlyIfAnnotation> {
+    let only_if_annotation = get("OnlyIf")
+    if only_if_annotation.is_none() {
+        ret None()
+    }
+
+    let a: NAnnotation = only_if_annotation!!
+    let target: Optional<NValue> = a.get_arg("target")
+
+    if target.is_none() {
+        ret None()
+    }
+
+    let target_str: Optional<String> = target!!.get_string()
+
+    if target_str.is_none() {
+        ret None()
+    }
+
+    ret Some(OnlyIfAnnotation @[target: target_str!!])
+}
+
 fun NAnnotation.to_string(): String {
     let s = StringBuilder::new()
     s[] = "@"

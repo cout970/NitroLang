@@ -3,11 +3,12 @@ include "./includes.nitro"
 // TODO run inline tests
 // TODO generate extern types for typescript
 
-let VERSION: String = "0.0.13"
+let VERSION: String = "0.0.14"
 
 struct ProgramArgs {
     input: String,
     output: String,
+    target: String,
     dump_ir: Boolean,
     cache_dir: Optional<String>,
     module_paths: Map<String, String>,
@@ -21,6 +22,7 @@ fun ProgramArgs::new(): ProgramArgs {
     ret ProgramArgs @[
         input: "",
         output: "output.wasm",
+        target: "wasm32-wasi",
         dump_ir: false,
         cache_dir: None(),
         module_paths: #[],
@@ -67,6 +69,25 @@ fun main() {
             let cache_dir = args[i]!!
             i += 1
             prog.cache_dir = Some(cache_dir)
+            continue
+        }
+
+        if arg == "--target" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing target parameter")
+                ret
+            }
+
+            let target = args[i]!!
+            i += 1
+            if target != "wasm32-wasi" && target != "wasm32-js" {
+                Log::error("Invalid target: $target")
+                Log::info("Valid targets: wasm, js")
+                ret
+            }
+            prog.target = target
             continue
         }
 
@@ -210,7 +231,7 @@ fun main() {
 
     // Perform compilation
     if !CompilationUnit::compile_all(prog) {
-        wasi::proc_exit(1)
+        runtime::exit(1)
     }
 
     if dump_allocator {

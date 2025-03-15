@@ -59,5 +59,16 @@ include "core:string/string.nitro"
 include "core:string/string_builder.nitro"
 include "core:time/duration.nitro"
 include "core:time/instant.nitro"
-include "core:wasi/runtime.nitro"
-include "core:wasi/wasi.nitro"
+
+@OnlyIf [target: "wasm32-wasi"]
+include "core:wasi_runtime/wasi.nitro"
+@OnlyIf [target: "wasm32-wasi"]
+include "core:wasi_runtime/runtime.nitro"
+@OnlyIf [target: "wasm32-wasi"]
+include "core:wasi_runtime/runtime_fs.nitro"
+
+//@OnlyIf [target: "wasm32-js"]
+//include "core:js_runtime/runtime.nitro"
+//
+//@OnlyIf [target: "wasm32-js"]
+//include "core:js_runtime/runtime_fs.nitro"

@@ -102,6 +102,10 @@ fun Float.nearest(): Float {}
 @WasmInline [opcode: "i32.trunc_f32_s"]
 fun Float.to_int(): Int {}
 
+// Converts a floating point number to a long, by removing any fractional digits
+@WasmInline [opcode: "i64.trunc_f32_s"]
+fun Float.to_long(): Long {}
+
 // Comparisons
 
 // This function compares two floating point numbers for equality

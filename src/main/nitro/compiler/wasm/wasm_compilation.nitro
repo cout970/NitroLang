@@ -30,6 +30,8 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
     let map: Map<NInstId, InstResultAction> = #[]
     func.check_stack_allocation(backend, map)
 
+    add_enter_function(func.code.container.span)
+
     for inst in code.inst_list {
         if debug_print {
             debug_suffix = ";; #${inst.id} $inst"
@@ -95,6 +97,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
             let upvalue_index = code.upvalues.index_of(nvar_id)!!
 
+            add_span(nvar.span)
             add_local_get(0 /* $lambda_instance */)
             add_i32_load((1 + upvalue_index) * 4)
             add_local_set(wvar.index.to_int())
@@ -108,14 +111,17 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         if inst.kind is NInstKind::IfStart {
             let kind = inst.kind as NInstKind::IfStart
             push(kind.condition, map)
+            add_span(inst.span)
             add_if(0x40)
             continue
         }
         if inst.kind is NInstKind::IfElse {
+            add_span(inst.span)
             add_else()
             continue
         }
         if inst.kind is NInstKind::IfEnd {
+            add_span(inst.span)
             add_end()
             continue
         }
@@ -143,6 +149,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
                 continue
             }
 
+            add_span(inst.span)
             push(kind.if_true, map)
             push(kind.if_false, map)
             push(kind.condition, map)
@@ -151,6 +158,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             continue
         }
         if inst.kind is NInstKind::LoopStart {
+            add_span(inst.span)
             add_block(0x40)
             add_loop(0x40)
             continue
@@ -162,19 +170,23 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             let jump_to_block = code.find_block(kind.block!!)
             let curr_block = code.find_block(inst.block)
 
+            add_span(inst.span)
             add_br(curr_block.depth - jump_to_block.depth)
             continue
         }
         if inst.kind is NInstKind::LoopEnd {
+            add_span(inst.span)
             add_end()
             add_end()
             continue
         }
         if inst.kind is NInstKind::WhenStart {
+            add_span(inst.span)
             add_block(0x40)
             continue
         }
         if inst.kind is NInstKind::WhenEnd {
+            add_span(inst.span)
             add_end()
             continue
         }
@@ -192,6 +204,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         if inst.kind is NInstKind::Return {
             let kind = inst.kind as NInstKind::Return
             push(kind.value, map)
+            add_span(inst.span)
             add_return()
             continue
         }
@@ -231,6 +244,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
 
         if inst.kind is NInstKind::SizeOf {
             let kind = func.inst_map[inst.id]!!.kind as WInstKind::SizeOf
+            add_span(inst.span)
             add_i32_const(kind.size)
             pop(inst.id, map)
             continue
@@ -260,6 +274,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         if inst.kind is NInstKind::IncludeAs {
             let kind = inst.kind as NInstKind::IncludeAs
 
+            add_span(inst.span)
             if kind.raw {
                 let bytes_list = FilePath::new(kind.path).read_bytes()!!
                 let ptr = backend.push_bytes(bytes_list)
@@ -285,6 +300,8 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             add_unreachable()
         }
     }
+
+    add_exit_function(func.code.container.span)
 
 //    if debug_print && func.source is WFunctionSource::Function {
 //        let instance = (func.source as WFunctionSource::Function).instance
@@ -335,6 +352,7 @@ fun WasmEmitter.compile_inst_lambda(inst: NInst, func: WFunction, backend: WasmB
     let size = backend.get_size_of(real_final_type)
     let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
 
+    add_span(inst.span)
     add_i32_const(size)
     add_call(call.value.to_int())
 
@@ -373,6 +391,7 @@ fun WasmEmitter.compile_inst_alloc(inst: NInst, func: WFunction, backend: WasmBa
     let size = backend.get_size_of(final_type)
     let call = func.function_calls[inst.id]!! as WFuncCall::WFunction
 
+    add_span(inst.span)
     add_i32_const(size)
     add_call(call.value.to_int())
     pop(inst.id, map)
@@ -407,6 +426,7 @@ fun WasmEmitter.compile_inst_store_field(inst: NInst, func: WFunction, backend: 
         offset += field.size
     }
 
+    add_span(inst.span)
     push(kind.instance, map)
     add_i32_const(offset)
     add_i32_add()
@@ -443,6 +463,7 @@ fun WasmEmitter.compile_inst_init_field(inst: NInst, func: WFunction, backend: W
         offset += field.size
     }
 
+    add_span(inst.span)
     push(kind.instance, map)
     add_i32_const(offset)
     add_i32_add()
@@ -476,6 +497,7 @@ fun WasmEmitter.compile_inst_load_field(inst: NInst, func: WFunction, backend: W
         offset += field.size
     }
 
+    add_span(inst.span)
     push(kind.instance, map)
     add_i32_const(offset)
     add_i32_add()
@@ -490,6 +512,7 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
         let id = func.constants[inst.id]!!
         let wconst = backend.find_const(id)
 
+        add_span(inst.span)
         add_i32_const(wconst.section.offset)
         let size = add_load_by_type(wconst.final_type, backend)
 
@@ -516,6 +539,8 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
     if wvar.is_none() {
         let index = code.upvalues.index_of(nvar_id)!!
 
+        add_span(inst.span)
+
         // Implicit lambda instance
         add_local_get(0)
 
@@ -533,6 +558,7 @@ fun WasmEmitter.compile_inst_load_var(inst: NInst, func: WFunction, backend: Was
 
     let local_id = wvar!!.index.to_int()
 
+    add_span(inst.span)
     if nvar.is_upvalue {
         // Upvalues are pointers in the stack, the value is in the heap
         add_local_get(local_id)
@@ -563,6 +589,7 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
     if wvar.is_none() {
         let index = code.upvalues.index_of(nvar_id)
 
+        add_span(inst.span)
         // Implicit lambda instance
         add_local_get(0)
 
@@ -579,6 +606,7 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
 
     let local_id = wvar!!.index.to_int()
 
+    add_span(inst.span)
     if nvar.is_upvalue {
         // Upvalues are pointers in the stack, the value is in the heap
         add_local_get(local_id)
@@ -593,6 +621,8 @@ fun WasmEmitter.compile_inst_store_var(inst: NInst, func: WFunction, backend: Wa
 fun WasmEmitter.compile_inst_fun_call(inst: NInst, func: WFunction, backend: WasmBackend, map: Map<NInstId, InstResultAction>, code: NCode) {
     let kind = inst.kind as NInstKind::FunCall
     let opt = func.function_calls[inst.id]!!
+
+    add_span(inst.span)
 
     for arg in kind.arguments {
 
@@ -654,37 +684,43 @@ fun WasmEmitter.compile_inst_literal(inst: NInst, func: WFunction, backend: Wasm
 
     if expr is NValue::Int {
         let const_value = expr as NValue::Int
+        add_span(inst.span)
         add_i32_const(const_value.value)
         pop(inst.id, map)
         ret
     }
     if expr is NValue::Long {
         let const_value = expr as NValue::Long
+        add_span(inst.span)
         add_i64_const(const_value.value)
         pop(inst.id, map)
         ret
     }
     if expr is NValue::Float {
         let const_value = expr as NValue::Float
+        add_span(inst.span)
         add_f32_const(const_value.value)
         pop(inst.id, map)
         ret
     }
-// No new features until the new compiler is functional
+// This functionality is postponed
 //  if expr is NValue::NConstDouble {
 //      let value = expr as NValue::NConstDouble
+//      add_span(inst.span)
 //      add_f64_const(value.value)
 //      ret
 //  }
     if expr is NValue::String {
         let const_value = expr as NValue::String
         let ptr = backend.push_string(const_value.value)
+        add_span(inst.span)
         add_i32_const(ptr)
         pop(inst.id, map)
         ret
     }
     if expr is NValue::Boolean {
         let const_value = expr as NValue::Boolean
+        add_span(inst.span)
         add_i32_const(if const_value.value {1} else {0})
         pop(inst.id, map)
         ret
@@ -743,6 +779,7 @@ fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: Wasm
 
     // Always true
     if final_pattern.kind is FinalTypePatternKind::Any {
+        add_span(inst.span)
         push(kind.value, map)
         add_drop()
         add_i32_const(1)
@@ -765,6 +802,7 @@ fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: Wasm
         let option_instance = item_instance.parent!!
         let index: Int = option_instance.get_index_of_item(item_instance)!!
 
+        add_span(inst.span)
         // Variant field
         push(kind.value, map)
         add_i32_load(0)
@@ -778,6 +816,7 @@ fun WasmEmitter.compile_inst_is_type(inst: NInst, func: WFunction, backend: Wasm
 
     // If the type pattern is not an option item, or the expression type is not an option or item
     // The check is performed at compile time
+    add_span(inst.span)
     push(kind.value, map)
     add_drop()
     add_i32_const(if final_pattern.matches_type(final_type) { 1 } else { 0 })
