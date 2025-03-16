@@ -395,6 +395,7 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
                 explicit_receiver: true,
                 arguments: [],
                 explicit_type_arguments: [],
+                use_paths: [],
                 call_site: None(),
             ])
 
@@ -453,6 +454,7 @@ fun NCode.add_ref_inc(span: Span, value: NInstId, inst_id: Id, after: Boolean, b
         explicit_receiver: true,
         arguments: [value],
         explicit_type_arguments: [],
+        use_paths: [],
         call_site: None(),
     ]
     ret if after {
@@ -470,6 +472,7 @@ fun NCode.add_ref_dec(span: Span, value: NInstId, inst_id: Id, after: Boolean, b
         explicit_receiver: true,
         arguments: [value],
         explicit_type_arguments: [],
+        use_paths: [],
         call_site: None(),
     ]
 
@@ -509,6 +512,7 @@ fun NCode.add_var_ref_dec(span: Span, variable: NVar, inst_id: Id, after: Boolea
         explicit_receiver: true,
         arguments: [variable_load2.id],
         explicit_type_arguments: [],
+        use_paths: [],
         call_site: None(),
     ])
     fun_call.block = block_id

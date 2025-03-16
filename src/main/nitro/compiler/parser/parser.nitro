@@ -12,6 +12,7 @@ struct Parser {
     allow_expression_assignment: Boolean
     allow_generics_collection: Boolean
     current_path: String
+    use_paths: List<String>
 }
 
 fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
@@ -28,6 +29,7 @@ fun Parser::new(lexer: Lexer, reporter: Reporter, program: Program): Parser {
         allow_expression_assignment: false,
         allow_generics_collection: false,
         current_path: "",
+        use_paths: [],
     ]
 }
 

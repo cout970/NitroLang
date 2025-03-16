@@ -189,6 +189,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
                 explicit_receiver: kind.explicit_receiver,
                 arguments: args,
                 explicit_type_arguments: kind.explicit_type_arguments,
+                use_paths: kind.use_paths,
                 call_site: kind.call_site,
             ]
         }

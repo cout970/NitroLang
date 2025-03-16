@@ -214,6 +214,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
         }
 
         let inst = code.add_fun_call(span, path, name, false, args, type_args)
+        (inst.kind as NInstKind::FunCall).use_paths.add_all(use_paths)
         ret found(inst.id)
     }
 
@@ -221,6 +222,7 @@ fun Parser.read_expression_with_name(code: NCode): Parsed<NInstId> {
         let args = [read_expression_function_call_end(code)?]
 
         let inst = code.add_fun_call(span, path, name, false, args, type_args)
+        (inst.kind as NInstKind::FunCall).use_paths.add_all(use_paths)
         ret found(inst.id)
     }
 
@@ -307,6 +309,7 @@ fun Parser.read_expression_new_instance(code: NCode, path: String, name: String,
     skip_nl()
 
     let type_usage = NTypeUsage::simple_with_path(span, path, name)
+    type_usage.use_paths.add_all(use_paths)
     type_usage.params = type_args
     let instance = code.add_alloc(span, type_usage)
 
@@ -413,5 +416,6 @@ fun Parser.read_expression_string_template(code: NCode, name: String, path: Stri
     }
 
     let inst = code.add_fun_call(span, path, name, false, args, [])
+    (inst.kind as NInstKind::FunCall).use_paths.add_all(use_paths)
     ret found(inst.id)
 }

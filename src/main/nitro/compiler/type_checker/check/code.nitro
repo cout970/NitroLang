@@ -251,6 +251,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
                 explicit_receiver: true,
                 arguments: [kind.left, kind.right],
                 explicit_type_arguments: [],
+                use_paths: [],
                 call_site: None(),
             ]
             ret
@@ -269,6 +270,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
             explicit_receiver: true,
             arguments: [kind.left, kind.right],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
 
@@ -279,6 +281,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
             explicit_receiver: true,
             arguments: [get_ordering.id],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
         ret
@@ -399,7 +402,7 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         }
 
         inst.type_token = if kind.raw {
-            let ty = find_type_by_name("List", [type_cache["Byte"]!!], inst.span)
+            let ty = find_type_by_name("List", [type_cache["Byte"]!!], inst.span, [])
             Some(ty.to_token())
         } else {
             type_cache["String"].to_token()

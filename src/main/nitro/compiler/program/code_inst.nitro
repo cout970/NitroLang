@@ -70,6 +70,7 @@ option NInstKind {
         explicit_receiver: Boolean
         arguments: List<NInstId>
         explicit_type_arguments: List<NTypeUsage>
+        use_paths: List<String>
         call_site: Optional<FunCallSite>
     }
     // Binary operation, like `a + b`, will be transformed into a function call `a.plus(b)` at type resolution
@@ -505,6 +506,7 @@ fun NCode.add_fun_call(
         explicit_receiver,
         arguments,
         explicit_type_arguments,
+        use_paths: [],
         call_site: None(),
     ])
 }
@@ -1218,6 +1220,10 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             for arg in kind.explicit_type_arguments {
                 serialize_type_usage(arg)
             }
+            write_int(kind.use_paths.len)
+            for use_path in kind.use_paths {
+                write_string(use_path)
+            }
         }
         t is NInstKind::WhenStart -> {
             write_int(11)
@@ -1420,7 +1426,11 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
             repeat read_int() {
                 explicit_type_arguments[] = deserialize_type_usage()
             }
-            NInstKind::FunCall @[path, name, explicit_receiver, arguments, explicit_type_arguments, call_site: None()]
+            let use_paths = []
+            repeat read_int() {
+                use_paths[] = read_string()
+            }
+            NInstKind::FunCall @[path, name, explicit_receiver, arguments, explicit_type_arguments, use_paths, call_site: None()]
         }
         11 -> {
             let is_expression = read_boolean()

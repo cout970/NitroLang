@@ -74,6 +74,7 @@ fun TypeChecker.check_inst_load_var_from_receiver(kind: NInstKind::LoadVar, inst
             explicit_receiver: true,
             arguments: [load_this],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
         inst.type_token = None()
@@ -151,6 +152,7 @@ fun TypeChecker.check_inst_store_var(kind: NInstKind::StoreVar, inst: NInst, cod
                 explicit_receiver: true,
                 arguments: [load_this, kind.value],
                 explicit_type_arguments: [],
+                use_paths: [],
                 call_site: None(),
             ]
             inst.type_token = None()

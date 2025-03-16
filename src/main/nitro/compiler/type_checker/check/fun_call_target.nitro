@@ -8,8 +8,8 @@ struct FunctionMatch {
 // Debug option when a conflict is found, to know why
 let debug_find_best_function_match: Boolean = false
 
-fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<Type>, receiver_type: Optional<Type>, return_tt: TypeToken): Optional<NFunCallTarget> {
-    let matches: List<FunctionMatch> = find_best_function_match(full_name, args, receiver_type)
+fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<Type>, receiver_type: Optional<Type>, return_tt: TypeToken, use_paths: List<String>): Optional<NFunCallTarget> {
+    let matches: List<FunctionMatch> = find_best_function_match(full_name, args, receiver_type, use_paths)
 
     if matches.is_empty() {
         let error = create_error_type("Function '$full_name' not found", span).to_token()
@@ -42,11 +42,19 @@ fun TypeChecker.find_fun_call_target(span: Span, full_name: String, args: List<T
 fun FunctionMatch.get_ordering(other: FunctionMatch): Ordering = this.score <=> other.score
 
 // Finds the best function match for a given name and arguments
-fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receiver_tt: Optional<Type>): List<FunctionMatch> {
+fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receiver_tt: Optional<Type>, use_paths: List<String>): List<FunctionMatch> {
     let options: List<NFunCallTarget> = function_lookup[name]
 
     if options.is_empty() {
         ret []
+    }
+
+    // Check each possible name
+    let possible_names: List<String> = []
+    possible_names[] = name
+    repeat use_paths.len {
+        let path = use_paths[it]!!
+        possible_names[] = Path::join(path, name)
     }
 
     if debug_find_best_function_match { Log::debug("Finding best function match for $name(${args})") }
@@ -56,9 +64,20 @@ fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receive
         let score = 1f
         let params = target.header.param_types
 
-        // If full name, name and path, is not exactly the same, penalize
-        if name != target.header.full_name {
-            score += 1f
+        // Make sure the name matches
+        let name_found = false
+
+        repeat possible_names.len {
+            let path: String = possible_names[it]!!
+            if path == target.header.full_name {
+                name_found = true
+                break
+            }
+        }
+
+        // Doesn't match any name
+        if !name_found {
+            continue
         }
 
         if receiver_tt.is_some() && target.header.has_receiver {
@@ -93,6 +112,10 @@ fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receive
 
         if debug_find_best_function_match { Log::debug("  - $score: ${target.header.full_name}($params)") }
         scored_options[] = FunctionMatch @[target, score]
+    }
+
+    if scored_options.is_empty() {
+        ret []
     }
 
     scored_options.sort_in_place()

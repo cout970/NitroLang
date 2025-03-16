@@ -17,6 +17,12 @@ fun TypeChecker.check_inst_load_field(kind: NInstKind::LoadField, inst: NInst, c
 fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NInst, code: NCode, inst_type: TypeToken, instance_tt: TypeToken) {
     let instance_type = instance_tt.find_type()
 
+    // Propagate error
+    if instance_type.kind is TypeKind::Invalid {
+        cons.add_unify(inst_type, instance_type.to_token(), inst.span, TypeConstraintSource::InstType)
+        ret
+    }
+
     // Direct struct field
     let field_name = kind.name
     let field: Optional<NStructField> = find_field(instance_type, field_name)
@@ -46,6 +52,7 @@ fun TypeChecker.check_inst_load_field_post(kind: NInstKind::LoadField, inst: NIn
             explicit_receiver: true,
             arguments: [kind.instance],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
         inst.type_token = None()
@@ -107,6 +114,7 @@ fun TypeChecker.check_inst_store_field_post(kind: NInstKind::StoreField, inst: N
             explicit_receiver: true,
             arguments: [kind.instance, kind.value],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
         inst.type_token = None()
@@ -133,6 +141,12 @@ fun TypeChecker.check_inst_init_field(kind: NInstKind::InitField, inst: NInst, c
 
 fun TypeChecker.check_inst_init_field_post(kind: NInstKind::InitField, inst: NInst, code: NCode, instance_tt: TypeToken) {
     let instance_type = instance_tt.find_type()
+
+    // Propagate error
+    if instance_type.kind is TypeKind::Invalid {
+        inst.type_token = Some(instance_tt)
+        ret
+    }
 
     // Direct struct field
     let field_name = kind.name
@@ -167,6 +181,7 @@ fun TypeChecker.check_inst_init_field_post(kind: NInstKind::InitField, inst: NIn
             explicit_receiver: true,
             arguments: [kind.instance, kind.value],
             explicit_type_arguments: [],
+            use_paths: [],
             call_site: None(),
         ]
         inst.type_token = None()

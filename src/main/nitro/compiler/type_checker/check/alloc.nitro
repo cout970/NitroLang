@@ -6,6 +6,12 @@ fun TypeChecker.check_inst_alloc(kind: NInstKind::Alloc, inst: NInst, code: NCod
     let unresolved: TypeToken = create_unresolved_type(inst.span).to_token()
     inst.type_token = Some(unresolved)
 
+    // Propagate error
+    if ty.kind is TypeKind::Invalid {
+        cons.add_unify(unresolved, ty.to_token(), inst.span, TypeConstraintSource::Alloc)
+        ret
+    }
+
     // Not a struct
     if ty.kind !is TypeKind::Struct && ty.kind !is TypeKind::OptionItem {
         let error = create_error_type("Type '$ty' cannot be instantiated", inst.span).to_token()

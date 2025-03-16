@@ -7,6 +7,7 @@ struct NTypeUsage {
     params: List<NTypeUsage>
     type_token: Optional<TypeToken>
     generic_def_index: Optional<Int>
+    use_paths: List<String>
 }
 
 enum TypeUsageKind {
@@ -29,6 +30,7 @@ fun NTypeUsage::unresolved(span: Span): NTypeUsage {
         params: [],
         type_token: None(),
         generic_def_index: None(),
+        use_paths: [],
     ]
 }
 
@@ -41,6 +43,7 @@ fun NTypeUsage::simple(span: Span, name: String): NTypeUsage {
         params: [],
         type_token: None(),
         generic_def_index: None(),
+        use_paths: [],
     ]
 }
 
@@ -53,6 +56,7 @@ fun NTypeUsage::simple_with_path(span: Span, path: String, name: String): NTypeU
         params: [],
         type_token: None(),
         generic_def_index: None(),
+        use_paths: [],
     ]
 }
 
@@ -65,6 +69,7 @@ fun NTypeUsage::simple_with_params(span: Span, name: String, params: List<NTypeU
         params,
         type_token: None(),
         generic_def_index: None(),
+        use_paths: [],
     ]
 }
 
@@ -77,6 +82,7 @@ fun NTypeUsage::generic(span: Span, name: String, generic_def_index: Optional<In
         params: [],
         type_token: None(),
         generic_def_index,
+        use_paths: [],
     ]
 }
 
@@ -125,6 +131,10 @@ fun ByteBuffer.serialize_type_usage(value: NTypeUsage) {
     if value.generic_def_index.is_some() {
         write_int(value.generic_def_index!!)
     }
+    write_int(value.use_paths.len)
+    for use_path in value.use_paths {
+        write_string(use_path)
+    }
     end_frame(frame)
 }
 
@@ -143,7 +153,11 @@ fun ByteBuffer.deserialize_type_usage(): NTypeUsage {
     if read_boolean() {
         generic_def_index = Some(read_int())
     }
+    let use_paths = []
+    repeat read_int() {
+        use_paths[] = read_string()
+    }
     end_frame(frame)
 
-    ret NTypeUsage @[span, kind, name, path, params, type_token, generic_def_index]
+    ret NTypeUsage @[span, kind, name, path, params, type_token, generic_def_index, use_paths]
 }

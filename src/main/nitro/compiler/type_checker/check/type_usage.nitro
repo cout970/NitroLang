@@ -19,7 +19,7 @@ fun TypeChecker.check_type_usage_with_aux(generics: NGenericParams, tu: NTypeUsa
 
     if tu.kind == TypeUsageKind::TYPE_SIMPLE {
         let full_name = Path::join(tu.path, tu.name)
-        ret find_type_by_name(full_name, params, tu.span)
+        ret find_type_by_name(full_name, params, tu.span, tu.use_paths)
     }
 
     if tu.kind == TypeUsageKind::TYPE_UNRESOLVED {
@@ -51,87 +51,118 @@ fun TypeChecker.check_type_usage_with_aux(generics: NGenericParams, tu: NTypeUsa
     unreachable()
 }
 
-fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: Span): Type {
+fun TypeChecker.find_type_by_name(full_name: String, params: List<Type>, span: Span, use_paths: List<String>): Type {
     let path_segments = create_path_segments(full_name)
 
     for segment in path_segments {
-        // type_cache only works by name, it doesn't take into account the type arguments
-        // so it's limited on what it can cache
-        if params.is_empty() {
-            let cache = type_cache[segment]
-            if cache.is_some() {
-                ret cache!!
+        let res = find_type_by_path(segment, full_name, params, span)
+        if res.is_some() {
+            ret res!!
+        }
+    }
+
+    // Check the use paths
+    let options = []
+    for use_path in use_paths {
+        let path_segments = create_path_segments(Path::join(use_path, full_name))
+
+        for segment in path_segments {
+            let res = find_type_by_path(segment, full_name, params, span)
+            if res.is_some() {
+                options[] = res!!
             }
         }
+    }
 
-        // Type alias
-        for i in program.type_aliases {
-            if i.full_name != segment {
-                continue
-            }
-            let alias_type = check_type_usage_with(i.generics, i.type_usage)
-            let ty = types.replace_generics(alias_type, i.generics.definitions, params)
+    if options.len == 1 {
+        ret options.first()!!
+    }
 
-            if params.is_empty() {
-                type_cache[segment] = ty
-            }
-
-            ret ty
-        }
-
-        // Cache for type kinds
-        let kind_cache = type_kind_cache[segment]
-        if kind_cache.is_some() {
-            let kind = kind_cache!!
-            let ty = types.create_type_direct(kind, params)
-
-            if params.is_empty() {
-                type_cache[segment] = ty
-            }
-
-            ret ty
-        }
-
-        // Is an Option?
-        for i in program.options {
-            if i.full_name != segment {
-                continue
-            }
-            let kind: TypeKind = TypeKind::Option @[instance: i]
-            type_kind_cache[segment] = kind
-
-            let ty = types.create_type_direct(kind, params)
-
-            if params.is_empty() {
-                type_cache[segment] = ty
-            }
-
-            ret ty
-        }
-
-        // Is a Struct?
-        for i in program.structs {
-            if i.full_name != segment {
-                continue
-            }
-            let kind: TypeKind = if i.parent.is_some() {
-                TypeKind::OptionItem @[instance: i]
-            } else {
-                TypeKind::Struct @[instance: i]
-            }
-
-            type_kind_cache[segment] = kind
-
-            let ty = types.create_type_direct(kind, params)
-
-            if params.is_empty() {
-                type_cache[segment] = ty
-            }
-
-            ret ty
-        }
+    if options.len > 1 {
+        ret create_error_type("Conflict, type '$full_name' defined in several places", span)
     }
 
     // Not found
     ret create_error_type("Type '$full_name' not found", span)
+}
+
+fun TypeChecker.find_type_by_path(segment: String, full_name: String, params: List<Type>, span: Span): Optional<Type> {
+
+    // type_cache only works by name, it doesn't take into account the type arguments
+    // so it's limited on what it can cache
+    if params.is_empty() {
+        let cache = type_cache[segment]
+        if cache.is_some() {
+            ret Some(cache!!)
+        }
+    }
+
+    // Type alias
+    for i in program.type_aliases {
+        if i.full_name != segment {
+            continue
+        }
+        let alias_type = check_type_usage_with(i.generics, i.type_usage)
+        let ty = types.replace_generics(alias_type, i.generics.definitions, params)
+
+        if params.is_empty() {
+            type_cache[segment] = ty
+        }
+
+        ret Some(ty)
+    }
+
+    // Cache for type kinds
+    let kind_cache = type_kind_cache[segment]
+    if kind_cache.is_some() {
+        let kind = kind_cache!!
+        let ty = types.create_type_direct(kind, params)
+
+        if params.is_empty() {
+            type_cache[segment] = ty
+        }
+
+        ret Some(ty)
+    }
+
+    // Is an Option?
+    for i in program.options {
+        if i.full_name != segment {
+            continue
+        }
+        let kind: TypeKind = TypeKind::Option @[instance: i]
+        type_kind_cache[segment] = kind
+
+        let ty = types.create_type_direct(kind, params)
+
+        if params.is_empty() {
+            type_cache[segment] = ty
+        }
+
+        ret Some(ty)
+    }
+
+    // Is a Struct?
+    for i in program.structs {
+        if i.full_name != segment {
+            continue
+        }
+        let kind: TypeKind = if i.parent.is_some() {
+            TypeKind::OptionItem @[instance: i]
+        } else {
+            TypeKind::Struct @[instance: i]
+        }
+
+        type_kind_cache[segment] = kind
+
+        let ty = types.create_type_direct(kind, params)
+
+        if params.is_empty() {
+            type_cache[segment] = ty
+        }
+
+        ret Some(ty)
+    }
+
+    ret None()
 }

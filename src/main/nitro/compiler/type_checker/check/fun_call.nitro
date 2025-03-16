@@ -31,6 +31,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
                 explicit_receiver: true,
                 arguments,
                 explicit_type_arguments: [],
+                use_paths: [],
                 call_site: None(),
             ]
             next.type_token = None()
@@ -89,7 +90,7 @@ fun TypeChecker.check_inst_fun_call_post(kind: NInstKind::FunCall, inst: NInst, 
     // If the function call uses method-syntax `foo.bar()` then we don't consider the function body receiver type
     // if the function call uses the regular syntax `foo()` then we check for both `this.foo()` and `foo()`
     let receiver_type: Optional<Type> = if kind.explicit_receiver { None() } else { code.find_receiver_type() }
-    let target: Optional<NFunCallTarget> = find_fun_call_target(inst.span, full_name, args, receiver_type, return_tt)
+    let target: Optional<NFunCallTarget> = find_fun_call_target(inst.span, full_name, args, receiver_type, return_tt, kind.use_paths)
 
     if target.is_none() {
         ret

@@ -94,6 +94,9 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         params = read_type_param_args()?
     }
 
+    let type_use_paths = []
+    type_use_paths.add_all(use_paths)
+
     let ty = NTypeUsage @[
         span,
         kind: TypeUsageKind::TYPE_SIMPLE,
@@ -102,6 +105,7 @@ fun Parser.read_type_usage(): Parsed<NTypeUsage> {
         params,
         type_token: None(),
         generic_def_index: None(),
+        use_paths: type_use_paths,
     ]
 
     // If `.(` is found after the name, it is a function type like `Int.() -> Nothing`
@@ -162,6 +166,7 @@ fun Parser.read_function_type_usage(span: Span, arg1: Optional<NTypeUsage>): Par
         params,
         type_token: None(),
         generic_def_index: None(),
+        use_paths: [],
     ])
 }
 

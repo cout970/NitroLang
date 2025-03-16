@@ -35,7 +35,7 @@ fun TypeChecker.resolve_type_pattern_aux(tp: NTypePattern, code: NCode): Resolve
 
     if tp.kind == TypePatternKind::TYPE_SIMPLE {
         let full_name = Path::join(tp.path, tp.name)
-        let ty = find_type_by_name(full_name, [], tp.span)
+        let ty = find_type_by_name(full_name, [], tp.span, [])
 
         let kind = types.type_kind_to_pattern(ty.kind, false)
         ret ResolvedTypePattern @[

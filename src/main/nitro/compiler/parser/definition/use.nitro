@@ -1,0 +1,16 @@
+
+
+// E.g. use runtime
+//    useDefinition
+//        : USE modulePath ;
+
+fun Parser.read_use_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
+    skip_token_kind(TokenKind::USE)?
+    let span = lexer.current_token_span
+    let path = read_module_path()?
+    let name = read_name()?
+
+    use_paths[] = Path::join(path, name)
+
+    ret found(nothing)
+}
