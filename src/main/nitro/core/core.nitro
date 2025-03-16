@@ -67,8 +67,7 @@ include "core:wasi_runtime/runtime.nitro"
 @OnlyIf [target: "wasm32-wasi"]
 include "core:wasi_runtime/runtime_fs.nitro"
 
-//@OnlyIf [target: "wasm32-js"]
-//include "core:js_runtime/runtime.nitro"
-//
-//@OnlyIf [target: "wasm32-js"]
-//include "core:js_runtime/runtime_fs.nitro"
+@OnlyIf [target: "wasm32-js"]
+include "core:js_runtime/runtime.nitro"
+@OnlyIf [target: "wasm32-js"]
+include "core:js_runtime/runtime_fs.nitro"

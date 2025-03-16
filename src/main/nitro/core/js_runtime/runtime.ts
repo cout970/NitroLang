@@ -4,10 +4,20 @@ const state = {
   memory: new Uint8Array(0),
 };
 
+const align = (value: number) => {
+  const alignment = 4;
+  return Math.ceil(value / alignment) * alignment;
+}
+
 const sendString = (string: string) => {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(string);
-  const offset = 40000;
+
+  const view = new Uint32Array(state.memory);
+  const base = view[4]; // memory.base
+  const heapStart = view[8]; // memory.heap_start
+  const offset = align(heapStart + base);
+
   state.memory[offset + 3] = (bytes.length >> 0) & 0xFF
   state.memory[offset + 2] = (bytes.length >> 8) & 0xFF
   state.memory[offset + 1] = (bytes.length >> 16) & 0xFF
