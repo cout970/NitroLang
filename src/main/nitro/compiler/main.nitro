@@ -15,6 +15,7 @@ struct ProgramArgs {
     core_path: Optional<String>,
     no_core_lib: Boolean,
     verbose: Boolean,
+    generate_dwarf: Boolean,
     dump_wat: Boolean,
 }
 
@@ -30,6 +31,7 @@ fun ProgramArgs::new(): ProgramArgs {
         no_core_lib: false,
         verbose: false,
         dump_wat: false,
+        generate_dwarf: false,
     ]
 }
 
@@ -47,12 +49,26 @@ fun main() {
     while i < args.len {
         let arg = args[i]!!
 
-        if arg == "--help" {
+        if arg == "--help" || arg == "-h" {
             Log::info("Usage: compiler <input> -o <output> --cache-dir <cache>")
+            Log::info("Options:")
+            Log::info(" -h, --help              Show this help message")
+            Log::info(" -v, --version           Show version")
+            Log::info(" -o, --output            Output file")
+            Log::info(" -m, --mod               Module definitions")
+            Log::info(" -t, --target            Target platform, wasm-wasi, wasm-js")
+            Log::info(" -g                      Generate DWARF debug info")
+            Log::info(" --dump-ir               Dump IR")
+            Log::info(" --dump-wasm-emitter     Dump Wasm emitter")
+            Log::info(" --cache-dir             Cache directory")
+            Log::info(" --dump-allocator        Dump allocator internal state")
+            Log::info(" --no-core               Disable core library")
+            Log::info(" --core-path             Disable core library")
+            Log::info(" --verbose               Verbose output")
             ret
         }
 
-        if arg == "--version" {
+        if arg == "--version" || arg == "-v" {
             let v = VERSION
             Log::info("Nitro Compiler v$v")
             ret
@@ -117,6 +133,12 @@ fun main() {
 
         if arg == "--verbose" {
             prog.verbose = true
+            i += 1
+            continue
+        }
+
+        if arg == "-g" {
+            prog.generate_dwarf = true
             i += 1
             continue
         }

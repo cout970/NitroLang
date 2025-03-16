@@ -61,6 +61,7 @@ fun WasmEmitter::new(): WasmEmitter {
 fun WasmEmitter.new_child_emitter(): WasmEmitter {
     let child = WasmEmitter::new()
     child.backend = backend
+    child.generate_dwarf = generate_dwarf
     ret child
 }
 
@@ -95,6 +96,7 @@ fun WasmEmitter.emit_program(program: WasmProgram) {
     if debug_print {
         debug_print_line("Emitting program")
     }
+
     // Magic number "\0ASM"
     emit_byte(0x00)
     emit_byte(0x61)
@@ -368,6 +370,9 @@ fun WasmEmitter.emit_code(func: WFunction) {
     tmp.emit_expr(func)
 
     emit_u32(tmp.buffer.len)
+    for line in tmp.debug_lines {
+        line.offset += buffer.len
+    }
     emit(tmp)
 }
 
@@ -389,6 +394,10 @@ fun WasmEmitter.emit_locals(locals: List<WVar>) {
 fun WasmEmitter.emit_expr(func: WFunction) {
     if debug_print {
         debug_print_line("Emit expression: ${func.name}")
+    }
+
+    for line in func.bytecode.debug_lines {
+        line.offset += buffer.len
     }
     emit(func.bytecode)
     // end opcode: WOpcode::End
@@ -487,7 +496,7 @@ fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
     // Standard opcode lengths
     header.emit_byte(0x00);   // DW_LNS_copy
     header.emit_byte(0x01);   // DW_LNS_advance_pc
-    header.emit_byte(0x01);   // DW_LNS_advance_line
+    header.emit_byte(0x04);   // DW_LNS_advance_line
     header.emit_byte(0x01);   // DW_LNS_set_file
     header.emit_byte(0x01);   // DW_LNS_set_column
     header.emit_byte(0x00);   // DW_LNS_negate_stmt
@@ -498,28 +507,39 @@ fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
     header.emit_byte(0x00);   // DW_LNS_set_epilogue_begin
     header.emit_byte(0x01);   // DW_LNS_set_isa
 
-    // Directory table (just empty string for current directory)
-    header.emit_byte(0) // Number of directories
-
     let file_map: Map<String, IncludedFile> = #[]
+    let directory_set = %[]
+    let prefix = ""
 
     for debug_line in debug_lines {
-        let path = debug_line.span.file.file_path.path
+        let path = "$prefix/${debug_line.span.file.file_path.path}"
+
+        directory_set[] = FilePath::directory_name(path)
         file_map[path] = debug_line.span.file
     }
 
     let files = file_map.keys_to_list()
+    let directories = directory_set.to_list()
 
-    println("All files: ${debug_lines.join("\n")}")
+    // Directory table
+    for dir in directories {
+        header.emit_raw_bytes(dir.to_bytes())
+        header.emit_byte(0x00) // Null byte
+    }
+    header.emit_byte(0) // Null terminator to the directory list
 
     // File name table
     for path in files {
         let file = file_map[path]!!
+        let dirname = FilePath::directory_name(path)
+        let basename = FilePath::base_name(path)
+        let dir_index = directories.index_of(dirname)!!
+
         // File path
-        header.emit_raw_bytes(path.to_bytes())
+        header.emit_raw_bytes(basename.to_bytes())
         header.emit_byte(0x00) // Null byte
         // Directory index
-        header.emit_u32(0)
+        header.emit_u32(dir_index)
         // Last modified time
         header.emit_u32(file.last_modified)
         // File size
@@ -535,7 +555,7 @@ fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
     // Line number program
     let current_file = ""
     let current_column = 0
-    let current_line = 0
+    let current_line = 1
 
     for debug_line in debug_lines {
         if debug_line.kind == DebugLineKind::FunctionEnd {
@@ -543,23 +563,26 @@ fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
             line.emit_byte(0x00) // Extended opcode
             line.emit_byte(0x01) // Operation length
             line.emit_byte(0x01 /* DW_LNS_end_sequence */)
+            current_file = ""
+            current_column = 0
+            current_line = 1
             continue
         }
 
-        let file = debug_line.span.file.file_path.path
+        let path = "$prefix/${debug_line.span.file.file_path.path}"
 
         // Set file
-        if file != current_file {
-            current_file = file
-            // 1 base index
-            let file_index: Int = files.index_of(current_file)!! + 1
+        if path != current_file {
+            current_file = path
             line.emit_byte(0x04 /* DW_LNS_set_file */)
-            line.emit_u32(file_index)
+            // 1 base index
+            let file_index: Int = files.index_of(path)!! + 1
+            line.emit_byte(file_index)
         }
 
         // Set address
         line.emit_byte(0x00) // Extended opcode
-        line.emit_u32_le(0x5) // Operation length: 1 + size_of<Int>()
+        line.emit_u32(0x5) // Operation length: 1 + size_of<Int>()
         line.emit_byte(0x02 /* DW_LNE_set_address */)
         line.emit_u32_le(debug_line.offset) // Wasm offset
 
@@ -567,24 +590,20 @@ fun WasmEmitter.emit_custom_section_dwarf(program: WasmProgram) {
         if debug_line.span.column != current_column {
             current_column = debug_line.span.column
             line.emit_byte(0x05 /* DW_LNS_set_column */)
-            line.emit_u32(current_column)
+            line.emit_i32(current_column)
         }
 
         // Set line number
         if debug_line.span.line != current_line {
+            let delta = debug_line.span.line - current_line
             current_line = debug_line.span.line
             line.emit_byte(0x03 /* DW_LNS_advance_line */)
-            line.emit_i32(debug_line.span.line - current_line)
+            line.emit_i32(delta)
         }
 
         // Emit a row in the matrix
         line.emit_byte(0x01 /* DW_LNS_copy */)
     }
-
-    // End sequence
-    line.emit_byte(0x00) // Extended opcode
-    line.emit_byte(0x01) // Operation length
-    line.emit_byte(0x01 /* DW_LNS_end_sequence */)
 
     // Total length of the DWARF section
     tmp.emit_u32_le(line.buffer.len)
@@ -650,6 +669,13 @@ fun WasmEmitter.emit_raw_bytes(bytes: List<Byte>) {
 
 // 4 byte integer in little-endian, 0x12345678 -> 0x78 0x56 0x34 0x12
 fun WasmEmitter.emit_u32_le(value: Int) {
+    emit_byte(value & 0xFF)
+    emit_byte((value >> 8) & 0xFF)
+    emit_byte((value >> 16) & 0xFF)
+    emit_byte((value >> 24) & 0xFF)
+}
+
+fun WasmEmitter.emit_i32_le(value: Int) {
     emit_byte(value & 0xFF)
     emit_byte((value >> 8) & 0xFF)
     emit_byte((value >> 16) & 0xFF)
@@ -856,7 +882,6 @@ fun WasmEmitter.emit(other: WasmEmitter) {
     debug_buffer[] = "\n"
 
     for line in other.debug_lines {
-        line.offset += start
         debug_lines[] = line
     }
 }
@@ -870,5 +895,5 @@ fun WasmEmitter.ends_in_return(): Boolean {
 }
 
 fun DebugLine.to_string(): String {
-    ret "$offset: $span"
+    ret "${offset.to_hex()}: $span"
 }

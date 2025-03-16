@@ -30,7 +30,8 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
     let map: Map<NInstId, InstResultAction> = #[]
     func.check_stack_allocation(backend, map)
 
-    add_enter_function(func.code.container.span)
+    let span = func.code.container.span
+    add_enter_function(span)
 
     for inst in code.inst_list {
         if debug_print {
@@ -301,7 +302,7 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
         }
     }
 
-    add_exit_function(func.code.container.span)
+    add_exit_function(span)
 
 //    if debug_print && func.source is WFunctionSource::Function {
 //        let instance = (func.source as WFunctionSource::Function).instance

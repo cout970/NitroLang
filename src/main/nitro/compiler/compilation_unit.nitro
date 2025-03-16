@@ -20,6 +20,7 @@ fun CompilationUnit::new(args: ProgramArgs): CompilationUnit {
     let reporter = Reporter::new()
     let program = Program::new()
     let types = TypeContainer::new()
+    let backend = WasmBackend::new(reporter, program)
 
     ret CompilationUnit @[
         args,
@@ -32,7 +33,7 @@ fun CompilationUnit::new(args: ProgramArgs): CompilationUnit {
         program,
         types,
         type_checker: TypeChecker::new(reporter, program, types),
-        backend: WasmBackend::new(reporter, program),
+        backend,
         verify_cache: false,
     ]
 }
@@ -427,6 +428,7 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     // Perform code generation
     let start_compiling = Instant::now()
     unit.backend.emitter.debug_print = args.dump_wat
+    unit.backend.emitter.generate_dwarf = args.generate_dwarf
     unit.compile(FilePath::new(args.output))
 
     // Final errors
