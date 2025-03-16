@@ -66,14 +66,14 @@ fun StringBuilder.trimEnd() {
 // https://stackoverflow.com/a/42013433/13195330
 fun StringBuilder.add(c: Char) {
     let code = c.to_int()
-    
+
     if code <= 0x7F {
         ensure_capacity(len + 1)
         /* 0xxxxxxx */
         bytes[len] = code.to_byte()
         len += 1
         ret
-    } 
+    }
     if code <= 0x7FF {
         ensure_capacity(len + 2)
         /* 110xxxxx */
@@ -82,7 +82,7 @@ fun StringBuilder.add(c: Char) {
         bytes[len + 1] = (0x80 | (code & 0x3F)).to_byte()
         len += 2
         ret
-    } 
+    }
     if code <= 0xFFFF {
         ensure_capacity(len + 3)
         /* 1110xxxx */
@@ -93,7 +93,7 @@ fun StringBuilder.add(c: Char) {
         bytes[len + 2] = (0x80 | (code & 0x3F)).to_byte()
         len += 3
         ret
-    } 
+    }
     if code <= 0x10FFFF {
         ensure_capacity(len + 4)
         /* 11110xxx */
@@ -399,6 +399,30 @@ fun StringBuilder.add(value: Float) {
     add(mantissa)
     this[] = "e"
     add_int_in_base(10, exp)
+}
+
+// Add a string to the beginning of the internal buffer
+fun StringBuilder.add_first(value: String) {
+    ensure_capacity(len + value.len)
+
+    // Move existing bytes to the right
+    repeat len {
+        let i = len - it - 1
+        bytes[i + value.len] = bytes[i]
+    }
+
+    // Add the new bytes
+    repeat value.len {
+        bytes[it] = value.utf8_data[it]
+    }
+
+    len += value.len
+}
+
+// Wrap the current string with a prefix and suffix
+fun StringBuilder.wrap(prefix: String, suffix: String) {
+    add_first(prefix)
+    add(suffix)
 }
 
 // Is the internal buffer empty?

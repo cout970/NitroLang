@@ -48,24 +48,8 @@ mod math {
     }
 
     // Returns the square root of x
-    fun sqrt(x: Float): Float {
-        if x == 0f {
-            ret 0f
-        }
-        if x < 0f {
-            ret float_nan
-        }
-
-        let guess = x / 2.0f
-        repeat 100 {
-            let new_guess = 0.5f * (guess + x / guess)
-            if (new_guess - guess).abs() < math::epsilon {
-                break
-            }
-            guess = new_guess
-        }
-        ret guess
-    }
+    // Replaced by Float.sqrt() using the `f32.sqrt` wasm intrinsic
+    // fun sqrt(x: Float): Float {}
 
     // Returns the cube root of x.
     fun cbrt(x: Float): Float {

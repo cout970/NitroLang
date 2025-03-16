@@ -123,19 +123,49 @@ fun <#Key: MapKey> Multimap<#Key, #Value>.is_not_empty(): Boolean = map.is_not_e
 
 // Returns a string representation of the multimap
 fun <#Key: MapKey | ToString, #Value: ToString> Multimap<#Key, #Value>.to_string(): String {
-    let s = ""
+    let s = StringBuilder::new()
 
     for entry in map {
         if s.is_not_empty() {
-            s += ", \n"
+            s[] = ", \n"
         }
-        s += "  "
-        s += entry.first.to_string() + ": " + entry.second.to_string()
+        s[] = "  "
+        s[] = entry.first.to_string()
+        s[] = ": "
+        s[] = entry.second.to_string()
     }
 
     if s.is_not_empty() {
-        s = "\n$s\n"
+        s.wrap("\n", "\n")
     }
 
-    ret "Multimap @[$s]"
+    s.wrap("Multimap @[", "]")
+    ret s.to_string()
+}
+
+fun <#Key: MapKey | ToString, #Value: ToString> Multimap<#Key, #Value>.to_pretty_string(): String {
+    if is_empty() {
+        ret "Multimap: []"
+    }
+    let s = StringBuilder::new()
+
+    s[] = "Multimap: \n"
+    for entry in map {
+        s[] = " - "
+        s[] = entry.first.to_string()
+
+        if entry.second.is_empty() {
+            s[] = ": []\n"
+            continue
+        }
+
+        s[] = ":\n"
+        repeat entry.second.len {
+            s[] = "   $it: "
+            s[] = entry.second[it]!!.to_string()
+            s[] = "\n"
+        }
+    }
+
+    ret s.to_string()
 }
