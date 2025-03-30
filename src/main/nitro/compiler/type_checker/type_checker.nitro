@@ -157,6 +157,9 @@ fun TypeChecker.check_struct(s: NStruct) {
 
 fun TypeChecker.check_option(s: NOption) {
     check_generics(s.generics)
+    for field in s.common_fields {
+        field.field_type = Some(check_type_usage_with(s.generics, field.type_usage))
+    }
     for item in s.items {
         check_struct(item.def)
     }

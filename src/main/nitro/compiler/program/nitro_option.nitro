@@ -7,7 +7,17 @@ struct NOption {
     name: String
     full_name: String
     generics: NGenericParams
+    common_fields: List<NOptionField>
     items: List<NOptionItem>
+}
+
+struct NOptionField {
+    span: Span
+    name: String
+    parent_option: NOption
+    offset: Int
+    type_usage: NTypeUsage
+    field_type: Optional<Type>
 }
 
 struct NOptionItem {
@@ -60,6 +70,12 @@ fun ByteBuffer.serialize_option(value: NOption) {
     write_string(value.path)
     write_string(value.name)
     serialize_generic_params(value.generics)
+
+    write_int(value.common_fields.len)
+    for f in value.common_fields {
+        serialize_option_field(f)
+    }
+
     write_int(value.items.len)
     for item in value.items {
         serialize_option_item(item)
@@ -76,8 +92,13 @@ fun ByteBuffer.deserialize_option(program: Program): NOption {
     let name = read_string()
     let full_name = Path::join(path, name)
     let generics = deserialize_generic_params()
+    let common_fields = []
 
-    let opt = NOption @[id, span, annotations, path, name, full_name, generics, items: []]
+    let opt = NOption @[id, span, annotations, path, name, full_name, generics, common_fields, items: []]
+
+    repeat read_int() {
+        opt.common_fields[] = deserialize_option_field(opt)
+    }
 
     repeat read_int() {
         opt.items[] = deserialize_option_item(program, opt)
@@ -120,5 +141,32 @@ fun ByteBuffer.deserialize_option_item(program: Program, parent: NOption): NOpti
         index,
         parent,
         def: def!!,
+    ]
+}
+
+fun ByteBuffer.serialize_option_field(value: NOptionField) {
+    let frame = start_frame(true)
+    serialize_span(value.span)
+    write_string(value.name)
+    write_int(value.offset)
+    serialize_type_usage(value.type_usage)
+    end_frame(frame)
+}
+
+fun ByteBuffer.deserialize_option_field(parent_option: NOption): NOptionField {
+    let frame = start_frame(false)
+    let span = deserialize_span()
+    let name = read_string()
+    let offset = read_int()
+    let type_usage = deserialize_type_usage()
+    end_frame(frame)
+
+    ret NOptionField @[
+        span,
+        name,
+        parent_option,
+        offset,
+        type_usage,
+        field_type: None(),
     ]
 }

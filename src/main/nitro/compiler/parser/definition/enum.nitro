@@ -1,14 +1,13 @@
 
 // E.g. enum Direction { Up, Down, Left, Right, Front, Back }
 // enumDefinition
-//     : ENUM modulePath? anyName NL* LBRACE NL* enumFields? NL* enumValue (commaOrNl enumValue)* COMMA? NL* RBRACE
-//     | ENUM modulePath? anyName NL* LBRACE NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
+//     : ENUM modulePath? anyName NL* LBRACE NL* enumFields NL* enumValue (commaOrNl enumValue)* COMMA? NL* enumFields? NL* RBRACE
 //     ;
 
 // enumFields
 //     : enumField (commaOrNl enumField)* COMMA? ;
 
-// E.g. let name: String = "John"
+// E.g. let name: String
 // enumField
 //     : LET anyName COLON typeUsage ;
 
@@ -105,6 +104,7 @@ fun Parser.read_enum_definition(annotations: NAnnotationContainer): Parsed<Nothi
     read_enum_fields(def)?
     let enum_entries: List<NEnumEntry> = read_enum_entries(def)?
     read_enum_fields(def)?
+
 
     skip_token_kind(TokenKind::RBRACE)?
 

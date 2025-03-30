@@ -1,3 +1,4 @@
+/* --- BEGIN CODE --- */
 option Choice {
     let is_enable: Boolean
     let is_visible: Boolean
@@ -28,3 +29,8 @@ fun main() {
     println("Choice c: variant: ${c.variant}, is_enable: ${c.is_enable}, is_visible: ${c.is_visible}")
     println("Choice d: variant: ${d.variant}, is_enable: ${d.is_enable}, is_visible: ${d.is_visible}")
 }
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Choice c: variant: 0, is_enable: true, is_visible: false
+Choice d: variant: 1, is_enable: false, is_visible: true
+--- END OUTPUT --- */

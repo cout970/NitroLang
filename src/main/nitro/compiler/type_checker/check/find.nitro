@@ -108,6 +108,32 @@ fun TypeChecker.find_field(receiver_type: Type, full_name: String): Optional<NSt
         }
     }
 
+    // Field in Option option
+    if receiver_type.kind is TypeKind::Option {
+        let kind = receiver_type.kind as TypeKind::Option
+        let opt: NOption = kind.instance
+        let found = false
+
+        // Check if the field is common to all variants
+        for field in opt.common_fields {
+            if field.name == full_name {
+                found = true
+                break;
+            }
+        }
+
+        if found {
+            // Use the field on the first variant
+            let str: NStruct = opt.items.first()!!.def
+
+            for field in str.fields {
+                if field.name == full_name {
+                    ret Some(field)
+                }
+            }
+        }
+    }
+
     // Not found
     ret None()
 }

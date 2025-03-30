@@ -2,12 +2,22 @@
 // // E.g. type Optional<T> {}
 // optionDefinition
 //     : OPTION modulePath? anyName typeParamsDef? NL* LBRACE NL*
-//     (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
-//     RBRACE ;
+//       optionFields NL*
+//       (optionDefinitionItem (commaOrNl optionDefinitionItem)* COMMA?)? NL*
+//       RBRACE
+//     ;
 //
 // // E.g. Some { value: T },
 // optionDefinitionItem
 //     : anyName structBody?;
+//
+// optionFields
+//     : optionField (commaOrNl optionField)* COMMA? ;
+//
+// E.g. let name: String
+// optionField
+//     : LET anyName COLON typeUsage ;
+//
 
 fun Parser.read_option_definition(annotations: NAnnotationContainer): Parsed<Nothing> {
     skip_token_kind(TokenKind::OPTION)?
@@ -23,6 +33,7 @@ fun Parser.read_option_definition(annotations: NAnnotationContainer): Parsed<Not
         name,
         full_name: Path::join(path, name),
         generics: NGenericParams::new(NGenericSource::Option),
+        common_fields: [],
         items: [],
     ]
     program.options[] = def
@@ -37,6 +48,17 @@ fun Parser.read_option_definition(annotations: NAnnotationContainer): Parsed<Not
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()
 
+    // Implicit variant field
+    def.common_fields[] = NOptionField @[
+        span,
+        name: VARIANT_FIELD_NAME,
+        parent_option: def,
+        offset: def.common_fields.len,
+        type_usage: NTypeUsage::simple(span, "Int"),
+        field_type: None(),
+    ]
+
+    read_option_fields(def)?
     read_until_delimited(TokenKind::RBRACE) @{
         def.items[] = read_option_item(def)?
         ret found(nothing)
@@ -65,14 +87,16 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
     program.structs[] = def
     declare_name(Path::join(def.path, def.name), def.span)
 
-    def.fields[] = NStructField @[
-        span,
-        name: VARIANT_FIELD_NAME,
-        parent_struct: def,
-        offset: 0,
-        type_usage: NTypeUsage::simple(span, "Int"),
-        field_type: None(),
-    ]
+    for field in parent.common_fields {
+        def.fields[] = NStructField @[
+            span: field.span,
+            name: field.name,
+            parent_struct: def,
+            offset: field.offset,
+            type_usage: field.type_usage,
+            field_type: field.field_type,
+        ]
+    }
 
     def.add_rc_fields()
 
@@ -92,4 +116,27 @@ fun Parser.read_option_item(parent: NOption): Parsed<NOptionItem> {
         parent,
         def,
     ])
+}
+
+fun Parser.read_option_fields(def: NOption): Parsed<Nothing> {
+    while lexer.current_token_kind == TokenKind::LET {
+        let span = lexer.current_token_span
+        skip_token_kind(TokenKind::LET)?
+        let field_name = read_name()?
+        skip_token_kind(TokenKind::COLON)?
+        let type_usage = read_type_usage()?
+
+        def.common_fields[] = NOptionField @[
+            span,
+            name: field_name,
+            parent_option: def,
+            offset: def.common_fields.len,
+            type_usage,
+            field_type: None(),
+        ]
+
+        skip_nl()
+    }
+
+    ret found(nothing)
 }
