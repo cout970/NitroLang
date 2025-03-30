@@ -1,32 +1,108 @@
-const state = {
-  stdoutBuffer: '',
+export const state = {
+  // Program arguments
   args: ['program.wasm'],
-  memory: new Uint8Array(0),
+  // WASM Memory views
+  memory_8: new Uint8Array(0),
+  memory_16: new Uint16Array(0),
+  memory_32: new Uint32Array(0),
+  // JS objects references
+  refs: [],
+  // Internals
+  stdoutBuffer: '',
+
+  // Align a value to the next multiple of 4
+  align(value: number): number {
+    const alignment = 4;
+    return Math.ceil(value / alignment) * alignment;
+  },
+  // Allocate memory for a value
+  alloc(bytes: number) {
+    const base = state.memory_32[1]; // memory.base
+    const heapStart = state.memory_32[2]; // memory.heap_start
+    const offset = state.align(heapStart + base);
+    state.memory_32[1] += (offset + bytes) - (heapStart + base);
+    return offset;
+  },
+  // Sends a string to the wasm memory and returns a pointer to it
+  sendString(string: string) {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(string);
+
+    const offset = state.alloc(4 + bytes.length);
+
+    state.memory_32[offset / 4] = bytes.length;
+    state.memory_8.set(encoder.encode(string), offset + 4);
+    return offset;
+  },
+  // Gets a string from the wasm memory
+  getString(ptr: number): string {
+    if (ptr === 0) {
+      throw new Error('Null pointer found at getString()');
+    }
+
+    // String layout in memory:
+    // 0: len
+    // 4: utf8_data -> Array<Byte> is a ptr
+    // 8: hash_cache
+    // Array<Byte> layout:
+    // 0: len
+    // 4: contents inline up to len bytes
+    const len = state.memory_32[ptr / 4];
+    const utf8_data = state.memory_32[ptr / 4 + 1];
+    const offset = utf8_data + 4; // skip len
+
+    const bytes = state.memory_8.slice(offset, offset + len);
+    const decoder = new TextDecoder();
+    return decoder.decode(bytes);
+  },
+  // Creates an ID in wasm to reference a JS object
+  sendObject(value: any): number {
+    let index = state.refs.indexOf(value);
+    if (index === -1) {
+      index = state.refs.length;
+      state.refs.push(value);
+    }
+    return index + 1;
+  },
+  // Given an ID from wasm, returns the JS object linked to it
+  getObject(num: number): any {
+    let index = num - 1;
+    if (index >= 0 && index < state.refs.length) {
+      return state.refs[index];
+    }
+    throw new Error('Index out of bounds, refs count is ' + state.refs.length + ', index: ' + index);
+  },
+  // Creates a new Optional<> instance in wasm with the value provided
+  sendOptional(value: number | null): number {
+    const offset = state.alloc(8);
+
+    // Optional layout in memory:
+    // 0: variant: 0 None, 1 Some
+    // 4: value: ptr or 0
+    state.memory_32[offset / 4] = value === null ? 0 : 1;
+    state.memory_32[offset / 4 + 1] = value === null ? 0 : value;
+    return offset;
+  },
+  // Given a pointer to an Optional<> instance, returns the value inside it or null
+  getOptional(ptr: number): number | null {
+    if (ptr === 0) {
+      return null;
+    }
+
+    // Optional layout in memory:
+    // 0: variant: 0 None, 1 Some
+    // 4: value: ptr or 0
+    const variant = state.memory_32[ptr / 4];
+    if (variant === 0) {
+      return null;
+    } else if (variant === 1) {
+      return state.memory_32[ptr / 4 + 1];
+    }
+    throw new Error('Invalid optional variant ' + variant);
+  }
 };
 
-const align = (value: number) => {
-  const alignment = 4;
-  return Math.ceil(value / alignment) * alignment;
-}
-
-const sendString = (string: string) => {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(string);
-
-  const view = new Uint32Array(state.memory);
-  const base = view[4]; // memory.base
-  const heapStart = view[8]; // memory.heap_start
-  const offset = align(heapStart + base);
-
-  state.memory[offset + 3] = (bytes.length >> 0) & 0xFF
-  state.memory[offset + 2] = (bytes.length >> 8) & 0xFF
-  state.memory[offset + 1] = (bytes.length >> 16) & 0xFF
-  state.memory[offset + 0] = (bytes.length >> 24) & 0xFF
-  state.memory.set(encoder.encode(string), offset + 4);
-  return offset;
-}
-
-const core = {
+export const core = {
   runtime_exit() {
     throw new Error('Runtime exit');
   },
@@ -36,7 +112,7 @@ const core = {
   runtime_get_program_arg: (index: number) => {
     if (index < state.args.length) {
       let string = state.args[index];
-      return sendString(string);
+      return state.sendString(string);
     }
     throw new Error('Index out of bounds, program args count is ' + state.args.length + ', index: ' + index);
   },
@@ -69,5 +145,3 @@ const core = {
     state.stdoutBuffer += String(integer);
   },
 };
-
-export default {core, state};

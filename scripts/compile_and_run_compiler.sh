@@ -13,7 +13,8 @@ fi
 compiler=$(realpath "releases/$(cat releases/latest.txt)")
 dump_ir=n
 input="src/main/nitro/compiler/main.nitro"
-output="out/tmp_compiler.wasm"
+output="out/tmp_compiler_wasm32-wasi.wasm"
+output_debug="out/tmp_compiler_wasm32-js.wasm"
 cache="out/cache0"
 
 input2="$1"
@@ -24,7 +25,8 @@ if [ -z "$input2" ]; then
     input2="src/main/nitro/debug/current_program.nitro"
 fi
 
-output2="out/tmp_program.wasm"
+output2="out/tmp_program_wasm32-wasi.wasm"
+output2_debug="out/tmp_program_wasm32-js.wasm"
 cache2="out/cache4"
 
 function fail() {
@@ -43,7 +45,8 @@ function log {
 log "Compiling compiler $compiler"
 #  --core-path src/main/nitro/core/core.nitro
 rm -f "$output"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output_debug" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js' || fail "Compilation failed"
 
 if [ ! -f "$output" ]; then
     log "Compilation did not produce output"
@@ -63,10 +66,13 @@ cp "$output" "out/compiler.wasm"
 wasm2wat --no-check -o "$output.wat" "$output"
 # --cache-dir "$cache2"
 rm -f "$output2"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
+#wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
+wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2_debug" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js' --verbose || fail "Compilation failed"
 
-log "Running program $output2"
-wasm2wat --no-check -o "$output2.wat" "$output2"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@" | tee out/output.txt
+#wasm2wat --no-check -o "$output2.wat" "$output2"
+wasm2wat --no-check -o "$output2_debug.wat" "$output2_debug"
+
+#log "Running program $output2"
+#wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@" | tee out/output.txt
 
 log "Success"

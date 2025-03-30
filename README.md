@@ -13,10 +13,18 @@ Checkout the Language book: [NitroLang Book](./web/docs/src/SUMMARY.md)
 Any WASI compatible runtime should work.
 In [./scripts](./scripts) you have a few utilities:
 
-- `./run_with_wasmer.sh examples/hello_world.nitro` - Compile and run examples/hello_world.nitro using
+- `./run_with_wasmer.sh src/examples/hello_world.nitro` - Compile and run src/examples/hello_world.nitro using
   the [Wasmer](https://wasmer.io/) runtime
-- `./run_with_deno.ts examples/hello_world.nitro` - Compile and run examples/hello_world.nitro
+- `./run_with_deno.ts src/examples/hello_world.nitro` - Compile and run src/examples/hello_world.nitro
   using [Deno](https://deno.com/)
+
+You can also build a standalone wasm file without the WASI API, passing the flag `--target wasm32-js` to the compiler,
+you will also need
+to provide yourself the required runtime functions,
+see [src/main/nitro/core/js_runtime/runtime.ts](src/main/nitro/core/js_runtime/runtime.ts) for the minimal
+implementation.
+
+The [scripts/run_in_browser](./scripts/run_in_browser) folder contains a typescript example project. 
 
 ### Syntax overview
 
@@ -383,12 +391,15 @@ fun main() {
 - Offers function overloading and extension functions, allowing object-oriented syntax in procedural code.
 - Uses tags for type extensions, enabling the addition of methods to any type without disrupting existing code.
 - Features a module system for effective code organization and namespacing.
-- Does not include the unnecessary complexity that comes from nulls, exceptions, inheritance, implicit type conversions or macros.
-- Makes Domain-Specific Languages (DSLs) easy to build using convenient syntax for lists, maps, json, lambdas with custom receiver, etc.
+- Does not include the unnecessary complexity that comes from nulls, exceptions, inheritance, implicit type conversions
+  or macros.
+- Makes Domain-Specific Languages (DSLs) easy to build using convenient syntax for lists, maps, json, lambdas with
+  custom receiver, etc.
 - Compiles to WebAssembly, ensuring compatibility across most platforms.
 - Provides a comprehensive standard library with common data structures and algorithms.
 - Has a minimal runtime, suitable for embedding in other applications.
-- The compiler is user-friendly, offering insightful error messages, suggestions, and code snippets. (not a greats as it use to be, since the migration to the new compiler, but it's getting there)
+- The compiler is user-friendly, offering insightful error messages, suggestions, and code snippets. (not a greats as it
+  use to be, since the migration to the new compiler, but it's getting there)
 
 ### Current task
 

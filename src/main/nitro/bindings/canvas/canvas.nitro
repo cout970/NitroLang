@@ -1,0 +1,233 @@
+
+// Opaque Types (references to JS objects)
+struct HtmlCanvasElement { ptr: Int }
+struct Canvas { ptr: Int }
+struct CanvasImageSource { ptr: Int }
+struct ImageData { ptr: Int }
+struct CanvasGradient { ptr: Int }
+struct TextMetrics { ptr: Int }
+
+// Context Management
+@Extern [lib: "bindings", name: "canvas_get_canvas_element_by_id"]
+fun get_canvas_element_by_id(id: String): Optional<HtmlCanvasElement>
+
+@Extern [lib: "bindings", name: "canvas_get_context"]
+fun HtmlCanvasElement.get_context(context_type: String): Optional<Canvas>
+
+// Basic Properties
+@Extern [lib: "bindings", name: "canvas_set_width"]
+fun HtmlCanvasElement.set_width(width: Int)
+
+@Extern [lib: "bindings", name: "canvas_set_height"]
+fun HtmlCanvasElement.set_height(height: Int)
+
+@Extern [lib: "bindings", name: "canvas_get_width"]
+fun HtmlCanvasElement.get_width(): Int
+
+@Extern [lib: "bindings", name: "canvas_get_height"]
+fun HtmlCanvasElement.get_height(): Int
+
+// Drawing Rectangles
+@Extern [lib: "bindings", name: "canvas_clear_rect"]
+fun Canvas.clear_rect(x: Float, y: Float, width: Float, height: Float)
+
+@Extern [lib: "bindings", name: "canvas_fill_rect"]
+fun Canvas.fill_rect(x: Float, y: Float, width: Float, height: Float)
+
+@Extern [lib: "bindings", name: "canvas_stroke_rect"]
+fun Canvas.stroke_rect(x: Float, y: Float, width: Float, height: Float)
+
+// Colors, Styles and Shadows
+@Extern [lib: "bindings", name: "canvas_set_fill_style"]
+fun Canvas.set_fill_style(style: String)
+
+@Extern [lib: "bindings", name: "canvas_set_fill_style_canvas_gradient"]
+fun Canvas.set_fill_style(style: CanvasGradient)
+
+@Extern [lib: "bindings", name: "canvas_set_stroke_style"]
+fun Canvas.set_stroke_style(style: String)
+
+@Extern [lib: "bindings", name: "canvas_set_stroke_style_canvas_gradient"]
+fun Canvas.set_stroke_style(style: CanvasGradient)
+
+@Extern [lib: "bindings", name: "canvas_set_line_width"]
+fun Canvas.set_line_width(width: Float)
+
+@Extern [lib: "bindings", name: "canvas_set_shadow_color"]
+fun Canvas.set_shadow_color(color: String)
+
+@Extern [lib: "bindings", name: "canvas_set_shadow_blur"]
+fun Canvas.set_shadow_blur(blur: Float)
+
+@Extern [lib: "bindings", name: "canvas_set_shadow_offset_x"]
+fun Canvas.set_shadow_offset_x(offset: Float)
+
+@Extern [lib: "bindings", name: "canvas_set_shadow_offset_y"]
+fun Canvas.set_shadow_offset_y(offset: Float)
+
+// Line Styles
+@Extern [lib: "bindings", name: "canvas_set_line_cap"]
+fun Canvas.set_line_cap(cap: String)
+
+@Extern [lib: "bindings", name: "canvas_set_line_join"]
+fun Canvas.set_line_join(join: String)
+
+@Extern [lib: "bindings", name: "canvas_set_miter_limit"]
+fun Canvas.set_miter_limit(limit: Float)
+
+// Paths
+@Extern [lib: "bindings", name: "canvas_begin_path"]
+fun Canvas.begin_path()
+
+@Extern [lib: "bindings", name: "canvas_close_path"]
+fun Canvas.close_path()
+
+@Extern [lib: "bindings", name: "canvas_move_to"]
+fun Canvas.move_to(x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_line_to"]
+fun Canvas.line_to(x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_bezier_curve_to"]
+fun Canvas.bezier_curve_to(cp1x: Float, cp1y: Float, cp2x: Float, cp2y: Float, x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_quadratic_curve_to"]
+fun Canvas.quadratic_curve_to(cpx: Float, cpy: Float, x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_arc"]
+fun Canvas.arc(x: Float, y: Float, radius: Float, start_angle: Float, end_angle: Float, counterclockwise: Boolean)
+
+@Extern [lib: "bindings", name: "canvas_arc_to"]
+fun Canvas.arc_to(x1: Float, y1: Float, x2: Float, y2: Float, radius: Float)
+
+@Extern [lib: "bindings", name: "canvas_rect"]
+fun Canvas.rect(x: Float, y: Float, width: Float, height: Float)
+
+@Extern [lib: "bindings", name: "canvas_ellipse"]
+fun Canvas.ellipse(x: Float, y: Float, radius_x: Float, radius_y: Float, rotation: Float, start_angle: Float, end_angle: Float, counterclockwise: Boolean)
+
+@Extern [lib: "bindings", name: "canvas_fill"]
+fun Canvas.fill()
+
+@Extern [lib: "bindings", name: "canvas_stroke"]
+fun Canvas.stroke()
+
+@Extern [lib: "bindings", name: "canvas_clip"]
+fun Canvas.clip()
+
+// Text
+@Extern [lib: "bindings", name: "canvas_fill_text"]
+fun Canvas.fill_text(text: String, x: Float, y: Float, max_width: Optional<Float>)
+
+@Extern [lib: "bindings", name: "canvas_stroke_text"]
+fun Canvas.stroke_text(text: String, x: Float, y: Float, max_width: Optional<Float>)
+
+@Extern [lib: "bindings", name: "canvas_measure_text"]
+fun Canvas.measure_text(text: String): TextMetrics
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_width"]
+fun TextMetrics.get_width(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_actual_bounding_box_left"]
+fun TextMetrics.get_actual_bounding_box_left(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_actual_bounding_box_right"]
+fun TextMetrics.get_actual_bounding_box_right(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_font_bounding_box_ascent"]
+fun TextMetrics.get_font_bounding_box_ascent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_font_bounding_box_descent"]
+fun TextMetrics.get_font_bounding_box_descent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_actual_bounding_box_ascent"]
+fun TextMetrics.get_actual_bounding_box_ascent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_actual_bounding_box_descent"]
+fun TextMetrics.get_actual_bounding_box_descent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_em_height_ascent"]
+fun TextMetrics.get_em_height_ascent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_em_height_descent"]
+fun TextMetrics.get_em_height_descent(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_hanging_baseline"]
+fun TextMetrics.get_hanging_baseline(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_alphabetic_baseline"]
+fun TextMetrics.get_alphabetic_baseline(): Float
+
+@Extern [lib: "bindings", name: "canvas_text_metrics_ideographic_baseline"]
+fun TextMetrics.get_ideographic_baseline(): Float
+
+@Extern [lib: "bindings", name: "canvas_set_font"]
+fun Canvas.set_font(font: String)
+
+@Extern [lib: "bindings", name: "canvas_set_text_align"]
+fun Canvas.set_text_align(align: String)
+
+@Extern [lib: "bindings", name: "canvas_set_text_baseline"]
+fun Canvas.set_text_baseline(baseline: String)
+
+// Images
+@Extern [lib: "bindings", name: "canvas_draw_image"]
+fun Canvas.draw_image(image: CanvasImageSource, dx: Float, dy: Float)
+
+@Extern [lib: "bindings", name: "canvas_draw_image_with_size"]
+fun Canvas.draw_image_with_size(image: CanvasImageSource, dx: Float, dy: Float, dw: Float, dh: Float)
+
+@Extern [lib: "bindings", name: "canvas_draw_image_with_source_and_size"]
+fun Canvas.draw_image_with_source_and_size(image: CanvasImageSource, sx: Float, sy: Float, sw: Float, sh: Float, dx: Float, dy: Float, dw: Float, dh: Float)
+
+// Canvas State
+@Extern [lib: "bindings", name: "canvas_save"]
+fun Canvas.save()
+
+@Extern [lib: "bindings", name: "canvas_restore"]
+fun Canvas.restore()
+
+// Transformations
+@Extern [lib: "bindings", name: "canvas_scale"]
+fun Canvas.scale(x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_rotate"]
+fun Canvas.rotate(angle: Float)
+
+@Extern [lib: "bindings", name: "canvas_translate"]
+fun Canvas.translate(x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_transform"]
+fun Canvas.transform(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float)
+
+@Extern [lib: "bindings", name: "canvas_set_transform"]
+fun Canvas.set_transform(a: Float, b: Float, c: Float, d: Float, e: Float, f: Float)
+
+// Pixel Manipulation
+@Extern [lib: "bindings", name: "canvas_create_image_data"]
+fun Canvas.create_image_data(width: Float, height: Float): ImageData
+
+@Extern [lib: "bindings", name: "canvas_create_linear_gradient"]
+fun Canvas.create_linear_gradient(x0: Float, y0: Float, x1: Float, y1: Float): CanvasGradient
+
+@Extern [lib: "bindings", name: "canvas_create_radial_gradient"]
+fun Canvas.create_radial_gradient(x0: Float, y0: Float, r0: Float, x1: Float, y1: Float, r1: Float): CanvasGradient
+
+@Extern [lib: "bindings", name: "canvas_add_color_stop"]
+fun CanvasGradient.add_color_stop(offset: Float, color: String)
+
+@Extern [lib: "bindings", name: "canvas_get_image_data"]
+fun Canvas.get_image_data(x: Float, y: Float, width: Float, height: Float): ImageData
+
+@Extern [lib: "bindings", name: "canvas_put_image_data"]
+fun Canvas.put_image_data(image_data: ImageData, x: Float, y: Float)
+
+@Extern [lib: "bindings", name: "canvas_put_image_data_with_dirty"]
+fun Canvas.put_image_data_with_dirty(image_data: ImageData, x: Float, y: Float, dirtyX: Float, dirtyY: Float, dirty_width: Float, dirty_height: Float)
+
+// Compositing
+@Extern [lib: "bindings", name: "canvas_set_global_alpha"]
+fun Canvas.set_global_alpha(alpha: Float)
+
+@Extern [lib: "bindings", name: "canvas_set_global_composite_operation"]
+fun Canvas.set_global_composite_operation(operation: String)

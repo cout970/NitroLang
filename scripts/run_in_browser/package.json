@@ -1,0 +1,16 @@
+{
+  "name": "run_in_browser",
+  "version": "1.0.0",
+  "description": "Example of how to run a program in the browser",
+  "license": "MIT",
+  "author": "cout970",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vite": "^6.2.2"
+  }
+}

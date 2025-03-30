@@ -1,0 +1,470 @@
+// To run this example you need to build using the target wasm32-js and include the
+include "../main/nitro/bindings/canvas/canvas.nitro"
+
+fun main() {
+    let canvas_element: HtmlCanvasElement = get_canvas_element_by_id("myCanvas")!!
+    let ctx: Canvas = canvas_element.get_context("2d")!!
+
+    println("Canvas API Demo Starting")
+
+    // Clear canvas and set up
+    ctx.clear_rect(0f, 0f, 800f, 600f)
+
+    // BACKGROUND - Gradient sky
+    let sky_gradient_top = "#1a2980"  // Dark blue
+    let sky_gradient_bottom = "#26d0ce"  // Light teal
+
+    repeat 100 {
+        let y = it.to_float() * 6f
+        let ratio = it.to_float() / 100f
+
+        // Interpolate between colors
+        let r = lerp(0x1a, 0x26, ratio).to_int()
+        let g = lerp(0x29, 0xd0, ratio).to_int()
+        let b = lerp(0x80, 0xce, ratio).to_int()
+
+        ctx.set_stroke_style(rgb_to_hex(r, g, b))
+        ctx.set_line_width(6f)
+        ctx.begin_path()
+        ctx.move_to(0f, y)
+        ctx.line_to(800f, y)
+        ctx.stroke()
+    }
+
+    // SUN with shadow and glow
+    ctx.save()
+
+    // Sun glow
+    ctx.set_shadow_color("#ffff99")
+    ctx.set_shadow_blur(30f)
+    ctx.set_shadow_offset_x(0f)
+    ctx.set_shadow_offset_y(0f)
+
+    // Sun
+    ctx.begin_path()
+    ctx.arc(650f, 120f, 60f, 0f, 6.28f, false)
+    ctx.set_fill_style("#ffffcc")
+    ctx.fill()
+
+    // Sun rays
+    ctx.set_line_width(3f)
+    ctx.set_stroke_style("#ffffcc")
+    repeat 12 {
+        let angle = it.to_float() * 0.524f
+        let x1 = 650f + 70f * angle.cos()
+        let y1 = 120f + 70f * angle.sin()
+        let x2 = 650f + 100f * angle.cos()
+        let y2 = 120f + 100f * angle.sin()
+
+        ctx.begin_path()
+        ctx.move_to(x1, y1)
+        ctx.line_to(x2, y2)
+        ctx.stroke()
+    }
+
+    ctx.restore()
+
+    // STARS with clip path
+    ctx.save()
+
+    // Create clip region - only top part of sky
+    ctx.begin_path()
+    ctx.rect(0f, 0f, 800f, 200f)
+    ctx.clip()
+
+    // Draw stars
+    repeat 100 {
+        let x = (it * 17 % 800).to_float()
+        let y = (it * 23 % 200).to_float()
+        let size = 1f + (it % 3).to_float()
+
+        ctx.begin_path()
+        ctx.arc(x, y, size, 0f, 6.28f, false)
+        ctx.set_fill_style("#FFFFFF")
+        ctx.fill()
+
+        // Add twinkle to some stars
+        if it % 10 == 0 {
+            ctx.set_shadow_color("#FFFFFF")
+            ctx.set_shadow_blur(5f)
+            ctx.fill()
+            ctx.set_shadow_blur(0f)
+        }
+    }
+
+    ctx.restore()
+
+    // MOUNTAINS
+    drawMountainRange(ctx, 400f, 200f, 3)
+
+    // LAKE with reflection
+    ctx.begin_path()
+    ctx.move_to(0f, 400f)
+    ctx.bezier_curve_to(250f, 380f, 550f, 390f, 800f, 380f)
+    ctx.line_to(800f, 600f)
+    ctx.line_to(0f, 600f)
+    ctx.close_path()
+
+    // Lake gradient
+    repeat 50 {
+        let y = 400f + it.to_float() * 4f
+        let alpha = 0.7f - (it.to_float() / 70f)
+
+        ctx.set_stroke_style("rgba(38, 208, 206, ${alpha})")
+        ctx.set_line_width(4f)
+        ctx.begin_path()
+        ctx.move_to(0f, y)
+        ctx.line_to(800f, y)
+        ctx.stroke()
+    }
+
+    // Lake ripples
+    ctx.set_line_width(1f)
+    repeat 10 {
+        let y = 420f + it.to_float() * 15f
+
+        ctx.begin_path()
+        ctx.set_stroke_style("rgba(255, 255, 255, 0.2)")
+        let x = 0
+        while x <= 800 {
+            let wave_height = 6f * (1f + (x.to_float() / 40f).sin())
+            if x == 0 {
+                ctx.move_to(x.to_float(), y + wave_height)
+            } else {
+                ctx.line_to(x.to_float(), y + wave_height)
+            }
+            x += 20
+        }
+        ctx.stroke()
+    }
+
+    // TREES on shore
+    drawTrees(ctx, 5)
+
+    // BOAT with shadow
+    ctx.save()
+    ctx.translate(500f, 450f)
+
+    // Boat shadow
+    ctx.begin_path()
+    ctx.set_fill_style("rgba(0, 0, 0, 0.3)")
+    ctx.save()
+    ctx.scale(1f, 0.2f)
+    ctx.arc(0f, 0f, 60f, 0f, 6.28f, false)
+    ctx.fill()
+    ctx.restore()
+
+    // Boat hull
+    ctx.begin_path()
+    ctx.move_to(-50f, 0f)
+    ctx.quadratic_curve_to(0f, 20f, 50f, 0f)
+    ctx.line_to(40f, -15f)
+    ctx.line_to(-40f, -15f)
+    ctx.close_path()
+    ctx.set_fill_style("#8B4513")
+    ctx.fill()
+    ctx.set_line_width(2f)
+    ctx.set_stroke_style("#5D2906")
+    ctx.stroke()
+
+    // Boat mast
+    ctx.begin_path()
+    ctx.move_to(0f, -15f)
+    ctx.line_to(0f, -70f)
+    ctx.set_line_width(3f)
+    ctx.stroke()
+
+    // Boat sail
+    ctx.begin_path()
+    ctx.move_to(0f, -70f)
+    ctx.line_to(40f, -40f)
+    ctx.line_to(0f, -30f)
+    ctx.close_path()
+    ctx.set_fill_style("#FFFFFF")
+    ctx.fill()
+    ctx.set_line_width(1f)
+    ctx.set_stroke_style("#CCCCCC")
+    ctx.stroke()
+
+    // Sail shadow
+    ctx.begin_path()
+    ctx.move_to(0f, -70f)
+    ctx.line_to(30f, -45f)
+    ctx.line_to(0f, -37f)
+    ctx.set_stroke_style("rgba(0, 0, 0, 0.1)")
+    ctx.stroke()
+
+    ctx.restore()
+
+    // RAINBOW with arc and transparency
+    ctx.save()
+
+    // Create rainbow on TOP of lake and mountains
+    let rainbow_colors = [
+        "#FF0000", // Red
+        "#FF7F00", // Orange
+        "#FFFF00", // Yellow
+        "#00FF00", // Green
+        "#0000FF", // Blue
+        "#4B0082", // Indigo
+        "#9400D3"  // Violet
+    ]
+
+    // Use semi-transparency for the rainbow
+    ctx.set_global_alpha(0.3f)
+    ctx.set_line_width(12f)
+
+    // Draw rainbow from left to right horizon in a perfect semi-circle
+    repeat 7 {
+        let radius = 400f - it.to_float() * 12f
+        ctx.begin_path()
+        // Draw a perfect half circle
+        ctx.arc(400f, 600f, radius, 0f, 3.14f, true)
+        ctx.set_stroke_style(rainbow_colors[it]!!)
+
+        // Make ends of rainbow fade out
+        let gradient = ctx.create_linear_gradient(100f, 400f, 700f, 400f)
+        gradient.add_color_stop(0f, "rgba(255, 255, 255, 0)")
+        gradient.add_color_stop(0.2f, rainbow_colors[it]!!)
+        gradient.add_color_stop(0.8f, rainbow_colors[it]!!)
+        gradient.add_color_stop(1f, "rgba(255, 255, 255, 0)")
+        ctx.set_stroke_style(gradient)
+
+        ctx.stroke()
+    }
+    ctx.restore()
+
+    // CLOUDS with composite operations
+    drawClouds(ctx, 5)
+
+    // TEXT with custom font
+    ctx.save()
+    ctx.set_font("bold 48px serif")
+    ctx.set_text_align("center")
+    ctx.set_text_baseline("top")
+
+    // Text outline for contrast with clouds
+    ctx.set_line_width(8f)
+    ctx.set_stroke_style("#000000")
+    ctx.stroke_text("Beautiful Landscape", 400f, 20f, None())
+
+    // Main text
+    ctx.set_fill_style("#FFFFFF")
+    ctx.fill_text("Beautiful Landscape", 400f, 20f, None())
+
+    // Measure text
+//    let metrics = ctx.measure_text("Beautiful Landscape")
+//    println("${metrics.width}")
+
+    ctx.restore()
+
+    // BIRDS with transformation
+    drawBirds(ctx, 8)
+
+    // SIGNATURE with quadratic curves
+    ctx.save()
+    ctx.translate(680f, 560f)
+
+    ctx.begin_path()
+    ctx.move_to(0f, 0f)
+    ctx.quadratic_curve_to(20f, -20f, 40f, 0f)
+    ctx.quadratic_curve_to(60f, 20f, 80f, 0f)
+
+    ctx.set_line_width(3f)
+    ctx.set_stroke_style("#FFFFFF")
+    ctx.set_line_cap("round")
+    ctx.set_line_join("round")
+    ctx.stroke()
+
+    ctx.restore()
+
+    println("Canvas API Demo Complete!")
+}
+
+// Draw a range of mountains with perspective
+fun drawMountainRange(ctx: Canvas, base_y: Float, height: Float, count: Int) {
+    repeat count {
+        let i = it
+        let darkness = 0.2f + (i.to_float() / count.to_float()) * 0.4f
+        let gray = (255f * (1f - darkness)).to_int()
+        let color = rgb_to_hex(gray, gray, gray)
+
+        ctx.begin_path()
+
+        // Start at the left edge
+        ctx.move_to(0f, base_y)
+
+        // Create multiple peaks
+        let peaks = 3 + i * 2
+        repeat peaks + 1 {
+            let j = it
+            let x = (j.to_float() / peaks.to_float()) * 800f
+            let peak_height = height * (0.5f + 0.5f * (j.to_float() * 0.3f + i.to_float()).sin())
+
+            ctx.line_to(x, base_y - peak_height)
+        }
+
+        // Close the path to base
+        ctx.line_to(800f, base_y)
+        ctx.close_path()
+
+        // Fill with gray color
+        ctx.set_fill_style(color)
+        ctx.fill()
+
+        // Add snow caps to mountains
+        repeat peaks + 1 {
+            let j = it
+            let x = (j.to_float() / peaks.to_float()) * 800f
+            let peak_height = height * (0.5f + 0.5f * (j.to_float() * 0.3f + i.to_float()).sin())
+
+            if peak_height > height * 0.7f {
+                let snow_height = peak_height * 0.2f
+
+                ctx.begin_path()
+                ctx.move_to(x - 20f, base_y - peak_height + snow_height)
+                ctx.line_to(x, base_y - peak_height)
+                ctx.line_to(x + 20f, base_y - peak_height + snow_height)
+                ctx.set_fill_style("rgba(255, 255, 255, 0.8)")
+                ctx.fill()
+            }
+        }
+    }
+}
+
+// Draw trees along the shoreline
+fun drawTrees(ctx: Canvas, count: Int) {
+    repeat count {
+        let i = it
+        let x = 50f + i.to_float() * 160f
+        let y = 380f
+        let height = 80f + (i % 3).to_float() * 20f
+        let width = height * 0.4f
+
+        ctx.save()
+        ctx.translate(x, y)
+
+        // Tree trunk
+        ctx.begin_path()
+        ctx.move_to(-width / 8f, 0f)
+        ctx.line_to(width / 8f, 0f)
+        ctx.line_to(width / 10f, -height / 3f)
+        ctx.line_to(-width / 10f, -height / 3f)
+        ctx.close_path()
+        ctx.set_fill_style("#8B4513")  // Brown
+        ctx.fill()
+        ctx.set_stroke_style("#5D2906") // Add outline
+        ctx.stroke()
+
+        // Tree foliage - overlapping triangles
+        let green_shades = ["#006400", "#008000", "#228B22"]
+
+        // Bottom triangle
+        ctx.begin_path()
+        ctx.move_to(-width / 2f, -height / 3f)
+        ctx.line_to(0f, -height * 0.6f)
+        ctx.line_to(width / 2f, -height / 3f)
+        ctx.close_path()
+        ctx.set_fill_style(green_shades[0]!!)
+        ctx.fill()
+        ctx.stroke()
+
+        // Middle triangle
+        ctx.begin_path()
+        ctx.move_to(-width * 0.4f, -height * 0.5f)
+        ctx.line_to(0f, -height * 0.75f)
+        ctx.line_to(width * 0.4f, -height * 0.5f)
+        ctx.close_path()
+        ctx.set_fill_style(green_shades[1]!!)
+        ctx.fill()
+        ctx.stroke()
+
+        // Top triangle
+        ctx.begin_path()
+        ctx.move_to(-width * 0.3f, -height * 0.65f)
+        ctx.line_to(0f, -height * 0.9f)
+        ctx.line_to(width * 0.3f, -height * 0.65f)
+        ctx.close_path()
+        ctx.set_fill_style(green_shades[2]!!)
+        ctx.fill()
+        ctx.stroke()
+
+        ctx.restore()
+    }
+}
+
+// Draw clouds with composite operations
+fun drawClouds(ctx: Canvas, count: Int) {
+    ctx.save()
+
+    // Set composite operation for cloud blending
+    ctx.set_global_composite_operation("lighter")
+
+    repeat count {
+        let i = it
+        let x = (i * 157 % 700).to_float()
+        let y = 50f + (i * 127 % 100).to_float()
+        let scale = 0.5f + (i % 3).to_float() * 0.5f
+
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.scale(scale, scale)
+
+        // Base cloud puff
+        repeat 5 {
+            let j = it
+            let cloud_x = j.to_float() * 30f - 30f
+            let cloud_y = (j % 2).to_float() * 10f
+            let size = 20f + (j % 3).to_float() * 15f
+
+            ctx.begin_path()
+            ctx.arc(cloud_x, cloud_y, size, 0f, 6.28f, false)
+            ctx.set_fill_style("rgba(255, 255, 255, 0.7)")
+            ctx.fill()
+        }
+
+        ctx.restore()
+    }
+
+    ctx.restore()
+}
+
+// Draw birds flying in the sky
+fun drawBirds(ctx: Canvas, count: Int) {
+    ctx.save()
+
+    repeat count {
+        let i = it
+        let x = (i * 97 % 700).to_float()
+        let y = 100f + (i * 87 % 150).to_float()
+        let size = 0.8f + (i % 3).to_float() * 0.5f
+
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.scale(size, size)
+
+        // "M" shape birds
+        ctx.begin_path()
+        ctx.move_to(-15f, 0f)
+        ctx.line_to(0f, -10f)
+        ctx.line_to(15f, 0f)
+
+        ctx.set_line_width(2f)
+        ctx.set_stroke_style("rgba(0, 0, 0, 0.8)")
+        ctx.stroke()
+
+        ctx.restore()
+    }
+
+    ctx.restore()
+}
+
+// Helper to convert RGB to hex color string
+fun rgb_to_hex(r: Int, g: Int, b: Int): String {
+    return "#${r.to_byte()}${g.to_byte()}${b.to_byte()}"
+}
+
+// Linear interpolation helper
+fun lerp(a: Int, b: Int, t: Float): Float {
+    return a.to_float() * (1f - t) + b.to_float() * t
+}

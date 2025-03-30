@@ -64,9 +64,20 @@ Intended for the developers
 - Add path prefix to fields, like `internal::field: Int`
 - Add default values for fields in structs
 - Add default values for parameters in functions
+- Add commas to separate multiple values in `when` expressions
 
 ### Known Bugs
 
 - Function with return type by no return at the end, does not cause an error, crashes at runtime
 - 'break' in when expression emits error 'Int' vs 'Nothing'
 - Crash with options if they only have one variant
+- Crash with "Test $"
+
+### Action plan
+
+- Improve compiler memory usage
+- Add implicit context parameter to all functions
+- Add interfaces
+- Add heap allocated stack frames
+- Add coroutines
+- Add mark and sweep garbage collector using the heap stack frames
