@@ -163,6 +163,13 @@ fun Float.unary_minus(): Float = this.neg()
 // Function called when a unary plus is applied to a floating point number, e.g. +(1.0)
 fun Float.unary_plus(): Float = this
 
+// Linear interpolation between this and other value
+// t is a value between 0 and 1
+// t = 0 returns this, t = 1 returns other, t = 0.5 returns the average of this and other
+fun Float.lerp(other: Float, t: Float): Float {
+    ret this * (1f - t) + other * t
+}
+
 // Converts this floating point number into a string
 fun Float.to_string(): String {
     let buff = StringBuilder::new()
