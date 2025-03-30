@@ -1,0 +1,15 @@
+/* --- BEGIN CODE --- */
+fun main() {
+    when 2 {
+        1, 2, 3, 4 -> {
+            println("Value is 1, 2, 3, or 4")
+        }
+        else -> {
+            println("Value is something else")
+        }
+    }
+}
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Value is 1, 2, 3, or 4
+--- END OUTPUT --- */

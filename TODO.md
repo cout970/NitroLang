@@ -64,7 +64,6 @@ Intended for the developers
 - Add path prefix to fields, like `internal::field: Int`
 - Add default values for fields in structs
 - Add default values for parameters in functions
-- Add commas to separate multiple values in `when` expressions
 
 ### Known Bugs
 

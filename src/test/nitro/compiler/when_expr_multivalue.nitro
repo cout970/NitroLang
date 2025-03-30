@@ -1,3 +1,4 @@
+/* --- BEGIN CODE --- */
 fun main() {
     let msg = when 2 {
         1, 2, 3, 4 -> {
@@ -9,3 +10,7 @@ fun main() {
     }
     println(msg)
 }
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+Value is 1, 2, 3, or 4
+--- END OUTPUT --- */

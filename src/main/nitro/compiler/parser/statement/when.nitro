@@ -102,6 +102,55 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
             }
         }
 
+        // Multiple values
+        while lexer.current_token_kind == TokenKind::COMMA {
+            skip_token_kind(TokenKind::COMMA)?
+            skip_nl()
+
+            code.add_if_start(span, condition)
+
+            code.enter_block(false)
+            let if_true = code.add_lit_boolean(span, true)
+            code.exit_block()
+
+            code.add_if_else(span)
+
+            code.enter_block(false)
+            let new_cond: NInstId
+
+            when {
+               lexer.current_token_kind == TokenKind::IS -> {
+                   let span = lexer.current_token_span
+                   skip_token_kind(TokenKind::IS)?
+
+                   if expr.is_none() {
+                       // 'is' can only be used with a condition
+                       ret parse_error(ParseError::WhenIsWithoutCondition, lexer.current_token)
+                   }
+
+                   let type_pattern = read_type_pattern_excluding_function_types()?
+                   let inst = code.add_is_type(span, expr!!, type_pattern)
+                   new_cond = inst.id
+               }
+               expr.is_some() -> {
+                   let span = lexer.current_token_span
+                   let cond_aux = read_expression(code)?
+
+                   let inst = code.add_fun_call(span, "", "is_equal", true, [expr!!, cond_aux], [])
+                   new_cond = inst.id
+               }
+               else -> {
+                   new_cond = read_expression(code)?
+               }
+            }
+
+            code.exit_block()
+            code.add_if_end(span)
+
+            let choose = code.add_if_choose(span, condition, if_true.id, new_cond)
+            condition = choose.id
+        }
+
         let span = lexer.current_token_span
         skip_token_kind(TokenKind::ARROW)?
 
