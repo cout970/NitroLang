@@ -19,9 +19,18 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
     //   }
     // }
 
+    let has_parens = false
+
     skip_token_kind(TokenKind::FOR)?
     let span = lexer.current_token_span
     skip_nl()
+
+    // Parens are optional
+    if lexer.current_token_kind == TokenKind::LPAREN {
+        has_parens = true
+        skip_token_kind(TokenKind::LPAREN)?
+        skip_nl()
+    }
 
     let iter_value: String = read_name()?
     skip_nl()
@@ -34,6 +43,12 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
     code.enter_block(true)
     let iterable = read_expression(code)?
     skip_nl()
+
+    // Check for closing parens
+    if has_parens {
+        skip_token_kind(TokenKind::RPAREN)?
+        skip_nl()
+    }
 
     // let iter = <iterable>.to_iterator()
     let var_iter = code.add_let(span, "iter", None())

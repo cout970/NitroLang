@@ -98,12 +98,32 @@ fun main() {
 
             let target = args[i]!!
             i += 1
-            if target != "wasm32-wasi" && target != "wasm32-js" {
-                Log::error("Invalid target: $target")
-                Log::info("Valid targets: wasm, js")
-                ret
+
+            when target {
+                "wasm32-wasi" -> {
+                    prog.target = "wasm32-wasi"
+                }
+                "wasm32-wasi-unknown" -> {
+                    prog.target = "wasm32-wasi"
+                }
+                "wasm32-wasip1" -> {
+                    prog.target = "wasm32-wasi"
+                }
+                "wasm32-wasip1-unknown" -> {
+                    prog.target = "wasm32-wasi"
+                }
+                "wasm32-js" -> {
+                    prog.target = "wasm32-js"
+                }
+                "wasm32-js-unknown" -> {
+                    prog.target = "wasm32-js"
+                }
+                else -> {
+                    Log::error("Invalid target: $target")
+                    Log::info("Valid targets: wasm, js")
+                    ret
+                }
             }
-            prog.target = target
             continue
         }
 
