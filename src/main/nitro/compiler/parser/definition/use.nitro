@@ -10,7 +10,11 @@ fun Parser.read_use_definition(annotations: NAnnotationContainer): Parsed<Nothin
     let path = read_module_path()?
     let name = read_name()?
 
-    use_paths[] = Path::join(path, name)
+    let full_path = Path::join(path, name)
+
+    if full_path !in use_paths {
+        use_paths[] = full_path
+    }
 
     ret found(nothing)
 }

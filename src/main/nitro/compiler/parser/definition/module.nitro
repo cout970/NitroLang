@@ -15,8 +15,9 @@ fun Parser.read_module_definition(annotations: NAnnotationContainer): Parsed<Not
     module_path_stack[] = full_path
     defer { module_path_stack.remove_last()!! }
 
-    use_paths[] = full_path
-    defer { use_paths.remove_value(full_path) }
+    if full_path !in use_paths {
+        use_paths[] = full_path
+    }
 
     skip_token_kind(TokenKind::LBRACE)?
     skip_nl()

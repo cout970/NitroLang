@@ -30,7 +30,8 @@ fun Parser.read_name(): Parsed<String> {
     ret found(name)
 }
 
-// Read a module path like `foo::bar` in `foo::bar::Int`
+// Read a module path like `foo::bar` in `foo::bar::Int`,
+// will return an empty string if no module path is found, for example if there is a single identifier without `::` after it.
 fun Parser.read_module_path(): Parsed<String> {
     // modulePath
     //      : (anyName DOUBLE_COLON)+ ;

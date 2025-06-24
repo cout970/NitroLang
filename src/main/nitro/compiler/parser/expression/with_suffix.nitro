@@ -216,7 +216,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
             }
 
             // Function call
-            if lexer.current_token_kind == TokenKind::LPAREN || lexer.current_token_kind == TokenKind::LAMBDA_START{
+            if lexer.current_token_kind == TokenKind::LPAREN || lexer.current_token_kind == TokenKind::LAMBDA_START {
                 let args = [last]
 
                 if lexer.current_token_kind == TokenKind::LPAREN {
@@ -229,6 +229,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 }
 
                 let call = code.add_fun_call(span, path, name, true, args, type_param_args)
+                (call.kind as NInstKind::FunCall).use_paths.add_all(use_paths)
                 last = call.id
                 continue
             }
@@ -352,6 +353,7 @@ fun Parser.read_expression_with_suffix(code: NCode): Parsed<NInstId> {
                 }
 
                 let last_call = lambda.code.add_fun_call(span, path, name, true, func_args, [])
+                (last_call.kind as NInstKind::FunCall).use_paths.add_all(use_paths)
                 lambda.code.add_return(span, last_call.id)
 
                 let lambda_inst = code.add_lambda(span, lambda.id)
