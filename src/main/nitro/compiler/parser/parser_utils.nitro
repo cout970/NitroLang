@@ -56,6 +56,57 @@ fun Parser.read_module_path(): Parsed<String> {
     ret found(path)
 }
 
+fun Parser.read_module_path_with_params(generic_params: List<NTypeUsage>): Parsed<String> {
+    // modulePath
+    //      : (anyName DOUBLE_COLON)+
+    //      | (anyName type_param_args DOUBLE_COLON)+;
+
+    let path: String = ""
+    let first = true
+
+    while lexer.current_token_kind == TokenKind::IDENTIFIER {
+        let save = lexer.save_state()
+        let name: String = read_name()?
+
+        // anyName type_param_args ::
+        if lexer.current_token_kind == TokenKind::LTH {
+            let params: List<NTypeUsage> = try_read_type_param_args()
+
+            if params.is_not_empty() && lexer.current_token_kind == TokenKind::DOUBLE_COLON {
+                if !first {
+                    path = path.concat("::")
+                }
+                first = false
+                path += name
+                generic_params.add_all(params)
+                skip_token_kind(TokenKind::DOUBLE_COLON)?
+            } else {
+                // No DOUBLE_COLON, end of the loop
+                lexer.restore_state(save)
+                break
+            }
+            continue
+        }
+
+        // anyName DOUBLE_COLON
+        if lexer.current_token_kind == TokenKind::DOUBLE_COLON {
+            if !first {
+                path = path.concat("::")
+            }
+            first = false
+            path += name
+            skip_token_kind(TokenKind::DOUBLE_COLON)?
+            continue
+        }
+
+        // No DOUBLE_COLON, end of the loop
+        lexer.restore_state(save)
+        break
+    }
+
+    ret found(path)
+}
+
 // Reads a module path, but also includes the path of the modules enclosing this declaration
 // i.e `mod A { mod B { struct C::MyStruct {} }  }` will return "A::B::C::MyStruct" when parsing the struct
 fun Parser.read_declaration_module_path(): Parsed<String> {
