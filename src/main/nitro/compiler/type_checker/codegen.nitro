@@ -177,7 +177,7 @@ fun TypeChecker.generate_struct_rc_functions() {
             // `this.field.ref_dec()`
             let load_this3 = func3.code.add_load_var(span, "", "this", None())
             let load_field3 = func3.code.add_load_field(span, load_this3.id, field.name)
-            func3.code.add_ref_dec(span, load_field3.id, load_field3.id, true, func3.code.current_block)
+            func3.code.add_ref_dec(span, load_field3.id, load_field3.id, true)
         }
 
         let load_this3 = func3.code.add_load_var(span, "", "this", None())
@@ -193,7 +193,7 @@ fun TypeChecker.generate_struct_rc_functions() {
 }
 
 struct TypeCheckerStackFrame {
-    block_id: NBlockId,
+    block_depth: Int,
     inst_list: List<NInstId>
 }
 
@@ -212,17 +212,16 @@ fun TypeChecker.generate_rc_instructions() {
         }
 
         let i = 0
+        let depth = 0
         let stack: List<TypeCheckerStackFrame> = []
 
         // Root level
-        stack[] = TypeCheckerStackFrame @[block_id: code.current_block, inst_list: []]
+        stack[] = TypeCheckerStackFrame @[block_depth: 0, inst_list: []]
 
         loop {
             // Detect vars out of scope
             let next_depth = if code.inst_list.len > i {
-                let inst_block_id = code.inst_list[i]!!.block
-                let block = code.find_block(inst_block_id)
-                block.depth + 1
+                depth + 1
             } else {
                 0
             }
@@ -234,7 +233,7 @@ fun TypeChecker.generate_rc_instructions() {
                 let after = i >= code.inst_list.len
 
                 for id in last_frame.inst_list {
-                    i += pop_inst_rc(id, code, def.span, target, after, last_frame.block_id)
+                    i += pop_inst_rc(id, code, def.span, target, after)
                 }
             }
 
@@ -244,9 +243,16 @@ fun TypeChecker.generate_rc_instructions() {
 
             let inst = code.inst_list[i]!!
 
+            if inst.kind is NInstKind::BlockEnd {
+                depth -= 1
+            }
+            if inst.kind is NInstKind::BlockStart {
+                depth += 1
+            }
+
             // Update scope stack
             while next_depth > stack.len {
-                stack[] = TypeCheckerStackFrame @[block_id: inst.block, inst_list: []]
+                stack[] = TypeCheckerStackFrame @[block_depth: depth, inst_list: []]
             }
 
             // Detect value to check for out of scope
@@ -273,7 +279,7 @@ fun TypeChecker.generate_rc_instructions() {
 
                     // Inc return value
                     if inst_type.has_gc() {
-                        code.add_ref_inc(def.span, kind.value, inst.id, false, inst.block)
+                        code.add_ref_inc(def.span, kind.value, inst.id, false)
                         i += 1
                     }
 
@@ -284,7 +290,7 @@ fun TypeChecker.generate_rc_instructions() {
                         let after = i >= code.inst_list.len
 
                         for id in last_frame.inst_list {
-                            i += pop_inst_rc(id, code, def.span, target, after, last_frame.block_id)
+                            i += pop_inst_rc(id, code, def.span, target, after)
                         }
                     }
                 }
@@ -297,7 +303,7 @@ fun TypeChecker.generate_rc_instructions() {
     }
 }
 
-fun TypeChecker.pop_inst_rc(id: NInstId, code: NCode, span: Span, target: NInstId, after: Boolean, block_id: NBlockId): Int {
+fun TypeChecker.pop_inst_rc(id: NInstId, code: NCode, span: Span, target: NInstId, after: Boolean): Int {
     let inst: NInst = code.find_inst(id)
     let last_id = code.inst_list.last()!!.id
 
@@ -307,12 +313,12 @@ fun TypeChecker.pop_inst_rc(id: NInstId, code: NCode, span: Span, target: NInstI
 
         let var_type = variable.type_token!!.find_type()
         if var_type.has_gc() {
-            ret code.add_var_ref_dec(span, variable, target, after, block_id)
+            ret code.add_var_ref_dec(span, variable, target, after)
         }
     } else {
         let inst_type = inst.type_token!!.find_type()
         if inst_type.has_gc() {
-            code.add_ref_dec(span, id, target, after, block_id)
+            code.add_ref_dec(span, id, target, after)
             ret 1
         }
     }
@@ -331,7 +337,7 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
                 let variable = code.vars_map[var_id]!!
 
                 if variable.type_token!!.find_type().has_gc() {
-                    i += code.add_var_ref_dec(def.span, variable, inst.id, false, inst.block)
+                    i += code.add_var_ref_dec(def.span, variable, inst.id, false)
                 }
 
                 if variable.init_at.is_none() {
@@ -341,7 +347,7 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
 
             let prev = code.find_inst(kind.value)
             if prev.type_token!!.find_type().has_gc() {
-                code.add_ref_inc(def.span, kind.value, inst.id, true, inst.block)
+                code.add_ref_inc(def.span, kind.value, inst.id, true)
                 i += 1
             }
 
@@ -368,9 +374,9 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
                 field_type_token: kind.field_type_token,
                 call_site_generics: kind.call_site_generics,
             ])
-            code.add_ref_dec(def.span, load.id, load.id, true, inst.block)
+            code.add_ref_dec(def.span, load.id, load.id, true)
 
-            code.add_ref_inc(def.span, kind.value, inst.id, true, inst.block)
+            code.add_ref_inc(def.span, kind.value, inst.id, true)
             ret 3
         }
 
@@ -433,7 +439,7 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
                     variable: Some(variable.id),
                     constant: None(),
                 ])
-                code.add_ref_inc(def.span, load.id, load.id, true, inst.block)
+                code.add_ref_inc(def.span, load.id, load.id, true)
                 ret 2
             }
 
@@ -446,7 +452,7 @@ fun TypeChecker.generate_rc_instructions_for_inst(def: NFunction, code: NCode, i
     ret 0
 }
 
-fun NCode.add_ref_inc(span: Span, value: NInstId, inst_id: Id, after: Boolean, block_id: NBlockId): NInst {
+fun NCode.add_ref_inc(span: Span, value: NInstId, inst_id: Id, after: Boolean): NInst {
     let code = this
     let kind = NInstKind::FunCall @[
         path: "",
@@ -464,7 +470,7 @@ fun NCode.add_ref_inc(span: Span, value: NInstId, inst_id: Id, after: Boolean, b
     }
 }
 
-fun NCode.add_ref_dec(span: Span, value: NInstId, inst_id: Id, after: Boolean, block_id: NBlockId): NInst {
+fun NCode.add_ref_dec(span: Span, value: NInstId, inst_id: Id, after: Boolean): NInst {
     let code = this
     let kind = NInstKind::FunCall @[
         path: "",
@@ -481,11 +487,10 @@ fun NCode.add_ref_dec(span: Span, value: NInstId, inst_id: Id, after: Boolean, b
     } else {
         code.add_inst_before(inst_id, span, kind)
     }
-    fun_call.block = block_id
     ret fun_call
 }
 
-fun NCode.add_var_ref_dec(span: Span, variable: NVar, inst_id: Id, after: Boolean, block_id: NBlockId): Int {
+fun NCode.add_var_ref_dec(span: Span, variable: NVar, inst_id: Id, after: Boolean): Int {
     let code = this
 
     if variable.init_at.is_none() && !variable.is_parameter {
@@ -504,7 +509,6 @@ fun NCode.add_var_ref_dec(span: Span, variable: NVar, inst_id: Id, after: Boolea
     } else {
         code.add_inst_before(inst_id, span, kind)
     }
-    variable_load2.block = block_id
 
     let fun_call = code.add_inst_after(variable_load2.id, span, NInstKind::FunCall @[
         path: "",
@@ -515,8 +519,6 @@ fun NCode.add_var_ref_dec(span: Span, variable: NVar, inst_id: Id, after: Boolea
         use_paths: [],
         call_site: None(),
     ])
-    fun_call.block = block_id
-
     ret 2
 }
 

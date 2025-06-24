@@ -60,15 +60,15 @@ fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
 
         code.add_if_start(span, left)
 
-        code.enter_block(false)
+        code.enter_block(span, false)
         let if_true = code.add_lit_boolean(span, true)
-        code.exit_block()
+        code.exit_block(span)
 
         code.add_if_else(span)
 
-        code.enter_block(false)
+        code.enter_block(span, false)
         let if_false = read_expression_and(code)?
-        code.exit_block()
+        code.exit_block(span)
 
         code.add_if_end(span)
 
@@ -89,15 +89,15 @@ fun Parser.read_expression_and(code: NCode): Parsed<NInstId> {
 
         code.add_if_start(span, left)
 
-        code.enter_block(false)
+        code.enter_block(span, false)
         let if_true = read_expression_binary_operation(code)?
-        code.exit_block()
+        code.exit_block(span)
 
         code.add_if_else(span)
 
-        code.enter_block(false)
+        code.enter_block(span, false)
         let if_false = code.add_lit_boolean(span, false)
-        code.exit_block()
+        code.exit_block(span)
 
         code.add_if_end(span)
 

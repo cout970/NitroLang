@@ -70,14 +70,6 @@ fun Parser.read_code_block(code: NCode): Parsed<Nothing> {
         }
     }
 
-    // Sanity checks
-    check(code.current_block.to_int() == 0, "Block stack is not empty")
-
-    // Execute deferred actions
-    if !code.jumped_out_of_block {
-        code.active_block.add_deferred_actions(code, true)
-    }
-
     // Check there are no break/continue jumps unlinked
     code.check_jump_points()
 

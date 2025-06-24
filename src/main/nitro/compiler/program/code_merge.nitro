@@ -1,57 +1,35 @@
 
 struct NCodeMapping {
     inst_mapping: Map<NInstId, NInstId>
-    block_mapping: Map<NBlockId, NBlockId>
     var_mapping: Map<NVarId, NVarId>
 }
 
 fun NCode.merge(other: NCode) {
     let map = NCodeMapping @[
         inst_mapping: #[],
-        block_mapping: #[],
         var_mapping: #[],
     ]
 
-    map.copy_blocks(other, this)
     map.copy_vars(other, this)
-    map.copy_inst(other, this)
+    map.copy_inst(other, this, max(0, this.inst_list.len - 1))
 
     for c in other.lambdas {
         this.lambdas[] = c
     }
 }
 
-// Copy blocks from src to dst
-fun NCodeMapping.copy_blocks(src: NCode, dst: NCode) {
+fun NCode.add_at_index(index: Int, other: NCode) {
+    let map = NCodeMapping @[
+        inst_mapping: #[],
+        var_mapping: #[],
+    ]
 
-    for src_block in src.block_map.values_to_list() {
-        if src_block.parent_id.is_none() {
-            block_mapping[src_block.id] = dst.current_block
-            continue
-        }
+    map.copy_vars(other, this)
+    map.copy_inst(other, this, index)
 
-        let parent_id: NBlockId = block_mapping[src_block.parent_id!!]!!
-
-        let deferred_code = []
-
-        for c in src_block.deferred_code {
-            let child = src.new_child_code(NCodeContainer::None @[], c.is_transparent_child)
-            child.merge(c)
-            deferred_code[] = child
-        }
-
-        let prev = dst.block_map[parent_id]
-        let prev_depth = if prev.is_none() { 0 } else { prev!!.depth }
-        let new_block = NBlock @[
-            id: dst.block_id_provider.next(),
-            parent_id: Some(parent_id),
-            is_jump_target: src_block.is_jump_target,
-            depth: prev_depth,
-            deferred_code,
-        ]
-        dst.block_map[new_block.id] = new_block
-        block_mapping[src_block.id] = new_block.id
-   }
+    for c in other.lambdas {
+        this.lambdas[] = c
+    }
 }
 
 // Copy variables from src to dst
@@ -61,7 +39,6 @@ fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
         let new_var = NVar @[
             id: dst.variable_id_provider.next(),
             span: src_var.span,
-            block: block_mapping[src_var.block]!!,
             name: src_var.name,
             type_usage: src_var.type_usage,
             type_token: src_var.type_token,
@@ -76,11 +53,11 @@ fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
 }
 
 // Copy instructions
-fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
-
+fun NCodeMapping.copy_inst(src: NCode, dst: NCode, index: Int) {
     for inst in src.inst_list {
         let new_kind = map_inst_kind(inst.kind)
-        let new_inst = dst.add_inst_in_block(inst.span, block_mapping[inst.block]!!, new_kind)
+        let new_inst = dst.add_inst_at(index, inst.span, new_kind)
+        index += 1
 
         inst_mapping[inst.id] = new_inst.id
 
@@ -90,7 +67,6 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode) {
 
             lambda.container = dst.container
             lambda.parent_inst = new_inst.id
-            lambda.parent_block = new_inst.block
             lambda.code.container = NCodeContainer::Lambda @[def: lambda]
         }
     }
@@ -126,6 +102,23 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
 
             ret NInstKind::LetUpvalue @[variable: var_mapping[kind.variable] ?? kind.variable]
         }
+        orig is NInstKind::BlockStart -> {
+            let kind = orig as NInstKind::BlockStart
+
+            ret NInstKind::BlockStart @[
+                is_jump_target: kind.is_jump_target,
+            ]
+        }
+        orig is NInstKind::BlockEnd -> {
+            ret NInstKind::BlockEnd @[]
+        }
+        orig is NInstKind::Defer -> {
+            let kind = orig as NInstKind::Defer
+
+            ret NInstKind::Defer @[
+                deferred_code: kind.deferred_code,
+            ]
+        }
         orig is NInstKind::IfStart -> {
             let kind = orig as NInstKind::IfStart
 
@@ -150,8 +143,8 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
             let kind = orig as NInstKind::LoopStart
 
             ret NInstKind::LoopStart @[
-                break_block: block_mapping[kind.break_block]!!,
-                continue_block: block_mapping[kind.continue_block]!!,
+                break_block: inst_mapping[kind.break_block]!!,
+                continue_block: inst_mapping[kind.continue_block]!!,
             ]
         }
         orig is NInstKind::LoopEnd -> {
@@ -162,7 +155,7 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
 
             ret NInstKind::BlockJump @[
                 backwards: kind.backwards,
-                block: if kind.block.is_some() { Some(block_mapping[kind.block!!]!!) } else { None() },
+                block: if kind.block.is_some() { Some(inst_mapping[kind.block!!]!!) } else { None() },
             ]
         }
 
@@ -354,5 +347,5 @@ fun NCodeMapping.map_inst_kind(orig: NInstKind): NInstKind {
 }
 
 fun NCodeMapping.to_string(): String {
-    ret "NCodeMapping @[\n  inst_mapping: $inst_mapping,\n  block_mapping: $block_mapping,\n  var_mapping: $var_mapping\n]"
+    ret "NCodeMapping @[\n  inst_mapping: $inst_mapping,\n  var_mapping: $var_mapping\n]"
 }

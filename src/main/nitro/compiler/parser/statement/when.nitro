@@ -43,9 +43,7 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
     ]
 
     let start = code.add_when_start(span, when_info)
-    code.enter_block(false)
-
-    let when_block = code.current_block
+    let when_block = code.enter_block(span, false)
 
     read_until_delimited(TokenKind::RBRACE) @{
         // else -> {}
@@ -109,13 +107,13 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
 
             code.add_if_start(span, condition)
 
-            code.enter_block(false)
+            code.enter_block(span, false)
             let if_true = code.add_lit_boolean(span, true)
-            code.exit_block()
+            code.exit_block(span)
 
             code.add_if_else(span)
 
-            code.enter_block(false)
+            code.enter_block(span, false)
             let new_cond: NInstId
 
             when {
@@ -144,7 +142,7 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
                }
             }
 
-            code.exit_block()
+            code.exit_block(span)
             code.add_if_end(span)
 
             let choose = code.add_if_choose(span, condition, if_true.id, new_cond)
@@ -156,7 +154,7 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
 
         when_info.conditions[] = condition
         code.add_if_start(span, condition)
-        code.enter_block(false)
+        code.enter_block(span, false)
 
         if lexer.current_token_kind == TokenKind::LBRACE {
             read_statement_block(code)?
@@ -165,14 +163,14 @@ fun Parser.read_when_statement(code: NCode, exhaustive: Boolean): Parsed<Nothing
         }
 
         code.add_block_jump(span, false, Some(when_block))
-        code.exit_block()
+        code.exit_block(span)
 
         code.add_if_end(span)
 
         ret found(nothing)
     }?
 
-    code.exit_block()
+    code.exit_block(span)
     code.add_when_end(span, start.id)
 
     ret found(nothing)

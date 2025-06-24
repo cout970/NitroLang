@@ -8,10 +8,11 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
     // repeat <count> { <code> }
     // {
     //   let limit = <count>
-    //   let it = 0
+    //   let _it = 0
     //   loop: {
-    //     if (it < limit) {
-    //       defer { it = it + 1 }
+    //     if (_it < limit) {
+    //       let it = _it
+    //       _it = _it + 1
     //       <code>
     //       goto loop;
     //     }
@@ -23,70 +24,58 @@ fun Parser.read_repeat_statement(code: NCode): Parsed<Nothing> {
 
     code.add_comment(span, "repeat statement")
 
-    code.enter_block(true)
+    code.enter_block(span, true)
     let count = read_expression(code)?
 
     // let limit = <count>
     let var_limit = code.add_let(span, "limit", Some(NTypeUsage::simple(span, "Int")))
     code.add_store_var(span, "", "limit", count, Some(var_limit.id))
 
-    // let it = 0
-    let var_it = code.add_let(span, "it", Some(NTypeUsage::simple(span, "Int")))
+    // let _it = 0
+    let var_it = code.add_let(span, "_it", Some(NTypeUsage::simple(span, "Int")))
     let zero = code.add_lit_int(span, 0)
-    code.add_store_var(span, "", "it", zero.id, Some(var_it.id))
+    code.add_store_var(span, "", "_it", zero.id, Some(var_it.id))
 
     // loop {
     let jumps = code.save_jump_points()
-    let prev_block = code.current_block
-    code.enter_block(true)
-    let break_block = code.current_block
-    code.enter_block(false)
-    let continue_block = code.current_block
+    let break_block = code.enter_block(span, true)
+    let continue_block = code.enter_block(span, false)
 
     let start = code.add_loop_start(span, break_block, continue_block)
-    start.block = prev_block
 
     //     if (it < limit) {
-    let load_it = code.add_load_var(span, "", "it", Some(var_it.id))
+    let load_it = code.add_load_var(span, "", "_it", Some(var_it.id))
     let load_limit = code.add_load_var(span, "", "limit", Some(var_limit.id))
     let condition = code.add_fun_call(span, "", "less_than_signed", true, [load_it.id, load_limit.id], [])
 
     code.add_if_start(span, condition.id)
-    code.enter_block(false)
+    code.enter_block(span, false)
+    let var_it_pub = code.add_let(span, "it", Some(NTypeUsage::simple(span, "Int")))
+    code.add_store_var(span, "", "it", load_it.id, Some(var_it_pub.id))
 
-    //       defer { it = it + 1 }
-    let subcode = code.new_child_code(NCodeContainer::None @[], false)
-    subcode.add_comment(span, "defer-start")
-
-    let load_it = subcode.add_load_var(span, "", "it", Some(var_it.id))
-    let one = subcode.add_lit_int(span, 1)
-    let add = subcode.add_fun_call(span, "", "plus", true, [load_it.id, one.id], [])
-    subcode.add_store_var(span, "", "it", add.id, Some(var_it.id))
-
-    subcode.add_comment(span, "defer-end")
-    code.find_block(code.current_block).deferred_code[] = subcode
+    let one = code.add_lit_int(span, 1)
+    let add = code.add_fun_call(span, "", "plus", true, [load_it.id, one.id], [])
+    code.add_store_var(span, "", "_it", add.id, Some(var_it.id))
 
     //       Code in loop...
     read_statement_block(code)?
 
     //       goto loop;
-    code.active_block.add_deferred_actions(code, false)
-    code.jumped_out_of_block = true
     code.add_block_jump(span, true, Some(continue_block))
 
     //     }
-    code.exit_block()
+    code.exit_block(span)
     code.add_if_end(span)
 
     // }
-    code.exit_block()
-    code.exit_block()
+    code.exit_block(span)
+    code.exit_block(span)
 
     code.add_loop_end(span)
 
     code.link_jump_points(break_block, continue_block)
     code.restore_jump_points(jumps)
-    code.exit_block()
+    code.exit_block(span)
 
     ret found(nothing)
 }

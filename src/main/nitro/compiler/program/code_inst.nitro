@@ -6,8 +6,6 @@ struct NInst {
     id: NInstId
     // Span of the instruction in the source code
     span: Span
-    // Block id where the instruction is located
-    block: NBlockId
     // Instruction kind
     kind: NInstKind
     // Type resolution utility
@@ -29,6 +27,16 @@ option NInstKind {
     LetUpvalue {
         variable: NVarId
     }
+    // Start of logic Block
+    BlockStart {
+        is_jump_target: Boolean
+    }
+    // End of logic block
+    BlockEnd {}
+    // Deferred code to run at the end of the current scope or at return/continue/break
+    Defer {
+        deferred_code: NCode
+    }
     // `if (condition)` starts a new block
     IfStart {
         condition: NInstId
@@ -45,15 +53,15 @@ option NInstKind {
     }
     // Starts an infinite loop block
     LoopStart {
-        break_block: NBlockId
-        continue_block: NBlockId
+        break_block: NInstId
+        continue_block: NInstId
     }
     // Ends the current loop block
     LoopEnd {}
     // Performs an unconditional jump for `break` (backwards = false) and `continue` (backwards = true)
     BlockJump {
         backwards: Boolean
-        block: Optional<NBlockId>
+        block: Optional<NInstId>
     }
     // Starts a `when` (like a switch/match block) block
     WhenStart {
@@ -191,11 +199,9 @@ fun NCode.add_inst(
     span: Span,
     kind: NInstKind,
 ): NInst {
-    let block = if cursor == -1 { current_block } else { inst_list[cursor]!!.block }
     let i = NInst @[
         id: inst_id_provider.next(),
         span,
-        block,
         kind,
         type_token: None(),
         back_references: [],
@@ -210,23 +216,23 @@ fun NCode.add_inst(
     ret i
 }
 
-fun NCode.add_inst_in_block(
+fun NCode.add_inst_at(
+    at: Int,
     span: Span,
-    block: NBlockId,
     kind: NInstKind,
 ): NInst {
     let i = NInst @[
         id: inst_id_provider.next(),
         span,
-        block,
         kind,
         type_token: None(),
         back_references: [],
     ]
-    if cursor == -1 {
+
+    if at >= inst_list.len {
         inst_list[] = i
     } else {
-        inst_list.insert(cursor + 1, i)
+        inst_list.insert(at, i)
     }
     ret i
 }
@@ -245,6 +251,18 @@ fun NCode.add_mark(span: Span): Id {
     ret id
 }
 
+fun NCode.add_block_start(span: Span, is_jump_target: Boolean): NInst {
+    ret add_inst(span, NInstKind::BlockStart @[is_jump_target])
+}
+
+fun NCode.add_block_end(span: Span): NInst {
+    ret add_inst(span, NInstKind::BlockEnd @[])
+}
+
+fun NCode.add_defer(span: Span, deferred_code: NCode): NInst {
+    ret add_inst(span, NInstKind::Defer @[deferred_code])
+}
+
 fun NCode.add_let(
     span: Span,
     name: String,
@@ -253,7 +271,6 @@ fun NCode.add_let(
     let variable = NVar @[
         id: variable_id_provider.next(),
         span,
-        block: current_block,
         name,
         type_usage: if type_usage.is_some() { type_usage!! } else { NTypeUsage::unresolved(span) },
         type_token: None(),
@@ -275,7 +292,6 @@ fun NCode.add_let_upvalue(
     let i = NInst @[
         id: inst_id_provider.next(),
         span,
-        block: current_block,
         kind,
         type_token: None(),
         back_references: [],
@@ -474,8 +490,8 @@ fun NCode.add_init_field(
 
 fun NCode.add_loop_start(
     span: Span,
-    break_block: NBlockId,
-    continue_block: NBlockId
+    break_block: NInstId,
+    continue_block: NInstId
 ): NInst {
     ret add_inst(span, NInstKind::LoopStart @[break_block, continue_block])
 }
@@ -487,7 +503,7 @@ fun NCode.add_loop_end(span: Span): NInst {
 fun NCode.add_block_jump(
     span: Span,
     backwards: Boolean,
-    block: Optional<NBlockId>
+    block: Optional<NInstId>
 ): NInst {
     ret add_inst(span, NInstKind::BlockJump @[backwards, block])
 }
@@ -575,7 +591,6 @@ fun NCode.add_inst_before(prev_id: NInstId, span: Span, kind: NInstKind): NInst 
     let inst = NInst @[
         id: inst_id_provider.next(),
         span: prev_inst.span,
-        block: prev_inst.block,
         kind,
         type_token: None(),
         back_references: [],
@@ -592,7 +607,6 @@ fun NCode.add_inst_after(prev_id: NInstId, span: Span, kind: NInstKind): NInst {
     let inst = NInst @[
         id: inst_id_provider.next(),
         span: prev_inst.span,
-        block: prev_inst.block,
         kind,
         type_token: None(),
         back_references: [],
@@ -608,7 +622,6 @@ fun NCode.duplicate_inst(index: Int) {
     let dup = NInst @[
         id: original.id,
         span: original.span,
-        block: original.block,
         kind: original.kind,
         type_token: original.type_token,
         back_references: original.back_references,
@@ -639,6 +652,9 @@ fun NInstKind.get_name(): String {
         this is NInstKind::Mark -> "mark"
         this is NInstKind::Let -> "let"
         this is NInstKind::LetUpvalue -> "let-upvalue"
+        this is NInstKind::BlockStart -> "block-start"
+        this is NInstKind::BlockEnd -> "block-end"
+        this is NInstKind::Defer -> "defer"
         this is NInstKind::IfStart -> "if-start"
         this is NInstKind::IfElse -> "if-else"
         this is NInstKind::IfEnd -> "if-end"
@@ -691,6 +707,20 @@ fun NInstKind.to_string(): String {
 
             "let-upvalue var:${kind.variable}"
         }
+        this is NInstKind::BlockStart -> {
+            let kind = this as NInstKind::BlockStart
+            let modifier = if kind.is_jump_target { " (jump-target)" } else { "" }
+
+            "block-start$modifier"
+        }
+        this is NInstKind::BlockEnd -> {
+            "block-end"
+        }
+        this is NInstKind::Defer -> {
+            let kind = this as NInstKind::Defer
+
+            "defer ${kind.deferred_code}"
+        }
         this is NInstKind::IfStart -> {
             let kind = this as NInstKind::IfStart
 
@@ -718,7 +748,7 @@ fun NInstKind.to_string(): String {
         this is NInstKind::BlockJump -> {
             let kind = this as NInstKind::BlockJump
 
-            "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
+            "block-jump backwards: ${kind.backwards}, block: #${kind.block}"
         }
         this is NInstKind::BinaryOp -> {
             let kind = this as NInstKind::BinaryOp
@@ -893,6 +923,8 @@ fun NInstKind.to_string(): String {
 }
 
 fun NCode.var_to_string(variable_id: NVarId): String {
+    ret "var:${variable_id}"
+    /*
     let variable: NVar = find_var(variable_id)
 
     let ty = if variable.type_token.is_some() {
@@ -902,6 +934,7 @@ fun NCode.var_to_string(variable_id: NVarId): String {
     }
 
     ret "var:${variable_id} [${variable.name}: $ty]"
+    */
 }
 
 fun NInst.to_string(code: NCode): String {
@@ -921,6 +954,20 @@ fun NInst.to_string(code: NCode): String {
             let kind = t as NInstKind::LetUpvalue
 
             "let-upvalue ${code.var_to_string(kind.variable)}"
+        }
+        t is NInstKind::BlockStart -> {
+            let kind = t as NInstKind::BlockStart
+            let modifier = if kind.is_jump_target { " (jump-target)" } else { "" }
+
+            "block-start$modifier"
+        }
+        t is NInstKind::BlockEnd -> {
+            "block-end"
+        }
+        t is NInstKind::Defer -> {
+            let kind = t as NInstKind::Defer
+
+            "defer ${kind.deferred_code}"
         }
         t is NInstKind::IfStart -> {
             let kind = t as NInstKind::IfStart
@@ -949,7 +996,7 @@ fun NInst.to_string(code: NCode): String {
         t is NInstKind::BlockJump -> {
             let kind = t as NInstKind::BlockJump
 
-            "block-jump backwards: ${kind.backwards}, block: ${kind.block}"
+            "block-jump backwards: ${kind.backwards}, block: #${kind.block}"
         }
         t is NInstKind::BinaryOp -> {
             let kind = t as NInstKind::BinaryOp
@@ -1150,7 +1197,6 @@ fun NInst.to_string(code: NCode): String {
 fun ByteBuffer.serialize_inst(inst: NInst) {
     serialize_id(inst.id)
     serialize_span(inst.span)
-    serialize_id(inst.block)
     let t = inst.kind
     ret when {
         t is NInstKind::Let -> {
@@ -1360,6 +1406,19 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             write_string(kind.name)
             serialize_id(kind.value)
         }
+        t is NInstKind::BlockStart -> {
+            write_int(30)
+            let kind = t as NInstKind::BlockStart
+            write_boolean(kind.is_jump_target)
+        }
+        t is NInstKind::BlockEnd -> {
+            write_int(31)
+        }
+        t is NInstKind::Defer -> {
+            write_int(32)
+            let kind = t as NInstKind::Defer
+            serialize_code(kind.deferred_code)
+        }
         else -> crash("Unknown NInstKind variant")
     }
 }
@@ -1367,7 +1426,6 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
 fun ByteBuffer.deserialize_inst(code: NCode): NInst {
     let id = deserialize_id()
     let span = deserialize_span()
-    let block = deserialize_id()
     let variant = read_int()
 
     let kind = when variant {
@@ -1548,13 +1606,23 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
             let value = deserialize_id()
             NInstKind::InitField @[instance, name, field: None(), field_type_token: None(), call_site_generics: None(), value]
         }
+        30 -> {
+            let is_jump_target = read_boolean()
+            NInstKind::BlockStart @[is_jump_target]
+        }
+        31 -> {
+            NInstKind::BlockEnd @[]
+        }
+        32 -> {
+            let deferred_code = deserialize_code(code.program)
+            NInstKind::Defer @[deferred_code]
+        }
         else -> crash("Unknown NInstKind variant")
     }
 
     ret NInst @[
         id,
         span,
-        block,
         kind,
         type_token: None(),
         back_references: [],

@@ -21,35 +21,29 @@ fun Parser.read_while_statement(code: NCode): Parsed<Nothing> {
 
     // loop {
     let jumps = code.save_jump_points()
-    let prev_block = code.current_block
-    code.enter_block(true)
-    let break_block = code.current_block
-    code.enter_block(false)
-    let continue_block = code.current_block
+    let break_block = code.enter_block(span, true)
+    let continue_block = code.enter_block(span, false)
 
     let start = code.add_loop_start(span, break_block, continue_block)
-    start.block = prev_block
 
     //     if (<condition>) {
     let condition = read_expression(code)?
     code.add_if_start(span, condition)
-    code.enter_block(false)
+    code.enter_block(span, false)
 
     //       Code in loop...
     read_statement_block(code)?
 
     //       goto loop;
-    code.active_block.add_deferred_actions(code, false)
-    code.jumped_out_of_block = true
     code.add_block_jump(span, true, Some(continue_block))
 
     //     }
-    code.exit_block()
+    code.exit_block(span)
     code.add_if_end(span)
 
     // }
-    code.exit_block()
-    code.exit_block()
+    code.exit_block(span)
+    code.exit_block(span)
 
     code.add_loop_end(span)
 

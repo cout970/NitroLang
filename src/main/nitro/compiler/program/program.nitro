@@ -214,12 +214,6 @@ fun Program.increment_all_ids(amount: Int): Int {
     for s in codes {
         s.id.current_value += amount
 
-        for entry in s.block_map {
-            for c in entry.second.deferred_code {
-                c.id.current_value += amount
-            }
-        }
-
         for inst in s.inst_list {
             if inst.kind is NInstKind::Lambda {
                 (inst.kind as NInstKind::Lambda).lambda_id.current_value += amount

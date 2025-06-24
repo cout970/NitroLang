@@ -55,4 +55,8 @@ fun Parser.read_file() {
             break
         }
     }
+
+    for code in program.codes {
+        code.add_deferred_code()
+    }
 }

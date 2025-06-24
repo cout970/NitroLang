@@ -371,6 +371,9 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
             let wvar = wasm_func.add_local(nvar.name, wasm_type)
             wasm_func.let_declarations[nvar.id] = wvar
         }
+        inst.kind is NInstKind::BlockStart -> {}
+        inst.kind is NInstKind::BlockEnd -> {}
+        inst.kind is NInstKind::Defer -> {}
         inst.kind is NInstKind::IfStart -> {}
         inst.kind is NInstKind::IfElse -> {}
         inst.kind is NInstKind::IfEnd -> {}

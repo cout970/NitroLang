@@ -148,6 +148,21 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         ret
     }
 
+    if inst.kind is NInstKind::BlockStart {
+        inst.type_token = type_cache["Nothing"].to_token()
+        ret
+    }
+
+    if inst.kind is NInstKind::BlockEnd {
+        inst.type_token = type_cache["Nothing"].to_token()
+        ret
+    }
+
+    if inst.kind is NInstKind::Defer {
+        inst.type_token = type_cache["Nothing"].to_token()
+        ret
+    }
+
     if inst.kind is NInstKind::IfStart {
         inst.type_token = type_cache["Nothing"].to_token()
         ret
@@ -419,7 +434,7 @@ fun TypeChecker.add_load_this_var(code: NCode, id: NInstId): NInstId {
     // Get the duplicated instruction (first of the two)
     let dup = code.inst_list[index]!!
 
-    let variable = find_variable("this", code, dup.block, dup.id)
+    let variable = find_variable("this", code, dup.id)
 
     check_not(variable.is_none()) @{
         "Unable to find variable `this`"

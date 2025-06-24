@@ -16,7 +16,7 @@ fun Parser.read_defer_statement(code: NCode): Parsed<Nothing> {
     subcode.add_comment(span, "defer-start")
 
     allow_defer = false
-    subcode.enter_block(true)
+    subcode.enter_block(span, true)
 
     if lexer.current_token.kind == TokenKind::LBRACE {
         read_statement_block(subcode)?
@@ -24,11 +24,10 @@ fun Parser.read_defer_statement(code: NCode): Parsed<Nothing> {
         read_expression(subcode)?
     }
 
-    subcode.exit_block()
+    subcode.exit_block(span)
     allow_defer = true
-    subcode.add_comment(span, "defer-end")
 
-    code.find_block(code.current_block).deferred_code[] = subcode
+    code.add_defer(span, subcode)
 
     ret found(nothing)
 }

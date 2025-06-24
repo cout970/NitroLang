@@ -12,22 +12,22 @@ fun Parser.read_if_statement(code: NCode): Parsed<Nothing> {
     skip_nl()
 
     code.add_if_start(span, condition)
-    code.enter_block(false)
+    code.enter_block(span, false)
 
     read_statement_block(code)?
-    code.exit_block()
+    code.exit_block(span)
 
     if lexer.next_non_nl_token_kind == TokenKind::ELSE {
         skip_nl()
 
         code.add_if_else(span)
-        code.enter_block(false)
+        code.enter_block(span, false)
 
         skip_token_kind(TokenKind::ELSE)?
         skip_nl()
 
         read_statement_block(code)?
-        code.exit_block()
+        code.exit_block(span)
     }
 
     code.add_if_end(span)

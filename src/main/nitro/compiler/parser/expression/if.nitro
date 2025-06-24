@@ -11,19 +11,19 @@ fun Parser.read_expression_if(code: NCode): Parsed<NInstId> {
     skip_nl()
 
     code.add_if_start(span, condition)
-    code.enter_block(false)
+    code.enter_block(span, false)
     read_statement_block_expr(code)?
     let if_true = code.last_expression!!
-    code.exit_block()
+    code.exit_block(span)
 
     skip_token_kind(TokenKind::ELSE)?
     skip_nl()
 
     code.add_if_else(span)
-    code.enter_block(false)
+    code.enter_block(span, false)
     read_statement_block_expr(code)?
     let if_false = code.last_expression!!
-    code.exit_block()
+    code.exit_block(span)
 
     code.add_if_end(span)
 

@@ -5,8 +5,6 @@ fun Parser.read_expression_continue(code: NCode): Parsed<NInstId> {
     let span = lexer.current_token_span
     skip_token_kind(TokenKind::CONTINUE)?
 
-    code.active_block.add_deferred_actions(code, false)
-    code.jumped_out_of_block = true
     let inst = code.add_block_jump(span, true, None())
     code.continue_jumps[] = inst.id
 

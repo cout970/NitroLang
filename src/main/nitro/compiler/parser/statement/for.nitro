@@ -40,7 +40,7 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
 
     code.add_comment(span, "for statement")
 
-    code.enter_block(true)
+    code.enter_block(span, true)
     let iterable = read_expression(code)?
     skip_nl()
 
@@ -57,14 +57,10 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
 
     // loop {
     let jumps = code.save_jump_points()
-    let prev_block = code.current_block
-    code.enter_block(true)
-    let break_block = code.current_block
-    code.enter_block(false)
-    let continue_block = code.current_block
+    let break_block = code.enter_block(span, true)
+    let continue_block = code.enter_block(span, false)
 
     let start = code.add_loop_start(span, break_block, continue_block)
-    start.block = prev_block
 
     // let next_item = iter.next()
     let var_next_item = code.add_let(span, "next_item", None())
@@ -74,7 +70,7 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
     //     if (next_item.is_some()) {
     let condition = code.add_fun_call(span, "", "is_some", true, [next_item.id], [])
     code.add_if_start(span, condition.id)
-    code.enter_block(false)
+    code.enter_block(span, false)
 
     //       let <iter_value> = next_item.get_or_crash()
     let var_value = code.add_let(span, iter_value, None())
@@ -85,23 +81,21 @@ fun Parser.read_for_statement(code: NCode): Parsed<Nothing> {
     read_statement_block(code)?
 
     //       goto loop;
-    code.active_block.add_deferred_actions(code, false)
-    code.jumped_out_of_block = true
     code.add_block_jump(span, true, Some(continue_block))
 
     //     }
-    code.exit_block()
+    code.exit_block(span)
     code.add_if_end(span)
 
     // }
-    code.exit_block()
-    code.exit_block()
+    code.exit_block(span)
+    code.exit_block(span)
 
     code.add_loop_end(span)
 
     code.link_jump_points(break_block, continue_block)
     code.restore_jump_points(jumps)
-    code.exit_block()
+    code.exit_block(span)
 
     ret found(nothing)
 }

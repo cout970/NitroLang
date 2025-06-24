@@ -225,10 +225,6 @@ fun ChangeCollector.diff(left: NCode, right: NCode) {
     ns.field("inst_list").diff(left.inst_list, right.inst_list)
     ns.field("variable_id_provider").diff(left.variable_id_provider, right.variable_id_provider)
     ns.field("vars_map").diff(left.vars_map, right.vars_map)
-    ns.field("block_id_provider").diff(left.block_id_provider, right.block_id_provider)
-    ns.field("block_map").diff(left.block_map, right.block_map)
-    ns.field("current_block").diff(left.current_block, right.current_block)
-    ns.field("jumped_out_of_block").diff(left.jumped_out_of_block, right.jumped_out_of_block)
     ns.field("break_jumps").diff(left.break_jumps, right.break_jumps)
     ns.field("continue_jumps").diff(left.continue_jumps, right.continue_jumps)
     ns.field("last_expression").diff(left.last_expression, right.last_expression)
@@ -252,13 +248,11 @@ fun ChangeCollector.diff(left: NLambda, right: NLambda) {
     field("parameters").diff(left.parameters, right.parameters)
     field("code_id").diff(left.code_id, right.code_id)
     field("parent_inst").diff(left.parent_inst, right.parent_inst)
-    field("parent_block").diff(left.parent_block, right.parent_block)
 }
 
 fun ChangeCollector.diff(left: NInst, right: NInst) {
     field("id").diff(left.id, right.id)
     field("span").diff(left.span, right.span)
-    field("block").diff(left.block, right.block)
     field("kind").diff(left.kind, right.kind)
     field("type_token").diff(left.type_token, right.type_token)
     field("back_references").diff(left.back_references, right.back_references)
@@ -610,20 +604,11 @@ fun ChangeCollector.diff(left: TypeKind, right: TypeKind) {
 fun ChangeCollector.diff(left: NVar, right: NVar) {
     field("id").diff(left.id, right.id)
     field("span").diff(left.span, right.span)
-    field("block").diff(left.block, right.block)
     field("name").diff(left.name, right.name)
     field("type_usage").diff(left.type_usage, right.type_usage)
     field("type_token").diff(left.type_token, right.type_token)
     field("is_parameter").diff(left.is_parameter, right.is_parameter)
     field("is_upvalue").diff(left.is_upvalue, right.is_upvalue)
-}
-
-fun ChangeCollector.diff(left: NBlock, right: NBlock) {
-    field("id").diff(left.id, right.id)
-    field("parent_id").diff(left.parent_id, right.parent_id)
-    field("is_jump_target").diff(left.is_jump_target, right.is_jump_target)
-    field("depth").diff(left.depth, right.depth)
-    field("deferred_code").diff(left.deferred_code, right.deferred_code)
 }
 
 fun ChangeCollector.diff(left: NFunctionParameter, right: NFunctionParameter) {

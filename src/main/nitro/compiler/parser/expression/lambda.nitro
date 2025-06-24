@@ -135,7 +135,6 @@ fun Parser.create_lambda(code: NCode): NLambda {
         parameters: [],
         code_id: new_code.id.new_copy(),
         parent_inst: Id @[current_value: code.inst_id_provider.last_id + 1],
-        parent_block: code.current_block
         ctx: None(),
     ]
 

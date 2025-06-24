@@ -1,3 +1,4 @@
+/* --- BEGIN CODE --- */
 fun main() {
     println("start")
     defer println("1")
@@ -6,10 +7,20 @@ fun main() {
         if true {
             defer println("3")
             println("4")
-            return
+            break
         }
         println("5")
     }
     println("6")
     println("end")
 }
+/* --- END CODE --- */
+/* --- BEGIN OUTPUT ---
+start
+4
+3
+2
+6
+end
+1
+--- END OUTPUT --- */

@@ -4,7 +4,6 @@ type_alias NVarId = Id
 struct NVar {
     id: NVarId
     span: Span
-    block: NBlockId
     name: String
     type_usage: NTypeUsage
     type_token: Optional<TypeToken>
@@ -21,7 +20,6 @@ fun ByteBuffer.serialize_var(value: NVar) {
     let frame = start_frame(true)
     serialize_id(value.id)
     serialize_span(value.span)
-    serialize_id(value.block)
     write_string(value.name)
     serialize_type_usage(value.type_usage)
     write_boolean(value.is_parameter)
@@ -39,7 +37,6 @@ fun ByteBuffer.deserialize_var(): NVar {
     let frame = start_frame(false)
     let id = deserialize_id()
     let span = deserialize_span()
-    let block = deserialize_id()
     let name = read_string()
     let type_usage = deserialize_type_usage()
     let is_parameter = read_boolean()
@@ -50,5 +47,5 @@ fun ByteBuffer.deserialize_var(): NVar {
     }
     end_frame(frame)
 
-    ret NVar @[id, span, block, name, type_usage, type_token: None(), is_parameter, is_upvalue, init_at]
+    ret NVar @[id, span, name, type_usage, type_token: None(), is_parameter, is_upvalue, init_at]
 }

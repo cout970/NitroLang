@@ -3,7 +3,7 @@ fun TypeChecker.check_inst_fun_call(kind: NInstKind::FunCall, inst: NInst, code:
 
     // Support syntax `var()` instead of `var.call()` where var is local variable with type Function
     if kind.path.is_empty() && kind.explicit_type_arguments.is_empty() {
-        let variable = find_variable(kind.name, code, inst.block, inst.id)
+        let variable = find_variable(kind.name, code, inst.id)
 
         if variable.is_some() && variable!!.type_token.is_some() && variable!!.type_token!!.find_type().is_function() {
             let index = code.index_of_inst(inst.id)!!

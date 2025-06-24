@@ -1,5 +1,5 @@
 
-let CACHE_VERSION: Int = 0x06
+let CACHE_VERSION: Int = 0x07
 
 struct CompilationUnit {
     args: ProgramArgs

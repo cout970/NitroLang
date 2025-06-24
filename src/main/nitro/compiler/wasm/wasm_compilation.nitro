@@ -109,6 +109,18 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             continue
         }
 
+        if inst.kind is NInstKind::BlockStart {
+            continue
+        }
+
+        if inst.kind is NInstKind::BlockEnd {
+            continue
+        }
+
+        if inst.kind is NInstKind::Defer {
+            continue
+        }
+
         if inst.kind is NInstKind::IfStart {
             let kind = inst.kind as NInstKind::IfStart
             push(kind.condition, map)
@@ -168,11 +180,11 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             let kind = inst.kind as NInstKind::BlockJump
             check(kind.block.is_some()) @{ "BlockJump without a block! #${inst.id} $inst\n$code" }
 
-            let jump_to_block = code.find_block(kind.block!!)
-            let curr_block = code.find_block(inst.block)
+            let jump_depth = code.get_depth_of_inst(inst.id)
+            let block_depth = code.get_depth_of_inst(kind.block!!)
 
             add_span(inst.span)
-            add_br(curr_block.depth - jump_to_block.depth)
+            add_br(jump_depth - block_depth)
             continue
         }
         if inst.kind is NInstKind::LoopEnd {
