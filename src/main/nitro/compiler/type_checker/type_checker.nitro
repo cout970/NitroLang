@@ -149,6 +149,7 @@ fun TypeChecker.check_all() {
 }
 
 fun TypeChecker.check_struct(s: NStruct) {
+    s.annotations.validate_annotations(reporter)
     check_generics(s.generics)
     for field in s.fields {
         field.field_type = Some(check_type_usage_with(s.generics, field.type_usage))
@@ -156,6 +157,7 @@ fun TypeChecker.check_struct(s: NStruct) {
 }
 
 fun TypeChecker.check_option(s: NOption) {
+    s.annotations.validate_annotations(reporter)
     check_generics(s.generics)
     for field in s.common_fields {
         field.field_type = Some(check_type_usage_with(s.generics, field.type_usage))
@@ -166,17 +168,20 @@ fun TypeChecker.check_option(s: NOption) {
 }
 
 fun TypeChecker.check_type_alias(s: NTypeAlias) {
+    s.annotations.validate_annotations(reporter)
     check_generics(s.generics)
     s.alias_type = Some(check_type_usage_with(s.generics, s.type_usage))
 }
 
 fun TypeChecker.check_const_header(s: NConst) {
+    s.annotations.validate_annotations(reporter)
     let ty = check_type_usage_with(s.generics, s.type_usage)
     s.const_type = Some(ty)
     s.code.return_type_token = Some(ty.to_token())
 }
 
 fun TypeChecker.check_function(func: NFunction) {
+    func.annotations.validate_annotations(reporter)
     check_function_header(func.header)
     func.code.return_type_token = Some(func.header.return_type!!.to_token())
 
