@@ -34,6 +34,10 @@ fun Reporter::new(): Reporter {
     ]
 }
 
+fun Reporter.has_errors(): Boolean {
+    ret errors.len > 0
+}
+
 fun Reporter.has_reports(): Boolean {
     ret errors.len > 0 || warnings.len > 0 || suggestions.len > 0
 }
@@ -42,7 +46,7 @@ fun Reporter.get_report_count(): Int {
     ret errors.len + warnings.len + suggestions.len
 }
 
-fun Reporter.report_errors() {
+fun Reporter.print_reports() {
     for error in errors {
         Log::error(error.to_string())
     }

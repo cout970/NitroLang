@@ -42,9 +42,9 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     unit.parse()
 
     // Parse errors
-    if unit.reporter.has_reports() {
+    if unit.reporter.has_errors() {
         if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+            unit.reporter.print_reports()
         }
         ret
     }
@@ -58,9 +58,9 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     unit.parse()
 
     // Parse errors
-    if unit.reporter.has_reports() {
+    if unit.reporter.has_errors() {
         if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+            unit.reporter.print_reports()
         }
         ret
     }
@@ -73,9 +73,9 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     unit.check_types()
 
     // Type errors
-    if unit.reporter.has_reports() {
+    if unit.reporter.has_errors() {
         if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+            unit.reporter.print_reports()
         }
         ret
     }
@@ -87,11 +87,10 @@ fun compile_test(input_code: String, input_path: String, output_path: String) {
     let start_compiling = Instant::now()
     unit.compile(FilePath::new(output_path))
 
-    // Final errors
-    if unit.reporter.has_reports() {
-        if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
-        }
+    if !unit.reporter.immediate_output {
+        unit.reporter.print_reports()
+    }
+    if unit.reporter.has_errors() {
         ret
     }
 

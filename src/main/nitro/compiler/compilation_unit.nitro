@@ -405,9 +405,9 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
         unit.parse()
 
         // Parse errors
-        if unit.reporter.has_reports() {
+        if unit.reporter.has_errors() {
             if !unit.reporter.immediate_output {
-                unit.reporter.report_errors()
+                unit.reporter.print_reports()
             }
             ret false
         }
@@ -429,9 +429,9 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     unit.parse()
 
     // Parse errors
-    if unit.reporter.has_reports() {
+    if unit.reporter.has_errors() {
         if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+            unit.reporter.print_reports()
         }
         ret false
     }
@@ -449,9 +449,9 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     unit.check_types()
 
     // Type errors
-    if unit.reporter.has_reports() {
+    if unit.reporter.has_errors() {
         if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
+            unit.reporter.print_reports()
         }
         ret false
     }
@@ -474,11 +474,13 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     unit.backend.emitter.generate_dwarf = args.generate_dwarf
     unit.compile(FilePath::new(args.output))
 
-    // Final errors
-    if unit.reporter.has_reports() {
-        if !unit.reporter.immediate_output {
-            unit.reporter.report_errors()
-        }
+    // Report messages
+    if !unit.reporter.immediate_output {
+        unit.reporter.print_reports()
+    }
+
+    // if there is any error, signal unsuccessful compilation
+    if unit.reporter.has_errors() {
         ret false
     }
 
