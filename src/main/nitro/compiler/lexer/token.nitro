@@ -14,7 +14,7 @@ fun Token::new_with_extra(kind: TokenKind, offset: Int, extra: String): Token {
 }
 
 fun Token.to_string(): String {
-    ret "[$kind, $offset, '$extra']"
+    ret "($kind '$extra')"
 }
 
 enum TokenKind {

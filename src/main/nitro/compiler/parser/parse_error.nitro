@@ -99,7 +99,15 @@ fun <#Ast: ToString> Parsed<#Ast>.to_string(): String {
     if this is Parsed::Error<#Ast> {
         let error = this as Parsed::Error<#Ast>
         if error.kind == ParseError::ExpectedToken {
-            ret "Expected ${error.expected!!} but found ${error.token}"
+            if error.token.kind == TokenKind::ERROR_CHARACTER {
+                ret "Unexpected character '${error.token.extra}'"
+            }
+
+            if error.expected.is_some() {
+                ret "Expected ${error.expected!!} but found ${error.token}"
+            } else {
+                ret "Found unexpected token ${error.token}"
+            }
         }
         ret "${error.kind} at token ${error.token}"
     }

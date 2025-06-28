@@ -939,7 +939,7 @@ fun Lexer.read_string_blob() {
             ret
         }
 
-        if c1 >= a"a" && c1 <= a"z" {
+        if (c1 >= a"a" && c1 <= a"z") || (c1 >= a"A" && c1 <= a"Z") {
             cur += 1
             let start2 = cur
 
@@ -957,6 +957,26 @@ fun Lexer.read_string_blob() {
             add_token_with_extra(TokenKind::STRING_VAR, start2, extra)
             ret
         }
+
+        // Special case with $ at the end "test$"
+        if c1 == a"\"" {
+            cur += 1
+            let extra = src.substring(start, cur)
+            add_token_with_extra(TokenKind::STRING_BLOB, start, extra)
+            ret
+        }
+
+        // Invalid sequence
+        cur += 1
+
+        // End string to avoid infinite loop
+        add_token(TokenKind::STRING_END, start)
+        state.remove_last()!!
+
+        // Emit the error
+        let extra = src.substring(start, cur)
+        add_token_with_extra(TokenKind::ERROR_CHARACTER, start, extra)
+        ret
     }
 
     while cur < src.len {
@@ -968,8 +988,8 @@ fun Lexer.read_string_blob() {
 
         cur += 1
     }
-    let extra = src.substring(start, cur)
 
+    let extra = src.substring(start, cur)
     add_token_with_extra(TokenKind::STRING_BLOB, start, extra)
 }
 
@@ -1363,14 +1383,19 @@ fun Lexer.read_digits(): Boolean {
 }
 
 fun Lexer.print_debug_info() {
-    println("Tokens around print_debug_info():")
+    println("Debug lexer state around error:")
+    println("  file: $file")
     let start = max(tk - 5, 0)
     let end = min(tk + 5, tokens.len - 1)
 
     while start <= end {
         let token = tokens[start]!!
         let span = span_of(token)
-        println("[${start - tk}] $token $span")
+        let index = (start - tk).to_string().pad_left(4, u" ")
+        let tk_str = token.to_string()
+        tk_str = tk_str.replace("\n", "\\n")
+        tk_str = tk_str.pad_right(30, u" ")
+        println("$index: $tk_str at line ${span.line}, column ${span.column}")
         start += 1
     }
 }
