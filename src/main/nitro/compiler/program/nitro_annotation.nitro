@@ -206,6 +206,39 @@ fun NAnnotationContainer.get_only_if_annotation(): Optional<OnlyIfAnnotation> {
     ret Some(OnlyIfAnnotation @[target: target_str!!])
 }
 
+struct CompilationFlag {
+    name: String
+    description: String
+}
+
+fun NAnnotationContainer.get_compilation_flag_annotation(): Optional<CompilationFlag> {
+    let compilation_flag_annotation = get("CompilationFlag")
+    if compilation_flag_annotation.is_none() {
+        ret None()
+    }
+
+    let a: NAnnotation = compilation_flag_annotation!!
+    let name: Optional<NValue> = a.get_arg("name")
+    let description: Optional<NValue> = a.get_arg("description")
+
+    if name.is_none() || description.is_none() {
+        ret None()
+    }
+
+    let name_str: Optional<String> = name!!.get_string()
+    let description_str: Optional<String> = description!!.get_string()
+
+    if name_str.is_none() || description_str.is_none() {
+        ret None()
+    }
+
+    ret Some(CompilationFlag @[name: name_str!!, description: description_str!!])
+}
+
+fun NAnnotationContainer.validate_annotations(collector: Reporter) {
+    // TODO verify that the annotations contain the neccessary arguments
+}
+
 fun NAnnotation.to_string(): String {
     let s = StringBuilder::new()
     s[] = "@"

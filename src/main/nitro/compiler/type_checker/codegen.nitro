@@ -1,4 +1,5 @@
 
+@CompilationFlag [name: "enable-rc-gc", description: "Enable reference counting garbage collector"]
 let ENABLE_RC_GC: Boolean = false
 let FIELD_RC_HEADER: String = "internal_rc_header"
 

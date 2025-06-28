@@ -252,6 +252,47 @@ fun CompilationUnit.resolve_full_path(path: String, current_path: String, span: 
     ret FilePath::join(dir, path)
 }
 
+fun CompilationUnit.replace_compilation_flags(flags: Map<String, Boolean>) {
+    let used_flags: Set<String> = %[]
+
+    for const_def in program.consts {
+        let opt = const_def.annotations.get_compilation_flag_annotation()
+        if opt.is_none() {
+            continue
+        }
+
+        let flag = opt!!
+
+        if const_def.const_type.is_some() && !const_def.const_type!!.is_boolean() {
+            reporter.report_error("Compilation flag '${flag.name}' must be a boolean constant", const_def.span)
+            continue
+        }
+
+        // Not especified in flags, ignore
+        if flag.name !in flags {
+            continue
+        }
+
+        used_flags[] = flag.name
+        let value: Boolean = flags[flag.name]!!
+        let span = const_def.span
+
+        // Replace value
+        const_def.code.clear()
+        let inst = const_def.code.add_lit_boolean(span, value)
+        const_def.code.add_return(span, inst.id)
+    }
+
+    // Warn for unused flags
+    for pair in flags {
+        if pair.key in used_flags {
+            continue
+        }
+
+        reporter.report_warning("Unused compilation flag: ${pair.key}", Span::none())
+    }
+}
+
 fun CompilationUnit.check_types() {
     type_checker.check_all()
 }
@@ -399,6 +440,8 @@ fun CompilationUnit::compile_all(args: ProgramArgs): Boolean {
     if args.verbose {
         Log::info("Program included (Time $time_compiler ms, Memory ${get_memory().get_stats()})")
     }
+
+    unit.replace_compilation_flags(args.compilation_flags)
 
     // Perform type checking
     let start_checking = Instant::now()

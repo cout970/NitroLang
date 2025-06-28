@@ -507,6 +507,19 @@ fun NCode.add_deferred_code() {
     last_expression = prev_last_expression
 }
 
+fun NCode.clear() {
+    lambdas.clear()
+    inst_list.clear()
+    vars_map.clear()
+    break_jumps.clear()
+    continue_jumps.clear()
+    last_expression = None()
+    receiver_type_token = None()
+    return_type_token = None()
+    const_cache.clear()
+    cursor = -1
+}
+
 fun NCode.to_string(): String {
     if inst_list.is_empty() && vars_map.is_empty() {
         ret "{}"

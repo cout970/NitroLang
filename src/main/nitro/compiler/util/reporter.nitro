@@ -120,6 +120,9 @@ fun Reporter.report_suggestion(message: String, location: Span) {
 
 // Print the report
 fun Report.to_string(): String {
+    if location.is_none() {
+        ret "$kind: $message"
+    }
     ret "$kind: $message\n${location.to_code_sample()}"
 }
 

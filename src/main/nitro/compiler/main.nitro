@@ -16,6 +16,7 @@ struct ProgramArgs {
     no_core_lib: Boolean,
     verbose: Boolean,
     generate_dwarf: Boolean,
+    compilation_flags: Map<String, Boolean>,
     dump_wat: Boolean,
 }
 
@@ -32,6 +33,7 @@ fun ProgramArgs::new(): ProgramArgs {
         verbose: false,
         dump_wat: false,
         generate_dwarf: false,
+        compilation_flags: #[],
     ]
 }
 
@@ -57,7 +59,8 @@ fun main() {
             Log::info(" -o, --output            Output file")
             Log::info(" -m, --mod               Module definitions")
             Log::info(" -t, --target            Target platform, wasm-wasi, wasm-js")
-            Log::info(" -g                      Generate DWARF debug info")
+            Log::info(" -g                      Generate DWARF debug info (incomplete)")
+            Log::info(" --flag                  Toggle a @CompilationFlag constant")
             Log::info(" --dump-ir               Dump IR")
             Log::info(" --dump-wasm-emitter     Dump Wasm emitter")
             Log::info(" --cache-dir             Cache directory")
@@ -159,6 +162,54 @@ fun main() {
 
         if arg == "-g" {
             prog.generate_dwarf = true
+            i += 1
+            continue
+        }
+
+        if arg == "--flag" {
+            i += 1
+
+            if i >= args.len {
+                Log::error("Missing flags definitions")
+                Log::info("Help: --flag <name>=<value>")
+                Log::info("e.g. --flag enable-rc-gc=true")
+                ret
+            }
+
+            let flag_def = args[i]!!
+            i += 1
+
+            let split = flag_def.index_of("=")
+            if split.is_none() {
+                Log::error("Incorrect flags definitions")
+                Log::info("Help: --flag <name>=<value>")
+                Log::info("e.g. --flag enable-rc-gc=true")
+                ret
+            }
+            let name = flag_def.substring(0, split!!)
+
+            if name == "" {
+                Log::error("Invalid flag name: '$name'")
+                Log::info("Help: --flag <name>=<value>")
+                Log::info("e.g. --flag enable-rc-gc=true")
+                ret
+            }
+
+            let str_value = flag_def.substring(split!! + 1, flag_def.len)
+            let value: Boolean = when str_value {
+                "true" -> true
+                "1" -> true
+                "false" -> false
+                "0" -> false
+                else -> {
+                    Log::error("Invalid flag value: '$str_value'")
+                    Log::info("Help: --flag <name>=<value>")
+                    Log::info("e.g. --flag enable-rc-gc=true")
+                    ret
+                }
+            }
+
+            prog.compilation_flags[name] = value
             i += 1
             continue
         }
