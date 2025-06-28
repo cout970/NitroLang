@@ -96,9 +96,13 @@ fun NCode.exit_block(span: Span) {
 }
 
 fun NCode.find_inst(id: NInstId): NInst {
-    for i in inst_list {
-        if i.id == id {
-            ret i
+    let i = 0
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
+
+        if inst.id == id {
+            ret inst
         }
     }
 
@@ -106,10 +110,14 @@ fun NCode.find_inst(id: NInstId): NInst {
 }
 
 fun NCode.find_inst_type_token(id: NInstId): Optional<TypeToken> {
-    for i in inst_list {
-        if i.id == id {
-            if i.type_token.is_some() {
-                ret Some(i.type_token!!)
+    let i = 0
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
+
+        if inst.id == id {
+            if inst.type_token.is_some() {
+                ret Some(inst.type_token!!)
             }
             ret None()
         }
@@ -120,8 +128,12 @@ fun NCode.find_inst_type_token(id: NInstId): Optional<TypeToken> {
 
 fun NCode.index_of_inst(id: NInstId): Optional<Int> {
     let current = 0
-    for i in inst_list {
-        if i.id == id {
+    let i = 0
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
+
+        if inst.id == id {
             ret Some(current)
         }
         current += 1
@@ -157,8 +169,11 @@ fun NCode.find_receiver_type(): Optional<Type> {
 
 fun NCode.get_upvalues(): List<NVarId> {
     let upvalues = []
+    let i = 0
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
 
-    for inst in inst_list {
         if inst.kind is NInstKind::LetUpvalue {
             let kind = inst.kind as NInstKind::LetUpvalue
             upvalues[] = kind.variable
@@ -170,9 +185,16 @@ fun NCode.get_upvalues(): List<NVarId> {
 
 fun NCode.index_of_mark(id: Id): Optional<Int> {
     let current = 0
-    for i in inst_list {
-        if i.kind is NInstKind::Mark && (i.kind as NInstKind::Mark).id == id {
-            ret Some(current)
+    let i = 0
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
+
+        if inst.kind is NInstKind::Mark {
+            let kind = inst.kind as NInstKind::Mark
+            if kind.id == id {
+                ret Some(current)
+            }
         }
         current += 1
     }

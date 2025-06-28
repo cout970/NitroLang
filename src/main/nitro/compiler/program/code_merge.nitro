@@ -54,7 +54,11 @@ fun NCodeMapping.copy_vars(src: NCode, dst: NCode) {
 
 // Copy instructions
 fun NCodeMapping.copy_inst(src: NCode, dst: NCode, index: Int) {
-    for inst in src.inst_list {
+    let i = 0
+    while i < src.inst_list.len {
+        let inst = src.inst_list[i]!!
+        i += 1
+
         let new_kind = map_inst_kind(inst.kind)
         let new_inst = dst.add_inst_at(index, inst.span, new_kind)
         index += 1
@@ -72,11 +76,15 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode, index: Int) {
     }
 
     // Copy links to jump instructions
-    for i in src.break_jumps {
-        dst.break_jumps[] = inst_mapping[i]!!
+    i = 0
+    while i < src.break_jumps.len {
+        let jump_id = src.break_jumps[i]!!
+        dst.break_jumps[] = inst_mapping[jump_id]!!
     }
-    for i in src.continue_jumps {
-        dst.continue_jumps[] = inst_mapping[i]!!
+    i = 0
+    while i < src.continue_jumps.len {
+        let jump_id = src.continue_jumps[i]!!
+        dst.continue_jumps[] = inst_mapping[jump_id]!!
     }
 
     // Copy last expression (implicit return)

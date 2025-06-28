@@ -8,12 +8,23 @@ fun TypeChecker.find_variable(name: String, code: NCode, inst_id: NInstId): Opti
         index = index_opt!!
     }
 
+    let inst_depth = depth
+
     // Go backwards from this instruction to the beginning of the code
     // We are looking for a variable declaration with same name and within the same block or a block that is less deep
     repeat index {
         let i = index - it - 1
         let curr_inst: NInst = code.inst_list[i]!!
-        let inst_depth = code.get_depth_of_inst(curr_inst.id)
+
+        // Since we are going backwards, the depth in update with the inverse logic
+        if curr_inst.kind is NInstKind::BlockStart {
+            inst_depth -= 1
+            continue
+        }
+        if curr_inst.kind is NInstKind::BlockEnd {
+            inst_depth += 1
+            continue
+        }
 
         // If the instruction is in another block, there are 2 options:
 
