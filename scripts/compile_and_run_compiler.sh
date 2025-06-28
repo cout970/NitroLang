@@ -31,12 +31,13 @@ if [ -z "$src_program" ]; then
     src_program="src/main/nitro/debug/current_program.nitro"
 fi
 
+mkdir -p "$cache"
+mkdir -p "$cache2"
+
 function fail() {
     echo "$1"
     exit -1
 }
-
-mkdir -p "$cache"
 
 function log {
     printf "\e[38;5;039m"
@@ -63,8 +64,6 @@ if [ ! -f "$new_compiler" ]; then
     log "Compilation did not produce output"
     exit -1
 fi
-
-mkdir -p "$cache"
 
 if [ "$dump_ir" = "y" ]; then
     log "Dumping IR"

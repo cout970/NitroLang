@@ -17,3 +17,5 @@ cp "out/compiler.wasm" "releases/compiler_v$version.wasm"
 wasm-opt --enable-bulk-memory --debuginfo -O4 "releases/compiler_v$version.wasm" -o "releases/compiler_v$version-opt.wasm"
 
 echo "compiler_v$version-opt.wasm" > "releases/latest.txt"
+
+echo "Done"
