@@ -11,23 +11,25 @@ then
 fi
 
 compiler=$(realpath "releases/$(cat releases/latest.txt)")
-dump_ir=n
-input="src/main/nitro/compiler/main.nitro"
-output="out/tmp_compiler_wasm32-wasi.wasm"
-output_debug="out/tmp_compiler_wasm32-js.wasm"
-cache="out/cache0"
+src_compiler="src/main/nitro/compiler/main.nitro"
+new_compiler="out/tmp_compiler_wasm32-wasi.wasm"
+new_compiler_debug="out/tmp_compiler_wasm32-js.wasm"
 
-input2="$1"
+out_program="out/tmp_program_wasm32-wasi.wasm"
+out_program_debug="out/tmp_program_wasm32-js.wasm"
+
+cache="out/cache0"
+cache2="out/cache4"
+
+dump_ir=n
+
+src_program="$1"
 shift
 
-# Default value iof no input is provided:
-if [ -z "$input2" ]; then
-    input2="src/main/nitro/debug/current_program.nitro"
+# Default value if no input is provided:
+if [ -z "$src_program" ]; then
+    src_program="src/main/nitro/debug/current_program.nitro"
 fi
-
-output2="out/tmp_program_wasm32-wasi.wasm"
-output2_debug="out/tmp_program_wasm32-js.wasm"
-cache2="out/cache4"
 
 function fail() {
     echo "$1"
@@ -42,13 +44,22 @@ function log {
     printf '\e[0m'
 }
 
-log "Compiling compiler $compiler"
-#  --core-path src/main/nitro/core/core.nitro
-rm -f "$output"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)"  --mapdir "/:$(realpath .)" "$compiler" -- "$input" -o "$output_debug" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js' || fail "Compilation failed"
+function run {
+    log "Running: $1"
+    wasmer run \
+      --mapdir "/src:$(realpath ./src)" \
+      --mapdir "/out:$(realpath ./out)" \
+      --mapdir "/:$(realpath .)" \
+      "$@" || fail "Command failed: $@"
+}
 
-if [ ! -f "$output" ]; then
+log "Compiling compiler $compiler"
+
+rm -f "$new_compiler"
+run "$compiler" -- "$src_compiler" -o "$new_compiler" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --verbose
+run "$compiler" -- "$src_compiler" -o "$new_compiler_debug" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js'
+
+if [ ! -f "$new_compiler" ]; then
     log "Compilation did not produce output"
     exit -1
 fi
@@ -57,22 +68,25 @@ mkdir -p "$cache"
 
 if [ "$dump_ir" = "y" ]; then
     log "Dumping IR"
-    wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2.ir" --cache-dir "$cache2" --core-path src/main/nitro/core/core.nitro --dump-ir || fail "Compilation failed"
+    run "$new_compiler" -- "$src_program" -o "$out_program.ir" --cache-dir "$cache2" --core-path src/main/nitro/core/core.nitro --dump-ir
     exit
 fi
 
-log "Running compiler $output"
-cp "$output" "out/compiler.wasm"
-wasm2wat --no-check -o "$output.wat" "$output"
-# --cache-dir "$cache2"
-rm -f "$output2"
-#wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2" --core-path src/main/nitro/core/core.nitro --verbose || fail "Compilation failed"
-wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output" -- "$input2" -o "$output2_debug" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js' --verbose || fail "Compilation failed"
+log "Running compiler $new_compiler"
+cp "$new_compiler" "out/compiler.wasm"
+wasm2wat --no-check -o "$new_compiler.wat" "$new_compiler"
 
-#wasm2wat --no-check -o "$output2.wat" "$output2"
-wasm2wat --no-check -o "$output2_debug.wat" "$output2_debug"
+rm -f "$out_program"
 
-#log "Running program $output2"
-#wasmer run --mapdir "/src:$(realpath ./src)" --mapdir "/out:$(realpath ./out)" --mapdir "/:$(realpath .)" "$output2" -- "$@" | tee out/output.txt
+run "$new_compiler" -- "$src_program" --dump-ir -o "$out_program.ir" --core-path src/main/nitro/core/core.nitro --verbose
+run "$new_compiler" -- "$src_program" -o "$out_program" --core-path src/main/nitro/core/core.nitro --verbose
+
+#run "$new_compiler" -- "$src_program" -o "$out_program_debug" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js' --verbose
+
+wasm2wat --no-check -o "$out_program.wat" "$out_program"
+#wasm2wat --no-check -o "$out_program_debug.wat" "$out_program_debug"
+
+log "Running program $out_program"
+run "$out_program" -- "$@" | tee out/output.txt
 
 log "Success"
