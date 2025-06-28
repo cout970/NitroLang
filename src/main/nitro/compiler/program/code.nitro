@@ -398,7 +398,12 @@ fun NCode.calculate_back_references() {
 
 fun NCode.get_depth_of_inst(inst_id: NInstId): Int {
     let depth = 0
-    for inst in inst_list {
+    let i = 0
+
+    while i < inst_list.len {
+        let inst = inst_list[i]!!
+        i += 1
+
         if inst.kind is NInstKind::BlockEnd {
             depth -= 1
         }
