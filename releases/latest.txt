@@ -1,1 +1,1 @@
-compiler_v0.0.14-opt.wasm
+compiler_v0.0.15-opt.wasm
