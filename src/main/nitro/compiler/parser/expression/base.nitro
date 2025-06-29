@@ -110,6 +110,8 @@ fun Parser.read_expression_base(code: NCode): Parsed<NInstId> {
         TokenKind::LAMBDA_START -> read_expression_lambda(code)
         // sizeOfExpr
         TokenKind::SIZE_OF -> read_expression_size_of(code)
+        // offsetOfExpr
+        TokenKind::OFFSET_OF -> read_expression_offset_of(code)
         // jsonExpr
         TokenKind::JSON -> read_expression_json(code)
         // includeAsBytes

@@ -370,6 +370,40 @@ fun TypeChecker.check_inst(inst: NInst, code: NCode) {
         ret
     }
 
+    if inst.kind is NInstKind::OffsetOf {
+        let kind = inst.kind as NInstKind::OffsetOf
+        let ty = check_type_usage_with(code.generics, kind.type_usage)
+        kind.type_token = Some(ty.to_token())
+
+        // Type must be an OptionItem or Struct
+        if ty.kind !is TypeKind::Struct && ty.kind !is TypeKind::OptionItem {
+            inst.type_token = Some(create_error_type("Type '$ty' must be Struct or Option", inst.span).to_token())
+            ret
+        }
+
+        // Get struct
+        let instance: NStruct = if ty.kind is TypeKind::Struct {
+            (ty.kind as TypeKind::Struct).instance
+        } else {
+            (ty.kind as TypeKind::OptionItem).instance
+        }
+
+        // Field the field
+        for field in instance.fields {
+            if field.name == kind.field_name {
+                kind.field = Some(field)
+            }
+        }
+
+        if kind.field.is_none() {
+            inst.type_token = Some(create_error_type("Field '${kind.field_name}' not found in type '$ty'", inst.span).to_token())
+            ret
+        }
+
+        inst.type_token = type_cache["Int"].to_token()
+        ret
+    }
+
     if inst.kind is NInstKind::Alloc {
         check_inst_alloc(inst.kind as NInstKind::Alloc, inst, code)
         ret

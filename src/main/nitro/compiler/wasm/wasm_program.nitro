@@ -67,6 +67,7 @@ struct WInst {
 // TODO add all remaining instructions
 option WInstKind {
     SizeOf { final_type: FinalType, size: Int }
+    OffsetOf { final_type: FinalType, offset: Int }
     Nop {}
 }
 

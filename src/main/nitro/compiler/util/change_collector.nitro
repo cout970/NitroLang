@@ -445,6 +445,16 @@ fun ChangeCollector.diff(left: NInstKind, right: NInstKind) {
         ret
     }
 
+    if left is NInstKind::OffsetOf && right is NInstKind::OffsetOf {
+        let leftKind = left as NInstKind::OffsetOf
+        let rightKind = right as NInstKind::OffsetOf
+        field("type_usage").diff(leftKind.type_usage, rightKind.type_usage)
+        field("type_token").diff(leftKind.type_token, rightKind.type_token)
+        field("field_name").diff(leftKind.field_name, rightKind.field_name)
+        field("field").diff(leftKind.field, rightKind.field)
+        ret
+    }
+
     if left is NInstKind::Alloc && right is NInstKind::Alloc {
         let leftKind = left as NInstKind::Alloc
         let rightKind = right as NInstKind::Alloc

@@ -1,0 +1,23 @@
+
+// E.g. offset_of<Struct>("field")
+// offsetOfExpr
+//     : OFFSET_OF LTH NL* typeUsage NL* GTH LPAREN PLAIN_STRING RPAREN
+//     ;
+
+fun Parser.read_expression_offset_of(code: NCode): Parsed<NInstId> {
+    let span = lexer.current_token_span
+    skip_token_kind(TokenKind::OFFSET_OF)?
+    skip_token_kind(TokenKind::LTH)?
+    skip_nl()
+    let type_usage = read_type_usage()?
+    skip_nl()
+    skip_token_kind(TokenKind::GTH)?
+
+    skip_token_kind(TokenKind::LPAREN)?
+    let field_name = read_plain_string()?
+    skip_token_kind(TokenKind::RPAREN)?
+
+    let inst = code.add_offset_of(span, type_usage, field_name)
+
+    ret found(inst.id)
+}

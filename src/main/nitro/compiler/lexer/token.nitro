@@ -84,6 +84,7 @@ enum TokenKind {
     STRUCT @[text: "struct", len: 6]
     RETURN @[text: "ret", len: 3]
     SIZE_OF @[text: "size_of", len: 7]
+    OFFSET_OF @[text: "offset_of", len: 9]
     OPTION @[text: "option", len: 6]
     INTERNAL @[text: "internal", len: 8]
     REC @[text: "rec", len: 3]

@@ -150,6 +150,13 @@ option NInstKind {
         type_usage: NTypeUsage
         type_token: Optional<TypeToken>
     }
+    // Retrieves the offset of a field in a struct in bytes
+    OffsetOf {
+        type_usage: NTypeUsage
+        type_token: Optional<TypeToken>
+        field_name: String
+        field: Optional<NStructField>
+    }
     // Includes a file as a string or list of bytes
     IncludeAs {
         path: String
@@ -187,8 +194,16 @@ struct WhenInfo {
     result_variable: Optional<NVarId>
 }
 
-fun NCode.seek_inst(id: Id) {
+fun NCode.seek_before_inst(id: Id) {
     cursor = index_of_inst(id)!!
+}
+
+fun NCode.seek_after_inst(id: Id) {
+    cursor = index_of_inst(id)!! + 1
+}
+
+fun NCode.seek_to_pos(id: Id) {
+    cursor = index_of_inst(id)!! + 1
 }
 
 fun NCode.seek_end() {
@@ -210,7 +225,7 @@ fun NCode.add_inst(
     if cursor == -1 {
         inst_list[] = i
     } else {
-        inst_list.insert(cursor + 1, i)
+        inst_list.insert(cursor, i)
     }
 
     ret i
@@ -551,6 +566,14 @@ fun NCode.add_size_of(
     ret add_inst(span, NInstKind::SizeOf @[type_usage, type_token: None()])
 }
 
+fun NCode.add_offset_of(
+    span: Span,
+    type_usage: NTypeUsage,
+    field_name: String,
+): NInst {
+    ret add_inst(span, NInstKind::OffsetOf @[type_usage, type_token: None(), field_name, field: None()])
+}
+
 fun NCode.add_include_as(
     span: Span,
     path: String,
@@ -676,6 +699,7 @@ fun NInstKind.get_name(): String {
         this is NInstKind::StoreField -> "store-field"
         this is NInstKind::InitField -> "init-field"
         this is NInstKind::SizeOf -> "size-of"
+        this is NInstKind::OffsetOf -> "offset-of"
         this is NInstKind::IncludeAs -> "include-as"
         this is NInstKind::Alloc -> "alloc"
         this is NInstKind::Lambda -> "lambda"
@@ -887,6 +911,11 @@ fun NInstKind.to_string(): String {
             let kind = this as NInstKind::SizeOf
 
             "size_of ${kind.type_usage}"
+        }
+        this is NInstKind::OffsetOf -> {
+            let kind = this as NInstKind::OffsetOf
+
+            "offset_of ${kind.type_usage} ${kind.field_name}"
         }
         this is NInstKind::IncludeAs -> {
             let kind = this as NInstKind::IncludeAs
@@ -1148,6 +1177,11 @@ fun NInst.to_string(code: NCode): String {
             let kind = t as NInstKind::SizeOf
 
             "size_of ${kind.type_usage}"
+        }
+        t is NInstKind::OffsetOf -> {
+            let kind = t as NInstKind::OffsetOf
+
+            "size_of ${kind.type_usage} ${kind.field_name}"
         }
         t is NInstKind::IncludeAs -> {
             let kind = t as NInstKind::IncludeAs
@@ -1419,6 +1453,12 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
             let kind = t as NInstKind::Defer
             serialize_code(kind.deferred_code)
         }
+        t is NInstKind::OffsetOf -> {
+            write_int(33)
+            let kind = t as NInstKind::OffsetOf
+            serialize_type_usage(kind.type_usage)
+            write_string(kind.field_name)
+        }
         else -> crash("Unknown NInstKind variant")
     }
 }
@@ -1616,6 +1656,11 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
         32 -> {
             let deferred_code = deserialize_code(code.program)
             NInstKind::Defer @[deferred_code]
+        }
+        33 -> {
+            let type_usage = deserialize_type_usage()
+            let field_name = read_string()
+            NInstKind::OffsetOf @[type_usage, type_token: None(), field_name, field: None()]
         }
         else -> crash("Unknown NInstKind variant")
     }

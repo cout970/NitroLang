@@ -20,6 +20,7 @@ enum TypeConstraintSource {
     StoreField @[info: "field store"]
     InitField @[info: "field init"]
     Alloc @[info: "allocation"]
+    OffsetOf @[info: "offset_of"]
     Return @[info: "return"]
     IfCondition @[info: "if condition"]
     IfBranch @[info: "if branch"]

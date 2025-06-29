@@ -69,6 +69,13 @@ fun NCode.new_child_code(container: NCodeContainer, is_transparent_child: Boolea
     ret subcode
 }
 
+fun NCode::create_from(other: NCode): NCode {
+    let subcode = NCode::new(other.program, other.container)
+    subcode.is_transparent_child = other.is_transparent_child
+    subcode.variable_id_provider.seek_to(other.variable_id_provider)
+    ret subcode
+}
+
 fun NCode.get_generics(): NGenericParams = container.generics
 
 fun NCode.get_parent_code(): Optional<NCode> {

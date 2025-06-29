@@ -496,6 +496,38 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
                 kind: WInstKind::SizeOf @[final_type, size],
             ]
         }
+        inst.kind is NInstKind::OffsetOf -> {
+            let kind = inst.kind as NInstKind::OffsetOf
+            let offset_of_type = kind.type_token!!.find_type()
+            let final_type = ctx.convert_type(offset_of_type)
+            let offset = 0
+
+            if final_type.kind !is FinalTypeKind::Struct {
+                crash("Final type is not an struct: $final_type, inst: $inst")
+            }
+
+            let str = final_type.kind as FinalTypeKind::Struct
+            let final_struct = get_final_struct(str.instance, final_type)
+            let found = false
+
+            for field in final_struct.fields {
+                if field.name == kind.field_name {
+                    offset = field.offset
+                    found = true
+                    break
+                }
+            }
+
+            if !found {
+                crash("Field ${kind.field_name} not found in struct ${final_struct.instance.full_name}")
+            }
+
+            wasm_func.inst_map[inst.id] = WInst @[
+                id: inst.id,
+                span: inst.span,
+                kind: WInstKind::OffsetOf @[final_type, offset],
+            ]
+        }
         inst.kind is NInstKind::IncludeAs -> {}
         inst.kind is NInstKind::Alloc -> {
             let alloc_index = get_alloc_function(ctx)

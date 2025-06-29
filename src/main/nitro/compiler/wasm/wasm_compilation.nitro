@@ -263,6 +263,14 @@ fun WasmEmitter.compile_code(func: WFunction, backend: WasmBackend) {
             continue
         }
 
+        if inst.kind is NInstKind::OffsetOf {
+            let kind = func.inst_map[inst.id]!!.kind as WInstKind::OffsetOf
+            add_span(inst.span)
+            add_i32_const(kind.offset)
+            pop(inst.id, map)
+            continue
+        }
+
         if inst.kind is NInstKind::Alloc {
             compile_inst_alloc(inst, func, backend, map, code)
             continue
