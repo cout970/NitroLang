@@ -1,15 +1,200 @@
-fun main() {
-    println("start")
-    defer println("1")
-    loop {
-        defer println("2")
-        if true {
-            defer println("3")
-            println("4")
-            return
-        }
-        println("5")
-    }
-    println("6")
-    println("end")
+
+@Rc
+struct MyType {
+    value: Int
 }
+
+@Rc
+struct Node {
+    value: Int,
+    next: Optional<Node>
+}
+
+@Rc
+struct Container {
+    items: List<MyType>
+}
+
+@DumpIr
+fun main() {
+    println("=== ARC Test Cases ===")
+
+    // Simple allocation and assignment
+    //test_simple_allocation()
+
+    // Multiple assignments (potential double ref_inc/dec)
+    //test_multiple_assignments()
+
+    // Function parameters and returns
+    //test_function_params_returns()
+
+    // Nested structures
+    //test_nested_structures()
+
+    // List operations
+    //test_list_operations()
+
+    // Option handling
+    //test_option_handling()
+
+    // Reassignment scenarios
+    //test_reassignment()
+
+    // Temporaries
+    test_temporaries()
+
+    // Loops
+    test_loops()
+
+    println("=== All tests completed ===")
+}
+
+@DumpIr
+fun test_temporaries() {
+    println("Test 8: Temporaries")
+    MyType @[value: 42]
+    create_object(46356)
+}
+
+@DumpIr
+fun test_loops(){
+    println("Test 9: Loops")
+    let items = [
+        MyType @[value: 1],
+        MyType @[value: 2],
+        MyType @[value: 3],
+        MyType @[value: 4],
+        MyType @[value: 5]
+    ]
+    let i = 0
+    while i < items.len {
+        let item = items[i]!!
+        println("Loop item value: ${item.value}")
+        i += 1
+    }
+    println("Loop completed")
+}
+
+fun test_simple_allocation() {
+    println("Test 1: Simple allocation")
+    let obj = MyType @[value: 42]
+    println("Value: ${obj.value}")
+}
+
+fun test_multiple_assignments() {
+    println("Test 2: Multiple assignments")
+    let obj1 = MyType @[value: 100]
+    let obj2 = obj1  // Should increment ref count
+    let obj3 = obj2  // Should increment ref count again
+    println("Values: ${obj1.value}, ${obj2.value}, ${obj3.value}")
+}
+
+fun test_function_params_returns() {
+    println("Test 3: Function params and returns")
+    let obj = create_object(200)
+    process_object(obj)
+    let result = transform_object(obj)
+    println("Result: ${result.value}")
+}
+
+fun test_nested_structures() {
+    println("Test 4: Nested structures")
+    let node1 = Node @[value: 1, next: None()]
+    let node2 = Node @[value: 2, next: Some(node1)]
+    let node3 = Node @[value: 3, next: Some(node2)]
+    print_chain(node3)
+}
+
+fun test_list_operations() {
+    println("Test 5: List operations")
+    let items = []
+    items[] = MyType @[value: 10]
+    items[] = MyType @[value: 20]
+    items[] = MyType @[value: 30]
+
+    let container = Container @[items: items]
+    process_container(container)
+}
+
+fun test_option_handling() {
+    println("Test 6: Option handling")
+    let maybe_obj = Some(MyType @[value: 500])
+    if maybe_obj.is_some() {
+        let obj = maybe_obj!!
+        println("Unwrapped value: ${obj.value}")
+    }
+}
+
+fun test_reassignment() {
+    println("Test 7: Reassignment scenarios")
+    let obj = MyType @[value: 1000]
+    println("Initial: ${obj.value}")
+
+    // Reassign to new object - should dec old, inc new
+    obj = MyType @[value: 2000]
+    println("After reassignment: ${obj.value}")
+
+    // Reassign to same object - potential bug?
+    let temp = obj
+    obj = temp
+    println("After self-assignment: ${obj.value}")
+}
+
+// Helper functions
+fun create_object(value: Int): MyType {
+    ret MyType @[value: value]
+}
+
+fun process_object(obj: MyType) {
+    println("Processing: ${obj.value}")
+}
+
+fun transform_object(obj: MyType): MyType {
+    ret MyType @[value: obj.value * 2]
+}
+
+fun print_chain(node: Node) {
+    println("Node value: ${node.value}")
+    if node.next.is_some() {
+        print_chain(node.next!!)
+    }
+}
+
+fun process_container(container: Container) {
+    println("Container has ${container.items.len} items")
+    for item in container.items {
+        println("Item: ${item.value}")
+    }
+}
+
+/*
+fun main() {
+    let m = MyType @[value: 42]
+    Rc::RcHeader::init(m)
+    let aux = m
+    defer { aux.Rc::ref_dec() }
+
+    println("MyType value: ${m.value}")
+
+    let b = m
+    b.Rc::ref_inc()
+    let aux2 = b
+    defer { aux2.Rc::ref_dec() }
+
+    //m = MyType @[value: 100]
+    //let other = MyType @[value: 100]
+    //Rc::RcHeader::init(other)
+    //let aux3 = other
+    //defer { aux3.Rc::ref_dec() }
+    //println("MyType value2: ${other.value}")
+
+    //m = other
+    //m.Rc::ref_inc()
+}
+*/
+
+@DumpIr
+fun MyType.deinit() {
+    println("MyType deinit: ${this.value}")
+}
+

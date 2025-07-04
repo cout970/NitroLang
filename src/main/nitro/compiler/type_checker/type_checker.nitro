@@ -127,8 +127,8 @@ fun TypeChecker.check_all() {
         if verbose {
             Log::debug("Checking function code blocks (second step) ${get_memory().get_stats()}")
         }
-        for s in program.functions {
-            cons.add_code_to_check(s.code)
+        for s in program.codes {
+            cons.add_code_to_check(s)
             finalize()
         }
     }

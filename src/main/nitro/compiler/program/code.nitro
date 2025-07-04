@@ -596,6 +596,9 @@ fun NCode.to_string(): String {
         line[] = " | "
         let prefix_len = line.len
         line[] = "  " * current_depth
+        if i.gc_related {
+            line[] = "[GC] "
+        }
         line[] = i.to_string(this).indent(prefix_len).trim()
 
         if i.type_token.is_some() {

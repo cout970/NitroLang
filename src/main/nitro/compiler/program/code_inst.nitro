@@ -8,6 +8,8 @@ struct NInst {
     span: Span
     // Instruction kind
     kind: NInstKind
+    // Added by GC
+    gc_related: Boolean
     // Type resolution utility
     type_token: Optional<TypeToken>
     // List of instructions that reference this instruction
@@ -202,8 +204,8 @@ fun NCode.seek_after_inst(id: Id) {
     cursor = index_of_inst(id)!! + 1
 }
 
-fun NCode.seek_to_pos(id: Id) {
-    cursor = index_of_inst(id)!! + 1
+fun NCode.seek_to_pos(pos: Int) {
+    cursor = pos
 }
 
 fun NCode.seek_end() {
@@ -218,6 +220,7 @@ fun NCode.add_inst(
         id: inst_id_provider.next(),
         span,
         kind,
+        gc_related: false,
         type_token: None(),
         back_references: [],
     ]
@@ -226,6 +229,7 @@ fun NCode.add_inst(
         inst_list[] = i
     } else {
         inst_list.insert(cursor, i)
+        cursor += 1
     }
 
     ret i
@@ -240,6 +244,7 @@ fun NCode.add_inst_at(
         id: inst_id_provider.next(),
         span,
         kind,
+        gc_related: false,
         type_token: None(),
         back_references: [],
     ]
@@ -308,6 +313,7 @@ fun NCode.add_let_upvalue(
         id: inst_id_provider.next(),
         span,
         kind,
+        gc_related: false,
         type_token: None(),
         back_references: [],
     ]
@@ -615,6 +621,7 @@ fun NCode.add_inst_before(prev_id: NInstId, span: Span, kind: NInstKind): NInst 
         id: inst_id_provider.next(),
         span: prev_inst.span,
         kind,
+        gc_related: false,
         type_token: None(),
         back_references: [],
     ]
@@ -631,6 +638,7 @@ fun NCode.add_inst_after(prev_id: NInstId, span: Span, kind: NInstKind): NInst {
         id: inst_id_provider.next(),
         span: prev_inst.span,
         kind,
+        gc_related: false,
         type_token: None(),
         back_references: [],
     ]
@@ -646,6 +654,7 @@ fun NCode.duplicate_inst(index: Int) {
         id: original.id,
         span: original.span,
         kind: original.kind,
+        gc_related: original.gc_related,
         type_token: original.type_token,
         back_references: original.back_references,
     ]
@@ -1231,6 +1240,7 @@ fun NInst.to_string(code: NCode): String {
 fun ByteBuffer.serialize_inst(inst: NInst) {
     serialize_id(inst.id)
     serialize_span(inst.span)
+    write_boolean(inst.gc_related)
     let t = inst.kind
     ret when {
         t is NInstKind::Let -> {
@@ -1467,6 +1477,7 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
     let id = deserialize_id()
     let span = deserialize_span()
     let variant = read_int()
+    let gc_related = read_boolean()
 
     let kind = when variant {
         0 -> {
@@ -1669,6 +1680,7 @@ fun ByteBuffer.deserialize_inst(code: NCode): NInst {
         id,
         span,
         kind,
+        gc_related,
         type_token: None(),
         back_references: [],
     ]

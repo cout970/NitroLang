@@ -53,7 +53,7 @@ fun NStruct.add_rc_fields() {
         name: FIELD_RC_HEADER,
         parent_struct: this,
         offset: fields.len,
-        type_usage: NTypeUsage::simple(span, "RcHeader"),
+        type_usage: NTypeUsage::simple_with_path(span, "Rc", "RcHeader"),
         field_type: None(),
     ]
 }

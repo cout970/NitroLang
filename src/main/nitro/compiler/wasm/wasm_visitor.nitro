@@ -530,7 +530,9 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
         }
         inst.kind is NInstKind::IncludeAs -> {}
         inst.kind is NInstKind::Alloc -> {
-            let alloc_index = get_alloc_function(ctx)
+            let kind = inst.kind as NInstKind::Alloc
+            let ty = kind.type_token!!.find_type()
+            let alloc_index = if ty.has_gc() { get_rc_alloc_function(ctx) } else { get_alloc_function(ctx) }
 
             wasm_func.function_calls[inst.id] = WFuncCall::WFunction @[value: alloc_index, return_final_type: final_type]
         }
@@ -560,6 +562,12 @@ fun WasmBackend.visit_instruction(ctx: TypeMappingCtx, wasm_func: WFunction, cod
 
 fun WasmBackend.get_alloc_function(ctx: TypeMappingCtx): Id {
     let alloc_functions = program.functions.filter @{ it -> it.full_name == "memory_alloc_internal" }
+    let alloc_func = alloc_functions.last()!!
+    ret add_task_visit_function(ctx, alloc_func)
+}
+
+fun WasmBackend.get_rc_alloc_function(ctx: TypeMappingCtx): Id {
+    let alloc_functions = program.functions.filter @{ it -> it.full_name == "Rc::rc_alloc" }
     let alloc_func = alloc_functions.last()!!
     ret add_task_visit_function(ctx, alloc_func)
 }

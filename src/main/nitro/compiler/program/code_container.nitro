@@ -96,6 +96,24 @@ fun NCodeContainer.get_span(): Span {
     }
 }
 
+fun NCodeContainer.get_annotations(): NAnnotationContainer {
+    when {
+        this is NCodeContainer::Function -> {
+            ret (this as NCodeContainer::Function).def.annotations
+        }
+        this is NCodeContainer::Const -> {
+            ret (this as NCodeContainer::Const).def.annotations
+        }
+        this is NCodeContainer::Lambda -> {
+            ret NAnnotationContainer::new()
+        }
+        this is NCodeContainer::None -> {
+            ret NAnnotationContainer::new()
+        }
+        else -> crash("Unknown code container")
+    }
+}
+
 fun NCodeContainer.to_string(): String {
     when {
         this is NCodeContainer::Function -> {

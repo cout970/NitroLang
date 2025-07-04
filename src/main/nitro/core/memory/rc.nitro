@@ -1,129 +1,144 @@
 
-let RC_STATIC_MASK: Int = 1 << 31
-let RC_FREED_MASK: Int = 1 << 30
-let RC_FREED_MASK_INV: Int = (1 << 30).bitwise_not()
-let RC_DESTRUCT_MASK: Int = 1 << 29
-let RC_DESTRUCT_MASK_INV: Int = (1 << 29).bitwise_not()
-let RC_COUNT_MASK: Int = 0xFFFF
-let RC_COUNT_MASK_INV: Int = 0xFFFF.bitwise_not()
-
-// Reference counter header
-@ValueType
-@NoGC
-@IntrinsicSize [size: 4]
-struct RcHeader {}
-
-@NoGC
-struct WeekRef<#Value> {
-    value: #Value
-}
-
-fun RcHeader::new(): RcHeader = RcHeader::from_flags(1)
-
-fun RcHeader::from_flags(value: Int): RcHeader {
-    ret ptr_from_address<RcHeader>(value).unsafe_as_ref()
-}
-
-fun RcHeader.get_flags(): Int {
-    ret ptr_of(this).address
-}
-
-// Test
-tag Rc {
-    fun This.get_rc_header(): RcHeader
-    fun This.set_rc_header(h: RcHeader): Nothing
+// Any struct with reference counting will implement this tag
+tag RcType {
+    fun This.get_rc_header_ptr(): Ptr<Rc::RcHeader>
     fun This.deinit(): Nothing
-    fun This.internal_free(): Nothing
 }
 
-fun <#T: Rc> #T.get_rc_flags(): Int = ptr_of(this.get_rc_header()).address
+mod Rc {
+    let RC_STATIC_MASK: Int = 1 << 31
+    let RC_FREED_MASK: Int = 1 << 30
+    let RC_FREED_MASK_INV: Int = (1 << 30).bitwise_not()
+    let RC_DESTRUCT_MASK: Int = 1 << 29
+    let RC_DESTRUCT_MASK_INV: Int = (1 << 29).bitwise_not()
+    let RC_COUNT_MASK: Int = 0xFFFF
+    let RC_COUNT_MASK_INV: Int = 0xFFFF.bitwise_not()
 
-fun <#T: Rc> #T.set_rc_flags(flags: Int) {
-    let header: RcHeader = ptr_from_address<RcHeader>(flags).unsafe_as_ref()
-    this.set_rc_header(header)
+    // Flags to append to any struct that uses reference counting
+    typealias RcHeader = Int
+
+    // Allocates a strct with reference counting, this is an internal function
+    @NoGC
+    fun rc_alloc(size: Int): Ptr<Byte> {
+        ret global_allocator.alloc_bytes(size, 4)
+    }
+
+    // Frees a struct with reference counting, this is an internal function
+    @NoGC
+    fun rc_free(ptr: Ptr<Byte>) {
+        if ptr.is_null() {
+            ret
+        }
+        global_allocator.free(ptr)
+    }
+
+    @NoGC
+    fun <#Struct: RcType> RcHeader::init(value: #Struct) {
+        let ptr: IntPtr = value.get_rc_header_ptr().unsafe_cast_as_ref()
+        ptr.value = 1
+    }
+
+    @NoGC
+    fun <#Struct: RcType> #Struct.set_static() {
+        let ptr: IntPtr = this.get_rc_header_ptr().unsafe_cast_as_ref()
+        ptr.value = ptr.value | RC_STATIC_MASK
+    }
+
+    @NoGC
+    @NullableThis
+    fun <#Struct: RcType> #Struct.ref_inc() {
+        if ptr_of(this).is_null() {
+            ret
+        }
+        let ptr: IntPtr = this.get_rc_header_ptr().unsafe_cast_as_ref()
+        //println("Running ref_inc ${rc_header_to_string(this.get_rc_header_ptr())}")
+
+        // Static reference, no need to handle it
+        if (ptr.value & RC_STATIC_MASK) != 0 {
+            ret
+        }
+
+        if (ptr.value & RC_FREED_MASK) != 0 {
+            crash("Trying to increment a freed reference counter")
+            ret
+        }
+
+        let new_count = (ptr.value & RC_COUNT_MASK) + 1
+
+        // Too many references, mark it as static
+        if new_count >= RC_COUNT_MASK {
+            // Mark the reference as static (for the lifetime of the program)
+            ptr.value = ptr.value | RC_STATIC_MASK
+        } else {
+            ptr.value = (ptr.value & RC_COUNT_MASK_INV) | new_count
+        }
+    }
+
+    @NoGC
+    @NullableThis
+    fun <#Struct: RcType> #Struct.ref_dec() {
+        if ptr_of(this).is_null() {
+            ret
+        }
+        let ptr: IntPtr = this.get_rc_header_ptr().unsafe_cast_as_ref()
+        //println("Running ref_dec ${rc_header_to_string(this.get_rc_header_ptr())}")
+
+        // Static reference, no need to handle it
+        if (ptr.value & RC_STATIC_MASK) != 0 || (ptr.value & RC_FREED_MASK) != 0 {
+            ret
+        }
+
+        let new_count: Int = (ptr.value & RC_COUNT_MASK) - 1
+
+        // Still has references, just decrement the count
+        if new_count > 0 {
+            ptr.value = (ptr.value & RC_COUNT_MASK_INV) | new_count
+            ret
+        }
+
+        // Count has reached 0, but it's inside a destructor, so don't free the memory
+        if ptr.value & RC_DESTRUCT_MASK != 0 {
+            // Just set to 0, this is the RC decrement at the end of the destructor
+            ptr.value = (ptr.value & RC_COUNT_MASK_INV)
+            ret
+        }
+
+        // Enable bit RC_DESTRUCT_MASK so it's not destructed again
+        // Also set the count to 1, so it can run the destructor
+        ptr.value = (ptr.value & RC_COUNT_MASK_INV) | RC_DESTRUCT_MASK | 1
+
+        //println("Running destructor")
+        this.deinit()
+
+        //println("Post destructor ref count: ${ptr.value & RC_COUNT_MASK}")
+
+        // The ref count has increased, meaning there are now new references, so cancel the destruction
+        if (ptr.value & RC_COUNT_MASK) > 0 {
+            ptr.value = (ptr.value & RC_DESTRUCT_MASK_INV)
+            // println("Ref count increased, canceling destruction")
+            ret
+        }
+
+        // Free the memory
+        ptr.value = (ptr.value & RC_FREED_MASK)
+        //println("Running rc_free")
+        rc_free(ptr_of(this).unsafe_cast())
+    }
+
+    @NoGC
+    @NullableThis
+    fun <#Struct: RcType> #Struct.debug_rc() {
+        println("Debugging RcHeader for ${rc_header_to_string(this.get_rc_header_ptr())}")
+    }
+
+    fun rc_header_to_string(header_ptr: Ptr<RcHeader>): String {
+        let ptr: IntPtr = header_ptr.unsafe_cast_as_ref()
+        let count = ptr.value & RC_COUNT_MASK
+        let is_freed = ptr.value & RC_FREED_MASK != 0
+        let is_static = ptr.value & RC_STATIC_MASK != 0
+        let in_destructor = ptr.value & RC_DESTRUCT_MASK != 0
+
+        ret "RcHeader @[count: $count, is_freed: $is_freed, is_static: $is_static, in_destructor: $in_destructor]"
+    }
 }
 
-@NoGC
-fun <#Struct: Rc> #Struct.set_static() {
-    this.rc_flags = this.rc_flags | RC_STATIC_MASK
-}
-
-@NoGC
-@NullableThis
-fun <#Struct: Rc> #Struct.ref_inc() {
-    if ptr_of(this).is_null() {
-        ret
-    }
-    let flags = this.rc_flags
-
-    if (flags & RC_STATIC_MASK) != 0 {
-        ret
-    }
-
-    if (flags & RC_FREED_MASK) != 0 {
-        crash("Trying to increment a freed reference counter")
-        ret
-    }
-
-    let new_count = (flags & RC_COUNT_MASK) + 1
-
-    if new_count > RC_COUNT_MASK {
-        // Mark the reference as static (for the lifetime of the program)
-        this.rc_flags = flags | RC_STATIC_MASK
-    } else {
-        this.rc_flags = (flags & RC_COUNT_MASK_INV) | new_count
-    }
-}
-
-@NoGC
-@NullableThis
-fun <#Struct: Rc> #Struct.ref_dec() {
-    if ptr_of(this).is_null() {
-        ret
-    }
-    let flags = this.rc_flags
-
-    if (flags & RC_STATIC_MASK) != 0 || (flags & RC_FREED_MASK) != 0 {
-        ret
-    }
-
-    let new_count: Int = (flags & RC_COUNT_MASK) - 1
-
-    if new_count > 0 {
-        this.rc_flags = (flags & RC_COUNT_MASK_INV) | new_count
-        ret
-    }
-
-    // Count has reached 0, but it's inside a destructor, so don't free the memory
-    if flags & RC_DESTRUCT_MASK != 0 {
-        ret
-    }
-
-    // Enable bit RC_DESTRUCT_MASK so it's not destructed again
-    this.rc_flags = (flags & RC_COUNT_MASK_INV) | RC_DESTRUCT_MASK
-
-    // Run destructor
-    this.deinit()
-
-    // Check if the ref count is still at 1
-    flags = this.rc_flags
-
-    // The ref count has increased, meaning there are now new references, so cancel the destruction
-    if (flags & RC_COUNT_MASK) > 1 {
-        this.rc_flags = (flags & RC_DESTRUCT_MASK_INV)
-        ret
-    }
-
-    this.rc_flags = (flags & RC_FREED_MASK)
-    this.internal_free()
-}
-
-fun RcHeader.to_string(): String {
-    let flags = this.get_flags()
-    let count = flags & RC_COUNT_MASK
-    let is_freed = flags & RC_FREED_MASK != 0
-    let is_static = flags & RC_STATIC_MASK != 0
-    let in_destructor = flags & RC_DESTRUCT_MASK != 0
-
-    ret "RcHeader @[count: $count, is_freed: $is_freed, is_static: $is_static, in_destructor: $in_destructor]"
-}

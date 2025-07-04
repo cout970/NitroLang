@@ -57,7 +57,7 @@ function run {
 log "Compiling compiler $compiler"
 
 rm -f "$new_compiler"
-run "$compiler" -- "$src_compiler" -o "$new_compiler" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --verbose
+run "$compiler" -- "$src_compiler" -o "$new_compiler" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --verbose # --flag enable-rc-gc=true
 run "$compiler" -- "$src_compiler" -o "$new_compiler_debug" --cache-dir "$cache" --core-path src/main/nitro/core/core.nitro --target 'wasm32-js'
 
 if [ ! -f "$new_compiler" ]; then

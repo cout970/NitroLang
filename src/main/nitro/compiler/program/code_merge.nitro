@@ -71,6 +71,7 @@ fun NCodeMapping.copy_inst(src: NCode, dst: NCode, index: Int) {
 
         let new_kind = map_inst_kind(inst.kind)
         let new_inst = dst.add_inst_at(index, inst.span, new_kind)
+        new_inst.gc_related = inst.gc_related
         index += 1
 
         inst_mapping[inst.id] = new_inst.id
