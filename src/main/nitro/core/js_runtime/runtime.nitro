@@ -49,15 +49,15 @@ mod runtime {
     // Returns an instant representing the current time, using the REALTIME clock,
     // which is subject to NTP adjustments and tries to be as close to the wall-clock time as possible
     fun get_realtime_instant(): Instant {
-        let now_ms: Float = runtime::extern::get_realtime_clock_ms()
+        let now_ms: Long = runtime::extern::get_realtime_clock_ms()
         ret Instant @[
-            seconds: (now_ms / 1000f).to_long(),
-            nanoseconds: ((now_ms % 1000f) * 1000000f).to_int()
+            seconds: now_ms / 1000L,
+            nanoseconds: ((now_ms % 1000L) * 1000000L).to_int()
         ]
     }
 
     @Extern [lib: "core", name: "runtime_get_realtime_clock_ms"]
-    fun extern::get_realtime_clock_ms(): Float {}
+    fun extern::get_realtime_clock_ms(): Long {}
 
     // Returns a monotonic clock value in nanoseconds, meaning it will never go backwards and is not subject to clock adjustments
     // This is useful for measuring time intervals and benchmarking

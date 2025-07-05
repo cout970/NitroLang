@@ -1,0 +1,134 @@
+// To run this example you need to build using the target wasm32-js and include the
+include "../main/nitro/bindings/browser_bindings.nitro"
+
+let BG_COLOR: Color = Color::from_hex("#687c85")
+
+let vertex_shader_source: String = r#"
+    attribute vec4 a_position;
+    attribute vec4 a_color;
+    varying lowp vec4 vColor;
+    void main() {
+        gl_Position = a_position;
+        vColor = vec4(a_color.r * a_color.r, a_color.g * a_color.g, a_color.b * a_color.b, 1.0);
+    }
+"#
+
+let fragment_shader_source: String = r#"
+    precision mediump float;
+    varying lowp vec4 vColor;
+
+    void main() {
+        gl_FragColor = vec4(sqrt(vColor.r), sqrt(vColor.g), sqrt(vColor.b), vColor.a);
+    }
+"#
+
+struct Context {
+    ctx: WebGLRenderingContext
+    program: WebGLProgram
+    model: WebGLBuffer
+    color: WebGLBuffer
+}
+
+let global_context: Context = Context @[
+    ctx: ptr_from_address(0).unsafe_as_ref(),
+    program: ptr_from_address(0).unsafe_as_ref(),
+    model: ptr_from_address(0).unsafe_as_ref()
+    color: ptr_from_address(0).unsafe_as_ref()
+]
+
+fun main() {
+    let element = Dom::get_document().get_element_by_id("myCanvas")!!
+    let canvas_element: HtmlCanvasElement = element.cast_to_canvas_element()!!
+    let ctx: WebGLRenderingContext = canvas_element.get_context_webgl()!!
+
+    println("WebGl Demo Starting")
+    println("Canvas Size: ${ctx.drawing_buffer_width}x${ctx.drawing_buffer_height}")
+    println("WebGl Version: ${ctx.get_parameter_as_string(WebGL::VERSION) ?? "Unknown Version"}")
+    println("WebGL Vendor: ${ctx.get_parameter_as_string(WebGL::VENDOR) ?? "Unknown"}")
+    println("WebGL Shading Language Version: ${ctx.get_parameter_as_string(WebGL::SHADING_LANGUAGE_VERSION) ?? "Unknown"}")
+    println("WebGL Renderer: ${ctx.get_parameter_as_string(WebGL::RENDERER) ?? "Unknown"}")
+
+    let program = ctx.create_program()!!
+    let vertex_shader = ctx.create_shader(WebGL::VERTEX_SHADER)!!
+    let fragment_shader = ctx.create_shader(WebGL::FRAGMENT_SHADER)!!
+
+    ctx.shader_source(vertex_shader, vertex_shader_source)
+    ctx.shader_source(fragment_shader, fragment_shader_source)
+    ctx.compile_shader(vertex_shader)
+    if !ctx.get_shader_parameter_as_boolean(vertex_shader, WebGL::COMPILE_STATUS)!! {
+        println("Vertex shader compilation failed: ${ctx.get_shader_info_log(vertex_shader)}")
+    }
+    ctx.compile_shader(fragment_shader)
+    if !ctx.get_shader_parameter_as_boolean(fragment_shader, WebGL::COMPILE_STATUS)!! {
+        println("Fragment shader compilation failed: ${ctx.get_shader_info_log(fragment_shader)}")
+    }
+    ctx.attach_shader(program, vertex_shader)
+    ctx.attach_shader(program, fragment_shader)
+    ctx.bind_attrib_location(program, 0, "a_position")
+    ctx.bind_attrib_location(program, 1, "a_color")
+    ctx.link_program(program)
+    if !ctx.get_program_parameter_as_boolean(program, WebGL::LINK_STATUS)!! {
+        println("Program linking failed: ${ctx.get_program_info_log(program)}")
+    }
+
+    let model = ctx.create_buffer()!!
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, Some(model))
+    let u = 0.5
+    let r = 0.2
+    let vertices: Float32Array = Float32Array::from([
+          0.0 * r,  1.0 * u,
+         -1.0 * r, -1.0 * u,
+          1.0 * r, -1.0 * u
+    ])
+    ctx.buffer_data_float(WebGL::ARRAY_BUFFER, vertices, WebGL::STATIC_DRAW)
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, None())
+
+    let color = ctx.create_buffer()!!
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, Some(color))
+    let colors: Float32Array = Float32Array::from([
+        1.0, 0.0, 0.0, 1.0, // Red
+        0.0, 1.0, 0.0, 1.0, // Green
+        0.0, 0.0, 1.0, 1.0  // Blue
+    ])
+    ctx.buffer_data_float(WebGL::ARRAY_BUFFER, colors, WebGL::STATIC_DRAW)
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, None())
+
+    global_context.ctx = ctx
+    global_context.program = program
+    global_context.model = model
+    global_context.color = color
+    render_loop()
+
+    println("WebGl API Demo Complete!")
+}
+
+@WasmName [name: "render_loop"]
+fun render_loop() {
+    let ctx = global_context.ctx
+
+    if ctx.is_context_lost() {
+        println("WebGL context lost, stopping render loop.")
+        return
+    }
+
+    let start = (Performance::now_ns() / 1_000_000L).to_int()
+    ctx.viewport(0, 0, ctx.drawing_buffer_width, ctx.drawing_buffer_height)
+    ctx.clear_color(BG_COLOR.r, BG_COLOR.g, BG_COLOR.b, BG_COLOR.a)
+    ctx.clear(WebGL::COLOR_BUFFER_BIT)
+
+    ctx.use_program(Some(global_context.program))
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, Some(global_context.model))
+    ctx.vertex_attrib_pointer(0, 2, WebGL::FLOAT, false, 0, 0)
+    ctx.enable_vertex_attrib_array(0)
+
+    ctx.bind_buffer(WebGL::ARRAY_BUFFER, Some(global_context.color))
+    ctx.enable_vertex_attrib_array(1)
+    ctx.vertex_attrib_pointer(1, 4, WebGL::FLOAT, false, 0, 0)
+
+    ctx.draw_arrays(WebGL::TRIANGLES, 0, 3)
+
+    ctx.disable_vertex_attrib_array(1)
+    ctx.disable_vertex_attrib_array(0)
+
+    Window::request_animation_frame("render_loop")
+}

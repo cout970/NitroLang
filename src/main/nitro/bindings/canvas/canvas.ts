@@ -13,10 +13,9 @@ export const bindings = {
   },
 
   // Context Management
-  canvas_get_context: (htmlCanvasPtr: number, contextTypePtr: number) => {
+  canvas_get_context_2d: (htmlCanvasPtr: number) => {
     const canvas = state.getObject(htmlCanvasPtr) as HTMLCanvasElement;
-    const contextType = state.getString(contextTypePtr);
-    const context = canvas.getContext(contextType);
+    const context = canvas.getContext("2d");
     if (context === null) {
       return state.sendOptional(null);
     }

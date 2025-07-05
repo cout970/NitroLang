@@ -39,6 +39,7 @@ export async function load(wasmUrl: string, imports: WebAssembly.Imports): Promi
   state.memory_8 = new Uint8Array(memory.buffer);
   state.memory_16 = new Uint16Array(memory.buffer);
   state.memory_32 = new Uint32Array(memory.buffer);
+  state.exports = exports;
 
   const run = exports['_start'] as () => void;
 

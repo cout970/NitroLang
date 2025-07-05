@@ -1,0 +1,323 @@
+mod WebGL {
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#clearing_buffers
+    let DEPTH_BUFFER_BIT: Int = 0x00000100
+    let STENCIL_BUFFER_BIT: Int = 0x00000400
+    let COLOR_BUFFER_BIT: Int = 0x00004000
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#rendering_primitives
+    let POINTS: Int = 0x0000
+    let LINES: Int = 0x0001
+    let LINE_LOOP: Int = 0x0002
+    let LINE_STRIP: Int = 0x0003
+    let TRIANGLES: Int = 0x0004
+    let TRIANGLE_STRIP: Int = 0x0005
+    let TRIANGLE_FAN: Int = 0x0006
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#blending_modes
+    let ZERO: Int = 0
+    let ONE: Int = 1
+    let SRC_COLOR: Int = 0x0300
+    let ONE_MINUS_SRC_COLOR: Int = 0x0301
+    let SRC_ALPHA: Int = 0x0302
+    let ONE_MINUS_SRC_ALPHA: Int = 0x0303
+    let DST_ALPHA: Int = 0x0304
+    let ONE_MINUS_DST_ALPHA: Int = 0x0305
+    let DST_COLOR: Int = 0x0306
+    let ONE_MINUS_DST_COLOR: Int = 0x0307
+    let SRC_ALPHA_SATURATE: Int = 0x0308
+    let CONSTANT_COLOR: Int = 0x8001
+    let ONE_MINUS_CONSTANT_COLOR: Int = 0x8002
+    let CONSTANT_ALPHA: Int = 0x8003
+    let ONE_MINUS_CONSTANT_ALPHA: Int = 0x8004
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#blending_equations
+    let FUNC_ADD: Int = 0x8006
+    let FUNC_SUBTRACT: Int = 0x800A
+    let FUNC_REVERSE_SUBTRACT: Int = 0x800B
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#getting_gl_parameter_information
+    let BLEND_EQUATION: Int = 0x8009
+    let BLEND_EQUATION_RGB: Int = 0x8009
+    let BLEND_EQUATION_ALPHA: Int = 0x883D
+    let BLEND_DST_RGB: Int = 0x80C8
+    let BLEND_SRC_RGB: Int = 0x80C9
+    let BLEND_DST_ALPHA: Int = 0x80CA
+    let BLEND_SRC_ALPHA: Int = 0x80CB
+    let BLEND_COLOR: Int = 0x8005
+    let ARRAY_BUFFER_BINDING: Int = 0x8894
+    let ELEMENT_ARRAY_BUFFER_BINDING: Int = 0x8895
+    let LINE_WIDTH: Int = 0x0B21
+    let ALIASED_POINT_SIZE_RANGE: Int = 0x846D
+    let ALIASED_LINE_WIDTH_RANGE: Int = 0x846E
+    let CULL_FACE_MODE: Int = 0x0B45
+    let FRONT_FACE: Int = 0x0B46
+    let DEPTH_RANGE: Int = 0x0B70
+    let DEPTH_WRITEMASK: Int = 0x0B72
+    let DEPTH_CLEAR_VALUE: Int = 0x0B73
+    let DEPTH_FUNC: Int = 0x0B74
+    let STENCIL_CLEAR_VALUE: Int = 0x0B91
+    let STENCIL_FUNC: Int = 0x0B92
+    let STENCIL_FAIL: Int = 0x0B94
+    let STENCIL_PASS_DEPTH_FAIL: Int = 0x0B95
+    let STENCIL_PASS_DEPTH_PASS: Int = 0x0B96
+    let STENCIL_REF: Int = 0x0B97
+    let STENCIL_VALUE_MASK: Int = 0x0B93
+    let STENCIL_WRITEMASK: Int = 0x0B98
+    let STENCIL_BACK_FUNC: Int = 0x8800
+    let STENCIL_BACK_FAIL: Int = 0x8801
+    let STENCIL_BACK_PASS_DEPTH_FAIL: Int = 0x8802
+    let STENCIL_BACK_PASS_DEPTH_PASS: Int = 0x8803
+    let STENCIL_BACK_REF: Int = 0x8CA3
+    let STENCIL_BACK_VALUE_MASK: Int = 0x8CA4
+    let STENCIL_BACK_WRITEMASK: Int = 0x8CA5
+    let VIEWPORT: Int = 0x0BA2
+    let SCISSOR_BOX: Int = 0x0C10
+    let COLOR_CLEAR_VALUE: Int = 0x0C22
+    let COLOR_WRITEMASK: Int = 0x0C23
+    let UNPACK_ALIGNMENT: Int = 0x0CF5
+    let PACK_ALIGNMENT: Int = 0x0D05
+    let MAX_TEXTURE_SIZE: Int = 0x0D33
+    let MAX_VIEWPORT_DIMS: Int = 0x0D3A
+    let SUBPIXEL_BITS: Int = 0x0D50
+    let RED_BITS: Int = 0x0D52
+    let GREEN_BITS: Int = 0x0D53
+    let BLUE_BITS: Int = 0x0D54
+    let ALPHA_BITS: Int = 0x0D55
+    let DEPTH_BITS: Int = 0x0D56
+    let STENCIL_BITS: Int = 0x0D57
+    let POLYGON_OFFSET_UNITS: Int = 0x2A00
+    let POLYGON_OFFSET_FACTOR: Int = 0x8038
+    let TEXTURE_BINDING_2D: Int = 0x8069
+    let SAMPLE_BUFFERS: Int = 0x80A8
+    let SAMPLES: Int = 0x80A9
+    let SAMPLE_COVERAGE_VALUE: Int = 0x80AA
+    let SAMPLE_COVERAGE_INVERT: Int = 0x80AB
+    let COMPRESSED_TEXTURE_FORMATS: Int = 0x86A3
+    let VENDOR: Int = 0x1F00
+    let RENDERER: Int = 0x1F01
+    let VERSION: Int = 0x1F02
+    let IMPLEMENTATION_COLOR_READ_TYPE: Int = 0x8B9A
+    let IMPLEMENTATION_COLOR_READ_FORMAT: Int = 0x8B9B
+    let BROWSER_DEFAULT_WEBGL: Int = 0x9244
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#buffers
+    let STATIC_DRAW: Int = 0x88E4
+    let STREAM_DRAW: Int = 0x88E0
+    let DYNAMIC_DRAW: Int = 0x88E8
+    let ARRAY_BUFFER: Int = 0x8892
+    let ELEMENT_ARRAY_BUFFER: Int = 0x8893
+    let BUFFER_SIZE: Int = 0x8764
+    let BUFFER_USAGE: Int = 0x8765
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#vertex_attributes
+    let CURRENT_VERTEX_ATTRIB: Int = 0x8626
+    let VERTEX_ATTRIB_ARRAY_ENABLED: Int = 0x8622
+    let VERTEX_ATTRIB_ARRAY_SIZE: Int = 0x8623
+    let VERTEX_ATTRIB_ARRAY_STRIDE: Int = 0x8624
+    let VERTEX_ATTRIB_ARRAY_TYPE: Int = 0x8625
+    let VERTEX_ATTRIB_ARRAY_NORMALIZED: Int = 0x886A
+    let VERTEX_ATTRIB_ARRAY_POINTER: Int = 0x8645
+    let VERTEX_ATTRIB_ARRAY_BUFFER_BINDING: Int = 0x889F
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#culling
+    let CULL_FACE: Int = 0x0B44
+    let FRONT: Int = 0x0404
+    let BACK: Int = 0x0405
+    let FRONT_AND_BACK: Int = 0x0408
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#enabling_and_disabling
+    let BLEND: Int = 0x0BE2
+    let DEPTH_TEST: Int = 0x0B71
+    let DITHER: Int = 0x0BD0
+    let POLYGON_OFFSET_FILL: Int = 0x8037
+    let SAMPLE_ALPHA_TO_COVERAGE: Int = 0x809E
+    let SAMPLE_COVERAGE: Int = 0x80A0
+    let SCISSOR_TEST: Int = 0x0C11
+    let STENCIL_TEST: Int = 0x0B90
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#errors
+    let NO_ERROR: Int = 0
+    let INVALID_ENUM: Int = 0x0500
+    let INVALID_VALUE: Int = 0x0501
+    let INVALID_OPERATION: Int = 0x0502
+    let OUT_OF_MEMORY: Int = 0x0505
+    let CONTEXT_LOST_WEBGL: Int = 0x9242
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#front_face_directions
+    let CW: Int = 0x0900 // Clockwise
+    let CCW: Int = 0x0901 // Counter-clockwise
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#hints
+    let DONT_CARE: Int = 0x1100
+    let FASTEST: Int = 0x1101
+    let NICEST: Int = 0x1102
+    let GENERATE_MIPMAP_HINT: Int = 0x8192
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#data_types
+    let BYTE: Int = 0x1400
+    let UNSIGNED_BYTE: Int = 0x1401
+    let SHORT: Int = 0x1402
+    let UNSIGNED_SHORT: Int = 0x1403
+    let INT: Int = 0x1404
+    let UNSIGNED_INT: Int = 0x1405
+    let FLOAT: Int = 0x1406
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#pixel_formats
+    let DEPTH_COMPONENT: Int = 0x1902
+    let ALPHA: Int = 0x1906
+    let RGB: Int = 0x1907
+    let RGBA: Int = 0x1908
+    let LUMINANCE: Int = 0x1909
+    let LUMINANCE_ALPHA: Int = 0x190A
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#pixel_types
+    // let UNSIGNED_BYTE: Int = 0x1401
+    let UNSIGNED_SHORT_4_4_4_4: Int = 0x8033
+    let UNSIGNED_SHORT_5_5_5_1: Int = 0x8034
+    let UNSIGNED_SHORT_5_6_5: Int = 0x8363
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#shaders
+    let FRAGMENT_SHADER: Int = 0x8B30
+    let VERTEX_SHADER: Int = 0x8B31
+    let COMPILE_STATUS: Int = 0x8B81
+    let DELETE_STATUS: Int = 0x8B80
+    let LINK_STATUS: Int = 0x8B82
+    let VALIDATE_STATUS: Int = 0x8B83
+    let ATTACHED_SHADERS: Int = 0x8B85
+    let ACTIVE_ATTRIBUTES: Int = 0x8B89
+    let ACTIVE_UNIFORMS: Int = 0x8B86
+    let MAX_VERTEX_ATTRIBS: Int = 0x8869
+    let MAX_VERTEX_UNIFORM_VECTORS: Int = 0x8DFB
+    let MAX_VARYING_VECTORS: Int = 0x8DFC
+    let MAX_COMBINED_TEXTURE_IMAGE_UNITS: Int = 0x8B4D
+    let MAX_VERTEX_TEXTURE_IMAGE_UNITS: Int = 0x8B4C
+    let MAX_TEXTURE_IMAGE_UNITS: Int = 0x8872
+    let MAX_FRAGMENT_UNIFORM_VECTORS: Int = 0x8DFD
+    let SHADER_TYPE: Int = 0x8B4F
+    let SHADING_LANGUAGE_VERSION: Int = 0x8B8C
+    let CURRENT_PROGRAM: Int = 0x8B8D
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#depth_or_stencil_tests
+    let NEVER: Int = 0x0200
+    let LESS: Int = 0x0201
+    let EQUAL: Int = 0x0202
+    let LEQUAL: Int = 0x0203
+    let GREATER: Int = 0x0204
+    let NOTEQUAL: Int = 0x0205
+    let GEQUAL: Int = 0x0206
+    let ALWAYS: Int = 0x0207
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#stencil_actions
+    let KEEP: Int = 0x1E00
+    let REPLACE: Int = 0x1E01
+    let INCR: Int = 0x1E02
+    let DECR: Int = 0x1E03
+    let INVERT: Int = 0x150A
+    let INCR_WRAP: Int = 0x8507
+    let DECR_WRAP: Int = 0x8508
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#textures
+    let NEAREST: Int = 0x2600
+    let LINEAR: Int = 0x2601
+    let NEAREST_MIPMAP_NEAREST: Int = 0x2700
+    let LINEAR_MIPMAP_NEAREST: Int = 0x2701
+    let NEAREST_MIPMAP_LINEAR: Int = 0x2702
+    let LINEAR_MIPMAP_LINEAR: Int = 0x2703
+    let TEXTURE_MAG_FILTER: Int = 0x2800
+    let TEXTURE_MIN_FILTER: Int = 0x2801
+    let TEXTURE_WRAP_S: Int = 0x2802
+    let TEXTURE_WRAP_T: Int = 0x2803
+    let TEXTURE_2D: Int = 0x0DE1
+    let TEXTURE: Int = 0x1702
+    let TEXTURE_CUBE_MAP: Int = 0x8513
+    let TEXTURE_BINDING_CUBE_MAP: Int = 0x8514
+    let TEXTURE_CUBE_MAP_POSITIVE_X: Int = 0x8515
+    let TEXTURE_CUBE_MAP_NEGATIVE_X: Int = 0x8516
+    let TEXTURE_CUBE_MAP_POSITIVE_Y: Int = 0x8517
+    let TEXTURE_CUBE_MAP_NEGATIVE_Y: Int = 0x8518
+    let TEXTURE_CUBE_MAP_POSITIVE_Z: Int = 0x8519
+    let TEXTURE_CUBE_MAP_NEGATIVE_Z: Int = 0x851A
+    let MAX_CUBE_MAP_TEXTURE_SIZE: Int = 0x851C
+    let TEXTURE0: Int = 0x84C0
+    let TEXTURE1: Int = 0x84C1
+    let TEXTURE2: Int = 0x84C2
+    let TEXTURE3: Int = 0x84C3
+    let TEXTURE4: Int = 0x84C4
+    let TEXTURE5: Int = 0x84C5
+    let TEXTURE6: Int = 0x84C6
+    let TEXTURE7: Int = 0x84C7
+    let TEXTURE8: Int = 0x84C8
+    // The rest are just TEXTURE0 + x up to 31
+    let TEXTURE31: Int = 0x84DF
+    let ACTIVE_TEXTURE: Int = 0x84E0
+    let REPEAT: Int = 0x2901
+    let CLAMP_TO_EDGE: Int = 0x812F
+    let MIRRORED_REPEAT: Int = 0x8370
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#uniform_types
+    let FLOAT_VEC2: Int = 0x8B50
+    let FLOAT_VEC3: Int = 0x8B51
+    let FLOAT_VEC4: Int = 0x8B52
+    let INT_VEC2: Int = 0x8B53
+    let INT_VEC3: Int = 0x8B54
+    let INT_VEC4: Int = 0x8B55
+    let BOOL: Int = 0x8B56
+    let BOOL_VEC2: Int = 0x8B57
+    let BOOL_VEC3: Int = 0x8B58
+    let BOOL_VEC4: Int = 0x8B59
+    let FLOAT_MAT2: Int = 0x8B5A
+    let FLOAT_MAT3: Int = 0x8B5B
+    let FLOAT_MAT4: Int = 0x8B5C
+    let SAMPLER_2D: Int = 0x8B5E
+    let SAMPLER_CUBE: Int = 0x8B60
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#shader_precision-specified_types
+    let LOW_FLOAT: Int = 0x8DF0
+    let MEDIUM_FLOAT: Int = 0x8DF1
+    let HIGH_FLOAT: Int = 0x8DF2
+    let LOW_INT: Int = 0x8DF3
+    let MEDIUM_INT: Int = 0x8DF4
+    let HIGH_INT: Int = 0x8DF5
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#framebuffers_and_renderbuffers
+    let FRAMEBUFFER: Int = 0x8D40
+    let RENDERBUFFER: Int = 0x8D41
+    let RGBA4: Int = 0x8056
+    let RGB5_A1: Int = 0x8057
+    let RGB565: Int = 0x8D62
+    let DEPTH_COMPONENT16: Int = 0x81A5
+    let STENCIL_INDEX8: Int = 0x8D48
+    let DEPTH_STENCIL: Int = 0x84F9
+    let RENDERBUFFER_WIDTH: Int = 0x8D42
+    let RENDERBUFFER_HEIGHT: Int = 0x8D43
+    let RENDERBUFFER_INTERNAL_FORMAT: Int = 0x8D44
+    let RENDERBUFFER_RED_SIZE: Int = 0x8D50
+    let RENDERBUFFER_GREEN_SIZE: Int = 0x8D51
+    let RENDERBUFFER_BLUE_SIZE: Int = 0x8D52
+    let RENDERBUFFER_ALPHA_SIZE: Int = 0x8D53
+    let RENDERBUFFER_DEPTH_SIZE: Int = 0x8D54
+    let RENDERBUFFER_STENCIL_SIZE: Int = 0x8D55
+    let FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE: Int = 0x8CD0
+    let FRAMEBUFFER_ATTACHMENT_OBJECT_NAME: Int = 0x8CD1
+    let FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL: Int = 0x8CD2
+    let FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE: Int = 0x8CD3
+    let COLOR_ATTACHMENT0: Int = 0x8CE0
+    let DEPTH_ATTACHMENT: Int = 0x8D00
+    let STENCIL_ATTACHMENT: Int = 0x8D20
+    let DEPTH_STENCIL_ATTACHMENT: Int = 0x821A
+    let NONE: Int = 0x0000
+    let FRAMEBUFFER_COMPLETE: Int = 0x8CD5
+    let FRAMEBUFFER_INCOMPLETE_ATTACHMENT: Int = 0x8CD6
+    let FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: Int = 0x8CD7
+    let FRAMEBUFFER_INCOMPLETE_DIMENSIONS: Int = 0x8CD9
+    let FRAMEBUFFER_UNSUPPORTED: Int = 0x8CDD
+    let FRAMEBUFFER_BINDING: Int = 0x8CA6
+    let RENDERBUFFER_BINDING: Int = 0x8CA7
+    let MAX_RENDERBUFFER_SIZE: Int = 0x84E8
+    let INVALID_FRAMEBUFFER_OPERATION: Int = 0x0506
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants#pixel_storage_modes
+    let UNPACK_FLIP_Y_WEBGL: Int = 0x9240
+    let UNPACK_PREMULTIPLY_ALPHA_WEBGL: Int = 0x9241
+    let UNPACK_COLORSPACE_CONVERSION_WEBGL: Int = 0x9243
+}

@@ -1,0 +1,41 @@
+
+// Opaque Types (references to JS objects)
+struct Document { ptr: Int }
+struct Element { ptr: Int }
+struct HtmlCanvasElement { ptr: Int }
+
+@Extern [lib: "bindings", name: "dom_get_document"]
+fun Dom::get_document(): Document {}
+
+@Extern [lib: "bindings", name: "document_get_element_by_id"]
+fun Document.get_element_by_id(id: String): Optional<Element> {}
+
+@Extern [lib: "bindings", name: "document_query_selector"]
+fun Document.query_selector(id: String): Optional<Element> {}
+
+@Extern [lib: "bindings", name: "element_cast_to_canvas_element"]
+fun Element.cast_to_canvas_element(): Optional<HtmlCanvasElement>
+
+@Extern [lib: "bindings", name: "element_get_id"]
+fun Element.get_id(): String {}
+
+@Extern [lib: "bindings", name: "element_get_tag_name"]
+fun Element.get_tag_name(): String {}
+
+@Extern [lib: "bindings", name: "element_get_class_name"]
+fun Element.get_class_name(): String {}
+
+@Extern [lib: "bindings", name: "element_get_inner_html"]
+fun Element.get_inner_html(): String {}
+
+@Extern [lib: "bindings", name: "element_get_outer_html"]
+fun Element.get_outer_html(): String {}
+
+@Extern [lib: "bindings", name: "element_get_local_name"]
+fun Element.get_local_name(): String {}
+
+@Extern [lib: "bindings", name: "element_get_namespace_uri"]
+fun Element.get_namespace_uri(): Optional<String> {}
+
+@Extern [lib: "bindings", name: "element_get_prefix"]
+fun Element.get_prefix(): Optional<String> {}

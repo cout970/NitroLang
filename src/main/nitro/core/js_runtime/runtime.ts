@@ -5,6 +5,8 @@ export const state = {
   memory_8: new Uint8Array(0),
   memory_16: new Uint16Array(0),
   memory_32: new Uint32Array(0),
+  // Exported functions
+  exports: {},
   // JS objects references
   refs: [],
   // Internals
@@ -23,15 +25,24 @@ export const state = {
     state.memory_32[1] += (offset + bytes) - (heapStart + base);
     return offset;
   },
+  sendByteArray(bytes: Uint8Array): number {
+    const offset = state.alloc(4 + bytes.length);
+
+    state.memory_32[offset / 4] = bytes.length;
+    state.memory_8.set(bytes, offset + 4);
+    return offset;
+  },
   // Sends a string to the wasm memory and returns a pointer to it
   sendString(string: string) {
     const encoder = new TextEncoder();
     const bytes = encoder.encode(string);
+    const utf8_data = state.sendByteArray(bytes);
 
-    const offset = state.alloc(4 + bytes.length);
+    const offset = state.alloc(12);
 
     state.memory_32[offset / 4] = bytes.length;
-    state.memory_8.set(encoder.encode(string), offset + 4);
+    state.memory_32[offset / 4 + 1] = utf8_data;
+    state.memory_32[offset / 4 + 2] = 0xFFFFFFFF;
     return offset;
   },
   // Gets a string from the wasm memory
@@ -83,6 +94,10 @@ export const state = {
     state.memory_32[offset / 4 + 1] = value === null ? 0 : value;
     return offset;
   },
+  // Shorthand for sending an Optional::None()
+  sendNone(): number {
+    return state.sendOptional(null);
+  },
   // Given a pointer to an Optional<> instance, returns the value inside it or null
   getOptional(ptr: number): number | null {
     if (ptr === 0) {
@@ -99,7 +114,36 @@ export const state = {
       return state.memory_32[ptr / 4 + 1];
     }
     throw new Error('Invalid optional variant ' + variant);
-  }
+  },
+  // Sends an array of Object pointers to the wasm memory and returns a pointer to it
+  sendObjectArray: (array: number[]): number => {
+    const offset = state.alloc(4 + array.length * 4);
+
+    // Array layout in memory:
+    // 0: len
+    // 4: contents inline up to len * 4 bytes
+    state.memory_32[offset / 4] = array.length;
+    for (let i = 0; i < array.length; i++) {
+      state.memory_32[offset / 4 + 1 + i] = array[i];
+    }
+    return offset;
+  },
+  // Gets an array of Object pointers from the wasm memory
+  getObjectArray: (ptr: number): number[] => {
+    if (ptr === 0) {
+      throw new Error('Null pointer found at getObjectArray()');
+    }
+
+    // Array layout in memory:
+    // 0: len
+    // 4: contents inline up to len * 4 bytes
+    const len = state.memory_32[ptr / 4];
+    const array: number[] = [];
+    for (let i = 0; i < len; i++) {
+      array.push(state.memory_32[ptr / 4 + 1 + i]);
+    }
+    return array;
+  },
 };
 
 export const core = {

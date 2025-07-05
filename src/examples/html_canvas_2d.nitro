@@ -1,9 +1,11 @@
 // To run this example you need to build using the target wasm32-js and include the
-include "../main/nitro/bindings/canvas/canvas.nitro"
+include "../main/nitro/bindings/browser_bindings.nitro"
+use math
 
 fun main() {
-    let canvas_element: HtmlCanvasElement = get_canvas_element_by_id("myCanvas")!!
-    let ctx: Canvas = canvas_element.get_context("2d")!!
+    let element = Dom::get_document().get_element_by_id("myCanvas")!!
+    let canvas_element: HtmlCanvasElement = element.cast_to_canvas_element()!!
+    let ctx: Canvas = canvas_element.get_context_2d()!!
 
     println("Canvas API Demo Starting")
 

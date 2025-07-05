@@ -1,0 +1,53 @@
+
+struct Color {
+    r: Float,
+    g: Float,
+    b: Float,
+    a: Float
+}
+
+fun Color::transparent(): Color {
+    ret Color @[r: 0.0, g: 0.0, b: 0.0, a: 0.0]
+}
+
+fun Color::from_rgba(red: Float, green: Float, blue: Float, alpha: Float): Color {
+    ret Color @[r: red, g: green, b: blue, a: alpha]
+}
+
+fun Color::from_rgba_255(red: Int, green: Int, blue: Int, alpha: Int): Color {
+    ret Color @[
+        r: (red & 0xFF).to_float() / 255f,
+        g: (green & 0xFF).to_float() / 255f,
+        b: (blue & 0xFF).to_float() / 255f,
+        a: (alpha & 0xFF).to_float() / 255f
+    ]
+}
+
+fun Color::from_rgb(red: Float, green: Float, blue: Float): Color {
+    ret Color @[r: red, g: green, b: blue, a: 1.0]
+}
+
+fun Color::from_hex(hex: String): Color {
+    if hex.starts_with("#") {
+        hex = hex.substring(1, hex.len)
+    }
+    when hex.len {
+        6 -> {
+            let r = hex.substring(0, 2).to_int_in_base(16)!!
+            let g = hex.substring(2, 4).to_int_in_base(16)!!
+            let b = hex.substring(4, 6).to_int_in_base(16)!!
+            ret Color::from_rgba_255(r, g, b, 255)
+        }
+        8 -> {
+            let r = hex.substring(0, 2).to_int_in_base(16)!!
+            let g = hex.substring(2, 4).to_int_in_base(16)!!
+            let b = hex.substring(4, 6).to_int_in_base(16)!!
+            let a = hex.substring(6, 8).to_int_in_base(16)!!
+            ret Color::from_rgba_255(r, g, b, a)
+        }
+        else -> {
+            // Invalid length for hex color
+            ret Color::transparent()
+        }
+    }
+}

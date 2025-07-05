@@ -1,0 +1,184 @@
+
+
+// Float
+struct Float32Array { ptr: Int }
+
+@Extern [lib: "bindings", name: "js_float32_array_new"]
+fun Float32Array::new(size: Int): Float32Array {}
+
+@Extern [lib: "bindings", name: "js_float32_array_len"]
+fun Float32Array.get_len(): Int {}
+
+@Extern [lib: "bindings", name: "js_float32_array_get"]
+fun Float32Array.get(index: Int): Float {}
+
+@Extern [lib: "bindings", name: "js_float32_array_set"]
+fun Float32Array.set(index: Int, value: Float) {}
+
+fun Float32Array::from(values: List<Float>): Float32Array {
+    let array = Float32Array::new(values.len)
+    let i = 0
+    while i < values.len {
+        array.set(i, values[i]!!)
+        i += 1
+    }
+    return array
+}
+
+// Int
+struct Int32Array { ptr: Int }
+
+@Extern [lib: "bindings", name: "js_int32_array_new"]
+fun Int32Array::new(size: Int): Int32Array {}
+
+@Extern [lib: "bindings", name: "js_int32_array_len"]
+fun Int32Array.get_len(): Int {}
+
+@Extern [lib: "bindings", name: "js_int32_array_get"]
+fun Int32Array.get(index: Int): Int {}
+
+@Extern [lib: "bindings", name: "js_int32_array_set"]
+fun Int32Array.set(index: Int, value: Int) {}
+
+fun Int32Array::from(values: List<Int>): Int32Array {
+    let array = Int32Array::new(values.len)
+    let i = 0
+    while i < values.len {
+        array.set(i, values[i]!!)
+        i += 1
+    }
+    return array
+}
+
+// Byte
+struct UInt8Array { ptr: Int }
+
+@Extern [lib: "bindings", name: "js_uint8_array_new"]
+fun UInt8Array::new(size: Int): UInt8Array {}
+
+@Extern [lib: "bindings", name: "js_uint8_array_len"]
+fun UInt8Array.get_len(): Int {}
+
+@Extern [lib: "bindings", name: "js_uint8_array_get"]
+fun UInt8Array.get(index: Int): Byte {}
+
+@Extern [lib: "bindings", name: "js_uint8_array_set"]
+fun UInt8Array.set(index: Int, value: Byte) {}
+
+fun UInt8Array::from(values: List<Byte>): UInt8Array {
+    let array = UInt8Array::new(values.len)
+    let i = 0
+    while i < values.len {
+        array.set(i, values[i]!!)
+        i += 1
+    }
+    return array
+}
+
+// Js values
+
+struct JsValue { ptr: Int }
+struct JsObject { ptr: Int }
+struct JsArray { ptr: Int }
+struct JsFunction { ptr: Int }
+
+// Object
+
+@Extern [lib: "bindings", name: "js_object_new"]
+fun JsObject::new(): JsObject {}
+
+@Extern [lib: "bindings", name: "js_object_from_entries"]
+fun JsObject::from_entries(entries: List<Pair<String, JsValue>>): JsObject {}
+
+@Extern [lib: "bindings", name: "js_object_set_property"]
+fun JsObject.set_property(name: String, value: JsValue) {}
+
+@Extern [lib: "bindings", name: "js_object_get_property"]
+fun JsObject.get_property(name: String): JsValue {}
+
+@Extern [lib: "bindings", name: "js_object_has_property"]
+fun JsObject.has_property(name: String): Boolean {}
+
+@Extern [lib: "bindings", name: "js_object_entries"]
+fun JsObject.get_entries(): List<Pair<String, JsValue>> {}
+
+@Extern [lib: "bindings", name: "js_object_as_value"]
+fun JsObject.as_value(): JsValue {}
+
+// Array
+
+@Extern [lib: "bindings", name: "js_array_new"]
+fun JsArray::new(): JsArray {}
+
+@Extern [lib: "bindings", name: "js_array_from_values"]
+fun JsArray::from(values: List<JsValue>): JsArray {}
+
+@Extern [lib: "bindings", name: "js_array_get_length"]
+fun JsArray.get_len(): Int {}
+
+@Extern [lib: "bindings", name: "js_array_get_value"]
+fun JsArray.get(index: Int): JsValue {}
+
+@Extern [lib: "bindings", name: "js_array_set_value"]
+fun JsArray.set(index: Int, value: JsValue) {}
+
+@Extern [lib: "bindings", name: "js_array_as_value"]
+fun JsArray.as_value(): JsValue {}
+
+// Value
+
+@Extern [lib: "bindings", name: "js_value_null_value"]
+fun JsValue::null_value(): JsValue {}
+
+@Extern [lib: "bindings", name: "js_value_undefined_value"]
+fun JsValue::undefined_value(): JsValue {}
+
+@Extern [lib: "bindings", name: "js_value_is_null"]
+fun JsValue.is_null(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_undefined"]
+fun JsValue.is_undefined(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_object"]
+fun JsValue.is_object(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_array"]
+fun JsValue.is_array(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_string"]
+fun JsValue.is_string(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_number"]
+fun JsValue.is_number(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_boolean"]
+fun JsValue.is_boolean(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_is_function"]
+fun JsValue.is_function(): Boolean {}
+
+@Extern [lib: "bindings", name: "js_value_as_object"]
+fun JsValue.as_object(): Optional<JsObject> {}
+
+@Extern [lib: "bindings", name: "js_value_as_array"]
+fun JsValue.as_array(): Optional<JsArray> {}
+
+@Extern [lib: "bindings", name: "js_value_as_string"]
+fun JsValue.as_string(): Optional<String> {}
+
+@Extern [lib: "bindings", name: "js_value_as_float"]
+fun JsValue.as_float(): Optional<Float> {}
+
+@Extern [lib: "bindings", name: "js_value_as_int"]
+fun JsValue.as_int(): Optional<Int> {}
+
+@Extern [lib: "bindings", name: "js_value_as_boolean"]
+fun JsValue.as_boolean(): Optional<Boolean> {}
+
+@Extern [lib: "bindings", name: "js_value_as_function"]
+fun JsValue.as_function(): Optional<JsFunction> {}
+
+// Function
+
+@Extern [lib: "bindings", name: "js_function_call"]
+fun JsFunction.call(this_arg: JsValue, args: List<JsValue>): JsValue {}

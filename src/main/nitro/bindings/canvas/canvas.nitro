@@ -1,6 +1,5 @@
 
 // Opaque Types (references to JS objects)
-struct HtmlCanvasElement { ptr: Int }
 struct Canvas { ptr: Int }
 struct CanvasImageSource { ptr: Int }
 struct ImageData { ptr: Int }
@@ -8,11 +7,15 @@ struct CanvasGradient { ptr: Int }
 struct TextMetrics { ptr: Int }
 
 // Context Management
+@Deprecated [
+    reason: "Use Dom API instead",
+    replacement: "Dom::get_document().get_element_by_id(@1).cast_to_canvas_element()"
+]
 @Extern [lib: "bindings", name: "canvas_get_canvas_element_by_id"]
 fun get_canvas_element_by_id(id: String): Optional<HtmlCanvasElement>
 
-@Extern [lib: "bindings", name: "canvas_get_context"]
-fun HtmlCanvasElement.get_context(context_type: String): Optional<Canvas>
+@Extern [lib: "bindings", name: "canvas_get_context_2d"]
+fun HtmlCanvasElement.get_context_2d(): Optional<Canvas>
 
 // Basic Properties
 @Extern [lib: "bindings", name: "canvas_set_width"]
