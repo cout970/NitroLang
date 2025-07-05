@@ -22,253 +22,457 @@ fun Performance::now_ns(): Long {}
 
 fun Performance::now(): Instant = Instant::from_nanoseconds(Performance::now_ns())
 
+// To get an access to a WebGL context for 2D and/or 3D graphics rendering, call getContext() on a <canvas> element, supplying "webgl" as the argument
 @Extern [lib: "bindings", name: "webgl_get_context_webgl"]
 fun HtmlCanvasElement.get_context_webgl(): Optional<WebGLRenderingContext>
 
+// A read-only back-reference to the HTMLCanvasElement. Might be null if it is not associated with a <canvas> element.
 @Extern [lib: "bindings", name: "webgl_get_canvas"]
 fun WebGLRenderingContext.get_canvas(): Optional<HtmlCanvasElement> {}
 
+// The read-only width of the current drawing buffer. Should match the width of the canvas element associated with this context.
 @Extern [lib: "bindings", name: "webgl_get_drawing_buffer_width"]
 fun WebGLRenderingContext.get_drawing_buffer_width(): Int {}
 
+// The read-only height of the current drawing buffer. Should match the height of the canvas element associated with this context.
 @Extern [lib: "bindings", name: "webgl_get_drawing_buffer_height"]
 fun WebGLRenderingContext.get_drawing_buffer_height(): Int {}
 
+// Returns a WebGLContextAttributes object that contains the actual context parameters. Might return null, if the context is lost.
 @Extern [lib: "bindings", name: "webgl_get_context_attributes"]
 fun WebGLRenderingContext.get_context_attributes(): Optional<WebGLContextAttributes> {}
 
+// Returns true if the context is lost, otherwise returns false.
 @Extern [lib: "bindings", name: "webgl_is_context_lost"]
 fun WebGLRenderingContext.is_context_lost(): Boolean {}
 
+// Defines the scissor box.
 @Extern [lib: "bindings", name: "webgl_scissor"]
 fun WebGLRenderingContext.scissor(x: Int, y: Int, width: Int, height: Int) {}
 
+// Sets the viewport.
 @Extern [lib: "bindings", name: "webgl_viewport"]
 fun WebGLRenderingContext.viewport(x: Int, y: Int, width: Int, height: Int) {}
 
+// Selects the active texture unit.
+@Extern [lib: "bindings", name: "webgl_active_texture"]
+fun WebGLRenderingContext.active_texture(texture: Int) {}
+
+// Sets the source and destination blending factors.
+@Extern [lib: "bindings", name: "webgl_blend_color"]
+fun WebGLRenderingContext.blend_color(red: Float, green: Float, blue: Float, alpha: Float) {}
+
+// Sets both the RGB blend equation and alpha blend equation to a single equation.
+@Extern [lib: "bindings", name: "webgl_blend_equation"]
+fun WebGLRenderingContext.blend_equation(mode: Int) {}
+
+// Sets the RGB blend equation and alpha blend equation separately.
+@Extern [lib: "bindings", name: "webgl_blend_equation_separate"]
+fun WebGLRenderingContext.blend_equation_separate(mode_rgb: Int, mode_alpha: Int) {}
+
+// Defines which function is used for blending pixel arithmetic.
+@Extern [lib: "bindings", name: "webgl_blend_func"]
+fun WebGLRenderingContext.blend_func(sfactor: Int, dfactor: Int) {}
+
+// Defines which function is used for blending pixel arithmetic for RGB and alpha components separately.
+@Extern [lib: "bindings", name: "webgl_blend_func_separate"]
+fun WebGLRenderingContext.blend_func_separate(src_rgb: Int, dst_rgb: Int, src_alpha: Int, dst_alpha: Int) {}
+
+// Specifies the color values used when clearing color buffers.
 @Extern [lib: "bindings", name: "webgl_clear_color"]
 fun WebGLRenderingContext.clear_color(red: Float, green: Float, blue: Float, alpha: Float) {}
 
+// Specifies the depth value used when clearing the depth buffer.
+@Extern [lib: "bindings", name: "webgl_clear_depth"]
+fun WebGLRenderingContext.clear_depth(depth: Float) {}
+
+// Specifies the stencil value used when clearing the stencil buffer.
+@Extern [lib: "bindings", name: "webgl_clear_stencil"]
+fun WebGLRenderingContext.clear_stencil(s: Int) {}
+
+// Sets which color components to enable or to disable when drawing or rendering to a WebGLFramebuffer.
+@Extern [lib: "bindings", name: "webgl_color_mask"]
+fun WebGLRenderingContext.color_mask(red: Boolean, green: Boolean, blue: Boolean, alpha: Boolean) {}
+
+// Specifies whether or not front- and/or back-facing polygons can be culled.
+@Extern [lib: "bindings", name: "webgl_cull_face"]
+fun WebGLRenderingContext.cull_face(mode: Int) {}
+
+// Specifies a function that compares incoming pixel depth to the current depth buffer value.
+@Extern [lib: "bindings", name: "webgl_depth_func"]
+fun WebGLRenderingContext.depth_func(func: Int) {}
+
+// Sets whether writing into the depth buffer is enabled or disabled.
+@Extern [lib: "bindings", name: "webgl_depth_mask"]
+fun WebGLRenderingContext.depth_mask(flag: Boolean) {}
+
+// Specifies the depth range mapping from normalized device coordinates to window or viewport coordinates.
+@Extern [lib: "bindings", name: "webgl_depth_range"]
+fun WebGLRenderingContext.depth_range(z_near: Float, z_far: Float) {}
+
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_int"]
 fun WebGLRenderingContext.get_parameter_as_int(parameter_constant: Int): Optional<Int> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_float"]
 fun WebGLRenderingContext.get_parameter_as_float(parameter_constant: Int): Optional<Float> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_boolean"]
 fun WebGLRenderingContext.get_parameter_as_boolean(parameter_constant: Int): Optional<Boolean> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_string"]
 fun WebGLRenderingContext.get_parameter_as_string(parameter_constant: Int): Optional<String> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_float_array"]
 fun WebGLRenderingContext.get_parameter_as_float_array(parameter_constant: Int): Optional<Float32Array> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_int_array"]
 fun WebGLRenderingContext.get_parameter_as_int_array(parameter_constant: Int): Optional<Int32Array> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_program"]
 fun WebGLRenderingContext.get_parameter_as_program(parameter_constant: Int): Optional<WebGLProgram> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_buffer"]
 fun WebGLRenderingContext.get_parameter_as_buffer(parameter_constant: Int): Optional<WebGLBuffer> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_framebuffer"]
 fun WebGLRenderingContext.get_parameter_as_framebuffer(parameter_constant: Int): Optional<WebGLFramebuffer> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_renderbuffer"]
 fun WebGLRenderingContext.get_parameter_as_renderbuffer(parameter_constant: Int): Optional<WebGLRenderbuffer> {}
 
+// Returns a value for the passed parameter name.
 @Extern [lib: "bindings", name: "webgl_get_parameter_as_texture"]
 fun WebGLRenderingContext.get_parameter_as_texture(parameter_constant: Int): Optional<WebGLTexture> {}
 
+// Tests whether a specific WebGL capability is enabled or not for this context.
 @Extern [lib: "bindings", name: "webgl_is_enabled"]
 fun WebGLRenderingContext.is_enabled(capability_constant: Int): Boolean {}
 
+// Enables specific WebGL capabilities for this context.
 @Extern [lib: "bindings", name: "webgl_enable"]
 fun WebGLRenderingContext.enable(capability_constant: Int) {}
 
+// Disables specific WebGL capabilities for this context.
 @Extern [lib: "bindings", name: "webgl_disable"]
 fun WebGLRenderingContext.disable(capability_constant: Int) {}
 
+// Returns error information.
 @Extern [lib: "bindings", name: "webgl_get_error"]
 fun WebGLRenderingContext.get_error(): Int {}
 
+// Specifies hints for certain behaviors. The interpretation of these hints depend on the implementation.
 @Extern [lib: "bindings", name: "webgl_hint"]
 fun WebGLRenderingContext.hint(target: Int, mode: Int) {}
 
+// Specifies whether polygons are front- or back-facing by setting a winding orientation.
 @Extern [lib: "bindings", name: "webgl_front_face"]
 fun WebGLRenderingContext.front_face(mode: Int) {}
 
+// Sets the line width of rasterized lines.
 @Extern [lib: "bindings", name: "webgl_line_width"]
 fun WebGLRenderingContext.line_width(width: Float) {}
 
+// Specifies the pixel storage modes.
+@Extern [lib: "bindings", name: "webgl_pixel_storei"]
+fun WebGLRenderingContext.pixel_storei(pname: Int, param: Int) {}
+
+// Specifies the scale factors and units to calculate depth values.
+@Extern [lib: "bindings", name: "webgl_polygon_offset"]
+fun WebGLRenderingContext.polygon_offset(factor: Float, units: Float) {}
+
+// Specifies multi-sample coverage parameters for anti-aliasing effects.
+@Extern [lib: "bindings", name: "webgl_sample_coverage"]
+fun WebGLRenderingContext.sample_coverage(value: Float, invert: Boolean) {}
+
+// Sets the both front and back function and reference value for stencil testing.
+@Extern [lib: "bindings", name: "webgl_stencil_func"]
+fun WebGLRenderingContext.stencil_func(func: Int, ref_value: Int, mask: Int) {}
+
+// Sets the front and/or back function and reference value for stencil testing.
+@Extern [lib: "bindings", name: "webgl_stencil_func_separate"]
+fun WebGLRenderingContext.stencil_func_separate(face: Int, func: Int, ref_value: Int, mask: Int) {}
+
+// Controls enabling and disabling of both the front and back writing of individual bits in the stencil planes.
+@Extern [lib: "bindings", name: "webgl_stencil_mask"]
+fun WebGLRenderingContext.stencil_mask(mask: Int) {}
+
+// Controls enabling and disabling of front and/or back writing of individual bits in the stencil planes.
+@Extern [lib: "bindings", name: "webgl_stencil_mask_separate"]
+fun WebGLRenderingContext.stencil_mask_separate(face: Int, mask: Int) {}
+
+// Sets both the front and back-facing stencil test actions.
+@Extern [lib: "bindings", name: "webgl_stencil_op"]
+fun WebGLRenderingContext.stencil_op(fail: Int, zfail: Int, zpass: Int) {}
+
+// Sets the front and/or back-facing stencil test actions.
+@Extern [lib: "bindings", name: "webgl_stencil_op_separate"]
+fun WebGLRenderingContext.stencil_op_separate(face: Int, fail: Int, zfail: Int, zpass: Int) {}
+
 // Buffers
 
+// Creates a WebGLBuffer object.
 @Extern [lib: "bindings", name: "webgl_create_buffer"]
 fun WebGLRenderingContext.create_buffer(): Optional<WebGLBuffer> {}
 
+// Deletes a WebGLBuffer object.
 @Extern [lib: "bindings", name: "webgl_delete_buffer"]
 fun WebGLRenderingContext.delete_buffer(buffer: WebGLBuffer) {}
 
+// Binds a WebGLBuffer object to a given target.
 @Extern [lib: "bindings", name: "webgl_bind_buffer"]
 fun WebGLRenderingContext.bind_buffer(target: Int, buffer: Optional<WebGLBuffer>) {}
 
+// Updates buffer data.
 @Extern [lib: "bindings", name: "webgl_buffer_data_float"]
 fun WebGLRenderingContext.buffer_data_float(target: Int, data: Float32Array, usage: Int) {}
 
+// Updates buffer data.
 @Extern [lib: "bindings", name: "webgl_buffer_data_int"]
 fun WebGLRenderingContext.buffer_data_int(target: Int, data: Int32Array, usage: Int) {}
 
+// Updates buffer data starting at a passed offset.
 @Extern [lib: "bindings", name: "webgl_buffer_sub_data_float"]
 fun WebGLRenderingContext.buffer_sub_data_float(target: Int, offset: Int, data: Optional<Float32Array>) {}
 
+// Updates buffer data starting at a passed offset.
 @Extern [lib: "bindings", name: "webgl_buffer_sub_data_int"]
 fun WebGLRenderingContext.buffer_sub_data_int(target: Int, offset: Int, data: Optional<Int32Array>) {}
 
+// Returns information about the buffer.
 @Extern [lib: "bindings", name: "webgl_get_buffer_parameter_as_int"]
 fun WebGLRenderingContext.get_buffer_parameter_as_int(target: Int, parameter_constant: Int): Optional<Int> {}
 
+// Returns a Boolean indicating if the passed buffer is valid.
 @Extern [lib: "bindings", name: "webgl_is_buffer"]
 fun WebGLRenderingContext.is_buffer(buffer: WebGLBuffer): Boolean {}
 
 // Framebuffer
 
+// Binds a WebGLFrameBuffer object to a given target.
 @Extern [lib: "bindings", name: "webgl_bind_framebuffer"]
 fun WebGLRenderingContext.bind_framebuffer(target: Int, framebuffer: Optional<WebGLFramebuffer>) {}
 
+// Returns the status of the framebuffer.
 @Extern [lib: "bindings", name: "webgl_check_framebuffer_status"]
 fun WebGLRenderingContext.check_framebuffer_status(target: Int): Int {}
 
+// Creates a WebGLFrameBuffer object.
 @Extern [lib: "bindings", name: "webgl_create_framebuffer"]
 fun WebGLRenderingContext.create_framebuffer(): Optional<WebGLFramebuffer> {}
 
+// Deletes a WebGLFrameBuffer object.
 @Extern [lib: "bindings", name: "webgl_delete_framebuffer"]
 fun WebGLRenderingContext.delete_framebuffer(framebuffer: WebGLFramebuffer) {}
 
+// Attaches a WebGLRenderingBuffer object to a WebGLFrameBuffer object.
 @Extern [lib: "bindings", name: "webgl_framebuffer_renderbuffer"]
 fun WebGLRenderingContext.framebuffer_renderbuffer(target: Int, attachment: Int, renderbuffer_target: Int, renderbuffer: Optional<WebGLRenderbuffer>) {}
 
+// Attaches a textures image to a WebGLFrameBuffer object.
 @Extern [lib: "bindings", name: "webgl_framebuffer_texture_2d"]
 fun WebGLRenderingContext.framebuffer_texture_2d(target: Int, attachment: Int, textarget: Int, texture: Optional<WebGLTexture>, level: Int) {}
 
+// Returns information about the framebuffer.
 @Extern [lib: "bindings", name: "webgl_get_framebuffer_attachment_parameter"]
 fun WebGLRenderingContext.get_framebuffer_attachment_parameter(target: Int, attachment: Int, parameter_constant: Int): Optional<Int> {}
 
+// Returns a Boolean indicating if the passed WebGLFrameBuffer object is valid.
 @Extern [lib: "bindings", name: "webgl_is_framebuffer"]
 fun WebGLRenderingContext.is_framebuffer(framebuffer: WebGLFramebuffer): Boolean {}
 
+// Reads a block of pixels from the WebGLFrameBuffer.
 @Extern [lib: "bindings", name: "webgl_read_pixels"]
 fun WebGLRenderingContext.read_pixels(x: Int, y: Int, width: Int, height: Int, format: Int, type_constant: Int, pixels: Optional<UInt8Array>) {}
 
 // Renderbuffers
 
+// Binds a WebGLRenderBuffer object to a given target.
 @Extern [lib: "bindings", name: "webgl_bind_renderbuffer"]
 fun WebGLRenderingContext.bind_renderbuffer(target: Int, renderbuffer: Optional<WebGLRenderbuffer>) {}
 
+// Creates a WebGLRenderBuffer object.
 @Extern [lib: "bindings", name: "webgl_create_renderbuffer"]
 fun WebGLRenderingContext.create_renderbuffer(): Optional<WebGLRenderbuffer> {}
 
+// Deletes a WebGLRenderBuffer object.
 @Extern [lib: "bindings", name: "webgl_delete_renderbuffer"]
 fun WebGLRenderingContext.delete_renderbuffer(renderbuffer: WebGLRenderbuffer) {}
 
+// Returns information about the renderbuffer.
 @Extern [lib: "bindings", name: "webgl_get_renderbuffer_parameter_as_int"]
 fun WebGLRenderingContext.get_renderbuffer_parameter_as_int(target: Int, parameter_constant: Int): Optional<Int> {}
 
+// Returns a Boolean indicating if the passed WebGLRenderingBuffer is valid.
 @Extern [lib: "bindings", name: "webgl_is_renderbuffer"]
 fun WebGLRenderingContext.is_renderbuffer(renderbuffer: WebGLRenderbuffer): Boolean {}
 
+// Creates a renderbuffer data store.
 @Extern [lib: "bindings", name: "webgl_renderbuffer_storage"]
 fun WebGLRenderingContext.renderbuffer_storage(target: Int, internal_format: Int, width: Int, height: Int) {}
 
 // Textures
 
+// Binds a WebGLTexture object to a given target.
 @Extern [lib: "bindings", name: "webgl_bind_texture"]
 fun WebGLRenderingContext.bind_texture(target: Int, texture: Optional<WebGLTexture>) {}
 
+// Creates a WebGLTexture object.
 @Extern [lib: "bindings", name: "webgl_create_texture"]
 fun WebGLRenderingContext.create_texture(): Optional<WebGLTexture> {}
 
+// Deletes a WebGLTexture object.
 @Extern [lib: "bindings", name: "webgl_delete_texture"]
 fun WebGLRenderingContext.delete_texture(texture: WebGLTexture) {}
 
+// Specifies a 2D texture image.
 @Extern [lib: "bindings", name: "webgl_tex_image_2d"]
 fun WebGLRenderingContext.tex_image_2d(target: Int, level: Int, internal_format: Int, width: Int, height: Int, border: Int, format: Int, type_constant: Int, pixels: Optional<UInt8Array>) {}
 
+// Updates a sub-rectangle of the current WebGLTexture.
 @Extern [lib: "bindings", name: "webgl_tex_sub_image_2d"]
 fun WebGLRenderingContext.tex_sub_image_2d(target: Int, level: Int, x_offset: Int, y_offset: Int, width: Int, height: Int, format: Int, type_constant: Int, pixels: Optional<UInt8Array>) {}
 
+// Sets texture parameters.
 @Extern [lib: "bindings", name: "webgl_tex_parameterf"]
 fun WebGLRenderingContext.tex_parameter_float(target: Int, pname: Int, param: Float) {}
 
+// Sets texture parameters.
 @Extern [lib: "bindings", name: "webgl_tex_parameteri"]
 fun WebGLRenderingContext.tex_parameter_int(target: Int, pname: Int, param: Int) {}
 
+// Specifies a 2D texture image in a compressed format.
+@Extern [lib: "bindings", name: "webgl_compressed_tex_image_2d"]
+fun WebGLRenderingContext.compressed_tex_image_2d(target: Int, level: Int, internal_format: Int, width: Int, height: Int, border: Int, data: UInt8Array) {}
+
+// Specifies a 2D texture sub-image in a compressed format.
+@Extern [lib: "bindings", name: "webgl_compressed_tex_sub_image_2d"]
+fun WebGLRenderingContext.compressed_tex_sub_image_2d(target: Int, level: Int, x_offset: Int, y_offset: Int, width: Int, height: Int, format: Int, data: UInt8Array) {}
+
+// Copies a 2D texture image.
+@Extern [lib: "bindings", name: "webgl_copy_tex_image_2d"]
+fun WebGLRenderingContext.copy_tex_image_2d(target: Int, level: Int, internal_format: Int, x: Int, y: Int, width: Int, height: Int, border: Int) {}
+
+// Copies a 2D texture sub-image.
+@Extern [lib: "bindings", name: "webgl_copy_tex_sub_image_2d"]
+fun WebGLRenderingContext.copy_tex_sub_image_2d(target: Int, level: Int, x_offset: Int, y_offset: Int, x: Int, y: Int, width: Int, height: Int) {}
+
+// Generates a set of mipmaps for a WebGLTexture object.
+@Extern [lib: "bindings", name: "webgl_generate_mipmap"]
+fun WebGLRenderingContext.generate_mipmap(target: Int) {}
+
+// Returns information about the texture.
+@Extern [lib: "bindings", name: "webgl_get_tex_parameter_as_int"]
+fun WebGLRenderingContext.get_tex_parameter_as_int(target: Int, pname: Int): Optional<Int> {}
+
+// Returns information about the texture.
+@Extern [lib: "bindings", name: "webgl_get_tex_parameter_as_float"]
+fun WebGLRenderingContext.get_tex_parameter_as_float(target: Int, pname: Int): Optional<Float> {}
+
+// Returns a Boolean indicating if the passed WebGLTexture is valid.
+@Extern [lib: "bindings", name: "webgl_is_texture"]
+fun WebGLRenderingContext.is_texture(texture: WebGLTexture): Boolean {}
+
 // Programs and Shaders
 
+// Creates a WebGLProgram.
 @Extern [lib: "bindings", name: "webgl_create_program"]
 fun WebGLRenderingContext.create_program(): Optional<WebGLProgram> {}
 
+// Deletes a WebGLProgram.
 @Extern [lib: "bindings", name: "webgl_delete_program"]
 fun WebGLRenderingContext.delete_program(program: WebGLProgram) {}
 
+// Uses the specified WebGLProgram as part the current rendering state.
 @Extern [lib: "bindings", name: "webgl_use_program"]
 fun WebGLRenderingContext.use_program(program: Optional<WebGLProgram>) {}
 
+// Links the passed WebGLProgram object.
 @Extern [lib: "bindings", name: "webgl_link_program"]
 fun WebGLRenderingContext.link_program(program: WebGLProgram) {}
 
+// Returns information about the program.
 @Extern [lib: "bindings", name: "webgl_get_program_parameter_as_int"]
 fun WebGLRenderingContext.get_program_parameter_as_int(program: WebGLProgram, parameter_constant: Int): Optional<Int> {}
 
+// Returns information about the program.
 @Extern [lib: "bindings", name: "webgl_get_program_parameter_as_boolean"]
 fun WebGLRenderingContext.get_program_parameter_as_boolean(program: WebGLProgram, parameter_constant: Int): Optional<Boolean> {}
 
+// Returns the information log for a WebGLProgram object.
 @Extern [lib: "bindings", name: "webgl_get_program_info_log"]
 fun WebGLRenderingContext.get_program_info_log(program: WebGLProgram): String {}
 
+// Returns a Boolean indicating if the passed WebGLProgram is valid.
 @Extern [lib: "bindings", name: "webgl_is_program"]
 fun WebGLRenderingContext.is_program(program: WebGLProgram): Boolean {}
 
+// Validates a WebGLProgram.
+@Extern [lib: "bindings", name: "webgl_validate_program"]
+fun WebGLRenderingContext.validate_program(program: WebGLProgram) {}
+
+// Binds a generic vertex index to a named attribute variable.
 @Extern [lib: "bindings", name: "webgl_bind_attrib_location"]
 fun WebGLRenderingContext.bind_attrib_location(program: WebGLProgram, index: Int, name: String) {}
 
+// Creates a WebGLShader.
 @Extern [lib: "bindings", name: "webgl_create_shader"]
 fun WebGLRenderingContext.create_shader(shader_type: Int): Optional<WebGLShader> {}
 
+// Deletes a WebGLShader.
 @Extern [lib: "bindings", name: "webgl_delete_shader"]
 fun WebGLRenderingContext.delete_shader(shader: WebGLShader) {}
 
+// Attaches a WebGLShader to a WebGLProgram.
 @Extern [lib: "bindings", name: "webgl_attach_shader"]
 fun WebGLRenderingContext.attach_shader(program: WebGLProgram, shader: WebGLShader) {}
 
+// Detaches a WebGLShader.
 @Extern [lib: "bindings", name: "webgl_detach_shader"]
 fun WebGLRenderingContext.detach_shader(program: WebGLProgram, shader: WebGLShader) {}
 
+// Compiles a WebGLShader.
 @Extern [lib: "bindings", name: "webgl_compile_shader"]
 fun WebGLRenderingContext.compile_shader(shader: WebGLShader) {}
 
+// Returns a list of WebGLShader objects attached to a WebGLProgram.
 @Extern [lib: "bindings", name: "webgl_get_attached_shaders"]
 fun WebGLRenderingContext.get_attached_shaders(program: WebGLProgram): Array<WebGLShader>
 
+// Returns information about the shader.
 @Extern [lib: "bindings", name: "webgl_get_shader_parameter_as_int"]
 fun WebGLRenderingContext.get_shader_parameter_as_int(shader: WebGLShader, parameter_constant: Int): Optional<Int> {}
 
+// Returns information about the shader.
 @Extern [lib: "bindings", name: "webgl_get_shader_parameter_as_boolean"]
 fun WebGLRenderingContext.get_shader_parameter_as_boolean(shader: WebGLShader, parameter_constant: Int): Optional<Boolean> {}
 
+// Returns the information log for a WebGLShader object.
 @Extern [lib: "bindings", name: "webgl_get_shader_info_log"]
 fun WebGLRenderingContext.get_shader_info_log(shader: WebGLShader): String {}
 
+// Returns the source code of a WebGLShader as a string.
 @Extern [lib: "bindings", name: "webgl_get_shader_source"]
 fun WebGLRenderingContext.get_shader_source(shader: WebGLShader): String {}
 
+// Sets the source code in a WebGLShader.
 @Extern [lib: "bindings", name: "webgl_shader_source"]
 fun WebGLRenderingContext.shader_source(shader: WebGLShader, source: String) {}
 
+// Returns a Boolean indicating if the passed WebGLShader is valid.
 @Extern [lib: "bindings", name: "webgl_is_shader"]
 fun WebGLRenderingContext.is_shader(shader: WebGLShader): Boolean {}
 
+// Returns a WebGLShaderPrecisionFormat object describing the precision for the numeric format of the shader.
 @Extern [lib: "bindings", name: "webgl_get_shader_precision_format"]
 fun WebGLRenderingContext.get_shader_precision_format(shader_type: Int, precision_type: Int): Optional<WebGLShaderPrecisionFormat> {}
 
@@ -283,15 +487,19 @@ fun WebGLShaderPrecisionFormat.get_precision(): Int {}
 
 // Uniforms and Attributes
 
+// Enables a vertex attribute array at a given position.
 @Extern [lib: "bindings", name: "webgl_enable_vertex_attrib_array"]
 fun WebGLRenderingContext.enable_vertex_attrib_array(index: Int) {}
 
+// Disables a vertex attribute array at a given position.
 @Extern [lib: "bindings", name: "webgl_disable_vertex_attrib_array"]
 fun WebGLRenderingContext.disable_vertex_attrib_array(index: Int) {}
 
+// Returns information about an active attribute variable.
 @Extern [lib: "bindings", name: "webgl_get_active_attrib"]
 fun WebGLRenderingContext.get_active_attrib(program: WebGLProgram, index: Int): Optional<WebGLActiveInfo> {}
 
+// Returns information about an active uniform variable.
 @Extern [lib: "bindings", name: "webgl_get_active_uniform"]
 fun WebGLRenderingContext.get_active_uniform(program: WebGLProgram, index: Int): Optional<WebGLActiveInfo> {}
 
@@ -304,18 +512,23 @@ fun WebGLActiveInfo.get_size(): Int {}
 @Extern [lib: "bindings", name: "webgl_active_info_get_type"]
 fun WebGLActiveInfo.get_type(): Int {}
 
+// Returns the location of an attribute variable.
 @Extern [lib: "bindings", name: "webgl_get_attrib_location"]
 fun WebGLRenderingContext.get_attrib_location(program: WebGLProgram, name: String): Int {}
 
+// Returns the value of a uniform variable at a given location.
 @Extern [lib: "bindings", name: "webgl_get_uniform"]
 fun WebGLRenderingContext.get_uniform(program: WebGLProgram, location: Optional<WebGLUniformLocation>): Optional<JsValue> {}
 
+// Returns the location of a uniform variable.
 @Extern [lib: "bindings", name: "webgl_get_uniform_location"]
 fun WebGLRenderingContext.get_uniform_location(program: WebGLProgram, name: String): Optional<WebGLUniformLocation> {}
 
+// Returns information about a vertex attribute at a given position.
 @Extern [lib: "bindings", name: "webgl_get_vertex_attrib"]
 fun WebGLRenderingContext.get_vertex_attrib(index: Int, pname: Int): Optional<JsValue> {}
 
+// Returns the address of a given vertex attribute.
 @Extern [lib: "bindings", name: "webgl_get_vertex_attrib_offset"]
 fun WebGLRenderingContext.get_vertex_attrib_offset(index: Int, pname: Int): Int {}
 
@@ -323,129 +536,174 @@ fun WebGLRenderingContext.get_vertex_attrib_offset(index: Int, pname: Int): Int 
 
 // 1 parameters
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1f"]
 fun WebGLRenderingContext.uniform1f(location: Optional<WebGLUniformLocation>, x: Float) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1fv"]
 fun WebGLRenderingContext.uniform1fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1i"]
 fun WebGLRenderingContext.uniform1i(location: Optional<WebGLUniformLocation>, x: Int) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1iv"]
 fun WebGLRenderingContext.uniform1iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
 
 // 2 parameters
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2f"]
 fun WebGLRenderingContext.uniform2f(location: Optional<WebGLUniformLocation>, x: Float, y: Float) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2fv"]
 fun WebGLRenderingContext.uniform2fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2i"]
 fun WebGLRenderingContext.uniform2i(location: Optional<WebGLUniformLocation>, x: Int, y: Int) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2iv"]
 fun WebGLRenderingContext.uniform2iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
 
 // 3 parameters
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3f"]
 fun WebGLRenderingContext.uniform3f(location: Optional<WebGLUniformLocation>, x: Float, y: Float, z: Float) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3fv"]
 fun WebGLRenderingContext.uniform3fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3i"]
 fun WebGLRenderingContext.uniform3i(location: Optional<WebGLUniformLocation>, x: Int, y: Int, z: Int) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3iv"]
 fun WebGLRenderingContext.uniform3iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
 
 // 4 parameters
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4f"]
 fun WebGLRenderingContext.uniform4f(location: Optional<WebGLUniformLocation>, x: Float, y: Float, z: Float, w: Float) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4fv"]
 fun WebGLRenderingContext.uniform4fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4i"]
 fun WebGLRenderingContext.uniform4i(location: Optional<WebGLUniformLocation>, x: Int, y: Int, z: Int, w: Int) {}
 
+// Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4iv"]
 fun WebGLRenderingContext.uniform4iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
 
 // Set matrices
 
+// Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix2fv"]
 fun WebGLRenderingContext.uniform_matrix2fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
 
+// Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix3fv"]
 fun WebGLRenderingContext.uniform_matrix3fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
 
+// Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix4fv"]
 fun WebGLRenderingContext.uniform_matrix4fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
 
 // Vertex attributes
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_1f"]
 fun WebGLRenderingContext.vertex_attrib_1f(index: Int, x: Float) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_1fv"]
 fun WebGLRenderingContext.vertex_attrib_1fv(index: Int, values: Float32Array) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_2f"]
 fun WebGLRenderingContext.vertex_attrib_2f(index: Int, x: Float, y: Float) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_2fv"]
 fun WebGLRenderingContext.vertex_attrib_2fv(index: Int, values: Float32Array) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_3f"]
 fun WebGLRenderingContext.vertex_attrib_3f(index: Int, x: Float, y: Float, z: Float) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_3fv"]
 fun WebGLRenderingContext.vertex_attrib_3fv(index: Int, values: Float32Array) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_4f"]
 fun WebGLRenderingContext.vertex_attrib_4f(index: Int, x: Float, y: Float, z: Float, w: Float) {}
 
+// Specifies a value for a generic vertex attribute.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_4fv"]
 fun WebGLRenderingContext.vertex_attrib_4fv(index: Int, values: Float32Array) {}
 
+// Specifies the data formats and locations of vertex attributes in a vertex attributes array.
 @Extern [lib: "bindings", name: "webgl_vertex_attrib_pointer"]
 fun WebGLRenderingContext.vertex_attrib_pointer(index: Int, size: Int, type_constant: Int, normalized: Boolean, stride: Int, offset: Int) {}
 
 // Drawing buffers
 
+// Clears specified buffers to preset values.
 @Extern [lib: "bindings", name: "webgl_clear"]
 fun WebGLRenderingContext.clear(mask: Int) {}
 
+// Renders primitives from array data.
 @Extern [lib: "bindings", name: "webgl_draw_arrays"]
 fun WebGLRenderingContext.draw_arrays(mode: Int, first: Int, count: Int) {}
 
+// Renders primitives from element array data.
 @Extern [lib: "bindings", name: "webgl_draw_elements"]
 fun WebGLRenderingContext.draw_elements(mode: Int, count: Int, type_constant: Int, offset: Int) {}
 
+// Blocks execution until all previously called commands are finished.
 @Extern [lib: "bindings", name: "webgl_finish"]
 fun WebGLRenderingContext.finish() {}
 
+// Empties different buffer commands, causing all commands to be executed as quickly as possible.
 @Extern [lib: "bindings", name: "webgl_flush"]
 fun WebGLRenderingContext.flush() {}
 
 // Color spaces
 
+// Specifies the color space of the WebGL drawing buffer.
 @Extern [lib: "bindings", name: "webgl_get_drawing_buffer_color_space"]
 fun WebGLRenderingContext.get_drawing_buffer_color_space(): String {}
 
+// Specifies the color space of the WebGL drawing buffer.
 @Extern [lib: "bindings", name: "webgl_set_drawing_buffer_color_space"]
 fun WebGLRenderingContext.set_drawing_buffer_color_space(color_space: String) {}
 
+// Specifies the color space to convert to when importing textures.
+@Extern [lib: "bindings", name: "webgl_get_unpack_color_space"]
+fun WebGLRenderingContext.get_unpack_color_space(): String {}
+
+// Specifies the color space to convert to when importing textures.
+@Extern [lib: "bindings", name: "webgl_set_unpack_color_space"]
+fun WebGLRenderingContext.set_unpack_color_space(color_space: String) {}
+
 // Extensions
 
+// Returns an Array of strings containing all the supported WebGL extensions.
 @Extern [lib: "bindings", name: "webgl_get_supported_extensions"]
 fun WebGLRenderingContext.get_supported_extensions(): Array<String> {}
 
+// Returns an extension object.
 @Extern [lib: "bindings", name: "webgl_get_extension"]
 fun WebGLRenderingContext.get_extension(extension_name: String): Optional<JsObject> {}
