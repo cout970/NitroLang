@@ -6,10 +6,10 @@ WebAssembly module in the browser.
 
 ### Steps to run
 
-1. You need to compile the desired example with `./compile_for_browser.sh <program.nitro>`, for example:
+1. You need to compile the desired example with `./compile_for_browser_loop.sh <program.nitro>`, for example:
 
 ```bash
-./compile_for_browser.sh src/examples/html_canvas.nitro
+./compile_for_browser_loop.sh src/examples/html_canvas.nitro
 ```
 
 That will generate the file `out/program_wasm32-js.wasm` and watch for any changes in the source file to recompile as
