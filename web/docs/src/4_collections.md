@@ -1,172 +1,295 @@
 # Collections
 
+Nitro provides several built-in collection types for storing and organizing data. Each collection type is optimized for
+different use cases and access patterns.
+
 ## Lists
 
-Lists are ordered collections of items. They are created by enclosing the items in square brackets `[]`.
+Lists are ordered, mutable collections that can grow and shrink dynamically.
+
+### Creating Lists
 
 ```nitro
-let my_numbers = [1, 2, 3, 4, 5]
+// Empty list
+let empty_list = List::new<Int>()
+
+// List with initial values
+let numbers = [1, 2, 3, 4, 5]
+let fruits = ["apple", "banana", "cherry"]
+
+// Mixed types not allowed
+let mixed = [1, "hello"] // Compile error: Mismatched types Int and String
 ```
 
-Lists can be indexed using square brackets `[]`. Indexing starts at 0.
+### Accessing Elements
 
 ```nitro
-let first_number = my_numbers[0]!!
-let last_number = my_numbers[my_numbers.len - 1]!!
+let numbers = [10, 20, 30, 40, 50]
+
+// Safe indexing (returns Optional)
+let first: Optional<Int> = numbers[0]      // Some(10)
+let invalid: Optional<Int> = numbers[10]   // None
+
+// Unsafe indexing (crashes if out of bounds)
+let first_value = numbers[0]!!             // 10
+let last_value = numbers[numbers.len - 1]!! // 50
+
+// Convenience methods
+let first_safe = numbers.first()           // Optional<Int>
+let last_safe = numbers.last()             // Optional<Int>
 ```
 
-Notice the `!!` operator. List indexing returns an optional value, because the index might be out of bounds.
+### Modifying Lists
 
 ```nitro
-let maybe_or_maybe_not: Optional<Int> = my_numbers[10]
+let my_list = [1, 2, 3]
+
+// Add elements
+my_list[] = 4              // Append: [1, 2, 3, 4]
+my_list.add(5)             // Same as above: [1, 2, 3, 4, 5]
+my_list.insert(2, 0)       // Insert at index: [1, 2, 0, 3, 4, 5]
+
+// Modify elements
+my_list[1] = 10            // [0, 10, 2, 3, 4, 5]
+
+// Remove elements
+let removed = my_list.remove_at(1)!!  // Removes and returns 10
+let last = my_list.remove_last()!!    // Removes and returns last element (5)
+let first = my_list.remove_first()!!  // Removes and returns first element (0)
+my_list.clear()                       // Empty list: []
 ```
 
-The variable `maybe_or_maybe_not` will be `Optional::None` if the index is out of bounds.
-
-There are also methods to get the first and last elements of a list.
+### List Operations
 
 ```nitro
-let first_number = my_numbers.first()!!
-let last_number = my_numbers.last()!!
-```
+let numbers = [1, 2, 3, 4, 5]
 
-Alternatively, you can use the `get` function.
+// Check membership
+let contains_three = 3 in numbers      // true
+let not_contains_ten = 10 !in numbers  // true
 
-```nitro
-let maybe_or_maybe_not: Optional<Int> = my_numbers.get(10)
-```
+// Size and properties
+let size = numbers.len                 // 5
+let is_empty = numbers.is_empty()      // false
+let opposite = numbers.is_not_empty()  // true
 
-You can add a value to the end of a list using the `[]=` operator.
+let first_index = numbers.index_of(3)        // Some(2) (returns index of first occurrence)
+let last_index = numbers.last_index_of(4)    // Some(3) (returns index of last occurrence)
 
-```nitro
-my_numbers[] = 6
-```
-
-This is equivalent to the `add` method.
-
-```nitro
-my_numbers.add(6)
-```
-
-You can check if a value is inside a list using the `in` operator.
-
-```nitro
-// Will print "true"
-println(3 in my_numbers)
+// Iteration
+for number in numbers {
+    println(number)
+}
 ```
 
 ## Maps
 
-Maps are collections of key-value pairs. They are created by enclosing the pairs in `#[]`
+Maps store key-value pairs, providing fast lookups by key. All keys must be the same type, and all values must be the
+same type.
+
+### Creating Maps
 
 ```nitro
-let my_map = #[name: "John", surname: "Smith"]
+// Empty map
+let empty_map = Map::new<String, Int>()
+
+// Map with initial values
+let person = #[name: "John", surname: "Smith"]
+let scores = #["alice": 95, "bob": 87, "charlie": 92]
+
+// Type annotations when needed
+let config: Map<String, Int> = #["timeout": 30, "retries": 3]
 ```
 
-Maps are homogeneous, meaning that all keys and values must have the same type.
+### Accessing Values
 
 ```nitro
-// Will emit a compile-time error
-let my_map: Map<String, String> = #[name: "John", age: 42]
+let person = #[name: "John", age: "30", city: "New York"]
+
+// Safe access (returns Optional)
+let name: Optional<String> = person["name"]       // Some("John")
+let country: Optional<String> = person["country"] // None
+
+// Unsafe access (crashes if key doesn't exist)
+let name_direct = person["name"]!!              // "John"
+
+// Alternative access methods
+let has_age = "age" in person                   // true
 ```
 
-Maps can be indexed using square brackets `[]`.
+### Modifying Maps
 
 ```nitro
-let name = my_map["name"]!!
+let person = #[name: "John", age: "30"]
+
+// Add or update values
+person["city"] = "Boston"               // Add new key-value pair
+person["age"] = "31"                    // Update existing value
+person[] = Pair::of("country", "USA")   // Alternative way
+
+// Remove values
+let removed_age = person.remove("age")  // Returns Optional<String>
+person.clear()                          // Remove all entries
 ```
 
-Notice the `!!` operator. Map indexing also returns an optional value, because the key might not exist.
-
-You can set a value in a map using `[]`
+### Map Operations
 
 ```nitro
-my_map["name"] = "Alice"
+let scores = #["alice": 95, "bob": 87, "charlie": 92]
+
+// Size and properties
+let size = scores.len                    // 3
+let is_empty = scores.is_empty()         // false
+let is_not_empty = scores.is_not_empty() // true
+
+// Get all keys or values
+let players = scores.keys_to_list()              // List of keys
+let all_scores = scores.values_to_list()         // List of values
+let entries = scores.to_list()                   // List of key-value pairs
+
+// Check membership
+let has_alice = "alice" in scores        // true
+let no_david = "david" !in scores        // true
 ```
 
 ## Sets
 
-Sets are collections of unique items. They are created by enclosing the items in curly brackets `%[]`
+Sets store unique elements with no duplicates. They're ideal for membership testing and eliminating duplicates.
+
+### Creating Sets
 
 ```nitro
-let my_set = %["apple", "banana", "cherry"]
+// Empty set
+let empty_set = Set::new<Int>()
+
+// Set with initial values
+let fruits = %["apple", "banana", "cherry"]
+let numbers = %[1, 2, 3, 4, 5]
+
+// Type annotation when needed
+let unique_ids: Set<Int> = %[101, 102, 103]
 ```
 
-If you try to add a duplicate item to a set, it will be ignored.
+### Set Operations
 
 ```nitro
-my_set[] = "apple"
-// Will print %["apple", "banana", "cherry"]
-println(my_set)
+let fruits = %["apple", "banana"]
+
+// Add elements (duplicates ignored)
+fruits[] = "cherry"     // Add "cherry"
+fruits[] = "apple"      // Ignored (already exists)
+fruits.add("date")      // Desugared form
+
+// Check size
+let count = fruits.len                     // Number of unique elements
+
+// Check membership (very fast)
+let has_apple = "apple" in fruits          // true
+let no_grape = "grape" !in fruits          // true
+
+// Remove elements
+let removed = fruits.remove("banana")      // Returns bool
+fruits.clear()                             // Remove all elements
+
+// Convert to list
+let fruit_list = fruits.to_list()          // List of unique elements
 ```
 
-You can check if a value is inside a set using the `in` operator.
+### Set Mathematics
 
 ```nitro
-// Will print "true"
-println("apple" in my_set)
+let set_a = %[1, 2, 3, 4]
+let set_b = %[3, 4, 5, 6]
+
+// Union (all elements from both sets)
+let union = set_a.union(set_b)             // %[1, 2, 3, 4, 5, 6]
+
+// Intersection (common elements)
+let intersection = set_a.intersection(set_b) // %[3, 4]
+
+// Difference (elements in A but not in B)
+let difference = set_a.difference(set_b)   // %[1, 2]
 ```
 
-## Pair
+## Other Collections
 
-A pair is a tuple with two elements.
+### Pair
 
-```nitro
-let friends = Pair::of("Alice", "Bob")
-```
-
-You can access the elements of a pair using the `first` and `second` methods.
+Pairs store exactly two values, useful for returning multiple values or creating simple associations:
 
 ```nitro
-let first_friend = friends.first
-let second_friend = friends.second
-```
+// Creating pairs
+let coordinates = Pair::of(10, 20)
+let name_age = Pair::of("Alice", 25)
 
-Pairs are useful when you need to return two values from a function.
+// Accessing elements
+let x = coordinates.first    // 10
+let y = coordinates.second   // 20
 
-```nitro
-fun get_name_and_age(): Pair<String, Int> {
-    ret Pair::of("Alice", 42)
+// Functions returning pairs
+fun get_both_ends(numbers: List<Int>): Pair<Int, Int> {
+    let first = numbers.first()!!
+    let last = numbers.last()!!
+    return Pair::of(first, last)
 }
 ```
 
-## ArrayDeque
+### ArrayDeque
 
-An `ArrayDeque` is a double-ended queue. Acts as list, stack and queue at the same time.
+ArrayDeque is a resizable array implementation of a double-ended queue (deque) that provides efficient insertion and
+removal operations at both the front and back of the collection. This versatility allows ArrayDeque to function as both
+a Queue (FIFO - first in, first out) and a Stack (LIFO - last in, first out) data structure.
 
 ```nitro
 let deque = ArrayDeque::new()
 
-deque.add_first(1) // => [1]
-deque.add_first(2) // => [2, 1] 
-deque.add_last(3) // => [2, 1, 3]
-deque.add_last(4) // => [2, 1, 3, 4]
+// Add to both ends
+deque.add_first(2)     // [2]
+deque.add_first(1)     // [1, 2]
+deque.add_last(3)      // [1, 2, 3]
+deque.add_last(4)      // [1, 2, 3, 4]
 
-let first = deque.remove_first()!!
-// Will print "2"
-println(first)
-
-let last = deque.remove_last()!!
-// Will print "4"
-println(last)
-
-// Will print "[1, 3]"
-println(deque)
+// Remove from both ends
+let first = deque.remove_first()!!   // 1, deque = [2, 3, 4]
+let last = deque.remove_last()!!     // 4, deque = [2, 3]
 ```
 
-## Json
+### JSON Collections
 
-The `Json` type is a representation of a JSON object. You can use the `json!` keyword to create a value using the JSON
-syntax.
+Nitro provides built-in JSON support for working with dynamic data:
 
 ```nitro
-let my_json_value = json! {"name": "Alice", "age": 42}
-let my_json_array = json! ["apple", 42.5, false, null]
+// JSON objects and arrays
+let user_data: Json = json! {"name": "Alice", "age": 42, "active": true}
+let shopping_list: Json = json! ["apple", "banana", "cherry"]
+
+// Enhanced JSON syntax
+let computed_data = json! {
+    name: "Bob",             // Quotes optional for keys
+    age: (30 + 5),           // Expressions in parentheses
+    birth_year: (2024 - 35),
+    hobbies: ["reading", "coding"],
+}
+
+// Accessing JSON values
+let name = user_data["name"]?.as_string()!!
+let age = user_data["age"]?.as_int()!!
 ```
 
-It supports more syntax than the standard JSON notation, for example, you can omit the `"` around keys and evaluate
-expressions in parentheses.
+### Collection Conversion
 
 ```nitro
-let my_json_map = json! { name: "Alice", age: (34 + 43) }
+// Converting between collection types
+let list = [1, 2, 3, 2, 1]
+let unique_set = list.to_set()        // %[1, 2, 3]
+let back_to_list = unique_set.to_list() // [1, 2, 3] (order may vary)
+
+// List to map (with transformation)
+let names = ["alice", "bob", "charlie"]
+let name_lengths = names.map @{ name -> Pair::of(name, name.len) }.to_map()
+// Result: #["alice": 5, "bob": 3, "charlie": 7]
 ```
+
+## Other Collection Types
+
+Check the standard library at `src/main/nitro/core/collections` where all the collection types are defined.
