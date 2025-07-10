@@ -63,7 +63,7 @@ fun Parser.read_type_param_def(generics: NGenericParams): Parsed<Nothing> {
         def.bounds[] = NGenericBounds @[name: requited_tag]
 
         // End of the list
-        if lexer.current_token_kind != TokenKind::OR {
+        if lexer.current_token_kind != TokenKind::OR && lexer.current_token_kind != TokenKind::AND && lexer.current_token_kind != TokenKind::ADD {
             break
         }
 
