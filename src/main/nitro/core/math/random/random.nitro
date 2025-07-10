@@ -19,6 +19,11 @@ fun RngPcg32::new(): RngPcg32 {
     ret RngPcg32 @[seed: random_get_initial_seed()]
 }
 
+// Creates a new RngPcg32 with a specific seed
+fun RngPcg32::new(seed: Int): RngPcg32 {
+    ret RngPcg32 @[seed: seed]
+}
+
 // Generates a random integer in the range -2^31..2^31-1
 fun RngPcg32.next_int(): Int {
     let value = (seed * 1103515245 + 12345).bitwise_and(0x7FFFFFFF)

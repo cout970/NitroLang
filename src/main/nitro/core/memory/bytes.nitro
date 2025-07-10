@@ -29,6 +29,18 @@ fun ByteReader.seek(new_pos: Int) {
     pos = new_pos
 }
 
+// Add a single Byte to the buffer
+fun ByteWriter.add_byte(byte: Byte) {
+    bytes[] = byte
+}
+
+// Read a single Byte from the buffer
+fun ByteReader.read_byte(): Byte {
+    let byte = bytes[pos]!!
+    pos += 1
+    ret byte
+}
+
 // Add a boolean value as a single byte to the buffer
 fun ByteWriter.add_boolean(value: Boolean) {
     bytes[] = if value { 0x01.to_byte() } else { 0x00.to_byte() }

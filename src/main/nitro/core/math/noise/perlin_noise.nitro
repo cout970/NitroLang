@@ -1,0 +1,146 @@
+use math
+
+// Perlin noise implementation based on perlin by czinn
+// https://github.com/czinn/perlin/tree/master
+mod perlin_noise {
+
+    struct PerlinNoise {
+        seed: Int
+    }
+
+    fun PerlinNoise::new(seed: Int): PerlinNoise {
+        ret PerlinNoise @[seed]
+    }
+
+    fun PerlinNoise::new(): PerlinNoise {
+        ret PerlinNoise @[seed: RngPcg32::new().next_int()]
+    }
+
+    // Source of random noise
+    fun raw_noise(x: Int): Float {
+        x = (x << 13) ^ x
+        ret 1.0f - ((x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff).to_float() / 1073741824f
+    }
+
+    // Smooth interpolation between two values, uses smoothstep
+    fun smooth_lerp(x: Float, y: Float, s: Float): Float {
+        ret lerp(x, y, s * s * (3.0 - 2.0 * s))
+    }
+
+    // Generates 1D noise without smoothing
+    fun PerlinNoise.noise1d(x: Int, octave: Int): Float {
+        ret raw_noise(x * 1619 + octave * 3463 + seed * 13397)
+    }
+
+    // Generates 2D noise without smoothing
+    fun PerlinNoise.noise2d(x: Int, y: Int, octave: Int): Float {
+        return raw_noise(x * 1619 + y * 31337 + octave * 3463 + seed * 13397);
+    }
+
+    // Generates 3D noise without smoothing
+    fun PerlinNoise.noise3d(x: Int, y: Int, z: Int, octave: Int): Float {
+        return raw_noise(x * 1919 + y * 31337 + z * 7669 + octave * 3463 + seed * 13397);
+    }
+
+    // Smooth 1D noise, provides intermediary non-integer values
+    fun PerlinNoise.smooth_noise1d(x: Float, octave: Int): Float {
+        let x_int = floor(x).to_int()
+        let x_frac = x - x_int.to_float()
+        let s = noise1d(x_int, octave)
+        let t = noise1d(x_int + 1, octave)
+        ret smooth_lerp(s, t, x_frac)
+    }
+
+    // Smooth 2D noise, provides intermediary non-integer values
+    fun PerlinNoise.smooth_noise2d(x: Float, y: Float, octave: Int): Float {
+        let x_int = floor(x).to_int()
+        let y_int = floor(y).to_int()
+        let x_frac = x - x_int.to_float()
+        let y_frac = y - y_int.to_float()
+        let s = noise2d(x_int, y_int, octave)
+        let t = noise2d(x_int + 1, y_int, octave)
+        let u = noise2d(x_int, y_int + 1, octave)
+        let v = noise2d(x_int + 1, y_int + 1, octave)
+        let low = smooth_lerp(s, t, x_frac)
+        let high = smooth_lerp(u, v, x_frac)
+        ret smooth_lerp(low, high, y_frac)
+    }
+
+    // Smooth 3D noise, provides intermediary non-integer values
+    fun PerlinNoise.smooth_noise3d(x: Float, y: Float, z: Float, octave: Int): Float {
+        let x_int = floor(x).to_int()
+        let y_int = floor(y).to_int()
+        let z_int = floor(z).to_int()
+        let x_frac = x - x_int.to_float()
+        let y_frac = y - y_int.to_float()
+        let z_frac = z - z_int.to_float()
+        let s = noise3d(x_int, y_int, z_int, octave)
+        let t = noise3d(x_int + 1, y_int, z_int, octave)
+        let u = noise3d(x_int, y_int + 1, z_int, octave)
+        let v = noise3d(x_int + 1, y_int + 1, z_int, octave)
+        let w = noise3d(x_int, y_int, z_int + 1, octave)
+        let xw = noise3d(x_int + 1, y_int, z_int + 1, octave)
+        let yw = noise3d(x_int, y_int + 1, z_int + 1, octave)
+        let zw = noise3d(x_int + 1, y_int + 1, z_int + 1, octave)
+        let low = smooth_lerp(s, t, x_frac)
+        let high = smooth_lerp(u, v, x_frac)
+        let low2 = smooth_lerp(low, high, y_frac)
+        let high2 = smooth_lerp(w, xw, x_frac)
+        ret smooth_lerp(low2, high2, z_frac)
+    }
+
+    // Generate a 1D Perlin noise value, return values between -1.0 and 1.0
+    // @see generate2d for parameter explanations
+    fun PerlinNoise.generate1d(x: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise1d(x * s, it) * per
+            div += per
+        }
+
+        ret value / div
+    }
+
+    // Generate a 2D Perlin noise value, return values between -1.0 and 1.0
+    // Example parameters (octaves: 6, frequency: 32f, persistence: 0.5f, lacunarity: 2.0f)
+    // - octaves: Number of layers of noise to combine, higher values add more detail
+    // - frequency: Controls the scale of the noise, lower values zoom in more
+    // - persistence: Controls the amplitude of each octave, higher values add more weight to lower frequencies
+    // - lacunarity: Controls the frequency increase between octaves, higher values add more detail faster
+    fun PerlinNoise.generate2d(x: Float, y: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves  {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise2d(x * s, y * s, it) * per
+            div += per
+        }
+
+        ret value / div
+    }
+
+    // Generate a 3D Perlin noise value, return values between -1.0 and 1.0
+    // @see generate2d for parameter explanations
+    fun PerlinNoise.generate3d(x: Float, y: Float, z: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise3d(x * s, y * s, z * s, it) * per
+            div += per
+        }
+
+        ret value / div
+    }
+}

@@ -1,0 +1,365 @@
+use math
+
+// Simplex noise implementation based on comparenoise.c by jessevanherk
+// https://gist.github.com/jessevanherk/e5c2faa9d4d6a594a69f
+mod simplex_noise {
+
+    let grad3: List<List<Int>> = [
+        [1, 1, 0],
+        [-1, 1, 0],
+        [1, -1, 0],
+        [-1, -1, 0],
+        [1, 0, 1],
+        [-1, 0, 1],
+        [1, 0, -1],
+        [-1, 0, -1],
+        [0, 1, 1],
+        [0, -1, 1],
+        [0, 1, -1],
+        [0, -1, -1],
+    ]
+
+    let f2: Float = 0.5f * (sqrt3 - 1.0f)
+    let g2: Float = (3.0f - sqrt3) / 6.0f
+    let f3: Float = 1.0f / 3.0f
+    let g3: Float = 1.0f / 6.0f
+
+    struct SimplexNoise {
+        perm: List<Int>,
+    }
+
+    fun SimplexNoise::new(seed: Int): SimplexNoise {
+        let rng = RngPcg32::new(seed)
+        let perm = List<Int>::new(512)
+        repeat 512 {
+            perm[] = it
+        }
+
+        repeat 256 {
+            let j = rng.next_int_in(0, 256 -  it) + it
+            let k = perm[j]!!
+            perm[j] = perm[it]!!
+            perm[it] = k
+            perm[ it + 256] = perm[it]!!
+        }
+
+        ret SimplexNoise @[perm]
+    }
+
+    fun SimplexNoise::new(): SimplexNoise {
+        ret SimplexNoise::new(RngPcg32::new().next_int())
+    }
+
+    fun dot1d(grad: List<Int>, x: Float): Float {
+        ret grad[0]!!.to_float() * x
+    }
+
+    fun dot2d(grad: List<Int>, x: Float, y: Float): Float {
+        ret grad[0]!!.to_float() * x + grad[1]!!.to_float() * y
+    }
+
+    fun dot3d(grad: List<Int>, x: Float, y: Float, z: Float): Float {
+        ret grad[0]!!.to_float() * x + grad[1]!!.to_float() * y + grad[2]!!.to_float() * z
+    }
+
+    fun SimplexNoise.smooth_noise1d(x: Float): Float {
+        // From https://github.com/WardBenjamin/SimplexNoise/blob/master/SimplexNoise/Noise.cs#L139
+        let i0 = x.floor().to_int()
+        let i1 = i0 + 1
+        let x0 = x - i0.to_float()
+        let x1 = x0 - 1.0f
+
+        let t0 = 1.0f - x0 * x0
+        t0 *= t0
+        let n0 = t0 * t0 * dot1d(grad3[perm[i0 & 255]!! % 12]!!, x0)
+
+        let t1 = 1.0f - x1 * x1
+        t1 *= t1
+        let n1 = t1 * t1 * dot1d(grad3[perm[i1 & 255]!! % 12]!!, x1)
+
+        // The maximum value of this noise is 8*(3/4)^4 = 2.53125
+        // A factor of 0.395 scales to fit exactly within [-1,1]
+        ret 0.395f * (n0 + n1)
+    }
+
+    // Generates 2D noise
+    fun SimplexNoise.smooth_noise2d(x: Float, y: Float): Float {
+        /* Skew the input space to determine which simplex cell we're in */
+        let s = (x + y) * f2
+        /* Hairy factor for 2D */
+        let i = (x + s).floor().to_int()
+        let j = (y + s).floor().to_int()
+        /* Unskew the cell origin back to (x,y) space */
+        let t = (i + j).to_float() * g2
+        let x0m = i.to_float() - t
+        let y0m = j.to_float() - t
+        let x0 = x - x0m
+        let y0 = y - y0m
+        /* For the 2D case, the simplex shape is an equilateral triangle.*/
+        /* Determine which simplex we are in. */
+        let i1: Int
+        let j1: Int
+        /* A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and */
+        /* a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where */
+        /* c = (3-sqrt(3))/6 */
+        if (x0 > y0) {
+            /* Offsets for second (middle) corner of simplex in (i,j) coords */
+            i1 = 1
+            j1 = 0
+        } else {
+            /* upper triangle, YX order: (0,0)->(0,1)->(1,1) */
+            i1 = 0
+            j1 = 1
+        }
+        /* Offsets for middle corner in (x,y) unskewed coords */
+        let x1 = x0 - i1.to_float() + g2
+        let y1 = y0 - j1.to_float() + g2
+        /* Offsets for last corner in (x,y) unskewed coords */
+        let x2 = x0 - 1.0f + 2.0f * g2
+        let y2 = y0 - 1.0f + 2.0f * g2
+        /* Work out the hashed gradient indices of the three simplex corners */
+        let ii = i & 255
+        let jj = j & 255
+        let k1 = perm[ii + perm[jj]!!]!! % 12
+        let l1 = perm[ii + i1 + perm[jj + j1]!!]!! % 12
+        let i2 = perm[ii + 1 + perm[jj + 1]!!]!! % 12
+        let t0 = 0.5f - x0 * x0 - y0 * y0
+        /* Calculate the contribution from the three corners */
+        let n0: Float
+        if (t0 < 0.0f) {
+            n0 = 0.0f
+        } else {
+            t0 *= t0
+            n0 = t0 * t0 * dot2d(grad3[k1]!!, x0, y0)
+        }
+        let t1 = 0.5f - x1 * x1 - y1 * y1
+
+        let n1: Float
+        if (t1 < 0.0f) {
+            n1 = 0.0f
+        } else {
+            t1 *= t1
+            n1 = t1 * t1 * dot2d(grad3[l1]!!, x1, y1)
+        }
+        let t2 = 0.5f - x2 * x2 - y2 * y2
+
+        let n2: Float
+        if (t2 < 0.0f) {
+            n2 = 0.0f
+        } else {
+            t2 *= t2
+            n2 = t2 * t2 * dot2d(grad3[i2]!!, x2, y2)
+        }
+
+        /* Add contributions from each corner to get the final noise value. */
+        /* The result is scaled to return values in the interval [-1,1]. */
+        return 70.0f * (n0 + n1 + n2)
+    }
+
+    // Generates 3D noise
+    fun SimplexNoise.smooth_noise3d(x: Float, y: Float, z: Float): Float {
+        /* Noise contributions from the four corners */
+        /* Skew the input space to determine which simplex cell we're in */
+        let s = (x + y + z) * f3
+        let i = (x + s).floor().to_int()
+        let j = (y + s).floor().to_int()
+        let k = (z + s).floor().to_int()
+
+        let t = (i + j + k).to_float() * g3
+
+        /* Unskew the cell origin back to (x,y,z) space */
+        let x0m = i.to_float() - t
+        let y0m = j.to_float() - t
+        let z0m = k.to_float() - t
+
+        let x0 = x - x0m
+        let y0 = y - y0m
+        let z0 = z - z0m
+
+        let i1: Int
+        let j1: Int
+        let k1: Int
+
+        let i2: Int
+        let j2: Int
+        let k2: Int
+
+        /* A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z), */
+        /* a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and */
+        /* a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where */
+        /* c = 1/6. */
+        if (x0 >= y0) {
+            when {
+                y0 >= z0 -> {
+                    i1 = 1
+                    j1 = 0
+                    k1 = 0
+                    i2 = 1
+                    j2 = 1
+                    k2 = 0
+                }
+                x0 >= z0 -> {
+                    i1 = 1
+                    j1 = 0
+                    k1 = 0
+                    i2 = 1
+                    j2 = 0
+                    k2 = 1
+                }
+                else -> {
+                    i1 = 0
+                    j1 = 0
+                    k1 = 1
+                    i2 = 1
+                    j2 = 0
+                    k2 = 1
+                }
+            }
+        } else {
+            when {
+                y0 < z0 -> {
+                    i1 = 0
+                    j1 = 0
+                    k1 = 1
+                    i2 = 0
+                    j2 = 1
+                    k2 = 1
+                }
+                x0 < z0 -> {
+                    i1 = 0
+                    j1 = 1
+                    k1 = 0
+                    i2 = 0
+                    j2 = 1
+                    k2 = 1
+                }
+                else -> {
+                    i1 = 0
+                    j1 = 1
+                    k1 = 0
+                    i2 = 1
+                    j2 = 1
+                    k2 = 0
+                }
+            }
+        }
+
+        let x1 = x0 - i1.to_float() + g3
+        let y1 = y0 - j1.to_float() + g3
+        let z1 = z0 - k1.to_float() + g3
+
+        let x2 = x0 - i2.to_float() + 2.0f * g3
+        let y2 = y0 - j2.to_float() + 2.0f * g3
+        let z2 = z0 - k2.to_float() + 2.0f * g3
+
+        let x3 = x0 - 1.0f + 3.0f * g3
+        let y3 = y0 - 1.0f + 3.0f * g3
+        let z3 = z0 - 1.0f + 3.0f * g3
+
+        /* Work out the hashed gradient indices of the four simplex corners */
+        let ii = i & 255
+        let jj = j & 255
+        let kk = k & 255
+        let gi0 = perm[ii + perm[jj + perm[kk]!!]!!]!! % 12
+        let gi1 = perm[ii + i1 + perm[jj + j1 + perm[kk + k1]!!]!!]!! % 12
+        let gi2 = perm[ii + i2 + perm[jj + j2 + perm[kk + k2]!!]!!]!! % 12
+        let gi3 = perm[ii + 1 + perm[jj + 1 + perm[kk + 1]!!]!!]!! % 12
+
+        /* Calculate the contribution from the four corners */
+        let t0 = 0.6f - x0 * x0 - y0 * y0 - z0 * z0
+        let n0: Float
+        if (t0 < 0.0f) {
+            n0 = 0.0f
+        } else {
+            t0 *= t0
+            n0 = t0 * t0 * dot3d(grad3[gi0]!!, x0, y0, z0)
+        }
+
+        let t1 = 0.6f - x1 * x1 - y1 * y1 - z1 * z1
+        let n1: Float
+        if (t1 < 0.0f) {
+            n1 = 0.0f
+        } else {
+            t1 *= t1
+            n1 = t1 * t1 * dot3d(grad3[gi1]!!, x1, y1, z1)
+        }
+
+        let t2 = 0.6f - x2 * x2 - y2 * y2 - z2 * z2
+        let n2: Float
+        if (t2 < 0.0f) {
+            n2 = 0.0f
+        } else {
+            t2 *= t2
+            n2 = t2 * t2 * dot3d(grad3[gi2]!!, x2, y2, z2)
+        }
+
+        let t3 = 0.6f - x3 * x3 - y3 * y3 - z3 * z3
+        let n3: Float
+        if (t3 < 0.0f) {
+            n3 = 0.0f
+        } else {
+            t3 *= t3
+            n3 = t3 * t3 * dot3d(grad3[gi3]!!, x3, y3, z3)
+        }
+
+        /* Add contributions from each corner to get the final noise value. */
+        /* The result is scaled to return values in the interval [-1,1]. */
+        ret 32.0f * (n0 + n1 + n2 + n3)
+    }
+
+
+    // Generate a 1D Simplex noise value, return values between -1.0 and 1.0
+    // @see generate2d for parameter explanations
+    fun SimplexNoise.generate1d(x: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise1d(x * s) * per
+            div += per
+        }
+
+        ret value / div
+    }
+
+    // Generate a 2D Simplex noise value, return values between -1.0 and 1.0
+    // Example parameters (octaves: 6, frequency: 32f, persistence: 0.5f, lacunarity: 2.0f)
+    // - octaves: Number of layers of noise to combine, higher values add more detail
+    // - frequency: Controls the scale of the noise, lower values zoom in more
+    // - persistence: Controls the amplitude of each octave, higher values add more weight to lower frequencies
+    // - lacunarity: Controls the frequency increase between octaves, higher values add more detail faster
+    fun SimplexNoise.generate2d(x: Float, y: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves  {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise2d(x * s, y * s) * per
+            div += per
+        }
+
+        ret value / div
+    }
+
+    // Generate a 3D Simplex noise value, return values between -1.0 and 1.0
+    // @see generate2d for parameter explanations
+    fun SimplexNoise.generate3d(x: Float, y: Float, z: Float, octaves: Int, frequency: Float, persistence: Float, lacunarity: Float): Float {
+        let value = 0.0f
+        let div = 0.0f
+
+        repeat octaves {
+            let per = persistence.pow(it.to_float())
+            let lac = lacunarity.pow(it.to_float())
+            let s = lac / frequency
+            value += smooth_noise3d(x * s, y * s, z * s) * per
+            div += per
+        }
+
+        ret value / div
+    }
+}

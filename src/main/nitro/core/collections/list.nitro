@@ -297,6 +297,21 @@ fun <#Item: GetOrdering> List<#Item>.index_of(item: #Item): Optional<Int> {
     ret None()
 }
 
+// Returns the index of the last appearance of item, if the item is not in the list, returns `None`
+fun <#Item: GetOrdering> List<#Item>.last_index_of(item: #Item): Optional<Int> {
+    let i = count - 1
+
+    while i >= 0 {
+        if this[i]!! == item {
+            ret Some(i)
+        }
+
+        i -= 1
+    }
+
+    ret None()
+}
+
 // Returns the index of the first appearance of any of the items in the list, if none of the items are in the list, returns `None`
 fun <#Item: GetOrdering> List<#Item>.index_of_any(items: List<#Item>): Optional<Int> {
     repeat count {
@@ -727,4 +742,12 @@ fun <#Item: MapKey> List<#Item>.get_hash(): Int {
         hash = hash * 31 + this[it]!!.get_hash()
     }
     ret hash
+}
+
+fun <#Key: MapKey, #Value> List<Pair<#Key, #Value>>.to_map(): Map<#Key, #Value> {
+    let map = Map::new<#Key, #Value>(len)
+    repeat len {
+        map[] = this[it]!!
+    }
+    ret map
 }

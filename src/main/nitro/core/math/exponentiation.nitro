@@ -9,6 +9,9 @@ mod math {
     // sqrt(2) is the square root of 2
     let sqrt2: Float = 1.4142135623f
 
+    // sqrt(3) is the square root of 3
+    let sqrt3: Float = 1.7320508075f
+
     // Epsilon value for math functions
     // This value is used to determine when to stop the series expansion
     let epsilon: Float = 1e-7f

@@ -1,0 +1,51 @@
+
+use perlin_noise
+use simplex_noise
+
+fun main() {
+    perlin_noise()
+    simplex_noise()
+}
+
+fun perlin_noise() {
+    let data: List<Byte> = []
+    data.add_multiple_times(0.to_byte(), 255 * 255)
+
+    let noise = PerlinNoise::new()
+    repeat 255 {
+        let x = it
+        repeat 255 {
+            let y = it
+            let noise_value = noise.generate2d(x.to_float(), y.to_float(), 6, 32f, 0.5f, 2.0f) * 128f + 128f
+            data[x + y * 255] = noise_value.to_int().to_byte()
+        }
+    }
+
+    let file = FilePath::new("./out/perlin_noise.pgm")
+    let writer = ByteWriter::new()
+    writer.add_string_utf8_without_size("P5\n255 255\n255\n")
+    writer.bytes.add_all(data)
+    file.write_bytes(writer.bytes)!!
+}
+
+fun simplex_noise() {
+    let data: List<Byte> = []
+    data.add_multiple_times(0.to_byte(), 255 * 255)
+
+    let noise = SimplexNoise::new()
+    repeat 255 {
+        let x = it
+        repeat 255 {
+            let y = it
+            let f = 0.01f
+            let noise_value = noise.generate2d(x.to_float(), y.to_float(), 6, 32f, 0.5f, 2.0f) * 128f + 128f
+            data[x + y * 255] = noise_value.to_int().to_byte()
+        }
+    }
+
+    let file = FilePath::new("./out/simplex_noise.pgm")
+    let writer = ByteWriter::new()
+    writer.add_string_utf8_without_size("P5\n255 255\n255\n")
+    writer.bytes.add_all(data)
+    file.write_bytes(writer.bytes)!!
+}
