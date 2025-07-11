@@ -3,7 +3,7 @@ mod math {
 
     // τ: Tau is the ratio of a circle's circumference to its radius
     let tau: Float = 6.283185307179586f
-    
+
     // π: Pi is the ratio of a circle's circumference to its diameter
     let pi: Float = 3.141592653589793f
 
@@ -12,6 +12,9 @@ mod math {
 
     // π/4: Pi over 4
     let pi_4: Float = 0.7853981633974483f
+
+    let degrees_to_radians: Float = pi / 180f
+    let radians_to_degrees: Float = 180f / pi
 
     // Wrap angle x to [-π, π]
     fun wrap_angle(x: Float): Float {
@@ -42,7 +45,7 @@ mod math {
         }
         ret sum
     }
-    
+
     // Returns the hyperbolic sine of x.
     fun sinh(x: Float): Float {
         let term: Float = x
@@ -56,7 +59,7 @@ mod math {
         }
         ret sum
     }
-    
+
     // Returns the arcsine of x in radians.
     fun asin(x: Float): Float {
         if x < -1f || x > 1f {
@@ -85,13 +88,13 @@ mod math {
         }
         ret sum
     }
-    
+
     // Returns the hyperbolic arcsine of x.
     fun asinh(x: Float): Float {
         let sqrt_term: Float = sqrt(x * x + 1f)
         ret ln(x + sqrt_term)
     }
-    
+
     // Returns the cosine of x (where x is in radians).
     fun cos(x: Float): Float {
         x = wrap_angle(x)
@@ -108,7 +111,7 @@ mod math {
         }
         ret sum
     }
-    
+
     // Returns the hyperbolic cosine of x.
     fun cosh(x: Float): Float {
         let term: Float = 1f
@@ -122,12 +125,12 @@ mod math {
         }
         ret sum
     }
-    
+
     // Returns the arccosine of x in radians.
     fun acos(x: Float): Float {
         ret pi_2 - asin(x)
     }
-    
+
     // Returns the hyperbolic arccosine of x.
     fun acosh(x: Float): Float {
         if x < 1f {
@@ -136,7 +139,7 @@ mod math {
         let sqrt_term: Float = sqrt(x * x - 1f)
         ret ln(x + sqrt_term)
     }
-    
+
     // Returns the tangent of x (where x is in radians).
     fun tan(x: Float): Float {
         let cos_x: Float = cos(x)
@@ -146,7 +149,7 @@ mod math {
         }
         ret sin(x) / cos_x
     }
-    
+
     // Returns the hyperbolic tangent of x.
     fun tanh(x: Float): Float {
         let cosh_x: Float = cosh(x)
@@ -156,7 +159,7 @@ mod math {
         }
         ret sinh(x) / cosh_x
     }
-    
+
     // Returns the arctangent of x in radians.
     fun atan(x: Float): Float {
         // From: https://stackoverflow.com/a/23097989
@@ -195,7 +198,7 @@ mod math {
         let r = if z > 1f { fma(0.93282184640716537f, 1.6839188885261840f, -p) } else { p }
         ret r.copy_sign(x)
     }
-    
+
     // Returns the hyperbolic arctangent of x.
     fun atanh(x: Float): Float {
         if x <= -1f || x >= 1f {
@@ -204,7 +207,7 @@ mod math {
         }
         ret 0.5f * ln((1f + x) / (1f - x))
     }
-    
+
     // Returns the arctangent of the quotient of its arguments.
     fun atan2(y: Float, x: Float): Float {
         ret when {
@@ -216,6 +219,14 @@ mod math {
             // Undefined for x == 0 and y == 0
             else -> float_nan
         }
+    }
+
+    fun Float.to_radians(): Float {
+        ret this * degrees_to_radians
+    }
+
+    fun Float.to_degrees(): Float {
+        ret this * radians_to_degrees
     }
 
 }

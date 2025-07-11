@@ -92,11 +92,13 @@ fun Float.floor(): Float {}
 
 // Returns the integer part of a number by removing any fractional digits
 @WasmInline [opcode: "f32.trunc"]
-fun Float.truncate(): Float {}
+fun Float.trunc(): Float {}
 
 // Returns the nearest integer to a given number
 @WasmInline [opcode: "f32.nearest"]
 fun Float.nearest(): Float {}
+
+fun Float.round(): Float = this.nearest()
 
 // Converts a floating point number to an integer, by removing any fractional digits
 @WasmInline [opcode: "i32.trunc_f32_s"]
