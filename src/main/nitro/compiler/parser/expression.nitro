@@ -54,9 +54,11 @@ fun Parser.read_expression(code: NCode): Parsed<NInstId> {
 fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
     let left = read_expression_and(code)?
 
-    while lexer.current_token_kind == TokenKind::OROR {
+    while lexer.next_non_nl_token_kind == TokenKind::OROR {
+        skip_nl()
         let span = lexer.current_token_span
         skip_token_kind(TokenKind::OROR)?
+        skip_nl()
 
         code.add_if_start(span, left)
 
@@ -83,9 +85,11 @@ fun Parser.read_expression_or(code: NCode): Parsed<NInstId> {
 fun Parser.read_expression_and(code: NCode): Parsed<NInstId> {
     let left = read_expression_binary_operation(code)?
 
-    while lexer.current_token_kind == TokenKind::ANDAND {
+    while lexer.next_non_nl_token_kind == TokenKind::ANDAND {
+        skip_nl()
         let span = lexer.current_token_span
         skip_token_kind(TokenKind::ANDAND)?
+        skip_nl()
 
         code.add_if_start(span, left)
 

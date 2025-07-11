@@ -79,6 +79,7 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
             break
         }
 
+        skip_nl()
         operators[] = opt!!
     }
 
@@ -96,7 +97,7 @@ fun Parser.read_expression_binary_operation(code: NCode): Parsed<NInstId> {
 // sorted by precedence in ascending order, maintaining left associativity
 fun create_binary_tree(expressions: List<BinaryTree>, operators: List<BinaryOperator>): BinaryTree {
     let precedence = 0
-    
+
     if expressions.len == 1 {
         ret expressions.first()!!
     }
