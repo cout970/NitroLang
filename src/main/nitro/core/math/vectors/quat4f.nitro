@@ -1,0 +1,456 @@
+mod math {
+
+    // 4D Quaternion with Float components
+    // Represents a rotation in 3D space using quaternion mathematics.
+    // Quaternions are represented as (x, y, z, w) where (x, y, z) is the vector part and w is the scalar part.
+    // Operations assume the quaternion is normalized unless otherwise specified.
+    struct Quat4f {
+        x: Float
+        y: Float
+        z: Float
+        w: Float
+    }
+
+    fun Quat4f::new(): Quat4f {
+        ret Quat4f @[x: 0.0, y: 0.0, z: 0.0, w: 1.0]
+    }
+
+    // Note: This constructor can create a non-normalized quaternion
+    fun Quat4f::new(x: Float, y: Float, z: Float, w: Float): Quat4f {
+        ret Quat4f @[x: x, y: y, z: z, w: w]
+    }
+
+    // Create quaternion from axis-angle representation
+    fun Quat4f::new_from_axis_angle(axis: Vec3f, angle: Float): Quat4f {
+        let normalized_axis = axis.to_normalized()
+        let half_angle = angle * 0.5
+        let sin_half = sin(half_angle)
+        let cos_half = cos(half_angle)
+        ret Quat4f @[
+            x: normalized_axis.x * sin_half,
+            y: normalized_axis.y * sin_half,
+            z: normalized_axis.z * sin_half,
+            w: cos_half,
+        ]
+    }
+
+    // Create quaternion from Euler angles (in radians)
+    fun Quat4f::new_from_euler(pitch: Float, yaw: Float, roll: Float): Quat4f {
+        let half_pitch = pitch * 0.5
+        let half_yaw = yaw * 0.5
+        let half_roll = roll * 0.5
+
+        let cos_pitch = cos(half_pitch)
+        let sin_pitch = sin(half_pitch)
+        let cos_yaw = cos(half_yaw)
+        let sin_yaw = sin(half_yaw)
+        let cos_roll = cos(half_roll)
+        let sin_roll = sin(half_roll)
+
+        ret Quat4f @[
+            x: sin_pitch * cos_yaw * cos_roll - cos_pitch * sin_yaw * sin_roll,
+            y: cos_pitch * sin_yaw * cos_roll + sin_pitch * cos_yaw * sin_roll,
+            z: cos_pitch * cos_yaw * sin_roll - sin_pitch * sin_yaw * cos_roll,
+            w: cos_pitch * cos_yaw * cos_roll + sin_pitch * sin_yaw * sin_roll,
+        ]
+    }
+
+    fun Quat4f.set_identity() {
+        x = 0.0
+        y = 0.0
+        z = 0.0
+        w = 1.0
+    }
+
+    fun Quat4f.set(x: Float, y: Float, z: Float, w: Float) {
+        this.x = x
+        this.y = y
+        this.z = z
+        this.w = w
+    }
+
+    fun Quat4f.set(other: Quat4f) {
+        x = other.x
+        y = other.y
+        z = other.z
+        w = other.w
+    }
+
+    fun Quat4f.get(index: Int): Float {
+        when index {
+            0 -> ret x
+            1 -> ret y
+            2 -> ret z
+            3 -> ret w
+            else -> crash("Index out of bounds for Quat4f: $index")
+        }
+    }
+
+    fun Quat4f.set(index: Int, value: Float) {
+        when index {
+            0 -> { x = value }
+            1 -> { y = value }
+            2 -> { z = value }
+            3 -> { w = value }
+            else -> crash("Index out of bounds for Quat4f: $index")
+        }
+    }
+
+    // Quaternion-specific operations
+
+    // Quaternion multiplication (Hamilton product)
+    // Note: May return a non-normalized quaternion
+    fun Quat4f.mul(other: Quat4f): Quat4f {
+        ret Quat4f @[
+            x: w * other.x + x * other.w + y * other.z - z * other.y,
+            y: w * other.y - x * other.z + y * other.w + z * other.x,
+            z: w * other.z + x * other.y - y * other.x + z * other.w,
+            w: w * other.w - x * other.x - y * other.y - z * other.z,
+        ]
+    }
+
+    fun Quat4f.mul_assign(other: Quat4f) {
+        let new_x = w * other.x + x * other.w + y * other.z - z * other.y
+        let new_y = w * other.y - x * other.z + y * other.w + z * other.x
+        let new_z = w * other.z + x * other.y - y * other.x + z * other.w
+        let new_w = w * other.w - x * other.x - y * other.y - z * other.z
+        x = new_x
+        y = new_y
+        z = new_z
+        w = new_w
+    }
+
+    // Scalar multiplication
+    // Note: Returns a non-normalized quaternion unless scalar is 1 or -1
+    fun Quat4f.mul(scalar: Float): Quat4f {
+        ret Quat4f @[x: x * scalar, y: y * scalar, z: z * scalar, w: w * scalar]
+    }
+
+    fun Quat4f.mul_assign(scalar: Float) {
+        x *= scalar
+        y *= scalar
+        z *= scalar
+        w *= scalar
+    }
+
+    // Addition (not common for quaternions, but useful for interpolation)
+    // Note: Returns a non-normalized quaternion
+    fun Quat4f.add(other: Quat4f): Quat4f {
+        ret Quat4f @[x: x + other.x, y: y + other.y, z: z + other.z, w: w + other.w]
+    }
+
+    fun Quat4f.add_assign(other: Quat4f) {
+        x += other.x
+        y += other.y
+        z += other.z
+        w += other.w
+    }
+
+    // Note: Returns a non-normalized quaternion
+    fun Quat4f.sub(other: Quat4f): Quat4f {
+        ret Quat4f @[x: x - other.x, y: y - other.y, z: z - other.z, w: w - other.w]
+    }
+
+    fun Quat4f.sub_assign(other: Quat4f) {
+        x -= other.x
+        y -= other.y
+        z -= other.z
+        w -= other.w
+    }
+
+    // Dot product
+    fun Quat4f.dot(other: Quat4f): Float {
+        ret x * other.x + y * other.y + z * other.z + w * other.w
+    }
+
+    fun Quat4f.get_len(): Float {
+        ret sqrt(x * x + y * y + z * z + w * w)
+    }
+
+    fun Quat4f.get_len_squared(): Float {
+        ret x * x + y * y + z * z + w * w
+    }
+
+    // Normalize the quaternion in place
+    fun Quat4f.normalize() {
+        let len: Float = this.get_len()
+        if len == 0.0 {
+            x = 0.0
+            y = 0.0
+            z = 0.0
+            w = 1.0
+            ret
+        }
+        x /= len
+        y /= len
+        z /= len
+        w /= len
+    }
+
+    fun Quat4f.to_normalized(): Quat4f {
+        let len = this.get_len()
+        if len == 0.0 {
+            ret Quat4f::new()
+        }
+        ret Quat4f @[x: x / len, y: y / len, z: z / len, w: w / len]
+    }
+
+    // Quaternion conjugate (negate the vector part)
+    fun Quat4f.conjugate() {
+        x = -x
+        y = -y
+        z = -z
+    }
+
+    fun Quat4f.to_conjugated(): Quat4f {
+        ret Quat4f @[x: -x, y: -y, z: -z, w: w]
+    }
+
+    // Quaternion inversion
+    fun Quat4f.inverse() {
+        let len_sq = this.get_len_squared()
+        if len_sq == 0.0 {
+            x = 0.0
+            y = 0.0
+            z = 0.0
+            w = 1.0
+            ret
+        }
+        this.conjugate()
+        x /= len_sq
+        y /= len_sq
+        z /= len_sq
+        w /= len_sq
+    }
+
+    fun Quat4f.to_inversed(): Quat4f {
+        let len_sq = this.get_len_squared()
+        if len_sq == 0.0 {
+            ret Quat4f::new()
+        }
+        ret Quat4f @[x: -x / len_sq, y: -y / len_sq, z: -z / len_sq, w: w / len_sq]
+    }
+
+    // Rotate a vector by this quaternion
+    fun Quat4f.rotate_vector(vec: Vec3f): Vec3f {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+
+        // qvec.cross(vec) + vec * q.w
+        let cross1_x = y * vec.z - z * vec.y + vec.x * w
+        let cross1_y = z * vec.x - x * vec.z + vec.y * w
+        let cross1_z = x * vec.y - y * vec.x + vec.z * w
+
+        // qvec.cross(cross1)
+        let cross2_x = y * cross1_z - z * cross1_y
+        let cross2_y = z * cross1_x - x * cross1_z
+        let cross2_z = x * cross1_y - y * cross1_x
+
+        // vec + 2 * cross2
+        ret Vec3f @[
+            x: vec.x + 2.0 * cross2_x,
+            y: vec.y + 2.0 * cross2_y,
+            z: vec.z + 2.0 * cross2_z,
+        ]
+    }
+
+    // Get the axis and angle representation as Vec4f where (x,y,z) is the axis and w is the angle
+    fun Quat4f.to_axis_angle(): Vec4f {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+        let angle = 2.0 * acos(w.clamp(-1.0, 1.0))
+        let sin_half_angle = sqrt(1.0 - w * w)
+
+        if sin_half_angle < 0.0001 {
+            ret Vec4f @[x: 1.0, y: 0.0, z: 0.0, w: angle]
+        }
+
+        ret Vec4f @[
+            x: x / sin_half_angle,
+            y: y / sin_half_angle,
+            z: z / sin_half_angle,
+            w: angle,
+        ]
+    }
+
+    // Get just the rotation axis
+    fun Quat4f.get_axis(): Vec3f {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+        let sin_half_angle = sqrt(1.0 - w * w)
+
+        if sin_half_angle < 0.0001 {
+            ret Vec3f @[x: 1.0, y: 0.0, z: 0.0]
+        }
+
+        ret Vec3f @[
+            x: x / sin_half_angle,
+            y: y / sin_half_angle,
+            z: z / sin_half_angle,
+        ]
+    }
+
+    // Get just the rotation angle in radians
+    fun Quat4f.get_angle(): Float {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+        ret 2.0 * acos(w.clamp(-1.0, 1.0))
+    }
+
+    // Get Euler angles (pitch, yaw, roll) in radians
+    fun Quat4f.to_euler(): Vec3f {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+
+        // x-axis
+        let sin_r_cos_p = 2.0 * (w * x + y * z)
+        let cos_r_cos_p = 1.0 - 2.0 * (x * x + y * y)
+        let roll = atan2(sin_r_cos_p, cos_r_cos_p)
+
+        // y-axis
+        let sin_p = 2.0 * (w * y - z * x)
+        let pitch = if sin_p.abs() >= 1.0 {
+            (pi * 0.5).copy_sign(sin_p)
+        } else {
+            asin(sin_p)
+        }
+
+        // z-axis
+        let sin_y_cos_p = 2.0 * (w * z + x * y)
+        let cos_y_cos_p = 1.0 - 2.0 * (y * y + z * z)
+        let yaw = atan2(sin_y_cos_p, cos_y_cos_p)
+
+        ret Vec3f @[x: pitch, y: yaw, z: roll]
+    }
+
+    // Linear interpolation
+    fun Quat4f.lerp(other: Quat4f, t: Float): Quat4f {
+        // (other - this) * t + this
+        let diff_x = other.x - x
+        let diff_y = other.y - y
+        let diff_z = other.z - z
+        let diff_w = other.w - w
+
+        let result_x = x + diff_x * t
+        let result_y = y + diff_y * t
+        let result_z = z + diff_z * t
+        let result_w = w + diff_w * t
+
+        let len = sqrt(result_x * result_x + result_y * result_y + result_z * result_z + result_w * result_w)
+        if len == 0.0 {
+            ret Quat4f::new()
+        }
+
+        ret Quat4f @[
+            x: result_x / len,
+            y: result_y / len,
+            z: result_z / len,
+            w: result_w / len,
+        ]
+    }
+
+    // Spherical linear interpolation
+    fun Quat4f.slerp(other: Quat4f, t: Float): Quat4f {
+        check(this.is_normalized()) @{ "Non normalized quaternion" }
+        check(other.is_normalized()) @{ "Non normalized quaternion" }
+
+        let dot_product = this.dot(other)
+
+        let other_adjusted = if dot_product < 0.0 {
+            other.to_negated()
+        } else {
+            other
+        }
+        let adjusted_dot = dot_product.abs()
+
+        // If quaternions are very close, use linear interpolation
+        if adjusted_dot > 0.9995 {
+            ret this.lerp(other_adjusted, t)
+        }
+
+        let theta_0 = acos(adjusted_dot.clamp(-1.0, 1.0))
+        let theta = theta_0 * t
+        let sin_theta = sin(theta)
+        let sin_theta_0 = sin(theta_0)
+
+        let s0 = cos(theta) - adjusted_dot * sin_theta / sin_theta_0
+        let s1 = sin_theta / sin_theta_0
+
+        // this * s0 + other_adjusted * s1
+        let result_x = x * s0 + other_adjusted.x * s1
+        let result_y = y * s0 + other_adjusted.y * s1
+        let result_z = z * s0 + other_adjusted.z * s1
+        let result_w = w * s0 + other_adjusted.w * s1
+
+        let len = sqrt(result_x * result_x + result_y * result_y + result_z * result_z + result_w * result_w)
+        ret Quat4f @[
+            x: result_x / len,
+            y: result_y / len,
+            z: result_z / len,
+            w: result_w / len,
+        ]
+    }
+
+    // Numeric Operations
+
+    fun Quat4f.negate() {
+        x = -x
+        y = -y
+        z = -z
+        w = -w
+    }
+
+    fun Quat4f.to_negated(): Quat4f {
+        ret Quat4f @[x: -x, y: -y, z: -z, w: -w]
+    }
+
+    // Checks
+
+    fun Quat4f.is_finite(): Boolean {
+        ret x.is_finite() && y.is_finite() && z.is_finite() && w.is_finite()
+    }
+
+    fun Quat4f.is_nan(): Boolean {
+        ret x.is_nan() || y.is_nan() || z.is_nan() || w.is_nan()
+    }
+
+    fun Quat4f.is_identity(): Boolean {
+        ret is_equal(0.0, 0.0, 0.0, 1.0, epsilon)
+    }
+
+    fun Quat4f.is_normalized(): Boolean {
+        let len_sq = this.get_len_squared()
+        ret (len_sq - 1.0).abs() < epsilon
+    }
+
+    fun Quat4f.is_equal(other: Quat4f, epsilon: Float): Boolean {
+        ret (this.x - other.x).abs() < epsilon && (this.y - other.y).abs() < epsilon && (this.z - other.z).abs() < epsilon && (this.w - other.w).abs() < epsilon
+    }
+
+    fun Quat4f.is_equal(other_x: Float, other_y: Float, other_z: Float, other_w: Float, epsilon: Float): Boolean {
+        ret (this.x - other_x).abs() < epsilon && (this.y - other_y).abs() < epsilon && (this.z - other_z).abs() < epsilon && (this.w - other_w).abs() < epsilon
+    }
+
+    // Standard Operations
+
+    fun Quat4f.to_vec4f(): Vec4f {
+        ret Vec4f @[x: x, y: y, z: z, w: w]
+    }
+
+    fun Quat4f.to_quat4f(): Quat4f {
+        ret Quat4f @[x: x, y: y, z: z, w: w]
+    }
+
+    fun Quat4f.get_hash(): Int {
+        ret 31 * (31 * (31 * x.reinterpret_as_int() + y.reinterpret_as_int()) + z.reinterpret_as_int()) + w.reinterpret_as_int()
+    }
+
+    fun Quat4f.get_ordering(other: Quat4f): Ordering {
+        if x < other.x || (x == other.x && y < other.y) || (x == other.x && y == other.y && z < other.z) || (x == other.x && y == other.y && z == other.z && w < other.w) {
+            ret Ordering::Less
+        }
+        if x > other.x || (x == other.x && y > other.y) || (x == other.x && y == other.y && z > other.z) || (x == other.x && y == other.y && z == other.z && w > other.w) {
+            ret Ordering::Greater
+        }
+        ret Ordering::Equals
+    }
+
+    fun Quat4f.to_string(): String {
+        ret "Quat4f($x, $y, $z, $w)"
+    }
+}

@@ -1,0 +1,458 @@
+mod math {
+
+    // 4D Vector with Float components
+    // Represents a direction or a position in 4D space.
+    struct Vec4f {
+        x: Float
+        y: Float
+        z: Float
+        w: Float
+    }
+
+    fun Vec4f::new(): Vec4f {
+        ret Vec4f @[x: 0.0, y: 0.0, z: 0.0, w: 0.0]
+    }
+
+    fun Vec4f::new(x: Float, y: Float, z: Float, w: Float): Vec4f {
+        ret Vec4f @[x: x, y: y, z: z, w: w]
+    }
+
+    fun Vec4f.set_zero() {
+        x = 0.0
+        y = 0.0
+        z = 0.0
+        w = 0.0
+    }
+
+    fun Vec4f.set(x: Float, y: Float, z: Float, w: Float) {
+        this.x = x
+        this.y = y
+        this.z = z
+        this.w = w
+    }
+
+    fun Vec4f.set(other: Vec4f) {
+        x = other.x
+        y = other.y
+        z = other.z
+        w = other.w
+    }
+
+    fun Vec4f.get(index: Int): Float {
+        when index {
+            0 -> ret x
+            1 -> ret y
+            2 -> ret z
+            3 -> ret w
+            else -> crash("Index out of bounds for Vec4f: $index")
+        }
+    }
+
+    fun Vec4f.set(index: Int, value: Float) {
+        when index {
+            0 -> { x = value }
+            1 -> { y = value }
+            2 -> { z = value }
+            3 -> { w = value }
+            else -> crash("Index out of bounds for Vec4f: $index")
+        }
+    }
+
+    // Add
+
+    fun Vec4f.add(scalar: Float): Vec4f {
+        ret Vec4f @[x: x + scalar, y: y + scalar, z: z + scalar, w: w + scalar]
+    }
+
+    fun Vec4f.add(other: Vec4f): Vec4f {
+        ret Vec4f @[x: x + other.x, y: y + other.y, z: z + other.z, w: w + other.w]
+    }
+
+    fun Vec4f.add_assign(other: Float) {
+        x += other
+        y += other
+        z += other
+        w += other
+    }
+
+    fun Vec4f.add_assign(other: Vec4f) {
+        x += other.x
+        y += other.y
+        z += other.z
+        w += other.w
+    }
+
+    // Subtract
+
+    fun Vec4f.sub(scalar: Float): Vec4f {
+        ret Vec4f @[x: x - scalar, y: y - scalar, z: z - scalar, w: w - scalar]
+    }
+
+    fun Vec4f.sub(other: Vec4f): Vec4f {
+        ret Vec4f @[x: x - other.x, y: y - other.y, z: z - other.z, w: w - other.w]
+    }
+
+    fun Vec4f.sub_assign(other: Float) {
+        x -= other
+        y -= other
+        z -= other
+        w -= other
+    }
+
+    fun Vec4f.sub_assign(other: Vec4f) {
+        x -= other.x
+        y -= other.y
+        z -= other.z
+        w -= other.w
+    }
+
+    // Multiply
+
+    fun Vec4f.mul(scalar: Float): Vec4f {
+        ret Vec4f @[x: x * scalar, y: y * scalar, z: z * scalar, w: w * scalar]
+    }
+
+    fun Vec4f.mul(other: Vec4f): Vec4f {
+        ret Vec4f @[x: x * other.x, y: y * other.y, z: z * other.z, w: w * other.w]
+    }
+
+    fun Vec4f.mul_assign(scalar: Float) {
+        x *= scalar
+        y *= scalar
+        z *= scalar
+        w *= scalar
+    }
+
+    fun Vec4f.mul_assign(other: Vec4f) {
+        x *= other.x
+        y *= other.y
+        z *= other.z
+        w *= other.w
+    }
+
+    // Divide
+
+    fun Vec4f.div(scalar: Float): Vec4f {
+        ret Vec4f @[x: x / scalar, y: y / scalar, z: z / scalar, w: w / scalar]
+    }
+
+    fun Vec4f.div(other: Vec4f): Vec4f {
+        ret Vec4f @[x: x / other.x, y: y / other.y, z: z / other.z, w: w / other.w]
+    }
+
+    fun Vec4f.div_assign(scalar: Float) {
+        x /= scalar
+        y /= scalar
+        z /= scalar
+        w /= scalar
+    }
+
+    fun Vec4f.div_assign(other: Vec4f) {
+        x /= other.x
+        y /= other.y
+        z /= other.z
+        w /= other.w
+    }
+
+    // Special Operations
+
+    // Dot product of two vectors
+    fun Vec4f.dot(other: Vec4f): Float {
+        ret x * other.x + y * other.y + z * other.z + w * other.w
+    }
+
+    fun Vec4f.get_len(): Float {
+        ret sqrt(x * x + y * y + z * z + w * w)
+    }
+
+    fun Vec4f.get_len_squared(): Float {
+        ret x * x + y * y + z * z + w * w
+    }
+
+    // Normalize the vector in place, makes the vector unit length
+    // If the vector is zero, it will be set to (0, 0, 0, 0)
+    fun Vec4f.normalize() {
+        let len: Float = this.get_len()
+        if len == 0.0 {
+            x = 0.0
+            y = 0.0
+            z = 0.0
+            w = 0.0
+            ret
+        }
+        x /= len
+        y /= len
+        z /= len
+        w /= len
+    }
+
+    fun Vec4f.to_normalized(): Vec4f {
+        let len = this.get_len()
+        if len == 0.0 {
+            ret Vec4f::new()
+        }
+        ret Vec4f @[x: x / len, y: y / len, z: z / len, w: w / len]
+    }
+
+    // Returns the angle in radians between this vector and another vector
+    fun Vec4f.get_angle(other: Vec4f): Float {
+        let dot_product = dot(other)
+        let len_self = this.get_len()
+        let len_other = other.get_len()
+        if len_self == 0.0 || len_other == 0.0 {
+            ret 0.0
+        }
+        let cos_angle = (dot_product / (len_self * len_other)).clamp(-1.0, 1.0)
+        ret acos(cos_angle)
+    }
+
+    // Distance between two points
+    fun Vec4f.distance(other: Vec4f): Float {
+        let dx = x - other.x
+        let dy = y - other.y
+        let dz = z - other.z
+        let dw = w - other.w
+        ret sqrt(dx * dx + dy * dy + dz * dz + dw * dw)
+    }
+
+    fun Vec4f.distance_squared(other: Vec4f): Float {
+        let dx = x - other.x
+        let dy = y - other.y
+        let dz = z - other.z
+        let dw = w - other.w
+        ret dx * dx + dy * dy + dz * dz + dw * dw
+    }
+
+    // Reflect the vector across a given axis
+    fun Vec4f.reflect(axis: Vec4f) {
+        // Normalize the axis vector
+        let len = axis.get_len()
+        if len == 0.0 {
+            return // Cannot reflect against a zero-length vector
+        }
+        let normalized_axis = axis.to_normalized()
+
+        // Calculate the dot product with the normalized axis
+        let dot_product = this.dot(normalized_axis)
+
+        // Reflect the vector
+        x -= 2f * dot_product * normalized_axis.x
+        y -= 2f * dot_product * normalized_axis.y
+        z -= 2f * dot_product * normalized_axis.z
+        w -= 2f * dot_product * normalized_axis.w
+    }
+
+    fun Vec4f.to_reflected(axis: Vec4f): Vec4f {
+        // Normalize the axis vector
+        let len = axis.get_len()
+        if len == 0.0 {
+            ret this // Cannot reflect against a zero-length vector
+        }
+        let normalized_axis = axis.to_normalized()
+
+        // Calculate the dot product with the normalized axis
+        let dot_product = this.dot(normalized_axis)
+
+        // Reflect the vector
+        ret Vec4f @[
+            x: x - 2f * dot_product * normalized_axis.x,
+            y: y - 2f * dot_product * normalized_axis.y,
+            z: z - 2f * dot_product * normalized_axis.z,
+            w: w - 2f * dot_product * normalized_axis.w,
+        ]
+    }
+
+    // Numeric Operations
+
+    fun Vec4f.negate() {
+        x = -x
+        y = -y
+        z = -z
+        w = -w
+    }
+
+    fun Vec4f.to_negated(): Vec4f {
+        ret Vec4f @[x: -x, y: -y, z: -z, w: -w]
+    }
+
+    // Linear Interpolation between two vectors
+    fun Vec4f.lerp(other: Vec4f, t: Float): Vec4f {
+        ret Vec4f @[x: x + (other.x - x) * t, y: y + (other.y - y) * t, z: z + (other.z - z) * t, w: w + (other.w - w) * t]
+    }
+
+    // Store in this vector the result of linear interpolation of two vectors
+    fun Vec4f.set_to_lerp(one: Vec4f, other: Vec4f, t: Float) {
+        x += (other.x - one.x) * t
+        y += (other.y - one.y) * t
+        z += (other.z - one.z) * t
+        w += (other.w - one.w) * t
+    }
+
+    fun Vec4f.min(other: Vec4f): Vec4f {
+        ret Vec4f @[
+            x: if x < other.x { x } else { other.x },
+            y: if y < other.y { y } else { other.y },
+            z: if z < other.z { z } else { other.z },
+            w: if w < other.w { w } else { other.w },
+        ]
+    }
+
+    fun Vec4f.set_to_min(one: Vec4f, other: Vec4f) {
+        x = if x < other.x { x } else { other.x }
+        y = if y < other.y { y } else { other.y }
+        z = if z < other.z { z } else { other.z }
+        w = if w < other.w { w } else { other.w }
+    }
+
+    fun Vec4f.max(other: Vec4f): Vec4f {
+        ret Vec4f @[
+            x: if x > other.x { x } else { other.x },
+            y: if y > other.y { y } else { other.y },
+            z: if z > other.z { z } else { other.z },
+            w: if w > other.w { w } else { other.w },
+        ]
+    }
+
+    fun Vec4f.set_to_max(one: Vec4f, other: Vec4f) {
+        x = if x > other.x { x } else { other.x }
+        y = if y > other.y { y } else { other.y }
+        z = if z > other.z { z } else { other.z }
+        w = if w > other.w { w } else { other.w }
+    }
+
+    // Proxy Operations
+
+    fun Vec4f.abs() {
+        x = x.abs()
+        y = y.abs()
+        z = z.abs()
+        w = w.abs()
+    }
+
+    fun Vec4f.to_abs(): Vec4f {
+        ret Vec4f @[
+            x: x.abs(),
+            y: y.abs(),
+            z: z.abs(),
+            w: w.abs(),
+        ]
+    }
+
+    fun Vec4f.floor() {
+        x = x.floor()
+        y = y.floor()
+        z = z.floor()
+        w = w.floor()
+    }
+
+    fun Vec4f.to_floor(): Vec4f {
+        ret Vec4f @[
+            x: x.floor(),
+            y: y.floor(),
+            z: z.floor(),
+            w: w.floor(),
+        ]
+    }
+
+    fun Vec4f.ceil() {
+        x = x.ceil()
+        y = y.ceil()
+        z = z.ceil()
+        w = w.ceil()
+    }
+
+    fun Vec4f.to_ceil(): Vec4f {
+        ret Vec4f @[
+            x: x.ceil(),
+            y: y.ceil(),
+            z: z.ceil(),
+            w: w.ceil(),
+        ]
+    }
+
+    fun Vec4f.round() {
+        x = x.round()
+        y = y.round()
+        z = z.round()
+        w = w.round()
+    }
+
+    fun Vec4f.to_round(): Vec4f {
+        ret Vec4f @[
+            x: x.round(),
+            y: y.round(),
+            z: z.round(),
+            w: w.round(),
+        ]
+    }
+
+    fun Vec4f.trunc() {
+        x = x.trunc()
+        y = y.trunc()
+        z = z.trunc()
+        w = w.trunc()
+    }
+
+    fun Vec4f.to_trunc(): Vec4f {
+        ret Vec4f @[
+            x: x.trunc(),
+            y: y.trunc(),
+            z: z.trunc(),
+            w: w.trunc(),
+        ]
+    }
+
+    // Checks
+
+    fun Vec4f.is_finite(): Boolean {
+        ret x.is_finite() && y.is_finite() && z.is_finite() && w.is_finite()
+    }
+
+    fun Vec4f.is_nan(): Boolean {
+        ret x.is_nan() || y.is_nan() || z.is_nan() || w.is_nan()
+    }
+
+    fun Vec4f.is_zero(): Boolean {
+        ret is_equal(0.0, 0.0, 0.0, 0.0, epsilon)
+    }
+
+    fun Vec4f.is_equal(other: Vec4f, epsilon: Float): Boolean {
+        ret (this.x - other.x).abs() < epsilon && (this.y - other.y).abs() < epsilon && (this.z - other.z).abs() < epsilon && (this.w - other.w).abs() < epsilon
+    }
+
+    fun Vec4f.is_equal(other_x: Float, other_y: Float, other_z: Float, other_w: Float, epsilon: Float): Boolean {
+        ret (this.x - other_x).abs() < epsilon && (this.y - other_y).abs() < epsilon && (this.z - other_z).abs() < epsilon && (this.w - other_w).abs() < epsilon
+    }
+
+    // Standard Operations
+
+    fun Vec4f.to_vec2f(): Vec2f {
+        ret Vec2f @[x: x, y: y]
+    }
+
+    fun Vec4f.to_vec3f(): Vec3f {
+        ret Vec3f @[x: x, y: y, z: z]
+    }
+
+    fun Vec4f.to_vec4f(): Vec4f {
+        ret Vec4f @[x: x, y: y, z: z, w: w]
+    }
+
+    fun Vec4f.get_hash(): Int {
+        ret 31 * (31 * (31 * x.reinterpret_as_int() + y.reinterpret_as_int()) + z.reinterpret_as_int()) + w.reinterpret_as_int()
+    }
+
+    fun Vec4f.get_ordering(other: Vec4f): Ordering {
+        if x < other.x || (x == other.x && y < other.y) || (x == other.x && y == other.y && z < other.z) || (x == other.x && y == other.y && z == other.z && w < other.w) {
+            ret Ordering::Less
+        }
+        if x > other.x || (x == other.x && y > other.y) || (x == other.x && y == other.y && z > other.z) || (x == other.x && y == other.y && z == other.z && w > other.w) {
+            ret Ordering::Greater
+        }
+        ret Ordering::Equals
+    }
+
+    fun Vec4f.to_string(): String {
+        ret "Vec4f($x, $y, $z, $w)"
+    }
+}
