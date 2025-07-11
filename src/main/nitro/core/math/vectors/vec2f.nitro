@@ -1,0 +1,432 @@
+
+mod math {
+
+    // 2D Vector with Float components
+    // Represents a direction or a position in 2D space.
+    struct Vec2f {
+        x: Float
+        y: Float
+    }
+
+    fun Vec2f::new(): Vec2f {
+        ret Vec2f @[x: 0.0, y: 0.0]
+    }
+
+    fun Vec2f::new(x: Float, y: Float): Vec2f {
+        ret Vec2f @[x: x, y: y]
+    }
+
+    fun Vec2f.set_zero() {
+        x = 0.0
+        y = 0.0
+    }
+
+    fun Vec2f.set(x: Float, y: Float) {
+        this.x = x
+        this.y = y
+    }
+
+    fun Vec2f.set(other: Vec2f) {
+        x = other.x
+        y = other.y
+    }
+
+    fun Vec2f.get(index: Int): Float {
+        when index {
+            0 -> ret x
+            1 -> ret y
+            else -> crash("Index out of bounds for Vec2f: $index")
+        }
+    }
+
+    fun Vec2f.set(index: Int, value: Float) {
+        when index {
+            0 -> { x = value }
+            1 -> { y = value }
+            else -> crash("Index out of bounds for Vec2f: $index")
+        }
+    }
+
+    // Add
+
+    fun Vec2f.add(scalar: Float): Vec2f {
+        ret Vec2f @[x: x + scalar, y: y + scalar]
+    }
+
+    fun Vec2f.add(other: Vec2f): Vec2f {
+        ret Vec2f @[x: x + other.x, y: y + other.y]
+    }
+
+    fun Vec2f.add_assign(other: Float) {
+        x += other
+        y += other
+    }
+
+    fun Vec2f.add_assign(other: Vec2f) {
+        x += other.x
+        y += other.y
+    }
+
+    // Subtract
+
+    fun Vec2f.sub(scalar: Float): Vec2f {
+        ret Vec2f @[x: x - scalar, y: y - scalar]
+    }
+
+    fun Vec2f.sub(other: Vec2f): Vec2f {
+        ret Vec2f @[x: x - other.x, y: y - other.y]
+    }
+
+    fun Vec2f.sub_assign(other: Float) {
+        x -= other
+        y -= other
+    }
+
+    fun Vec2f.sub_assign(other: Vec2f) {
+        x -= other.x
+        y -= other.y
+    }
+
+    // Multiply
+
+    fun Vec2f.mul(scalar: Float): Vec2f {
+        ret Vec2f @[x: x * scalar, y: y * scalar]
+    }
+
+    fun Vec2f.mul(other: Vec2f): Vec2f {
+        ret Vec2f @[x: x * other.x, y: y * other.y]
+    }
+
+    fun Vec2f.mul_assign(scalar: Float) {
+        x *= scalar
+        y *= scalar
+    }
+
+    fun Vec2f.mul_assign(other: Vec2f) {
+        x *= other.x
+        y *= other.y
+    }
+
+    // Divide
+
+    fun Vec2f.div(scalar: Float): Vec2f {
+        ret Vec2f @[x: x / scalar, y: y / scalar]
+    }
+
+    fun Vec2f.div(other: Vec2f): Vec2f {
+        ret Vec2f @[x: x / other.x, y: y / other.y]
+    }
+
+    fun Vec2f.div_assign(scalar: Float) {
+        x /= scalar
+        y /= scalar
+    }
+
+    fun Vec2f.div_assign(other: Vec2f) {
+        x /= other.x
+        y /= other.y
+    }
+
+    // Special Operations
+
+    // Dot product of two vectors
+    fun Vec2f.dot(other: Vec2f): Float {
+        ret x * other.x + y * other.y
+    }
+
+    fun Vec2f.get_len(): Float {
+        ret sqrt(x * x + y * y)
+    }
+
+    fun Vec2f.get_len_squared(): Float {
+        ret x * x + y * y
+    }
+
+    // Normalize the vector in place, makes the vector unit length
+    // If the vector is zero, it will be set to (0, 0)
+    fun Vec2f.normalize() {
+        let len: Float = this.get_len()
+        if len == 0.0 {
+            x = 0.0
+            y = 0.0
+            ret
+        }
+        x /= len
+        y /= len
+    }
+
+    fun Vec2f.to_normalized(): Vec2f {
+        let len = this.get_len()
+        if len == 0.0 {
+            ret Vec2f::new()
+        }
+        ret Vec2f @[x: x / len, y: y / len]
+    }
+
+    // Set the vector to a perpendicular direction of the original vector
+    fun Vec2f.perpendicular() {
+        let temp = x
+        x = -y
+        y = temp
+    }
+
+    fun Vec2f.to_perpendicular(): Vec2f {
+        ret Vec2f @[x: -y, y: x]
+    }
+
+    // Returns the angle in radians between this vector and another vector
+    fun Vec2f.get_angle(other: Vec2f): Float {
+        let dot_product = dot(other)
+        let len_self = this.get_len()
+        let len_other = other.get_len()
+        if len_self == 0.0 || len_other == 0.0 {
+            ret 0.0
+        }
+        let cos_angle = (dot_product / (len_self * len_other)).clamp(-1.0, 1.0)
+        ret acos(cos_angle)
+    }
+
+    // Distance between two points
+    fun Vec2f.distance(other: Vec2f): Float {
+        let dx = x - other.x
+        let dy = y - other.y
+        ret sqrt(dx * dx + dy * dy)
+    }
+
+    fun Vec2f.distance_squared(other: Vec2f): Float {
+        let dx = x - other.x
+        let dy = y - other.y
+        ret sqrt(dx * dx + dy * dy)
+    }
+
+    // Rotate the vector by a given angle in radians
+    fun Vec2f.rotate(radians: Float) {
+        let cos_angle = cos(radians)
+        let sin_angle = sin(radians)
+        let new_x = x * cos_angle - y * sin_angle
+        let new_y = x * sin_angle + y * cos_angle
+        x = new_x
+        y = new_y
+    }
+
+    fun Vec2f.to_rotated(radians: Float): Vec2f {
+        let cos_angle = cos(radians)
+        let sin_angle = sin(radians)
+        ret Vec2f @[
+            x: x * cos_angle - y * sin_angle,
+            y: x * sin_angle + y * cos_angle,
+        ]
+    }
+
+    // Rotate a point around a pivot by a given angle in radians
+    fun Vec2f.rotate_around(pivot: Vec2f, radians: Float) {
+        let cos_angle = cos(radians)
+        let sin_angle = sin(radians)
+        let translated_x = x - pivot.x
+        let translated_y = y - pivot.y
+        let new_x = translated_x * cos_angle - translated_y * sin_angle + pivot.x
+        let new_y = translated_x * sin_angle + translated_y * cos_angle + pivot.y
+        x = new_x
+        y = new_y
+    }
+
+    fun Vec2f.to_point_rotated_around(pivot: Vec2f, radians: Float): Vec2f {
+        let cos_angle = cos(radians)
+        let sin_angle = sin(radians)
+        let translated_x = x - pivot.x
+        let translated_y = y - pivot.y
+        ret Vec2f @[
+            x: translated_x * cos_angle - translated_y * sin_angle + pivot.x,
+            y: translated_x * sin_angle + translated_y * cos_angle + pivot.y,
+        ]
+    }
+
+    // Reflect the vector across a given axis
+    fun Vec2f.reflect(axis: Vec2f) {
+        // Normalize the axis vector
+        let len = axis.get_len()
+        if len == 0.0 {
+            return // Cannot reflect against a zero-length vector
+        }
+        let normalized_axis = axis.to_normalized()
+
+        // Calculate the dot product with the normalized axis
+        let dot_product = this.dot(normalized_axis)
+
+        // Reflect the vector
+        x -= 2f * dot_product * normalized_axis.x
+        y -= 2f * dot_product * normalized_axis.y
+    }
+
+    fun Vec2f.to_reflected(axis: Vec2f): Vec2f {
+        // Normalize the axis vector
+        let len = axis.get_len()
+        if len == 0.0 {
+            ret this // Cannot reflect against a zero-length vector
+        }
+        let normalized_axis = axis.to_normalized()
+
+        // Calculate the dot product with the normalized axis
+        let dot_product = this.dot(normalized_axis)
+
+        // Reflect the vector
+        ret Vec2f @[
+            x: x - 2f * dot_product * normalized_axis.x,
+            y: y - 2f * dot_product * normalized_axis.y,
+        ]
+    }
+
+    // Numeric Operations
+
+    fun Vec2f.negate() {
+        x = -x
+        y = -y
+    }
+
+    fun Vec2f.to_negated(): Vec2f {
+        ret Vec2f @[x: -x, y: -y]
+    }
+
+    // Linear Interpolation between two vectors
+    fun Vec2f.lerp(other: Vec2f, t: Float): Vec2f {
+        ret Vec2f @[x: x + (other.x - x) * t, y: y + (other.y - y) * t]
+    }
+
+    // Store in this vector the result of linear interpolation of two vectors
+    fun Vec2f.set_to_lerp(one: Vec2f, other: Vec2f, t: Float) {
+        x += (other.x - one.x) * t
+        y += (other.y - one.y) * t
+    }
+
+    fun Vec2f.min(other: Vec2f): Vec2f {
+        ret Vec2f @[
+            x: if x < other.x { x } else { other.x },
+            y: if y < other.y { y } else { other.y },
+        ]
+    }
+
+    fun Vec2f.set_to_min(one: Vec2f, other: Vec2f) {
+        x = if x < other.x { x } else { other.x }
+        y = if y < other.y { y } else { other.y }
+    }
+
+    fun Vec2f.max(other: Vec2f): Vec2f {
+        ret Vec2f @[
+            x: if x > other.x { x } else { other.x },
+            y: if y > other.y { y } else { other.y },
+        ]
+    }
+
+    fun Vec2f.set_to_max(one: Vec2f, other: Vec2f) {
+        x = if x > other.x { x } else { other.x }
+        y = if y > other.y { y } else { other.y }
+    }
+
+    // Proxy Operations
+
+    fun Vec2f.abs() {
+        x = x.abs()
+        y = y.abs()
+    }
+
+    fun Vec2f.to_abs(): Vec2f {
+        ret Vec2f @[
+            x: x.abs(),
+            y: y.abs(),
+        ]
+    }
+
+    fun Vec2f.floor() {
+        x = x.floor()
+        y = y.floor()
+    }
+
+    fun Vec2f.to_floor(): Vec2f {
+        ret Vec2f @[
+            x: x.floor(),
+            y: y.floor(),
+        ]
+    }
+
+    fun Vec2f.ceil() {
+        x = x.ceil()
+        y = y.ceil()
+    }
+
+    fun Vec2f.to_ceil(): Vec2f {
+        ret Vec2f @[
+            x: x.ceil(),
+            y: y.ceil(),
+        ]
+    }
+
+    fun Vec2f.round() {
+        x = x.round()
+        y = y.round()
+    }
+
+    fun Vec2f.to_round(): Vec2f {
+        ret Vec2f @[
+            x: x.round(),
+            y: y.round(),
+        ]
+    }
+
+    fun Vec2f.trunc() {
+        x = x.trunc()
+        y = y.trunc()
+    }
+
+    fun Vec2f.to_trunc(): Vec2f {
+        ret Vec2f @[
+            x: x.trunc(),
+            y: y.trunc(),
+        ]
+    }
+
+    // Checks
+
+    fun Vec2f.is_finite(): Boolean {
+        ret x.is_finite() && y.is_finite()
+    }
+
+    fun Vec2f.is_nan(): Boolean {
+        ret x.is_nan() || y.is_nan()
+    }
+
+    fun Vec2f.is_zero(): Boolean {
+        ret is_equal(0.0, 0.0, epsilon)
+    }
+
+    fun Vec2f.is_equal(other: Vec2f, epsilon: Float): Boolean {
+        ret (this.x - other.x).abs() < epsilon && (this.y - other.y).abs() < epsilon
+    }
+
+    fun Vec2f.is_equal(other_x: Float, other_y: Float, epsilon: Float): Boolean {
+        ret (this.x - other_x).abs() < epsilon && (this.y - other_y).abs() < epsilon
+    }
+
+    // Standard Operations
+
+    fun Vec2f.to_vec2f(): Vec2f {
+        ret Vec2f @[x: x, y: y]
+    }
+
+    fun Vec2f.get_hash(): Int {
+        ret 31 * x.reinterpret_as_int() + y.reinterpret_as_int()
+    }
+
+    fun Vec2f.get_ordering(other: Vec2f): Ordering {
+        if x < other.x || (x == other.x && y < other.y) {
+            ret Ordering::Less
+        }
+        if x > other.x || (x == other.x && y > other.y) {
+            ret Ordering::Greater
+        }
+        ret Ordering::Equals
+    }
+
+    fun Vec2f.to_string(): String {
+        ret "Vec2f($x, $y)"
+    }
+}
