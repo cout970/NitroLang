@@ -64,10 +64,6 @@ fun TypeChecker.find_best_function_match(name: String, args: List<Type>, receive
         possible_names[] = Path::join(path, name)
     }
 
-    if name == "get_x" {
-        println("Finding best function match for $name(${args}) with possible names: ${possible_names.join(", ")} (use_paths: $use_paths)")
-    }
-
     if debug_find_best_function_match { Log::debug("Finding best function match for $name(${args})") }
     let scored_options = []
 
