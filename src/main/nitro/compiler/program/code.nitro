@@ -632,8 +632,8 @@ fun ByteBuffer.serialize_code(code: NCode) {
     serialize_id_provider(code.mark_id_provider)
     serialize_id_provider(code.inst_id_provider)
     serialize_id_provider(code.variable_id_provider)
-    write_int(code.break_jumps.len)
     write_int(code.cursor)
+    write_int(code.break_jumps.len)
     for jump in code.break_jumps {
         serialize_id(jump)
     }

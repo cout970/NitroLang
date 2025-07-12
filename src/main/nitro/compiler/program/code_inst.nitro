@@ -1476,8 +1476,8 @@ fun ByteBuffer.serialize_inst(inst: NInst) {
 fun ByteBuffer.deserialize_inst(code: NCode): NInst {
     let id = deserialize_id()
     let span = deserialize_span()
-    let variant = read_int()
     let gc_related = read_boolean()
+    let variant = read_int()
 
     let kind = when variant {
         0 -> {
