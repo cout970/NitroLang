@@ -538,87 +538,87 @@ fun WebGLRenderingContext.get_vertex_attrib_offset(index: Int, pname: Int): Int 
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1f"]
-fun WebGLRenderingContext.uniform1f(location: Optional<WebGLUniformLocation>, x: Float) {}
+fun WebGLRenderingContext.uniform1f(location: WebGLUniformLocation, x: Float) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1fv"]
-fun WebGLRenderingContext.uniform1fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
+fun WebGLRenderingContext.uniform1fv(location: WebGLUniformLocation, value: Float32Array) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1i"]
-fun WebGLRenderingContext.uniform1i(location: Optional<WebGLUniformLocation>, x: Int) {}
+fun WebGLRenderingContext.uniform1i(location: WebGLUniformLocation, x: Int) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform1iv"]
-fun WebGLRenderingContext.uniform1iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
+fun WebGLRenderingContext.uniform1iv(location: WebGLUniformLocation, value: Int32Array) {}
 
 // 2 parameters
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2f"]
-fun WebGLRenderingContext.uniform2f(location: Optional<WebGLUniformLocation>, x: Float, y: Float) {}
+fun WebGLRenderingContext.uniform2f(location: WebGLUniformLocation, x: Float, y: Float) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2fv"]
-fun WebGLRenderingContext.uniform2fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
+fun WebGLRenderingContext.uniform2fv(location: WebGLUniformLocation, value: Float32Array) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2i"]
-fun WebGLRenderingContext.uniform2i(location: Optional<WebGLUniformLocation>, x: Int, y: Int) {}
+fun WebGLRenderingContext.uniform2i(location: WebGLUniformLocation, x: Int, y: Int) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform2iv"]
-fun WebGLRenderingContext.uniform2iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
+fun WebGLRenderingContext.uniform2iv(location: WebGLUniformLocation, value: Int32Array) {}
 
 // 3 parameters
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3f"]
-fun WebGLRenderingContext.uniform3f(location: Optional<WebGLUniformLocation>, x: Float, y: Float, z: Float) {}
+fun WebGLRenderingContext.uniform3f(location: WebGLUniformLocation, x: Float, y: Float, z: Float) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3fv"]
-fun WebGLRenderingContext.uniform3fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
+fun WebGLRenderingContext.uniform3fv(location: WebGLUniformLocation, value: Float32Array) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3i"]
-fun WebGLRenderingContext.uniform3i(location: Optional<WebGLUniformLocation>, x: Int, y: Int, z: Int) {}
+fun WebGLRenderingContext.uniform3i(location: WebGLUniformLocation, x: Int, y: Int, z: Int) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform3iv"]
-fun WebGLRenderingContext.uniform3iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
+fun WebGLRenderingContext.uniform3iv(location: WebGLUniformLocation, value: Int32Array) {}
 
 // 4 parameters
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4f"]
-fun WebGLRenderingContext.uniform4f(location: Optional<WebGLUniformLocation>, x: Float, y: Float, z: Float, w: Float) {}
+fun WebGLRenderingContext.uniform4f(location: WebGLUniformLocation, x: Float, y: Float, z: Float, w: Float) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4fv"]
-fun WebGLRenderingContext.uniform4fv(location: Optional<WebGLUniformLocation>, value: Float32Array) {}
+fun WebGLRenderingContext.uniform4fv(location: WebGLUniformLocation, value: Float32Array) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4i"]
-fun WebGLRenderingContext.uniform4i(location: Optional<WebGLUniformLocation>, x: Int, y: Int, z: Int, w: Int) {}
+fun WebGLRenderingContext.uniform4i(location: WebGLUniformLocation, x: Int, y: Int, z: Int, w: Int) {}
 
 // Specifies a value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform4iv"]
-fun WebGLRenderingContext.uniform4iv(location: Optional<WebGLUniformLocation>, value: Int32Array) {}
+fun WebGLRenderingContext.uniform4iv(location: WebGLUniformLocation, value: Int32Array) {}
 
 // Set matrices
 
 // Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix2fv"]
-fun WebGLRenderingContext.uniform_matrix2fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
+fun WebGLRenderingContext.uniform_matrix2fv(location: WebGLUniformLocation, transpose: Boolean, value: Float32Array) {}
 
 // Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix3fv"]
-fun WebGLRenderingContext.uniform_matrix3fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
+fun WebGLRenderingContext.uniform_matrix3fv(location: WebGLUniformLocation, transpose: Boolean, value: Float32Array) {}
 
 // Specifies a matrix value for a uniform variable.
 @Extern [lib: "bindings", name: "webgl_uniform_matrix4fv"]
-fun WebGLRenderingContext.uniform_matrix4fv(location: Optional<WebGLUniformLocation>, transpose: Boolean, value: Float32Array) {}
+fun WebGLRenderingContext.uniform_matrix4fv(location: WebGLUniformLocation, transpose: Boolean, value: Float32Array) {}
 
 // Vertex attributes
 

@@ -855,201 +855,125 @@ export const bindings = {
 
   webgl_uniform1f: (context: number, location: number, x: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform1f(uniformLocation, x);
   },
 
   webgl_uniform1fv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniform1fv(uniformLocation, floatArray);
   },
 
   webgl_uniform1i: (context: number, location: number, x: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform1i(uniformLocation, x);
   },
 
   webgl_uniform1iv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const intArray = state.getObject(value) as Int32Array;
     webglContext.uniform1iv(uniformLocation, intArray);
   },
 
   webgl_uniform2f: (context: number, location: number, x: number, y: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform2f(uniformLocation, x, y);
   },
 
   webgl_uniform2fv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniform2fv(uniformLocation, floatArray);
   },
 
   webgl_uniform2i: (context: number, location: number, x: number, y: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform2i(uniformLocation, x, y);
   },
 
   webgl_uniform2iv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const intArray = state.getObject(value) as Int32Array;
     webglContext.uniform2iv(uniformLocation, intArray);
   },
 
   webgl_uniform3f: (context: number, location: number, x: number, y: number, z: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform3f(uniformLocation, x, y, z);
   },
 
   webgl_uniform3fv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniform3fv(uniformLocation, floatArray);
   },
 
   webgl_uniform3i: (context: number, location: number, x: number, y: number, z: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform3i(uniformLocation, x, y, z);
   },
 
   webgl_uniform3iv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const intArray = state.getObject(value) as Int32Array;
     webglContext.uniform3iv(uniformLocation, intArray);
   },
 
   webgl_uniform4f: (context: number, location: number, x: number, y: number, z: number, w: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform4f(uniformLocation, x, y, z, w);
   },
 
   webgl_uniform4fv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniform4fv(uniformLocation, floatArray);
   },
 
   webgl_uniform4i: (context: number, location: number, x: number, y: number, z: number, w: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     webglContext.uniform4i(uniformLocation, x, y, z, w);
   },
 
   webgl_uniform4iv: (context: number, location: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const intArray = state.getObject(value) as Int32Array;
     webglContext.uniform4iv(uniformLocation, intArray);
   },
 
   webgl_uniform_matrix2fv: (context: number, location: number, transpose: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniformMatrix2fv(uniformLocation, transpose !== 0, floatArray);
   },
 
   webgl_uniform_matrix3fv: (context: number, location: number, transpose: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniformMatrix3fv(uniformLocation, transpose !== 0, floatArray);
   },
 
   webgl_uniform_matrix4fv: (context: number, location: number, transpose: number, value: number) => {
     const webglContext = state.getObject(context) as WebGLRenderingContext;
-    const location_opt = state.getOptional(location);
-    if (location_opt === null) {
-      return;
-    }
-    const uniformLocation = state.getObject(location_opt) as WebGLUniformLocation;
+    const uniformLocation = state.getObject(location) as WebGLUniformLocation;
     const floatArray = state.getObject(value) as Float32Array;
     webglContext.uniformMatrix4fv(uniformLocation, transpose !== 0, floatArray);
   },
