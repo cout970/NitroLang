@@ -28,7 +28,11 @@ export default defineConfig({
   },
   plugins: [wasmContentType()],
   resolve: {
-    extensions: ['.js', '.wasm']
+    extensions: ['.js', '.ts', '.wasm'],
+    alias: {
+      '@': '/src'
+    },
+    preserveSymlinks: true,
   },
   build: {
     modulePreload: {
@@ -46,7 +50,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['*.wasm'],
+    exclude: ['*.wasm', '*.wat'],
     esbuildOptions: {
       // Node.js global to browser globalThis
       define: {
