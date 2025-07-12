@@ -40,8 +40,19 @@
             <div id="tabs">
                 <template id="tab-template">
                     <div class="tab">
+                        <svg class="file-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                            <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                        </svg>
                         <span class="name">main.nitro</span>
-                        <span class="close">x</span>
+                        <button class="close" type="button" title="Close tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M18 6l-12 12"/>
+                                <path d="M6 6l12 12"/>
+                            </svg>
+                        </button>
                     </div>
                 </template>
             </div>
@@ -97,6 +108,19 @@
                 <span>Download</span>
             </button>
 
+            <button id="menu-btn-new-file" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="icon icon-tabler icons-tabler-outline icon-tabler-file-plus">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                    <path d="M12 11l0 6"/>
+                    <path d="M9 14l6 0"/>
+                </svg>
+                <span>New File</span>
+            </button>
+
             <button id="menu-btn-toggle-theme" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -109,7 +133,192 @@
                 </svg>
                 <span>Toggle theme</span>
             </button>
+
+            <div class="menu-divider"></div>
+            <div class="menu-section-title">Compilation Settings</div>
+
+            <div class="menu-setting">
+                <label for="target-select">Target:</label>
+                <select id="target-select">
+                    <option value="wasm32-wasi">WASM32-WASI</option>
+                    <option value="wasm32-js">WASM32-JS</option>
+                </select>
+            </div>
+
+            <div class="menu-setting">
+                <label for="core-library-select">Core Library:</label>
+                <select id="core-library-select">
+                    <option value="bundled">Bundled</option>
+                    <option value="source">Source (src/core)</option>
+                </select>
+            </div>
+
+            <div class="menu-setting full-width">
+                <label for="main-file-input">Main File:</label>
+                <input type="text" id="main-file-input" placeholder="src/main.nitro" value="src/main.nitro" title="Entry point file for compilation">
+            </div>
+
+            <div class="menu-setting">
+                <label>
+                    <input type="checkbox" id="verbose-checkbox">
+                    <span>Verbose output</span>
+                </label>
+            </div>
+
+            <div class="menu-setting">
+                <label>
+                    <input type="checkbox" id="dump-ir-checkbox">
+                    <span>Dump IR</span>
+                </label>
+            </div>
+
+            <div class="menu-setting">
+                <label>
+                    <input type="checkbox" id="enable-rc-gc-checkbox">
+                    <span>Enable RC GC</span>
+                </label>
+            </div>
+
+            <div class="menu-setting full-width">
+                <label for="custom-args-input">Custom Arguments:</label>
+                <input type="text" id="custom-args-input" placeholder="--flag value --another-flag" title="Additional compiler arguments">
+            </div>
         </div>
+    </div>
+
+    <!-- Tab context menu -->
+    <div id="tab-context-menu" class="context-menu hidden">
+        <button id="context-close-tab" type="button">Close</button>
+        <button id="context-close-others" type="button">Close Others</button>
+        <button id="context-close-all" type="button">Close All</button>
+        <div class="context-divider"></div>
+        <button id="context-copy-path" type="button">Copy Path</button>
+    </div>
+
+    <!-- File tree context menu -->
+    <div id="file-context-menu" class="context-menu hidden">
+        <!-- File/folder specific actions -->
+        <button id="file-context-open" type="button" class="file-only">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+            </svg>
+            Open
+        </button>
+        <button id="file-context-download" type="button" class="file-only">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+        </button>
+        <div class="context-divider"></div>
+        
+        <!-- Create actions -->
+        <button id="file-context-new-file" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                <path d="M12 11l0 6"/>
+                <path d="M9 14l6 0"/>
+            </svg>
+            New File
+        </button>
+        <button id="file-context-new-folder" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19l-7-7 3-3 4 4 8.5-8.5 3 3z"/>
+                <path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-11a2 2 0 0 1-2-2"/>
+                <path d="M12 11l0 6"/>
+                <path d="M9 14l6 0"/>
+            </svg>
+            New Folder
+        </button>
+        <div class="context-divider"></div>
+        
+        <!-- Edit actions -->
+        <button id="file-context-cut" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"/>
+                <circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+            </svg>
+            Cut
+        </button>
+        <button id="file-context-copy" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+            Copy
+        </button>
+        <button id="file-context-paste" type="button" class="disabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            </svg>
+            Paste
+        </button>
+        <div class="context-divider"></div>
+        
+        <!-- Other actions -->
+        <button id="file-context-rename" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                <path d="M10 12l-1 1 1 1"/>
+                <path d="M14 12l1 1-1 1"/>
+            </svg>
+            Rename
+        </button>
+        <button id="file-context-delete" type="button" class="dangerous">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            </svg>
+            Delete
+        </button>
+        <div class="context-divider"></div>
+        <button id="file-context-copy-path" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            Copy Path
+        </button>
+    </div>
+
+    <!-- File tree empty area context menu -->
+    <div id="file-tree-context-menu" class="context-menu hidden">
+        <button id="tree-context-new-file" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                <path d="M12 11l0 6"/>
+                <path d="M9 14l6 0"/>
+            </svg>
+            New File
+        </button>
+        <button id="tree-context-new-folder" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19l-7-7 3-3 4 4 8.5-8.5 3 3z"/>
+                <path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-14a2 2 0 0 1-2-2v-11a2 2 0 0 1-2-2"/>
+                <path d="M12 11l0 6"/>
+                <path d="M9 14l6 0"/>
+            </svg>
+            New Folder
+        </button>
+        <div class="context-divider"></div>
+        <button id="tree-context-paste" type="button" class="disabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+            </svg>
+            Paste
+        </button>
     </div>
 
     <!-- Content -->
@@ -170,7 +379,36 @@
             </div>
 
             <!-- Editor center panel -->
-            <pre id="editor"></pre>
+            <div id="editor-container">
+                <pre id="editor"></pre>
+                <div id="welcome-message" class="welcome-overlay hidden">
+                    <div class="welcome-content">
+                        <h2>🚀 Nitro Language Playground</h2>
+                        <p>Welcome! No files are currently open.</p>
+
+                        <div class="keybinds-section">
+                            <h3>⌨️ Keyboard Shortcuts</h3>
+                            <div class="keybind">
+                                <kbd>Ctrl</kbd> + <kbd>S</kbd>
+                                <span>Compile and run</span>
+                            </div>
+                            <div class="keybind">
+                                <kbd>Ctrl</kbd> + <kbd>B</kbd>
+                                <span>Toggle file explorer</span>
+                            </div>
+                            <div class="keybind">
+                                <kbd>Ctrl</kbd> + <kbd>J</kbd>
+                                <span>Toggle console</span>
+                            </div>
+                        </div>
+
+                        <div class="quick-start">
+                            <h3>🎯 Quick Start</h3>
+                            <button id="welcome-open-index" type="button" class="primary-btn">Open main.nitro</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Terminal bottom/right panel -->

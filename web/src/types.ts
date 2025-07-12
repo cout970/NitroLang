@@ -29,3 +29,21 @@ export interface RunProgramOptions {
   args?: string[];
   mount?: Record<string, Directory>;
 }
+
+export interface CompilationOptions {
+  target: 'wasm32-wasi' | 'wasm32-js';
+  verbose: boolean;
+  dumpIr: boolean;
+  coreLibrary: 'bundled' | 'source';
+  mainFile: string;
+  flags: Record<string, string>;
+  customArgs: string[];
+}
+
+export interface CompilationSettings {
+  target: string;
+  verbose: boolean;
+  dumpIr: boolean;
+  coreLibrary: string;
+  enableRcGc: boolean;
+}
